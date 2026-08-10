@@ -27,6 +27,11 @@
 <meta name="twitter:image" content="https://xavierchua10-dotcom.github.io/iron-ledger/og-image.png">
 <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Iron Ledger">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -403,6 +408,7 @@
     border-radius:6px;
   }
   .icon-btn:active{background:var(--panel-3);color:var(--text);}
+  .icon-btn.confirming{background:var(--accent-2-dim);color:var(--accent-2);border-radius:6px;}
 
   .plate-bar-wrap{
     background:var(--bg);
@@ -460,6 +466,7 @@
     line-height:1;
   }
   .set-act-btn:active{color:var(--accent);}
+  .set-act-btn.confirming{background:var(--accent-2-dim);color:var(--accent-2);border-radius:6px;}
 
   .editing-label{
     font-family:'JetBrains Mono',monospace;
@@ -798,6 +805,7 @@
     cursor:pointer;
     padding:6px 0;
   }
+  .hi-delete.confirming{font-weight:700;letter-spacing:0.06em;}
 
   /* ---------- Progress ---------- */
   .progress-select{
@@ -863,6 +871,10 @@
     font-size:12px;
     font-weight:600;
     cursor:pointer;
+  }
+  .settings-row button.sr-action-danger{
+    color:var(--accent-2);
+    border-color:var(--accent-2-dim);
   }
   .settings-row .seg{
     display:flex;
@@ -1002,7 +1014,11 @@
     showAccountMenu: false,
     authMode: 'login',     // 'login' | 'signup'
     authError: null,
-    authDraft: { username: '' }
+    authDraft: { username: '' },
+    pendingDeleteExercise: null,  // exId armed for confirm, or null
+    pendingDeleteSet: null,       // "exId::setId" armed for confirm, or null
+    pendingDeleteSession: null,   // sessionId armed for confirm, or null
+    pendingDeleteAccount: false
   };
 
   /* =========================================================
@@ -1462,9 +1478,10 @@
 
   function renderExerciseCard(session, ex){
     var html = '<div class="exercise-card" data-ex="'+ex.id+'">';
+    var exConfirming = ui.pendingDeleteExercise === ex.id;
     html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
             (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') + '</div>' +
-            '<button class="icon-btn" data-action="delete-exercise" data-ex="'+ex.id+'">&#10005;</button></div>';
+            '<button class="icon-btn'+(exConfirming ? ' confirming' : '')+'" data-action="delete-exercise" data-ex="'+ex.id+'" aria-label="'+(exConfirming ? 'Tap again to delete exercise' : 'Delete exercise')+'">&#10005;</button></div>';
 
     html += '<div class="plate-bar-wrap">' +
               '<div class="plate-bar-label"><span>PER SIDE</span><span class="w" data-role="bar-weight-label">'+(unitLabel()==='kg'?'20KG':'45LB')+' BAR</span></div>' +
@@ -1480,6 +1497,7 @@
       ex.sets.forEach(function(st, i){
         var isEditingRow = st.id === editingSetId;
         if (isEditingRow) editingSetObj = st;
+        var setConfirming = ui.pendingDeleteSet === (ex.id + '::' + st.id);
         html += '<div class="set-row'+(isEditingRow ? ' editing' : '')+'">' +
                   '<span class="set-idx">'+(i+1)+'</span>' +
                   '<span class="set-detail">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
@@ -1489,7 +1507,7 @@
                   '</span>' +
                   '<span class="set-actions">' +
                     '<button class="set-act-btn" data-action="edit-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Edit set">&#9998;</button>' +
-                    '<button class="set-act-btn" data-action="delete-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Delete set">&#10005;</button>' +
+                    '<button class="set-act-btn'+(setConfirming ? ' confirming' : '')+'" data-action="delete-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="'+(setConfirming ? 'Tap again to delete set' : 'Delete set')+'">&#10005;</button>' +
                   '</span>' +
                 '</div>';
       });
@@ -1554,7 +1572,8 @@
             }).join('<br>');
             html += '</div></div>';
           });
-          html += '<button class="hi-delete" data-action="delete-session" data-session="'+s.id+'">Delete session</button>';
+          var sessConfirming = ui.pendingDeleteSession === s.id;
+          html += '<button class="hi-delete'+(sessConfirming ? ' confirming' : '')+'" data-action="delete-session" data-session="'+s.id+'">'+(sessConfirming ? 'Tap again to delete' : 'Delete session')+'</button>';
           html += '</div>';
         }
         html += '</div>';
@@ -1691,6 +1710,11 @@
     html += '<div class="settings-row"><div><div class="sr-label">'+esc(currentAccountUsername())+'</div>' +
               '<div class="sr-sub">'+(state.currentAccount==='guest' ? 'Guest — this device only' : 'Local account, stored on this device')+'</div></div>' +
               '<button class="sr-action" data-action="log-out">Log out</button></div>';
+    if (state.currentAccount !== 'guest'){
+      html += '<div class="settings-row"><div><div class="sr-label">Delete account</div>' +
+                '<div class="sr-sub">Permanently erases this account and its log</div></div>' +
+                '<button class="sr-action sr-action-danger" data-action="'+(ui.pendingDeleteAccount ? 'confirm-delete-account' : 'delete-account')+'">'+(ui.pendingDeleteAccount ? 'Tap again' : 'Delete')+'</button></div>';
+    }
     html += '</div>';
 
     html += '<div class="section-label">Preferences</div>';
@@ -1793,8 +1817,20 @@
     ui.authMode = 'login';
     ui.authError = null;
     ui.authDraft = { username: '' };
+    ui.pendingDeleteAccount = false;
     showAuthGateShell();
     renderAuthGate();
+  }
+
+  function deleteAccount(){
+    if (!state.currentAccount || state.currentAccount === 'guest') return;
+    var id = state.currentAccount;
+    var accounts = loadAccounts().filter(function(a){ return a.id !== id; });
+    saveAccounts(accounts);
+    localStorage.removeItem(STORAGE_SESSIONS + '::' + id);
+    localStorage.removeItem(STORAGE_SETTINGS + '::' + id);
+    logOut();
+    showToast('Account deleted');
   }
 
   function handleLogIn(username, password){
@@ -2078,12 +2114,26 @@
       ui.pendingMuscle = null;
       ui.editingSet = null;
       ui.showAccountMenu = false;
+      ui.pendingDeleteExercise = null;
+      ui.pendingDeleteSet = null;
+      ui.pendingDeleteSession = null;
+      ui.pendingDeleteAccount = false;
       renderApp();
     } else if (action === 'toggle-account-menu'){
       ui.showAccountMenu = !ui.showAccountMenu;
       renderApp();
     } else if (action === 'log-out'){
       logOut();
+    } else if (action === 'delete-account'){
+      ui.pendingDeleteAccount = true;
+      renderApp();
+      setTimeout(function(){
+        ui.pendingDeleteAccount = false;
+        renderApp();
+      }, 4000);
+    } else if (action === 'confirm-delete-account'){
+      ui.pendingDeleteAccount = false;
+      deleteAccount();
     } else if (action === 'toggle-unit'){
       state.settings.unit = state.settings.unit === 'kg' ? 'lb' : 'kg';
       saveSettings();
@@ -2091,11 +2141,37 @@
     } else if (action === 'add-exercise'){
       addExercise();
     } else if (action === 'delete-exercise'){
-      deleteExercise(el.dataset.ex);
+      var exIdToDelete = el.dataset.ex;
+      if (ui.pendingDeleteExercise === exIdToDelete){
+        ui.pendingDeleteExercise = null;
+        deleteExercise(exIdToDelete);
+      } else {
+        ui.pendingDeleteExercise = exIdToDelete;
+        renderApp();
+        setTimeout(function(){
+          if (ui.pendingDeleteExercise === exIdToDelete){
+            ui.pendingDeleteExercise = null;
+            renderApp();
+          }
+        }, 3000);
+      }
     } else if (action === 'add-set'){
       addSet(el.dataset.ex);
     } else if (action === 'delete-set'){
-      deleteSet(el.dataset.ex, el.dataset.set);
+      var setDeleteKey = el.dataset.ex + '::' + el.dataset.set;
+      if (ui.pendingDeleteSet === setDeleteKey){
+        ui.pendingDeleteSet = null;
+        deleteSet(el.dataset.ex, el.dataset.set);
+      } else {
+        ui.pendingDeleteSet = setDeleteKey;
+        renderApp();
+        setTimeout(function(){
+          if (ui.pendingDeleteSet === setDeleteKey){
+            ui.pendingDeleteSet = null;
+            renderApp();
+          }
+        }, 3000);
+      }
     } else if (action === 'edit-set'){
       editSet(el.dataset.ex, el.dataset.set);
     } else if (action === 'save-set-edit'){
@@ -2134,7 +2210,20 @@
       ui.expandedHistory[sid] = !ui.expandedHistory[sid];
       renderApp();
     } else if (action === 'delete-session'){
-      deleteSession(el.dataset.session);
+      var sessIdToDelete = el.dataset.session;
+      if (ui.pendingDeleteSession === sessIdToDelete){
+        ui.pendingDeleteSession = null;
+        deleteSession(sessIdToDelete);
+      } else {
+        ui.pendingDeleteSession = sessIdToDelete;
+        renderApp();
+        setTimeout(function(){
+          if (ui.pendingDeleteSession === sessIdToDelete){
+            ui.pendingDeleteSession = null;
+            renderApp();
+          }
+        }, 3000);
+      }
     } else if (action === 'set-unit'){
       state.settings.unit = el.dataset.unit;
       saveSettings();
@@ -2249,6 +2338,14 @@
   } else {
     showAuthGateShell();
     renderAuthGate();
+  }
+
+  // Enables offline use + the "Install app" prompt on Android/Chrome.
+  // Silently does nothing over file:// or if the browser lacks support.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
   }
 })();
 </script>
