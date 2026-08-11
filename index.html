@@ -660,6 +660,27 @@
     margin-bottom:14px;
   }
   .btn-block:active{background:var(--panel-2);}
+  .add-exercise-bottom-btn{
+    width:100%;
+    padding:15px;
+    border-radius:var(--radius);
+    border:1.5px dashed var(--accent-dim);
+    background:transparent;
+    color:var(--accent);
+    font-family:'Oswald',sans-serif;
+    font-size:14px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+  .add-exercise-bottom-btn:active{background:var(--panel-2);border-color:var(--accent);}
+  .add-exercise-bottom-btn .plus-glyph{font-size:18px;line-height:1;}
   .btn-primary{
     width:100%;
     padding:15px;
@@ -837,39 +858,6 @@
   }
   .mm-exercise-item:active{background:var(--panel);border-color:var(--accent-dim);}
   .mm-exercise-item-custom{color:var(--accent);border-color:var(--accent-dim);background:transparent;}
-
-  .name-input-row{
-    display:flex;
-    gap:8px;
-    margin-bottom:14px;
-  }
-  .name-input-row input{
-    flex:1;
-    min-width:0;
-    background:var(--panel);
-    border:1px solid var(--line);
-    color:var(--text);
-    border-radius:var(--radius);
-    padding:12px;
-    font-size:16px;
-  }
-  .name-input-row input:focus{outline:none;border-color:var(--accent);}
-  .name-input-row button{
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    color:var(--accent);
-    border-radius:var(--radius);
-    padding:0 16px;
-    font-weight:700;
-    font-size:18px;
-    cursor:pointer;
-  }
-  .name-input-row button.ready{
-    background:var(--accent);
-    border-color:var(--accent);
-    color:#2a1f04;
-  }
-  .name-input-row button.ready:active{opacity:0.85;}
 
   /* ---------- Empty state ---------- */
   .empty{
@@ -1388,6 +1376,7 @@
     activeExId: null,      // exercise whose weight/reps inputs were last focused — used by the global Add Set button
     draftSets: {},          // exId -> { weight, reps } — unsaved input, kept across collapse/expand or tab switches
     editingExerciseName: null,  // exId currently being renamed, or null
+    newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     tabAnimating: false     // true while a tab-slide transition is in progress
   };
 
@@ -1831,16 +1820,15 @@
     html += '<div class="section-label">Add Exercise</div>';
     html += '<button class="btn-block mm-toggle-btn" data-action="toggle-muscle-map">Pick by muscle group</button>';
 
-    html += '<div class="name-input-row">' +
-              '<input type="text" id="newExInput" autocomplete="off" placeholder="Or type a name, e.g. Bench Press">' +
-              '<button class="add-ex-btn" data-action="add-exercise">+</button>' +
-            '</div>';
-
     if (session.exercises.length > 0){
       session.exercises.forEach(function(ex){
         html += renderExerciseCard(session, ex);
       });
     }
+
+    html += '<button class="add-exercise-bottom-btn" data-action="add-blank-exercise">' +
+              '<span class="plus-glyph">&#43;</span> Add Exercise' +
+            '</button>';
 
     document.getElementById('view').innerHTML = html;
   }
@@ -2423,27 +2411,9 @@
      ACTIONS
      ========================================================= */
   function addExercise(name, muscle){
-    if (name == null){
-      var input = document.getElementById('newExInput');
-      name = input.value.trim();
-      muscle = ui.pendingMuscle || null;
-    }
-    name = String(name).trim();
+    name = String(name || '').trim();
     if (!name) return;
-    if (!muscle){
-      ui.confirmModal = {
-        kind: 'add-exercise',
-        title: 'Add this exercise?',
-        message: '\u201c' + name + '\u201d will be added to today\u2019s session.',
-        confirmLabel: 'Add Exercise',
-        variant: 'primary',
-        name: name,
-        muscle: muscle || null
-      };
-      renderApp();
-      return;
-    }
-    commitAddExercise(name, muscle);
+    commitAddExercise(name, muscle || null);
   }
 
   function commitAddExercise(name, muscle){
@@ -2472,9 +2442,53 @@
     renderApp();
   }
 
-  function editExerciseName(exId){
+  function openAddExerciseConfirm(muscle){
+    ui.confirmModal = {
+      kind: 'add-blank-exercise',
+      title: 'Add new exercise?',
+      message: 'A blank exercise card will be added to this session \u2014 you can name it and log sets right after.',
+      confirmLabel: 'Add',
+      variant: 'primary',
+      muscle: muscle || null
+    };
+    renderApp();
+  }
+
+  function openAddNamedExerciseConfirm(name, muscle){
+    ui.showMuscleMap = false;
+    ui.confirmModal = {
+      kind: 'add-named-exercise',
+      title: 'Add this exercise?',
+      message: '\u201c' + name + '\u201d will be added to this session.',
+      confirmLabel: 'Add',
+      variant: 'primary',
+      name: name,
+      muscle: muscle || null
+    };
+    renderApp();
+  }
+
+  function addBlankExercise(muscle){
+    var session = getActiveSession();
+    var newEx = { id: uid(), name: '', muscle: muscle || null, sets: [], done: false };
+    session.exercises.push(newEx);
+    saveSessions();
+    ui.newExerciseId = newEx.id;
+    editExerciseName(newEx.id, false); // rename row shown, but no auto keyboard — user taps in when ready
+  }
+
+  function discardPendingNewExercise(){
+    if (!ui.newExerciseId) return;
+    var session = getActiveSession();
+    session.exercises = session.exercises.filter(function(e){ return e.id !== ui.newExerciseId; });
+    saveSessions();
+    ui.newExerciseId = null;
+  }
+
+  function editExerciseName(exId, autoFocus){
     ui.editingExerciseName = exId;
     renderApp();
+    if (autoFocus === false) return;
     setTimeout(function(){
       var input = document.getElementById('exNameInput');
       if (input){ input.focus(); input.select(); }
@@ -2482,6 +2496,7 @@
   }
 
   function cancelExerciseNameEdit(){
+    discardPendingNewExercise();
     ui.editingExerciseName = null;
     renderApp();
   }
@@ -2497,15 +2512,17 @@
       return;
     }
     var oldName = ex.name;
+    var wasNew = ui.newExerciseId === exId;
     ex.name = name;
     saveSessions();
     if (oldName.trim().toLowerCase() !== name.trim().toLowerCase()){
       recomputeExercisePRs(oldName);
       recomputeExercisePRs(name);
     }
+    ui.newExerciseId = null;
     ui.editingExerciseName = null;
     renderApp();
-    showToast('Exercise renamed');
+    showToast(wasNew ? 'Exercise added' : 'Exercise renamed');
   }
 
   function toggleExerciseDone(exId){
@@ -2514,7 +2531,10 @@
     if (!ex) return;
     ex.done = !ex.done;
     if (ex.done && ui.editingSet && ui.editingSet.exId === exId) ui.editingSet = null;
-    if (ex.done && ui.editingExerciseName === exId) ui.editingExerciseName = null;
+    if (ex.done && ui.editingExerciseName === exId){
+      if (ui.newExerciseId === exId) discardPendingNewExercise();
+      ui.editingExerciseName = null;
+    }
     saveSessions();
     renderApp();
   }
@@ -2523,6 +2543,10 @@
     var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
+    if (!ex.name || !ex.name.trim()){
+      showToast('Exercise name can\u2019t be empty');
+      return;
+    }
     var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
     var weightInput = card.querySelector('.set-weight-input');
     var repsInput = card.querySelector('.set-reps-input');
@@ -2576,15 +2600,6 @@
     return { ex: ex, weightInput: weightInput, repsInput: repsInput };
   }
 
-  function refreshAddExBtn(){
-    var btn = document.querySelector('.add-ex-btn');
-    var input = document.getElementById('newExInput');
-    if (!btn || !input) return;
-    var ready = input.value.trim().length > 0;
-    btn.classList.toggle('ready', ready);
-    btn.textContent = ready ? '\u2713' : '+';
-  }
-
   function refreshAddSetGlobalBtn(){
     var btn = document.querySelector('.add-set-global-btn');
     if (!btn) return;
@@ -2606,6 +2621,10 @@
       return;
     }
     var ex = target.ex;
+    if (!ex.name || !ex.name.trim()){
+      showToast('Exercise name can\u2019t be empty');
+      return;
+    }
     var weightKg = toStoredKg(target.weightInput.value);
     var reps = parseInt(target.repsInput.value, 10);
     if (weightKg === null || weightKg <= 0 || isNaN(reps) || reps <= 0){
@@ -2915,6 +2934,7 @@
       var targetTab = el.dataset.tab;
       ui.pendingMuscle = null;
       ui.editingSet = null;
+      discardPendingNewExercise();
       ui.editingExerciseName = null;
       ui.showAccountMenu = false;
       ui.confirmModal = null;
@@ -2949,8 +2969,8 @@
       state.settings.unit = state.settings.unit === 'kg' ? 'lb' : 'kg';
       saveSettings();
       renderApp();
-    } else if (action === 'add-exercise'){
-      addExercise();
+    } else if (action === 'add-blank-exercise'){
+      openAddExerciseConfirm();
     } else if (action === 'delete-exercise'){
       openDeleteExerciseConfirm(el.dataset.ex);
     } else if (action === 'toggle-exercise-done'){
@@ -2983,15 +3003,10 @@
       ui.selectedMuscle = el.dataset.muscle;
       renderApp();
     } else if (action === 'mm-add-exercise'){
-      addExercise(el.dataset.name, el.dataset.muscle);
+      openAddNamedExerciseConfirm(el.dataset.name, el.dataset.muscle);
     } else if (action === 'mm-custom'){
-      ui.pendingMuscle = el.dataset.muscle;
       ui.showMuscleMap = false;
-      renderApp();
-      setTimeout(function(){
-        var inp = document.getElementById('newExInput');
-        if (inp) inp.focus();
-      }, 50);
+      openAddExerciseConfirm(el.dataset.muscle);
     } else if (action === 'toggle-history'){
       var sid = el.dataset.session;
       ui.expandedHistory[sid] = !ui.expandedHistory[sid];
@@ -3043,9 +3058,6 @@
         else ui.draftSets[exId].reps = t.value;
       }
     }
-    if (t.id === 'newExInput'){
-      refreshAddExBtn();
-    }
   });
 
   document.getElementById('app').addEventListener('focusin', function(e){
@@ -3066,10 +3078,7 @@
 
   document.getElementById('app').addEventListener('keydown', function(e){
     if (e.key === 'Enter'){
-      if (e.target.id === 'newExInput'){
-        e.preventDefault();
-        addExercise();
-      } else if (e.target.classList.contains('set-reps-input')){
+      if (e.target.classList.contains('set-reps-input')){
         e.preventDefault();
         ui.activeExId = e.target.dataset.ex;
         if (ui.editingSet) saveSetEdit(ui.editingSet.exId, ui.editingSet.setId);
@@ -3159,15 +3168,14 @@
       else if (m && m.kind === 'session') deleteSession(m.sessionId);
       else if (m && m.kind === 'edit-session') reopenSessionForEdit(m.sessionId);
       else if (m && m.kind === 'finish-session') finishSession();
+      else if (m && m.kind === 'add-blank-exercise') addBlankExercise(m.muscle);
+      else if (m && m.kind === 'add-named-exercise') addExercise(m.name, m.muscle);
       else if (m && m.kind === 'clear-data') clearAllData();
       else if (m && m.kind === 'logout') logOut();
       else if (m && m.kind === 'add-set-global'){
         var session = getActiveSession();
         var ex = findExercise(session, m.exId);
         if (ex) commitSet(ex, m.weightKg, m.reps, m.toFailure);
-      }
-      else if (m && m.kind === 'add-exercise'){
-        commitAddExercise(m.name, m.muscle);
       }
       else renderApp();
     }
