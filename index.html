@@ -466,6 +466,9 @@
     flex-shrink:0;
   }
   .icon-btn:active{background:var(--panel-3);color:var(--text);}
+  .exercise-head-actions .icon-btn{
+    border:1px solid var(--line);
+  }
 
   .exercise-volume{
     display:flex;
@@ -1810,10 +1813,7 @@
                 '<input type="number" inputmode="decimal" step="0.5" class="set-weight-input" data-ex="'+ex.id+'" value="'+fmtWeight(editingSetObj.weightKg)+'">' +
                 '<input type="number" inputmode="numeric" step="1" class="set-reps-input" data-ex="'+ex.id+'" value="'+editingSetObj.reps+'">' +
                 '<button class="failure-toggle'+(editingSetObj.toFailure ? ' active' : '')+'" data-action="toggle-failure" data-ex="'+ex.id+'">&#9679;</button>' +
-                '<div class="edit-btn-group">' +
-                  '<button class="save-edit-btn" data-action="save-set-edit" data-ex="'+ex.id+'" data-set="'+editingSetObj.id+'">&#10003;</button>' +
-                  '<button class="cancel-edit-btn" data-action="cancel-set-edit">&#10005;</button>' +
-                '</div>' +
+                '<button class="cancel-edit-btn" data-action="cancel-set-edit" aria-label="Cancel edit">&#10005;</button>' +
               '</div>';
     } else {
       html += '<div class="add-set-row no-add-btn">' +
@@ -2349,9 +2349,9 @@
   function activeAddSetTarget(){
     var session = getActiveSession();
     if (!session) return null;
-    var exId = ui.activeExId;
+    var exId = ui.editingSet ? ui.editingSet.exId : ui.activeExId;
     var ex = exId ? findExercise(session, exId) : null;
-    if (!ex || ex.done){
+    if (!ui.editingSet && (!ex || ex.done)){
       ex = session.exercises.find(function(e){ return !e.done; });
     }
     if (!ex) return null;
@@ -2383,6 +2383,7 @@
       ready = weightKg !== null && weightKg > 0 && !isNaN(reps) && reps > 0;
     }
     btn.disabled = !ready;
+    btn.innerHTML = ui.editingSet ? '&#10003; Apply Changes' : '&#10003; Add Set';
   }
 
   function addSetGlobal(){
@@ -2706,7 +2707,8 @@
     } else if (action === 'add-set'){
       addSet(el.dataset.ex);
     } else if (action === 'add-set-global'){
-      addSetGlobal();
+      if (ui.editingSet) saveSetEdit(ui.editingSet.exId, ui.editingSet.setId);
+      else addSetGlobal();
     } else if (action === 'delete-set'){
       openDeleteSetConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'edit-set'){
@@ -2807,7 +2809,8 @@
       } else if (e.target.classList.contains('set-reps-input')){
         e.preventDefault();
         ui.activeExId = e.target.dataset.ex;
-        addSetGlobal();
+        if (ui.editingSet) saveSetEdit(ui.editingSet.exId, ui.editingSet.setId);
+        else addSetGlobal();
       } else if (e.target.id === 'hiNameInput'){
         e.preventDefault();
         saveHistoryName(ui.editingHistoryName);
