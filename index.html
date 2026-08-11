@@ -142,6 +142,24 @@
   }
   .unit-toggle:active{background:var(--panel-3);}
 
+  .install-app-btn{
+    background:var(--accent);
+    border:none;
+    color:#14161a;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.05em;
+    padding:9px 12px;
+    min-height:40px;
+    border-radius:20px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+  }
+  .install-app-btn:active{background:var(--accent-dim);color:var(--text);}
+
   .hidden{display:none !important;}
 
   .topbar-right{display:flex;align-items:center;gap:10px;}
@@ -1285,6 +1303,7 @@
           <button class="account-menu-logout" data-action="log-out">Log out</button>
         </div>
       </div>
+      <button class="install-app-btn hidden" id="installAppBtn" aria-label="Install app">&#8595; Install</button>
       <button class="unit-toggle" id="unitToggleBtn" data-action="toggle-unit">KG</button>
     </div>
   </header>
@@ -2936,6 +2955,50 @@
       navigator.serviceWorker.register('sw.js').catch(function(){});
     });
   }
+
+  // --- Custom "Install App" button ---
+  // Chrome/Edge fire beforeinstallprompt; we capture it and trigger it
+  // ourselves from our own button instead of relying on the browser's
+  // own (often-suppressed) mini-infobar. iOS Safari never fires this
+  // event, so we show manual "Add to Home Screen" instructions instead.
+  (function(){
+    var installBtn = document.getElementById('installAppBtn');
+    if (!installBtn) return;
+    var deferredPrompt = null;
+
+    function isStandalone(){
+      return window.matchMedia('(display-mode: standalone)').matches ||
+             window.navigator.standalone === true;
+    }
+    if (isStandalone()) return; // already installed
+
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.classList.remove('hidden');
+    });
+
+    var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS){
+      installBtn.classList.remove('hidden');
+    }
+
+    installBtn.addEventListener('click', async function(){
+      if (deferredPrompt){
+        installBtn.classList.add('hidden');
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      } else if (isIOS){
+        alert('To install Iron Ledger:\n\n1. Tap the Share icon\n2. Tap "Add to Home Screen"');
+      }
+    });
+
+    window.addEventListener('appinstalled', function(){
+      installBtn.classList.add('hidden');
+      deferredPrompt = null;
+    });
+  })();
 })();
 </script>
 </body>

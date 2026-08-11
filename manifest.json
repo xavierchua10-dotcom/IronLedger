@@ -1,16 +1,57 @@
 {
+  "id": "/",
   "name": "Iron Ledger",
   "short_name": "Iron Ledger",
   "description": "Log your lifts. Any style, any split.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#14161a",
   "theme_color": "#14161a",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["health", "fitness", "sports"],
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-mobile-1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Log your sets in seconds"
+    },
+    {
+      "src": "screenshot-mobile-2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Track PRs automatically"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Workout",
+      "short_name": "Workout",
+      "description": "Jump straight into logging a new session",
+      "url": "./?action=new-session",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "History",
+      "short_name": "History",
+      "description": "View past workout history",
+      "url": "./?view=history",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "prefer_related_applications": false
 }
