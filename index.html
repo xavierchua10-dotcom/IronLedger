@@ -872,7 +872,6 @@
     cursor:pointer;
   }
   .history-item-head .hi-left{display:flex;flex-direction:column;gap:2px;min-width:0;}
-  .hi-name-row{display:flex;align-items:center;gap:2px;}
   .history-item-head .hi-name{
     font-family:'Oswald',sans-serif;
     font-weight:600;
@@ -883,6 +882,7 @@
     text-overflow:ellipsis;
     white-space:nowrap;
   }
+  .hi-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
   .hi-rename-btn{
     width:26px;
     height:26px;
@@ -1869,10 +1869,12 @@
         } else {
           html += '<div class="history-item-head" data-action="toggle-history" data-session="'+s.id+'">' +
                     '<div class="hi-left">' +
-                      '<span class="hi-name-row"><span class="hi-name">'+esc(s.name || 'Untitled session')+'</span>' +
-                      '<button class="set-act-btn hi-rename-btn" data-action="edit-history-name" data-session="'+s.id+'" aria-label="Rename session">&#9998;</button></span>' +
+                      '<span class="hi-name">'+esc(s.name || 'Untitled session')+'</span>' +
                       '<span class="hi-date">'+fmtDate(s.date)+'</span></div>' +
-                    '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol</div>' +
+                    '<div class="hi-right">' +
+                      '<button class="set-act-btn hi-rename-btn" data-action="edit-history-name" data-session="'+s.id+'" aria-label="Rename session">&#9998;</button>' +
+                      '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol</div>' +
+                    '</div>' +
                   '</div>';
         }
         if (expanded){
