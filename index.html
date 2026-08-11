@@ -837,6 +837,12 @@
     font-size:18px;
     cursor:pointer;
   }
+  .name-input-row button.ready{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#2a1f04;
+  }
+  .name-input-row button.ready:active{opacity:0.85;}
 
   /* ---------- Empty state ---------- */
   .empty{
@@ -1617,7 +1623,7 @@
 
     html += '<div class="name-input-row">' +
               '<input type="text" list="exerciseNames" id="newExInput" placeholder="Or type a name, e.g. Bench Press">' +
-              '<button data-action="add-exercise">+</button>' +
+              '<button class="add-ex-btn" data-action="add-exercise">+</button>' +
             '</div>';
     html += '<datalist id="exerciseNames">' +
               allExerciseNames().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('') +
@@ -2104,13 +2110,16 @@
     name = String(name).trim();
     if (!name) return;
     var session = getActiveSession();
-    session.exercises.push({ id: uid(), name: name, muscle: muscle || null, sets: [] });
+    var newExId = uid();
+    session.exercises.push({ id: newExId, name: name, muscle: muscle || null, sets: [] });
     saveSessions();
     ui.showMuscleMap = false;
     ui.selectedMuscle = null;
     ui.pendingMuscle = null;
     renderApp();
     if (muscle) showToast('Added ' + name);
+    var newCard = document.querySelector('.exercise-card[data-ex="'+newExId+'"]');
+    if (newCard) newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function deleteExercise(exId){
@@ -2189,6 +2198,15 @@
     var failureBtn = card && card.querySelector('.failure-toggle');
     if (!weightInput || !repsInput) return null;
     return { ex: ex, weightInput: weightInput, repsInput: repsInput, failureBtn: failureBtn };
+  }
+
+  function refreshAddExBtn(){
+    var btn = document.querySelector('.add-ex-btn');
+    var input = document.getElementById('newExInput');
+    if (!btn || !input) return;
+    var ready = input.value.trim().length > 0;
+    btn.classList.toggle('ready', ready);
+    btn.textContent = ready ? '\u2713' : '+';
   }
 
   function refreshAddSetGlobalBtn(){
@@ -2553,6 +2571,9 @@
     if (t.classList && (t.classList.contains('set-weight-input') || t.classList.contains('set-reps-input'))){
       refreshAddSetGlobalBtn();
     }
+    if (t.id === 'newExInput'){
+      refreshAddExBtn();
+    }
   });
 
   document.getElementById('app').addEventListener('focusin', function(e){
@@ -2578,7 +2599,8 @@
         addExercise();
       } else if (e.target.classList.contains('set-reps-input')){
         e.preventDefault();
-        addSet(e.target.dataset.ex);
+        ui.activeExId = e.target.dataset.ex;
+        addSetGlobal();
       }
     }
   });
