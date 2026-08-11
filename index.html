@@ -983,8 +983,8 @@
     cursor:pointer;
     padding:6px 0;
   }
-  .hi-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
-  .hi-print{
+  .hi-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;}
+  .hi-print,.hi-edit{
     background:none;
     border:1px solid var(--line);
     color:var(--accent);
@@ -995,7 +995,7 @@
     padding:7px 12px;
     border-radius:8px;
   }
-  .hi-print:active{background:var(--panel-3);}
+  .hi-print:active,.hi-edit:active{background:var(--panel-3);}
 
   /* ---------- Print receipt ---------- */
   .print-receipt{display:none;}
@@ -1987,6 +1987,7 @@
           });
           html += '<div class="hi-actions">' +
                     '<button class="hi-delete" data-action="delete-session" data-session="'+s.id+'">Delete session</button>' +
+                    '<button class="hi-edit" data-action="edit-session" data-session="'+s.id+'">Edit</button>' +
                     '<button class="hi-print" data-action="print-session" data-session="'+s.id+'">Print receipt</button>' +
                   '</div>';
           html += '</div>';
@@ -2771,6 +2772,42 @@
     renderApp();
   }
 
+  function openEditSessionConfirm(sessionId){
+    var session = state.sessions.find(function(s){ return s.id === sessionId; });
+    var name = session && session.name ? session.name : 'this session';
+    ui.confirmModal = {
+      kind: 'edit-session',
+      title: 'Edit ' + name + '?',
+      message: 'This reopens it in the Log tab so you can add, change, or remove sets. If you have another session in progress, it\u2019ll be saved to History first.',
+      confirmLabel: 'Edit',
+      variant: 'primary',
+      sessionId: sessionId
+    };
+    renderApp();
+  }
+
+  function reopenSessionForEdit(sessionId){
+    var target = state.sessions.find(function(s){ return s.id === sessionId; });
+    if (!target) return;
+
+    var currentActive = state.sessions.find(function(s){ return s.status === 'active' && s.id !== sessionId; });
+    if (currentActive){
+      if (currentActive.exercises.length > 0){
+        currentActive.status = 'done';
+        if (!currentActive.finishedAt) currentActive.finishedAt = new Date().toISOString();
+      } else {
+        state.sessions = state.sessions.filter(function(s){ return s.id !== currentActive.id; });
+      }
+    }
+
+    target.status = 'active';
+    saveSessions();
+    ui.expandedHistory[sessionId] = false;
+    state.tab = 'log';
+    renderApp();
+    showToast('Editing ' + (target.name || 'session'));
+  }
+
   function openFinishSessionConfirm(){
     ui.confirmModal = {
       kind: 'finish-session',
@@ -2973,6 +3010,8 @@
       cancelHistoryNameEdit();
     } else if (action === 'delete-session'){
       openDeleteSessionConfirm(el.dataset.session);
+    } else if (action === 'edit-session'){
+      openEditSessionConfirm(el.dataset.session);
     } else if (action === 'print-session'){
       printSessionReceipt(el.dataset.session);
     } else if (action === 'set-unit'){
@@ -3118,6 +3157,7 @@
       if (m && m.kind === 'exercise') deleteExercise(m.exId);
       else if (m && m.kind === 'set') deleteSet(m.exId, m.setId);
       else if (m && m.kind === 'session') deleteSession(m.sessionId);
+      else if (m && m.kind === 'edit-session') reopenSessionForEdit(m.sessionId);
       else if (m && m.kind === 'finish-session') finishSession();
       else if (m && m.kind === 'clear-data') clearAllData();
       else if (m && m.kind === 'logout') logOut();
