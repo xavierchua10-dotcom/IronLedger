@@ -1330,7 +1330,7 @@
   </header>
   <main id="view"></main>
   <div class="session-finish-bar hidden" id="sessionFinishBar">
-    <button class="btn-primary" data-action="finish-session">Finish Session</button>
+    <button class="btn-primary" id="finishSessionBtn" data-action="finish-session" disabled>Finish Session</button>
     <button class="add-set-global-btn" data-action="add-set-global" disabled>&#10003; Add Set</button>
   </div>
   <nav class="tabbar" id="tabbar">
@@ -2260,6 +2260,11 @@
     var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
     var showFinishBar = state.tab === 'log' && !!activeSession && activeSession.exercises.length > 0;
     document.getElementById('sessionFinishBar').classList.toggle('hidden', !showFinishBar);
+
+    var canFinish = !!activeSession && sessionSetCount(activeSession) > 0;
+    var finishBtnEl = document.getElementById('finishSessionBtn');
+    finishBtnEl.disabled = !canFinish;
+    finishBtnEl.classList.toggle('ready', canFinish);
 
     renderMuscleMapOverlay();
     renderConfirmModal();
