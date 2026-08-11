@@ -683,9 +683,9 @@
     inset:0;
     background:rgba(8,9,11,0.68);
     display:flex;
-    align-items:flex-end;
+    align-items:center;
     justify-content:center;
-    padding:0 20px calc(20px + var(--safe-bottom));
+    padding:24px;
     z-index:90;
   }
   .mm-overlay.hidden{display:none;}
@@ -931,7 +931,7 @@
   .hi-ex-sets{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);line-height:1.7;}
   .hi-ex-sets .pr-tag{margin-left:6px;}
   .hi-delete{
-    margin-top:12px;
+    margin-top:0;
     background:none;
     border:none;
     color:var(--accent-2);
@@ -941,6 +941,61 @@
     cursor:pointer;
     padding:6px 0;
   }
+  .hi-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
+  .hi-print{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--accent);
+    font-size:11px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    cursor:pointer;
+    padding:7px 12px;
+    border-radius:8px;
+  }
+  .hi-print:active{background:var(--panel-3);}
+
+  /* ---------- Print receipt ---------- */
+  .print-receipt{display:none;}
+  @media print{
+    body > *:not(#printReceipt){display:none !important;}
+    #printReceipt{display:block !important;}
+    @page{margin:12mm;}
+  }
+  .print-receipt{
+    background:#fff;
+    color:#000;
+    font-family:'JetBrains Mono','Courier New',monospace;
+    font-size:12px;
+    width:280px;
+    margin:0 auto;
+    padding:0;
+  }
+  .print-receipt .pr-brand{
+    text-align:center;
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:18px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+  .print-receipt .pr-brand .pr-brand-accent{color:#b8860b;}
+  .print-receipt .pr-tagline{
+    text-align:center;
+    font-size:10px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:#b8860b;
+    margin-bottom:10px;
+  }
+  .print-receipt .pr-line{border-top:1px dashed #b8860b;margin:8px 0;}
+  .print-receipt .pr-row{display:flex;justify-content:space-between;gap:8px;}
+  .print-receipt .pr-session-name{font-weight:700;text-transform:uppercase;}
+  .print-receipt .pr-ex-name{font-weight:700;margin-top:8px;text-transform:uppercase;font-size:11px;}
+  .print-receipt .pr-ex-muscle{font-weight:400;text-transform:none;color:#000;}
+  .print-receipt .pr-set{display:flex;justify-content:space-between;padding-left:6px;}
+  .print-receipt .pr-set .pr-pr{font-weight:700;color:#b8860b;}
+  .print-receipt .pr-footer{text-align:center;font-size:10px;margin-top:14px;letter-spacing:0.04em;color:#b8860b;}
 
   /* ---------- Progress ---------- */
   .progress-select{
@@ -1250,6 +1305,7 @@
   <div class="confirm-panel" id="confirmPanel"></div>
 </div>
 <div class="toast" id="toast"></div>
+<div id="printReceipt" class="print-receipt hidden"></div>
 
 <script>
 (function(){
@@ -1638,6 +1694,41 @@
     var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return months[d.getMonth()] + ' ' + d.getDate();
   }
+  function fmtTime(iso){
+    var d = new Date(iso);
+    var h = d.getHours();
+    var m = d.getMinutes();
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (h === 0) h = 12;
+    var mm = m < 10 ? '0'+m : m;
+    return h + ':' + mm + ' ' + ampm;
+  }
+
+  function printSessionReceipt(sessionId){
+    var s = state.sessions.find(function(x){ return x.id === sessionId; });
+    if (!s) return;
+    var html = '<div class="pr-brand">IRON <span class="pr-brand-accent">LEDGER</span></div>';
+    html += '<div class="pr-tagline">savior &middot; workout receipt</div>';
+    html += '<div class="pr-line"></div>';
+    html += '<div class="pr-session-name">'+esc(s.name || 'Untitled session')+'</div>';
+    html += '<div class="pr-row"><span>'+fmtDate(s.date)+'</span><span>'+fmtTime(s.date)+'</span></div>';
+    html += '<div class="pr-line"></div>';
+    s.exercises.forEach(function(ex){
+      html += '<div class="pr-ex-name">'+esc(ex.name)+(ex.muscle ? ' <span class="pr-ex-muscle">('+esc(ex.muscle)+')</span>' : '')+'</div>';
+      ex.sets.forEach(function(st, i){
+        html += '<div class="pr-set"><span>'+(i+1)+'. '+fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps+'</span>' +
+                  '<span class="pr-pr">'+(st.isPR ? 'PR' : '')+'</span></div>';
+      });
+    });
+    html += '<div class="pr-line"></div>';
+    html += '<div class="pr-row"><span>Exercises</span><span>'+s.exercises.length+'</span></div>';
+    html += '<div class="pr-row"><span>Sets</span><span>'+sessionSetCount(s)+'</span></div>';
+    html += '<div class="pr-row"><span>Total volume</span><span>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+'</span></div>';
+    html += '<div class="pr-line"></div>';
+    html += '<div class="pr-footer">Thanks for the work.<br>Logged with Iron Ledger &mdash; Savior</div>';
+    document.getElementById('printReceipt').innerHTML = html;
+    window.print();
+  }
 
   /* =========================================================
      RENDER: LOG TAB
@@ -1795,7 +1886,10 @@
             }).join('<br>');
             html += '</div></div>';
           });
-          html += '<button class="hi-delete" data-action="delete-session" data-session="'+s.id+'">Delete session</button>';
+          html += '<div class="hi-actions">' +
+                    '<button class="hi-delete" data-action="delete-session" data-session="'+s.id+'">Delete session</button>' +
+                    '<button class="hi-print" data-action="print-session" data-session="'+s.id+'">Print receipt</button>' +
+                  '</div>';
           html += '</div>';
         }
         html += '</div>';
@@ -2576,7 +2670,17 @@
       ui.showAccountMenu = !ui.showAccountMenu;
       renderApp();
     } else if (action === 'log-out'){
-      logOut();
+      ui.confirmModal = {
+        kind: 'logout',
+        title: 'Log out?',
+        message: state.currentAccount === 'guest'
+          ? 'You\u2019ll return to the login screen. Guest data stays on this device.'
+          : 'You\u2019ll be signed out of ' + currentAccountUsername() + ' on this device.',
+        confirmLabel: 'Log out',
+        variant: 'primary'
+      };
+      ui.showAccountMenu = false;
+      renderApp();
     } else if (action === 'delete-account'){
       ui.pendingDeleteAccount = true;
       renderApp();
@@ -2647,6 +2751,8 @@
       cancelHistoryNameEdit();
     } else if (action === 'delete-session'){
       openDeleteSessionConfirm(el.dataset.session);
+    } else if (action === 'print-session'){
+      printSessionReceipt(el.dataset.session);
     } else if (action === 'set-unit'){
       state.settings.unit = el.dataset.unit;
       saveSettings();
@@ -2773,11 +2879,13 @@
     } else if (action === 'confirm-modal-action'){
       var m = ui.confirmModal;
       ui.confirmModal = null;
+      renderConfirmModal();
       if (m && m.kind === 'exercise') deleteExercise(m.exId);
       else if (m && m.kind === 'set') deleteSet(m.exId, m.setId);
       else if (m && m.kind === 'session') deleteSession(m.sessionId);
       else if (m && m.kind === 'finish-session') finishSession();
       else if (m && m.kind === 'clear-data') clearAllData();
+      else if (m && m.kind === 'logout') logOut();
       else if (m && m.kind === 'add-set-global'){
         var session = getActiveSession();
         var ex = findExercise(session, m.exId);
