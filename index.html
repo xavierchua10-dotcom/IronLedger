@@ -52,11 +52,22 @@
     --radius:10px;
     --safe-bottom:env(safe-area-inset-bottom, 0px);
   }
-  *{box-sizing:border-box;}
+  *{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
   html,body{margin:0;padding:0;}
   button, input, select, [data-action]{
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+  }
+  /* Every tappable control (buttons, tabs, chips, muscle-map regions, etc.)
+     is a <button> or carries [data-action]. Inputs/selects are deliberately
+     left out here so typing, copy, and select-all still work normally. */
+  button, [data-action]{
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
   body{
     background:
@@ -423,22 +434,20 @@
   }
   .icon-btn:active{background:var(--panel-3);color:var(--text);}
 
-  .plate-bar-wrap{
-    background:var(--bg);
-    border-radius:8px;
-    padding:8px 10px 6px;
-    margin-bottom:10px;
-    overflow:hidden;
-  }
-  .plate-bar-label{
+  .exercise-volume{
     display:flex;
     justify-content:space-between;
+    align-items:center;
     font-family:'JetBrains Mono',monospace;
-    font-size:11px;
+    font-size:12px;
     color:var(--text-faint);
-    margin-bottom:4px;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    padding-bottom:8px;
+    margin-bottom:6px;
+    border-bottom:1px solid var(--line);
   }
-  .plate-bar-label .w{color:var(--accent);font-weight:700;font-size:12px;}
+  .exercise-volume b{color:var(--accent);font-weight:700;letter-spacing:normal;text-transform:none;}
 
   .set-row{
     display:grid;
@@ -635,7 +644,7 @@
     background:var(--panel-2);
     border:2px solid var(--accent-dim);
     border-radius:var(--radius);
-    padding:14px;
+    padding:12px;
     margin-bottom:14px;
     box-shadow:0 8px 28px rgba(0,0,0,0.4);
   }
@@ -644,7 +653,7 @@
     background:var(--panel-2);
     border-radius:8px;
     padding:3px;
-    margin-bottom:10px;
+    margin-bottom:6px;
     width:fit-content;
   }
   .mm-viewtabs button{
@@ -664,12 +673,12 @@
   .mm-svg-wrap{
     display:flex;
     justify-content:center;
-    margin-bottom:10px;
+    margin-bottom:2px;
   }
   .mm-svg-wrap svg{
     display:block;
     width:100%;
-    max-width:200px;
+    max-width:150px;
     height:auto;
   }
   .mm-shape{cursor:pointer;transition:fill 0.15s ease, fill-opacity 0.15s ease;}
@@ -681,7 +690,7 @@
     text-align:center;
     color:var(--text-faint);
     font-size:12px;
-    padding:6px 10px 2px;
+    padding:2px 10px 0;
   }
   .mm-selected-label{
     font-family:'Oswald',sans-serif;
@@ -755,21 +764,6 @@
   .empty .glyph{margin-bottom:10px;opacity:0.6;display:flex;justify-content:center;}
   .empty .glyph svg{width:32px;height:32px;}
   .empty p{font-size:13px;line-height:1.6;margin:0;}
-  .btn-repeat{
-    margin-top:18px;
-    background:var(--panel-2);
-    border:1px solid var(--accent-dim);
-    color:var(--accent);
-    font-family:'Oswald',sans-serif;
-    font-size:12px;
-    font-weight:700;
-    letter-spacing:0.05em;
-    text-transform:uppercase;
-    padding:11px 20px;
-    border-radius:20px;
-    cursor:pointer;
-  }
-  .btn-repeat:active{background:var(--panel-3);}
 
   /* ---------- History ---------- */
   .history-item{
@@ -851,6 +845,12 @@
   }
   .chart-stats .cs-block .cs-label{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.05em;}
   .chart-stats .cs-block .cs-val{font-size:16px;color:var(--accent);font-weight:700;}
+  .chart-empty-note{
+    text-align:center;
+    color:var(--text-faint);
+    font-size:12px;
+    padding:22px 10px;
+  }
   .pr-list-item{
     display:flex;
     justify-content:space-between;
@@ -1026,6 +1026,21 @@
     cursor:pointer;
   }
   .confirm-btn-danger:active{opacity:0.85;}
+  .confirm-btn-primary{
+    flex:1;
+    min-height:44px;
+    border-radius:10px;
+    border:none;
+    background:var(--accent);
+    color:#1c1500;
+    font-family:'Oswald',sans-serif;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  .confirm-btn-primary:active{opacity:0.85;}
 
   @media (prefers-reduced-motion: reduce){
     .toast{transition:none;}
@@ -1093,7 +1108,6 @@
   var ui = {
     expandedHistory: {},   // sessionId -> bool
     progressExercise: null,
-    pendingClear: false,
     showMuscleMap: false,
     muscleMapView: 'front',
     selectedMuscle: null,
@@ -1104,7 +1118,8 @@
     authError: null,
     authDraft: { username: '' },
     confirmModal: null,           // { kind:'exercise'|'set'|'session', title, message, exId, setId, sessionId } or null
-    pendingDeleteAccount: false
+    pendingDeleteAccount: false,
+    freshPRSetId: null     // id of a just-logged set that should play the PR pulse animation once
   };
 
   /* =========================================================
@@ -1225,13 +1240,6 @@
     return active;
   }
 
-  function getLastFinishedSession(){
-    var done = state.sessions.filter(function(s){ return s.status === 'done'; });
-    if (done.length === 0) return null;
-    done.sort(function(a,b){ return new Date(b.date) - new Date(a.date); });
-    return done[0];
-  }
-
   // Re-derive isPR flags for every set of a given exercise name, across all
   // sessions, in chronological order. Needed after an edit or delete since
   // changing one set can change which sets before/after it count as PRs.
@@ -1298,84 +1306,15 @@
     });
     return total;
   }
+  function exerciseVolume(ex){
+    var total = 0;
+    ex.sets.forEach(function(st){ total += st.weightKg * st.reps; });
+    return total;
+  }
   function sessionSetCount(session){
     var total = 0;
     session.exercises.forEach(function(ex){ total += ex.sets.length; });
     return total;
-  }
-
-  /* =========================================================
-     PLATE MATH + SVG
-     ========================================================= */
-  var PLATES_KG = [
-    { w:25,   color:'#c1443c', h:1.00 },
-    { w:20,   color:'#3b6ea5', h:0.90 },
-    { w:15,   color:'#e0c53a', h:0.80 },
-    { w:10,   color:'#4a8f5c', h:0.66 },
-    { w:5,    color:'#e9e6df', h:0.52 },
-    { w:2.5,  color:'#3a3f47', h:0.40 },
-    { w:1.25, color:'#9aa0a8', h:0.32 }
-  ];
-  var PLATES_LB = [
-    { w:45, color:'#c1443c', h:1.00 },
-    { w:35, color:'#3b6ea5', h:0.86 },
-    { w:25, color:'#e0c53a', h:0.72 },
-    { w:10, color:'#4a8f5c', h:0.54 },
-    { w:5,  color:'#9aa0a8', h:0.42 },
-    { w:2.5,color:'#3a3f47', h:0.34 }
-  ];
-  var BAR_KG = 20;
-  var BAR_LB = 45;
-
-  function computePlates(perSideKg, denomsKg){
-    var remaining = Math.round(perSideKg * 100) / 100;
-    var used = [];
-    for (var i=0; i<denomsKg.length; i++){
-      var d = denomsKg[i];
-      var count = 0;
-      while (remaining >= d.w - 0.001){
-        remaining = Math.round((remaining - d.w) * 100) / 100;
-        count++;
-        if (count > 20) break; // safety
-      }
-      for (var k=0;k<count;k++) used.push(d);
-    }
-    return { plates: used, remainder: remaining };
-  }
-
-  function platesSVG(weightDisplayVal){
-    var w = parseFloat(weightDisplayVal);
-    if (isNaN(w) || w <= 0){
-      return '<svg viewBox="0 0 300 48" width="100%" height="48" preserveAspectRatio="xMinYMid meet">' +
-             '<line x1="10" y1="24" x2="290" y2="24" stroke="#3a3f47" stroke-width="4" stroke-linecap="round"/>' +
-             '</svg>';
-    }
-    var unit = state.settings.unit;
-    var barW = unit === 'kg' ? BAR_KG : BAR_LB;
-    var denoms = unit === 'kg' ? PLATES_KG : PLATES_LB;
-    var loadable = Math.max(0, w - barW);
-    var perSide = loadable / 2;
-    var result = computePlates(perSide, denoms);
-    var plates = result.plates;
-
-    var svgH = 48, midY = 24, maxPlateH = 40;
-    var sleeveX = 46;
-    var plateW = 9, gap = 2.5;
-    var x = sleeveX + 6;
-    var rects = '';
-    for (var i=0;i<plates.length;i++){
-      var p = plates[i];
-      var ph = maxPlateH * p.h;
-      rects += '<rect x="'+x+'" y="'+(midY-ph/2)+'" width="'+plateW+'" height="'+ph+'" rx="1.5" fill="'+p.color+'" stroke="rgba(0,0,0,0.35)" stroke-width="0.5"/>';
-      x += plateW + gap;
-    }
-    var totalW = Math.max(x + 10, 120);
-    var svg = '<svg viewBox="0 0 '+totalW+' '+svgH+'" width="100%" height="48" preserveAspectRatio="xMinYMid meet">';
-    svg += '<line x1="10" y1="'+midY+'" x2="'+(sleeveX+2)+'" y2="'+midY+'" stroke="#5c6169" stroke-width="4" stroke-linecap="round"/>';
-    svg += '<rect x="'+sleeveX+'" y="'+(midY-9)+'" width="6" height="18" rx="1" fill="#5c6169"/>';
-    svg += rects;
-    svg += '</svg>';
-    return svg;
   }
 
   /* =========================================================
@@ -1525,20 +1464,6 @@
               '<span><b>'+sessionSetCount(session)+'</b> sets</span>' +
             '</div>';
 
-    if (session.exercises.length === 0){
-      var lastSession = getLastFinishedSession();
-      html += '<div class="empty"><div class="glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="1" y="4" width="4" height="16" rx="1.3"/><rect x="19" y="4" width="4" height="16" rx="1.3"/><rect x="5" y="10.4" width="14" height="3.2" rx="1"/></svg></div>' +
-              '<p>No exercises yet.<br>Add your first movement below to start logging.</p>';
-      if (lastSession){
-        html += '<button class="btn-repeat" data-action="repeat-last-session">&#8635; Repeat &ldquo;'+esc(lastSession.name || 'last session')+'&rdquo;</button>';
-      }
-      html += '</div>';
-    } else {
-      session.exercises.forEach(function(ex){
-        html += renderExerciseCard(session, ex);
-      });
-    }
-
     html += '<div class="section-label">Add Exercise</div>';
     html += '<button class="btn-block mm-toggle-btn" data-action="toggle-muscle-map">' +
               (ui.showMuscleMap ? 'Hide muscle map' : 'Pick by muscle group') +
@@ -1556,6 +1481,9 @@
             '</datalist>';
 
     if (session.exercises.length > 0){
+      session.exercises.forEach(function(ex){
+        html += renderExerciseCard(session, ex);
+      });
       html += '<button class="btn-primary" data-action="finish-session">Finish Session</button>';
     }
 
@@ -1568,10 +1496,9 @@
             (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') + '</div>' +
             '<button class="icon-btn" data-action="delete-exercise" data-ex="'+ex.id+'" aria-label="Delete exercise">&#10005;</button></div>';
 
-    html += '<div class="plate-bar-wrap">' +
-              '<div class="plate-bar-label"><span>PER SIDE</span><span class="w" data-role="bar-weight-label">'+(unitLabel()==='kg'?'20KG':'45LB')+' BAR</span></div>' +
-              '<div data-role="plate-svg">'+platesSVG(lastWeightForExercise(ex))+'</div>' +
-            '</div>';
+    if (ex.sets.length > 0){
+      html += '<div class="exercise-volume"><span>Volume</span><b>'+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</b></div>';
+    }
 
     var editingSetId = (ui.editingSet && ui.editingSet.exId === ex.id) ? ui.editingSet.setId : null;
     var editingSetObj = null;
@@ -1587,7 +1514,7 @@
                   '<span class="set-detail">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
                   '<span class="set-flags">' +
                     (st.toFailure ? '<span class="flame">&#9679; failure</span>' : '') +
-                    (st.isPR ? '<span class="pr-tag">PR</span>' : '') +
+                    (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
                   '</span>' +
                   '<span class="set-actions">' +
                     '<button class="set-act-btn" data-action="edit-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Edit set">&#9998;</button>' +
@@ -1614,17 +1541,11 @@
                 '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="set-weight-input" data-ex="'+ex.id+'">' +
                 '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="set-reps-input" data-ex="'+ex.id+'">' +
                 '<button class="failure-toggle" data-action="toggle-failure" data-ex="'+ex.id+'">&#9679;</button>' +
-                '<button class="add-set-btn" data-action="add-set" data-ex="'+ex.id+'">+</button>' +
+                '<button class="add-set-btn" data-action="add-set" data-ex="'+ex.id+'" aria-label="Log set">&#10003;</button>' +
               '</div>';
     }
     html += '</div>';
     return html;
-  }
-
-  function lastWeightForExercise(ex){
-    if (ex.sets.length === 0) return 0;
-    var last = ex.sets[ex.sets.length - 1];
-    return toDisplay(last.weightKg);
   }
 
   /* =========================================================
@@ -1701,7 +1622,11 @@
               '<div class="cs-block"><div class="cs-label">Est. best 1RM</div><div class="cs-val">'+fmtWeight(best.e1rm)+' '+unitLabel()+'</div></div>' +
               '<div class="cs-block"><div class="cs-label">Latest top set</div><div class="cs-val">'+fmtWeight(latest.topKg)+' '+unitLabel()+'</div></div>' +
             '</div>';
-    html += buildChartSVG(points);
+    if (points.length >= 2){
+      html += buildChartSVG(points);
+    } else {
+      html += '<div class="chart-empty-note">Log this exercise once more to start seeing a trend line.</div>';
+    }
     html += '</div>';
 
     html += '<div class="section-label">Personal Records</div>';
@@ -1820,11 +1745,7 @@
     html += '</div>';
 
     html += '<div class="section-label">Danger zone</div>';
-    if (ui.pendingClear){
-      html += '<button class="btn-danger" data-action="confirm-clear">Tap again to permanently erase everything</button>';
-    } else {
-      html += '<button class="btn-danger" data-action="clear-data">Erase all data</button>';
-    }
+    html += '<button class="btn-danger" data-action="clear-data">Erase all data</button>';
 
     html += '<input type="file" id="importFile" accept="application/json" style="display:none;">';
 
@@ -2025,7 +1946,10 @@
 
   function deleteExercise(exId){
     var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    var name = ex ? ex.name : null;
     session.exercises = session.exercises.filter(function(e){ return e.id !== exId; });
+    if (name) recomputeExercisePRs(name);
     saveSessions();
     if (ui.editingSet && ui.editingSet.exId === exId) ui.editingSet = null;
     renderApp();
@@ -2061,7 +1985,9 @@
       isPR: isPR
     });
     saveSessions();
+    ui.freshPRSetId = isPR ? setId : null;
     renderApp();
+    ui.freshPRSetId = null;
     if (isPR) showToast('New PR on ' + ex.name + '!');
   }
 
@@ -2119,19 +2045,6 @@
     showToast('Set updated');
   }
 
-  function repeatLastSession(){
-    var last = getLastFinishedSession();
-    if (!last) return;
-    var session = getActiveSession();
-    if (!session.name) session.name = last.name;
-    last.exercises.forEach(function(ex){
-      session.exercises.push({ id: uid(), name: ex.name, muscle: ex.muscle || null, sets: [] });
-    });
-    saveSessions();
-    renderApp();
-    showToast('Repeated ' + (last.name || 'last session'));
-  }
-
   function finishSession(){
     var session = getActiveSession();
     session.status = 'done';
@@ -2142,7 +2055,13 @@
   }
 
   function deleteSession(sessionId){
+    var removed = state.sessions.find(function(s){ return s.id === sessionId; });
+    var affectedNames = {};
+    if (removed){
+      removed.exercises.forEach(function(ex){ affectedNames[ex.name] = true; });
+    }
     state.sessions = state.sessions.filter(function(s){ return s.id !== sessionId; });
+    Object.keys(affectedNames).forEach(function(name){ recomputeExercisePRs(name); });
     saveSessions();
     renderApp();
   }
@@ -2190,6 +2109,35 @@
     renderApp();
   }
 
+  function openFinishSessionConfirm(){
+    ui.confirmModal = {
+      kind: 'finish-session',
+      title: 'Finish this session?',
+      message: 'You won\u2019t be able to add more exercises or sets to it afterward — make sure you\u2019re actually done.',
+      confirmLabel: 'Finish',
+      variant: 'primary'
+    };
+    renderApp();
+  }
+
+  function openClearDataConfirm(){
+    var totalSessions = state.sessions.filter(function(s){ return s.status === 'done'; }).length;
+    ui.confirmModal = {
+      kind: 'clear-data',
+      title: 'Erase all data?',
+      message: 'This permanently deletes ' + (totalSessions > 0 ? 'all ' + totalSessions + ' finished session' + (totalSessions === 1 ? '' : 's') + ', ' : '') + 'every set, and every PR on this device. This can\u2019t be undone.',
+      confirmLabel: 'Erase everything'
+    };
+    renderApp();
+  }
+
+  function clearAllData(){
+    state.sessions = [];
+    saveSessions();
+    showToast('All data erased');
+    renderApp();
+  }
+
   function renderConfirmModal(){
     var overlay = document.getElementById('confirmOverlay');
     var panel = document.getElementById('confirmPanel');
@@ -2200,12 +2148,14 @@
     }
     overlay.classList.remove('hidden');
     var m = ui.confirmModal;
+    var confirmClass = m.variant === 'primary' ? 'confirm-btn-primary' : 'confirm-btn-danger';
+    var confirmLabel = m.confirmLabel || 'Delete';
     panel.innerHTML =
       '<div class="confirm-title">' + esc(m.title) + '</div>' +
       '<div class="confirm-message">' + esc(m.message) + '</div>' +
       '<div class="confirm-buttons">' +
         '<button class="confirm-btn-cancel" data-action="cancel-confirm">Cancel</button>' +
-        '<button class="confirm-btn-danger" data-action="confirm-modal-action">Delete</button>' +
+        '<button class="'+confirmClass+'" data-action="confirm-modal-action">'+esc(confirmLabel)+'</button>' +
       '</div>';
   }
 
@@ -2296,12 +2246,10 @@
       saveSetEdit(el.dataset.ex, el.dataset.set);
     } else if (action === 'cancel-set-edit'){
       cancelEditSet();
-    } else if (action === 'repeat-last-session'){
-      repeatLastSession();
     } else if (action === 'toggle-failure'){
       el.classList.toggle('active');
     } else if (action === 'finish-session'){
-      finishSession();
+      openFinishSessionConfirm();
     } else if (action === 'toggle-muscle-map'){
       ui.showMuscleMap = !ui.showMuscleMap;
       ui.selectedMuscle = null;
@@ -2309,6 +2257,7 @@
       renderApp();
     } else if (action === 'mm-view'){
       ui.muscleMapView = el.dataset.view;
+      ui.selectedMuscle = null;
       renderApp();
     } else if (action === 'mm-select-muscle'){
       ui.selectedMuscle = el.dataset.muscle;
@@ -2338,26 +2287,13 @@
     } else if (action === 'import-data'){
       document.getElementById('importFile').click();
     } else if (action === 'clear-data'){
-      ui.pendingClear = true;
-      renderApp();
-      setTimeout(function(){ ui.pendingClear = false; }, 4000);
-    } else if (action === 'confirm-clear'){
-      state.sessions = [];
-      saveSessions();
-      ui.pendingClear = false;
-      showToast('All data erased');
-      renderApp();
+      openClearDataConfirm();
     }
   });
 
-  // live plate-bar preview on weight input, without a full re-render (preserves focus)
   document.getElementById('app').addEventListener('input', function(e){
     var t = e.target;
-    if (t.classList && t.classList.contains('set-weight-input')){
-      var card = t.closest('.exercise-card');
-      var svgHolder = card.querySelector('[data-role="plate-svg"]');
-      svgHolder.innerHTML = platesSVG(t.value);
-    } else if (t.dataset && t.dataset.role === 'session-name'){
+    if (t.dataset && t.dataset.role === 'session-name'){
       var session = getActiveSession();
       session.name = t.value;
       saveSessions();
@@ -2450,6 +2386,8 @@
       if (m && m.kind === 'exercise') deleteExercise(m.exId);
       else if (m && m.kind === 'set') deleteSet(m.exId, m.setId);
       else if (m && m.kind === 'session') deleteSession(m.sessionId);
+      else if (m && m.kind === 'finish-session') finishSession();
+      else if (m && m.kind === 'clear-data') clearAllData();
       else renderApp();
     }
   });
