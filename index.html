@@ -2109,6 +2109,23 @@
     }
     name = String(name).trim();
     if (!name) return;
+    if (!muscle){
+      ui.confirmModal = {
+        kind: 'add-exercise',
+        title: 'Add this exercise?',
+        message: '\u201c' + name + '\u201d will be added to today\u2019s session.',
+        confirmLabel: 'Add Exercise',
+        variant: 'primary',
+        name: name,
+        muscle: muscle || null
+      };
+      renderApp();
+      return;
+    }
+    commitAddExercise(name, muscle);
+  }
+
+  function commitAddExercise(name, muscle){
     var session = getActiveSession();
     var newExId = uid();
     session.exercises.push({ id: newExId, name: name, muscle: muscle || null, sets: [] });
@@ -2677,6 +2694,9 @@
         var session = getActiveSession();
         var ex = findExercise(session, m.exId);
         if (ex) commitSet(ex, m.weightKg, m.reps, m.toFailure);
+      }
+      else if (m && m.kind === 'add-exercise'){
+        commitAddExercise(m.name, m.muscle);
       }
       else renderApp();
     }
