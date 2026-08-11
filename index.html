@@ -869,14 +869,46 @@
     padding:13px 14px;
     cursor:pointer;
   }
-  .history-item-head .hi-left{display:flex;flex-direction:column;gap:2px;}
+  .history-item-head .hi-left{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .hi-name-row{display:flex;align-items:center;gap:2px;}
   .history-item-head .hi-name{
     font-family:'Oswald',sans-serif;
     font-weight:600;
     font-size:15px;
     text-transform:uppercase;
     letter-spacing:0.02em;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
   }
+  .hi-rename-btn{
+    width:26px;
+    height:26px;
+    font-size:12px;
+    flex-shrink:0;
+  }
+  .history-item-head-editing{cursor:default;}
+  .hi-rename-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    width:100%;
+  }
+  .hi-name-input{
+    flex:1;
+    min-width:0;
+    background:var(--panel-2);
+    border:1px solid var(--accent-dim);
+    color:var(--text);
+    border-radius:7px;
+    padding:9px 10px;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+  }
+  .hi-name-input:focus{outline:none;border-color:var(--accent);}
   .history-item-head .hi-date{
     font-family:'JetBrains Mono',monospace;
     font-size:11px;
@@ -1244,6 +1276,7 @@
     selectedMuscle: null,
     pendingMuscle: null,
     editingSet: null,      // { exId, setId } or null
+    editingHistoryName: null,  // sessionId currently being renamed, or null
     showAccountMenu: false,
     authMode: 'login',     // 'login' | 'signup'
     authError: null,
@@ -1728,12 +1761,27 @@
     } else {
       done.forEach(function(s){
         var expanded = !!ui.expandedHistory[s.id];
+        var isEditingName = ui.editingHistoryName === s.id;
         html += '<div class="history-item">';
-        html += '<div class="history-item-head" data-action="toggle-history" data-session="'+s.id+'">' +
-                  '<div class="hi-left"><span class="hi-name">'+esc(s.name || 'Untitled session')+'</span>' +
-                  '<span class="hi-date">'+fmtDate(s.date)+'</span></div>' +
-                  '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol</div>' +
-                '</div>';
+        if (isEditingName){
+          html += '<div class="history-item-head history-item-head-editing">' +
+                    '<div class="hi-rename-row">' +
+                      '<input type="text" class="hi-name-input" id="hiNameInput" maxlength="60" value="'+esc(s.name || '')+'" placeholder="Session name">' +
+                      '<div class="edit-btn-group">' +
+                        '<button class="save-edit-btn" data-action="save-history-name" data-session="'+s.id+'" aria-label="Save name">&#10003;</button>' +
+                        '<button class="cancel-edit-btn" data-action="cancel-history-name" aria-label="Cancel">&#10005;</button>' +
+                      '</div>' +
+                    '</div>' +
+                  '</div>';
+        } else {
+          html += '<div class="history-item-head" data-action="toggle-history" data-session="'+s.id+'">' +
+                    '<div class="hi-left">' +
+                      '<span class="hi-name-row"><span class="hi-name">'+esc(s.name || 'Untitled session')+'</span>' +
+                      '<button class="set-act-btn hi-rename-btn" data-action="edit-history-name" data-session="'+s.id+'" aria-label="Rename session">&#9998;</button></span>' +
+                      '<span class="hi-date">'+fmtDate(s.date)+'</span></div>' +
+                    '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol</div>' +
+                  '</div>';
+        }
         if (expanded){
           html += '<div class="history-item-body">';
           s.exercises.forEach(function(ex){
@@ -2373,6 +2421,32 @@
     renderApp();
   }
 
+  function editHistoryName(sessionId){
+    ui.editingHistoryName = sessionId;
+    renderApp();
+    setTimeout(function(){
+      var input = document.getElementById('hiNameInput');
+      if (input){ input.focus(); input.select(); }
+    }, 30);
+  }
+
+  function cancelHistoryNameEdit(){
+    ui.editingHistoryName = null;
+    renderApp();
+  }
+
+  function saveHistoryName(sessionId){
+    var session = state.sessions.find(function(s){ return s.id === sessionId; });
+    if (!session) return;
+    var input = document.getElementById('hiNameInput');
+    var name = input ? input.value.trim() : '';
+    session.name = name || 'Untitled session';
+    saveSessions();
+    ui.editingHistoryName = null;
+    renderApp();
+    showToast('Session renamed');
+  }
+
   function openDeleteSessionConfirm(sessionId){
     var session = state.sessions.find(function(s){ return s.id === sessionId; });
     var name = session && session.name ? session.name : 'this session';
@@ -2563,6 +2637,12 @@
       var sid = el.dataset.session;
       ui.expandedHistory[sid] = !ui.expandedHistory[sid];
       renderApp();
+    } else if (action === 'edit-history-name'){
+      editHistoryName(el.dataset.session);
+    } else if (action === 'save-history-name'){
+      saveHistoryName(el.dataset.session);
+    } else if (action === 'cancel-history-name'){
+      cancelHistoryNameEdit();
     } else if (action === 'delete-session'){
       openDeleteSessionConfirm(el.dataset.session);
     } else if (action === 'set-unit'){
@@ -2618,7 +2698,13 @@
         e.preventDefault();
         ui.activeExId = e.target.dataset.ex;
         addSetGlobal();
+      } else if (e.target.id === 'hiNameInput'){
+        e.preventDefault();
+        saveHistoryName(ui.editingHistoryName);
       }
+    } else if (e.key === 'Escape' && e.target.id === 'hiNameInput'){
+      e.preventDefault();
+      cancelHistoryNameEdit();
     }
   });
 
