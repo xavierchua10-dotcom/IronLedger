@@ -1586,12 +1586,6 @@
               '<span><b>'+sessionSetCount(session)+'</b> sets</span>' +
             '</div>';
 
-    if (session.exercises.length > 0){
-      session.exercises.forEach(function(ex){
-        html += renderExerciseCard(session, ex);
-      });
-    }
-
     html += '<div class="section-label">Add Exercise</div>';
     html += '<button class="btn-block mm-toggle-btn" data-action="toggle-muscle-map">Pick by muscle group</button>';
 
@@ -1602,6 +1596,12 @@
     html += '<datalist id="exerciseNames">' +
               allExerciseNames().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('') +
             '</datalist>';
+
+    if (session.exercises.length > 0){
+      session.exercises.forEach(function(ex){
+        html += renderExerciseCard(session, ex);
+      });
+    }
 
     document.getElementById('view').innerHTML = html;
   }
