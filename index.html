@@ -348,8 +348,21 @@
   main#view{
     flex:1;
     overflow-y:auto;
+    overflow-x:hidden;
+    position:relative;
     -webkit-overflow-scrolling:touch;
     padding:16px 16px calc(100px + var(--safe-bottom));
+  }
+
+  .view-slide-track{
+    display:flex;
+    width:200%;
+    pointer-events:none;
+  }
+  .view-slide-pane{
+    width:50%;
+    flex-shrink:0;
+    min-width:0;
   }
 
   .section-label{
@@ -500,7 +513,10 @@
     padding-bottom:8px;
     margin-bottom:6px;
     border-bottom:1px solid var(--line);
+    white-space:nowrap;
+    gap:8px;
   }
+  .exercise-volume span,.exercise-volume b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .exercise-volume b{color:var(--accent);font-weight:700;letter-spacing:normal;text-transform:none;}
 
   .set-row{
@@ -518,7 +534,7 @@
     border-radius:6px;
   }
   .set-row .set-idx{color:var(--text-faint);}
-  .set-row .set-detail{color:var(--text);}
+  .set-row .set-detail{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .set-row .set-detail .x{color:var(--text-faint);margin:0 4px;}
   .set-row .set-flags{display:flex;gap:5px;align-items:center;justify-content:flex-end;}
   .flame{color:var(--accent-2);font-size:12px;}
@@ -562,7 +578,7 @@
 
   .add-set-row{
     display:grid;
-    grid-template-columns:1fr 1fr auto auto;
+    grid-template-columns:1fr 1fr auto;
     gap:8px;
     align-items:center;
     margin-top:10px;
@@ -586,21 +602,9 @@
     min-width:0;
   }
   .add-set-row.no-add-btn{
-    grid-template-columns:1fr 1fr auto;
+    grid-template-columns:1fr 1fr;
   }
   .add-set-row input:focus{outline:none;border-color:var(--accent);}
-  .failure-toggle{
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    color:var(--text-faint);
-    border-radius:8px;
-    width:42px;
-    height:42px;
-    font-size:15px;
-    cursor:pointer;
-    flex-shrink:0;
-  }
-  .failure-toggle.active{background:var(--accent-2-dim);border-color:var(--accent-2);color:var(--accent-2);}
   .add-set-btn{
     background:var(--accent);
     border:none;
@@ -937,6 +941,23 @@
     font-size:11px;
     color:var(--text-faint);
   }
+  .hi-duration{display:flex;align-items:center;gap:6px;margin-top:3px;}
+  .hi-duration-bar{
+    width:52px;
+    height:4px;
+    border-radius:2px;
+    background:var(--panel-3);
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .hi-duration-fill{height:100%;background:var(--accent);border-radius:2px;}
+  .hi-duration-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--text-faint);
+    white-space:nowrap;
+  }
+  .set-time{color:var(--text-faint);font-size:0.85em;}
   .history-item-head .hi-stats{
     font-family:'JetBrains Mono',monospace;
     font-size:11px;
@@ -1364,7 +1385,10 @@
     confirmModal: null,           // { kind:'exercise'|'set'|'session', title, message, exId, setId, sessionId } or null
     pendingDeleteAccount: false,
     freshPRSetId: null,    // id of a just-logged set that should play the PR pulse animation once
-    activeExId: null       // exercise whose weight/reps inputs were last focused — used by the global Add Set button
+    activeExId: null,      // exercise whose weight/reps inputs were last focused — used by the global Add Set button
+    draftSets: {},          // exId -> { weight, reps } — unsaved input, kept across collapse/expand or tab switches
+    editingExerciseName: null,  // exId currently being renamed, or null
+    tabAnimating: false     // true while a tab-slide transition is in progress
   };
 
   /* =========================================================
@@ -1562,6 +1586,44 @@
     return total;
   }
 
+  // Duration = time from the first logged set to the last logged set in the
+  // session. Older sets logged before this feature existed have no
+  // timestamp, so sessions need at least 2 timestamped sets to show a time.
+  function sessionDuration(session){
+    var stamps = [];
+    session.exercises.forEach(function(ex){
+      ex.sets.forEach(function(st){
+        if (st.timestamp) stamps.push(new Date(st.timestamp).getTime());
+      });
+    });
+    if (stamps.length < 2) return null;
+    stamps.sort(function(a,b){ return a - b; });
+    var mins = Math.round((stamps[stamps.length - 1] - stamps[0]) / 60000);
+    return Math.max(1, mins);
+  }
+
+  function fmtDuration(mins){
+    if (mins == null) return '';
+    if (mins < 60) return mins + ' min';
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    return h + 'h' + (m > 0 ? ' ' + m + 'm' : '');
+  }
+
+  // Small bar fill relative to a 90-minute "full bar" reference session.
+  function durationBarPct(mins){
+    return Math.min(100, Math.round((mins / 90) * 100));
+  }
+
+  function durationBarHTML(session){
+    var mins = sessionDuration(session);
+    if (mins == null) return '';
+    return '<div class="hi-duration">' +
+             '<div class="hi-duration-bar"><div class="hi-duration-fill" style="width:'+durationBarPct(mins)+'%"></div></div>' +
+             '<span class="hi-duration-label">'+fmtDuration(mins)+'</span>' +
+           '</div>';
+  }
+
   /* =========================================================
      MUSCLE MAP  (body diagram for exercise selection)
      ========================================================= */
@@ -1733,7 +1795,7 @@
     html += '<div class="pr-tagline">savior &middot; workout receipt</div>';
     html += '<div class="pr-line"></div>';
     html += '<div class="pr-session-name">'+esc(s.name || 'Untitled session')+'</div>';
-    html += '<div class="pr-row"><span>'+fmtDate(s.date)+'</span><span>'+fmtTime(s.date)+'</span></div>';
+    html += '<div class="pr-row"><span>'+fmtDate(s.finishedAt || s.date)+'</span><span>'+fmtTime(s.finishedAt || s.date)+'</span></div>';
     html += '<div class="pr-line"></div>';
     s.exercises.forEach(function(ex){
       html += '<div class="pr-ex-name">'+esc(ex.name)+(ex.muscle ? ' <span class="pr-ex-muscle">('+esc(ex.muscle)+')</span>' : '')+'</div>';
@@ -1770,12 +1832,9 @@
     html += '<button class="btn-block mm-toggle-btn" data-action="toggle-muscle-map">Pick by muscle group</button>';
 
     html += '<div class="name-input-row">' +
-              '<input type="text" list="exerciseNames" id="newExInput" placeholder="Or type a name, e.g. Bench Press">' +
+              '<input type="text" id="newExInput" autocomplete="off" placeholder="Or type a name, e.g. Bench Press">' +
               '<button class="add-ex-btn" data-action="add-exercise">+</button>' +
             '</div>';
-    html += '<datalist id="exerciseNames">' +
-              allExerciseNames().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('') +
-            '</datalist>';
 
     if (session.exercises.length > 0){
       session.exercises.forEach(function(ex){
@@ -1789,13 +1848,27 @@
   function renderExerciseCard(session, ex){
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
+    var isEditingName = ui.editingExerciseName === ex.id;
     var html = '<div class="exercise-card" data-ex="'+ex.id+'">';
-    html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
-            (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') + '</div>' +
-            '<div class="exercise-head-actions">' +
-              '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
-              '<button class="icon-btn" data-action="delete-exercise" data-ex="'+ex.id+'" aria-label="Delete exercise">&#10005;</button>' +
-            '</div></div>';
+    if (isEditingName){
+      html += '<div class="exercise-head exercise-head-editing">' +
+                '<div class="hi-rename-row">' +
+                  '<input type="text" class="hi-name-input" id="exNameInput" maxlength="60" value="'+esc(ex.name)+'" placeholder="Exercise name">' +
+                  '<div class="edit-btn-group">' +
+                    '<button class="save-edit-btn" data-action="save-exercise-name" data-ex="'+ex.id+'" aria-label="Save name">&#10003;</button>' +
+                    '<button class="cancel-edit-btn" data-action="cancel-exercise-name" aria-label="Cancel">&#10005;</button>' +
+                  '</div>' +
+                '</div>' +
+              '</div>';
+    } else {
+      html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
+              (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') + '</div>' +
+              '<div class="exercise-head-actions">' +
+                '<button class="icon-btn" data-action="edit-exercise-name" data-ex="'+ex.id+'" aria-label="Rename exercise">&#9998;</button>' +
+                '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
+                '<button class="icon-btn" data-action="delete-exercise" data-ex="'+ex.id+'" aria-label="Delete exercise">&#10005;</button>' +
+              '</div></div>';
+    }
 
     if (ex.sets.length > 0){
       html += '<div class="exercise-volume"><span>Volume</span><b>'+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</b></div>';
@@ -1812,7 +1885,9 @@
         if (isEditingRow) editingSetObj = st;
         html += '<div class="set-row'+(isEditingRow ? ' editing' : '')+'">' +
                   '<span class="set-idx">'+(i+1)+'</span>' +
-                  '<span class="set-detail">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
+                  '<span class="set-detail">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+
+                    (st.timestamp ? '<span class="set-time"> &middot; '+fmtTime(st.timestamp)+'</span>' : '') +
+                  '</span>' +
                   '<span class="set-flags">' +
                     (st.toFailure ? '<span class="flame">&#9679; failure</span>' : '') +
                     (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
@@ -1831,14 +1906,13 @@
       html += '<div class="add-set-row editing-row">' +
                 '<input type="number" inputmode="decimal" step="0.5" class="set-weight-input" data-ex="'+ex.id+'" value="'+fmtWeight(editingSetObj.weightKg)+'">' +
                 '<input type="number" inputmode="numeric" step="1" class="set-reps-input" data-ex="'+ex.id+'" value="'+editingSetObj.reps+'">' +
-                '<button class="failure-toggle'+(editingSetObj.toFailure ? ' active' : '')+'" data-action="toggle-failure" data-ex="'+ex.id+'">&#9679;</button>' +
                 '<button class="cancel-edit-btn" data-action="cancel-set-edit" aria-label="Cancel edit">&#10005;</button>' +
               '</div>';
     } else {
+      var draft = ui.draftSets[ex.id];
       html += '<div class="add-set-row no-add-btn">' +
-                '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="set-weight-input" data-ex="'+ex.id+'">' +
-                '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="set-reps-input" data-ex="'+ex.id+'">' +
-                '<button class="failure-toggle" data-action="toggle-failure" data-ex="'+ex.id+'">&#9679;</button>' +
+                '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="set-weight-input" data-ex="'+ex.id+'" value="'+(draft && draft.weight != null ? esc(draft.weight) : '')+'">' +
+                '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="set-reps-input" data-ex="'+ex.id+'" value="'+(draft && draft.reps != null ? esc(draft.reps) : '')+'">' +
               '</div>';
     }
     html += '</div>';
@@ -1889,7 +1963,9 @@
           html += '<div class="history-item-head" data-action="toggle-history" data-session="'+s.id+'">' +
                     '<div class="hi-left">' +
                       '<span class="hi-name">'+esc(s.name || 'Untitled session')+'</span>' +
-                      '<span class="hi-date">'+fmtDate(s.date)+'</span></div>' +
+                      '<span class="hi-date">'+fmtDate(s.finishedAt || s.date)+' &middot; '+fmtTime(s.finishedAt || s.date)+'</span>' +
+                      durationBarHTML(s) +
+                    '</div>' +
                     '<div class="hi-right">' +
                       '<button class="set-act-btn hi-rename-btn" data-action="edit-history-name" data-session="'+s.id+'" aria-label="Rename session">&#9998;</button>' +
                       '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol</div>' +
@@ -1903,7 +1979,9 @@
                     (ex.muscle ? ' <span class="muscle-badge sm">'+esc(ex.muscle)+'</span>' : '') +
                     '</div><div class="hi-ex-sets">';
             html += ex.sets.map(function(st){
-              return fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps + (st.isPR ? '<span class="pr-tag">PR</span>' : '');
+              return fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps +
+                     (st.timestamp ? ' <span class="set-time">&middot; '+fmtTime(st.timestamp)+'</span>' : '') +
+                     (st.isPR ? '<span class="pr-tag">PR</span>' : '');
             }).join('<br>');
             html += '</div></div>';
           });
@@ -2090,6 +2168,78 @@
   /* =========================================================
      RENDER DISPATCH
      ========================================================= */
+  var TAB_ORDER = ['log', 'history', 'progress', 'settings'];
+
+  // Slides the outgoing tab out and the incoming tab in, direction based on
+  // their order in the tab bar (left tab -> right tab slides leftward, etc).
+  function switchTabWithSlide(newTab){
+    if (newTab === state.tab){
+      renderApp();
+      return;
+    }
+    var oldIndex = TAB_ORDER.indexOf(state.tab);
+    var newIndex = TAB_ORDER.indexOf(newTab);
+    var viewEl = document.getElementById('view');
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (ui.tabAnimating || oldIndex === -1 || newIndex === -1 || reduceMotion){
+      state.tab = newTab;
+      renderApp();
+      return;
+    }
+
+    var dir = newIndex > oldIndex ? 1 : -1; // 1: slide leftward (new enters from right), -1: slide rightward
+    var oldHTML = viewEl.innerHTML;
+
+    state.tab = newTab;
+    renderApp();
+    var newHTML = viewEl.innerHTML;
+    var viewHeight = viewEl.scrollHeight;
+
+    ui.tabAnimating = true;
+
+    var track = document.createElement('div');
+    track.className = 'view-slide-track';
+    track.style.minHeight = viewHeight + 'px';
+
+    var oldPane = document.createElement('div');
+    oldPane.className = 'view-slide-pane';
+    oldPane.innerHTML = oldHTML;
+
+    var newPane = document.createElement('div');
+    newPane.className = 'view-slide-pane';
+    newPane.innerHTML = newHTML;
+
+    if (dir === 1){
+      track.appendChild(oldPane);
+      track.appendChild(newPane);
+      track.style.transform = 'translateX(0%)';
+    } else {
+      track.appendChild(newPane);
+      track.appendChild(oldPane);
+      track.style.transform = 'translateX(-100%)';
+    }
+
+    viewEl.innerHTML = '';
+    viewEl.appendChild(track);
+    viewEl.scrollTop = 0;
+
+    void track.offsetWidth; // force reflow so the transition below actually animates
+
+    track.style.transition = 'transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1)';
+    track.style.transform = dir === 1 ? 'translateX(-100%)' : 'translateX(0%)';
+
+    var finished = false;
+    var cleanup = function(){
+      if (finished) return;
+      finished = true;
+      ui.tabAnimating = false;
+      renderApp(); // re-render for real: reattaches any tab-specific listeners (e.g. Settings' import input)
+    };
+    track.addEventListener('transitionend', cleanup);
+    setTimeout(cleanup, 400); // fallback in case transitionend doesn't fire
+  }
+
   function renderApp(){
     document.querySelectorAll('.tabbar button').forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.tab === state.tab);
@@ -2312,7 +2462,44 @@
     if (name) recomputeExercisePRs(name);
     saveSessions();
     if (ui.editingSet && ui.editingSet.exId === exId) ui.editingSet = null;
+    delete ui.draftSets[exId];
     renderApp();
+  }
+
+  function editExerciseName(exId){
+    ui.editingExerciseName = exId;
+    renderApp();
+    setTimeout(function(){
+      var input = document.getElementById('exNameInput');
+      if (input){ input.focus(); input.select(); }
+    }, 30);
+  }
+
+  function cancelExerciseNameEdit(){
+    ui.editingExerciseName = null;
+    renderApp();
+  }
+
+  function saveExerciseName(exId){
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex) return;
+    var input = document.getElementById('exNameInput');
+    var name = input ? input.value.trim() : '';
+    if (!name){
+      showToast('Exercise name can\u2019t be empty');
+      return;
+    }
+    var oldName = ex.name;
+    ex.name = name;
+    saveSessions();
+    if (oldName.trim().toLowerCase() !== name.trim().toLowerCase()){
+      recomputeExercisePRs(oldName);
+      recomputeExercisePRs(name);
+    }
+    ui.editingExerciseName = null;
+    renderApp();
+    showToast('Exercise renamed');
   }
 
   function toggleExerciseDone(exId){
@@ -2321,6 +2508,7 @@
     if (!ex) return;
     ex.done = !ex.done;
     if (ex.done && ui.editingSet && ui.editingSet.exId === exId) ui.editingSet = null;
+    if (ex.done && ui.editingExerciseName === exId) ui.editingExerciseName = null;
     saveSessions();
     renderApp();
   }
@@ -2332,7 +2520,6 @@
     var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
     var weightInput = card.querySelector('.set-weight-input');
     var repsInput = card.querySelector('.set-reps-input');
-    var failureBtn = card.querySelector('.failure-toggle');
 
     var weightKg = toStoredKg(weightInput.value);
     var reps = parseInt(repsInput.value, 10);
@@ -2342,7 +2529,7 @@
       return;
     }
 
-    commitSet(ex, weightKg, reps, failureBtn.classList.contains('active'));
+    commitSet(ex, weightKg, reps, false);
   }
 
   function commitSet(ex, weightKg, reps, toFailure){
@@ -2356,8 +2543,10 @@
       weightKg: roundNice(weightKg),
       reps: reps,
       toFailure: !!toFailure,
-      isPR: isPR
+      isPR: isPR,
+      timestamp: new Date().toISOString()
     });
+    delete ui.draftSets[ex.id];
     saveSessions();
     ui.freshPRSetId = isPR ? setId : null;
     renderApp();
@@ -2377,9 +2566,8 @@
     var card = document.querySelector('.exercise-card[data-ex="'+ex.id+'"]');
     var weightInput = card && card.querySelector('.set-weight-input');
     var repsInput = card && card.querySelector('.set-reps-input');
-    var failureBtn = card && card.querySelector('.failure-toggle');
     if (!weightInput || !repsInput) return null;
-    return { ex: ex, weightInput: weightInput, repsInput: repsInput, failureBtn: failureBtn };
+    return { ex: ex, weightInput: weightInput, repsInput: repsInput };
   }
 
   function refreshAddExBtn(){
@@ -2428,7 +2616,7 @@
       exId: ex.id,
       weightKg: weightKg,
       reps: reps,
-      toFailure: target.failureBtn ? target.failureBtn.classList.contains('active') : false
+      toFailure: false
     };
     renderApp();
   }
@@ -2468,7 +2656,6 @@
     var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
     var weightInput = card.querySelector('.set-weight-input');
     var repsInput = card.querySelector('.set-reps-input');
-    var failureBtn = card.querySelector('.failure-toggle');
 
     var weightKg = toStoredKg(weightInput.value);
     var reps = parseInt(repsInput.value, 10);
@@ -2479,7 +2666,6 @@
 
     st.weightKg = roundNice(weightKg);
     st.reps = reps;
-    st.toFailure = failureBtn.classList.contains('active');
     recomputeExercisePRs(ex.name);
     saveSessions();
     ui.editingSet = null;
@@ -2490,8 +2676,11 @@
   function finishSession(){
     var session = getActiveSession();
     session.status = 'done';
+    session.finishedAt = new Date().toISOString();
     saveSessions();
     ui.editingSet = null;
+    ui.expandedHistory[session.id] = true;
+    state.tab = 'history';
     showToast('Session saved');
     renderApp();
   }
@@ -2681,13 +2870,14 @@
     var action = el.dataset.action;
 
     if (action === 'set-tab'){
-      state.tab = el.dataset.tab;
+      var targetTab = el.dataset.tab;
       ui.pendingMuscle = null;
       ui.editingSet = null;
+      ui.editingExerciseName = null;
       ui.showAccountMenu = false;
       ui.confirmModal = null;
       ui.pendingDeleteAccount = false;
-      renderApp();
+      switchTabWithSlide(targetTab);
     } else if (action === 'toggle-account-menu'){
       ui.showAccountMenu = !ui.showAccountMenu;
       renderApp();
@@ -2736,8 +2926,6 @@
       saveSetEdit(el.dataset.ex, el.dataset.set);
     } else if (action === 'cancel-set-edit'){
       cancelEditSet();
-    } else if (action === 'toggle-failure'){
-      el.classList.toggle('active');
     } else if (action === 'finish-session'){
       openFinishSessionConfirm();
     } else if (action === 'toggle-muscle-map'){
@@ -2766,6 +2954,12 @@
       var sid = el.dataset.session;
       ui.expandedHistory[sid] = !ui.expandedHistory[sid];
       renderApp();
+    } else if (action === 'edit-exercise-name'){
+      editExerciseName(el.dataset.ex);
+    } else if (action === 'save-exercise-name'){
+      saveExerciseName(el.dataset.ex);
+    } else if (action === 'cancel-exercise-name'){
+      cancelExerciseNameEdit();
     } else if (action === 'edit-history-name'){
       editHistoryName(el.dataset.session);
     } else if (action === 'save-history-name'){
@@ -2798,6 +2992,12 @@
     }
     if (t.classList && (t.classList.contains('set-weight-input') || t.classList.contains('set-reps-input'))){
       refreshAddSetGlobalBtn();
+      var exId = t.dataset.ex;
+      if (exId && !ui.editingSet){
+        if (!ui.draftSets[exId]) ui.draftSets[exId] = {};
+        if (t.classList.contains('set-weight-input')) ui.draftSets[exId].weight = t.value;
+        else ui.draftSets[exId].reps = t.value;
+      }
     }
     if (t.id === 'newExInput'){
       refreshAddExBtn();
@@ -2833,10 +3033,16 @@
       } else if (e.target.id === 'hiNameInput'){
         e.preventDefault();
         saveHistoryName(ui.editingHistoryName);
+      } else if (e.target.id === 'exNameInput'){
+        e.preventDefault();
+        saveExerciseName(ui.editingExerciseName);
       }
     } else if (e.key === 'Escape' && e.target.id === 'hiNameInput'){
       e.preventDefault();
       cancelHistoryNameEdit();
+    } else if (e.key === 'Escape' && e.target.id === 'exNameInput'){
+      e.preventDefault();
+      cancelExerciseNameEdit();
     }
   });
 
@@ -2954,6 +3160,21 @@
     window.addEventListener('load', function(){
       navigator.serviceWorker.register('sw.js').catch(function(){});
     });
+  }
+
+  // --- Keep bottom bars above the on-screen keyboard ---
+  // #app is position:fixed sized to the *layout* viewport, which most mobile
+  // browsers don't shrink when the keyboard opens (they shrink the *visual*
+  // viewport instead and scroll the page). That leaves the Finish/Add Set
+  // bar and tab bar sitting behind the keyboard. Syncing #app's real height
+  // to visualViewport.height fixes it without needing to close the keyboard.
+  if (window.visualViewport){
+    var appShellEl = document.getElementById('app');
+    var syncAppHeight = function(){
+      appShellEl.style.height = window.visualViewport.height + 'px';
+    };
+    window.visualViewport.addEventListener('resize', syncAppHeight);
+    syncAppHeight();
   }
 
   // --- Custom "Install App" button ---
