@@ -383,6 +383,7 @@
     justify-content:space-between;
     margin-bottom:10px;
   }
+  .exercise-head-actions{display:flex;gap:2px;flex-shrink:0;}
   .exercise-head h3{
     font-family:'Oswald',sans-serif;
     font-size:16px;
@@ -392,6 +393,36 @@
     margin:0;
     color:var(--text);
   }
+  .exercise-card.collapsed{padding:0;}
+  .exercise-head-collapsed{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:14px;
+    cursor:pointer;
+  }
+  .exercise-head-collapsed .eh-title{flex:1;min-width:0;}
+  .exercise-head-collapsed .eh-title h3{
+    font-family:'Oswald',sans-serif;
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    text-transform:uppercase;
+    margin:0;
+    color:var(--text-dim);
+  }
+  .exercise-collapsed-meta{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--accent);
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+  .exercise-collapsed-meta .chevron{color:var(--text-faint);font-size:13px;}
   .eh-title{
     display:flex;
     align-items:center;
@@ -640,17 +671,66 @@
     padding:14px;
   }
   .mm-toggle-btn:active{background:var(--accent);color:#1c1500;}
-  .muscle-map-panel{
+
+  /* ---------- Muscle map overlay (floating card) ---------- */
+  .mm-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(8,9,11,0.68);
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    padding:0 20px calc(20px + var(--safe-bottom));
+    z-index:90;
+  }
+  .mm-overlay.hidden{display:none;}
+  .mm-overlay-panel{
+    width:100%;
+    max-width:340px;
+    max-height:75vh;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
     background:var(--panel-2);
     border:2px solid var(--accent-dim);
-    border-radius:var(--radius);
-    padding:12px;
-    margin-bottom:14px;
-    box-shadow:0 8px 28px rgba(0,0,0,0.4);
+    border-radius:16px;
+    padding:12px 16px 14px;
+    box-shadow:0 16px 48px rgba(0,0,0,0.5);
+  }
+  .mm-overlay-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:8px;
+  }
+  .mm-overlay-head h2{
+    font-family:'Oswald',sans-serif;
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--text);
+    margin:0;
+  }
+  .mm-overlay-head .icon-btn{width:34px;height:34px;background:var(--panel-3);flex-shrink:0;}
+  .mm-columns{
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .mm-diagram-col{
+    flex:0 0 auto;
+    width:112px;
+  }
+  .mm-list-col{
+    flex:1;
+    min-width:0;
+    max-height:236px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
   }
   .mm-viewtabs{
     display:flex;
-    background:var(--panel-2);
+    background:var(--panel-3);
     border-radius:8px;
     padding:3px;
     margin-bottom:6px;
@@ -660,11 +740,11 @@
     background:none;
     border:none;
     color:var(--text-faint);
-    padding:6px 16px;
+    padding:6px 12px;
     border-radius:6px;
     font-family:'Oswald',sans-serif;
-    font-size:11px;
-    letter-spacing:0.05em;
+    font-size:10px;
+    letter-spacing:0.04em;
     text-transform:uppercase;
     font-weight:600;
     cursor:pointer;
@@ -673,12 +753,11 @@
   .mm-svg-wrap{
     display:flex;
     justify-content:center;
-    margin-bottom:2px;
   }
   .mm-svg-wrap svg{
     display:block;
     width:100%;
-    max-width:150px;
+    max-width:112px;
     height:auto;
   }
   .mm-shape{cursor:pointer;transition:fill 0.15s ease, fill-opacity 0.15s ease;}
@@ -686,47 +765,48 @@
   @media (prefers-reduced-motion: reduce){
     .mm-shape{transition:none;}
   }
-  .mm-hint{
+  .mm-list-empty{
+    height:100%;
+    min-height:180px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     text-align:center;
     color:var(--text-faint);
     font-size:12px;
-    padding:2px 10px 0;
+    line-height:1.5;
+    padding:0 4px;
   }
   .mm-selected-label{
     font-family:'Oswald',sans-serif;
-    font-size:13px;
+    font-size:11px;
     font-weight:600;
     letter-spacing:0.04em;
     text-transform:uppercase;
     color:var(--accent);
-    text-align:center;
-    margin-bottom:8px;
+    margin:0 0 8px;
   }
-  .mm-chip-row{
+  .mm-exercise-list{
     display:flex;
-    gap:8px;
-    overflow-x:auto;
-    padding-bottom:4px;
-    -webkit-overflow-scrolling:touch;
+    flex-direction:column;
+    gap:6px;
   }
-  .mm-chip{
-    flex:0 0 auto;
-    background:var(--panel-2);
+  .mm-exercise-item{
+    width:100%;
+    text-align:left;
+    background:var(--panel-3);
     border:1px solid var(--line);
     color:var(--text);
-    font-size:12px;
+    font-size:12.5px;
+    line-height:1.3;
     font-family:'Inter',sans-serif;
     font-weight:500;
-    padding:9px 14px;
-    border-radius:20px;
-    white-space:nowrap;
+    padding:10px 12px;
+    border-radius:8px;
     cursor:pointer;
   }
-  .mm-chip:active{background:var(--panel-3);}
-  .mm-chip-custom{
-    color:var(--accent);
-    border-color:var(--accent-dim);
-  }
+  .mm-exercise-item:active{background:var(--panel);border-color:var(--accent-dim);}
+  .mm-exercise-item-custom{color:var(--accent);border-color:var(--accent-dim);background:transparent;}
 
   .name-input-row{
     display:flex;
@@ -907,6 +987,20 @@
   }
   .settings-row .seg button.active{background:var(--accent);color:#1c1500;}
 
+  /* ---------- Fixed finish-session bar ---------- */
+  .session-finish-bar{
+    flex-shrink:0;
+    padding:10px 16px;
+    border-top:1px solid var(--line);
+    background:var(--panel);
+  }
+  .session-finish-bar.hidden{display:none;}
+  .session-finish-bar .btn-primary{
+    margin-top:0;
+    padding:11px;
+    font-size:13px;
+  }
+
   /* ---------- Tab bar ---------- */
   .tabbar{
     position:sticky;
@@ -1073,12 +1167,18 @@
     </div>
   </header>
   <main id="view"></main>
+  <div class="session-finish-bar hidden" id="sessionFinishBar">
+    <button class="btn-primary" data-action="finish-session">Finish Session</button>
+  </div>
   <nav class="tabbar" id="tabbar">
     <button data-action="set-tab" data-tab="log"><span class="tab-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="1" y="4" width="4" height="16" rx="1.3"/><rect x="19" y="4" width="4" height="16" rx="1.3"/><rect x="5" y="10.4" width="14" height="3.2" rx="1"/></svg></span>Log</button>
     <button data-action="set-tab" data-tab="history"><span class="tab-glyph">&#128220;</span>History</button>
     <button data-action="set-tab" data-tab="progress"><span class="tab-glyph">&#8599;</span>Progress</button>
     <button data-action="set-tab" data-tab="settings"><span class="tab-glyph">&#9881;</span>Settings</button>
   </nav>
+  <div class="mm-overlay hidden" id="mmOverlay">
+    <div class="mm-overlay-panel" id="mmOverlayPanel"></div>
+  </div>
 </div>
 <div id="authGate" class="hidden"></div>
 <div class="confirm-overlay hidden" id="confirmOverlay">
@@ -1396,28 +1496,50 @@
     return svg;
   }
 
-  function renderMuscleMapPanel(){
-    var html = '<div class="muscle-map-panel">';
-    html += '<div class="mm-viewtabs">' +
+  function renderMuscleMapDiagram(){
+    var html = '<div class="mm-viewtabs">' +
               '<button data-action="mm-view" data-view="front" class="'+(ui.muscleMapView==='front'?'active':'')+'">Front</button>' +
               '<button data-action="mm-view" data-view="back" class="'+(ui.muscleMapView==='back'?'active':'')+'">Back</button>' +
             '</div>';
     html += '<div class="mm-svg-wrap">'+muscleMapSVG(ui.muscleMapView, ui.selectedMuscle)+'</div>';
+    return html;
+  }
 
-    if (ui.selectedMuscle){
-      var opts = MUSCLE_EXERCISES[ui.selectedMuscle] || [];
-      html += '<div class="mm-selected-label">'+esc(ui.selectedMuscle)+'</div>';
-      html += '<div class="mm-chip-row">';
-      opts.forEach(function(name){
-        html += '<button class="mm-chip" data-action="mm-add-exercise" data-name="'+esc(name)+'" data-muscle="'+esc(ui.selectedMuscle)+'">'+esc(name)+'</button>';
-      });
-      html += '<button class="mm-chip mm-chip-custom" data-action="mm-custom" data-muscle="'+esc(ui.selectedMuscle)+'">+ Custom name</button>';
-      html += '</div>';
-    } else {
-      html += '<div class="mm-hint">Tap a region above to see common exercises for it</div>';
-    }
+  function renderMuscleExerciseList(muscle){
+    var opts = MUSCLE_EXERCISES[muscle] || [];
+    var html = '<div class="mm-selected-label">'+esc(muscle)+'</div>';
+    html += '<div class="mm-exercise-list">';
+    opts.forEach(function(name){
+      html += '<button class="mm-exercise-item" data-action="mm-add-exercise" data-name="'+esc(name)+'" data-muscle="'+esc(muscle)+'">'+esc(name)+'</button>';
+    });
+    html += '<button class="mm-exercise-item mm-exercise-item-custom" data-action="mm-custom" data-muscle="'+esc(muscle)+'">+ Custom name</button>';
     html += '</div>';
     return html;
+  }
+
+  function renderMuscleMapOverlay(){
+    var overlay = document.getElementById('mmOverlay');
+    var panel = document.getElementById('mmOverlayPanel');
+    overlay.classList.toggle('hidden', !ui.showMuscleMap);
+    if (!ui.showMuscleMap){
+      panel.innerHTML = '';
+      return;
+    }
+    // Diagram sits fixed in the left column; the right column shows either
+    // a hint or the exercise list for whatever's currently selected.
+    var html = '<div class="mm-overlay-head"><h2>Pick by Muscle Group</h2>' +
+                 '<button class="icon-btn" data-action="toggle-muscle-map" aria-label="Close">&#10005;</button></div>';
+    html += '<div class="mm-columns">';
+    html += '<div class="mm-diagram-col">'+renderMuscleMapDiagram()+'</div>';
+    html += '<div class="mm-list-col">';
+    if (ui.selectedMuscle){
+      html += renderMuscleExerciseList(ui.selectedMuscle);
+    } else {
+      html += '<div class="mm-list-empty">No body part selected yet — tap a region on the left</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+    panel.innerHTML = html;
   }
 
   /* =========================================================
@@ -1464,13 +1586,14 @@
               '<span><b>'+sessionSetCount(session)+'</b> sets</span>' +
             '</div>';
 
-    html += '<div class="section-label">Add Exercise</div>';
-    html += '<button class="btn-block mm-toggle-btn" data-action="toggle-muscle-map">' +
-              (ui.showMuscleMap ? 'Hide muscle map' : 'Pick by muscle group') +
-            '</button>';
-    if (ui.showMuscleMap){
-      html += renderMuscleMapPanel();
+    if (session.exercises.length > 0){
+      session.exercises.forEach(function(ex){
+        html += renderExerciseCard(session, ex);
+      });
     }
+
+    html += '<div class="section-label">Add Exercise</div>';
+    html += '<button class="btn-block mm-toggle-btn" data-action="toggle-muscle-map">Pick by muscle group</button>';
 
     html += '<div class="name-input-row">' +
               '<input type="text" list="exerciseNames" id="newExInput" placeholder="Or type a name, e.g. Bench Press">' +
@@ -1480,21 +1603,19 @@
               allExerciseNames().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('') +
             '</datalist>';
 
-    if (session.exercises.length > 0){
-      session.exercises.forEach(function(ex){
-        html += renderExerciseCard(session, ex);
-      });
-      html += '<button class="btn-primary" data-action="finish-session">Finish Session</button>';
-    }
-
     document.getElementById('view').innerHTML = html;
   }
 
   function renderExerciseCard(session, ex){
+    if (ex.done) return renderExerciseCardCollapsed(ex);
+
     var html = '<div class="exercise-card" data-ex="'+ex.id+'">';
     html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
             (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') + '</div>' +
-            '<button class="icon-btn" data-action="delete-exercise" data-ex="'+ex.id+'" aria-label="Delete exercise">&#10005;</button></div>';
+            '<div class="exercise-head-actions">' +
+              '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Mark '+esc(ex.name)+' done">&#10003;</button>' +
+              '<button class="icon-btn" data-action="delete-exercise" data-ex="'+ex.id+'" aria-label="Delete exercise">&#10005;</button>' +
+            '</div></div>';
 
     if (ex.sets.length > 0){
       html += '<div class="exercise-volume"><span>Volume</span><b>'+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</b></div>';
@@ -1544,6 +1665,22 @@
                 '<button class="add-set-btn" data-action="add-set" data-ex="'+ex.id+'" aria-label="Log set">&#10003;</button>' +
               '</div>';
     }
+    html += '</div>';
+    return html;
+  }
+
+  function renderExerciseCardCollapsed(ex){
+    var setCount = ex.sets.length;
+    var summary = setCount + (setCount === 1 ? ' set' : ' sets');
+    if (setCount > 0){
+      summary += ' &middot; ' + Math.round(toDisplay(exerciseVolume(ex))).toLocaleString() + ' ' + unitLabel().toUpperCase();
+    }
+    var html = '<div class="exercise-card collapsed" data-ex="'+ex.id+'">';
+    html += '<div class="exercise-head-collapsed" data-action="toggle-exercise-done" data-ex="'+ex.id+'">' +
+              '<div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
+              (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') + '</div>' +
+              '<div class="exercise-collapsed-meta"><span>&#10003; '+summary+'</span><span class="chevron">&#8964;</span></div>' +
+            '</div>';
     html += '</div>';
     return html;
   }
@@ -1773,6 +1910,12 @@
     document.getElementById('accountMenuName').textContent =
       state.currentAccount === 'guest' ? 'Guest — this device only' : uname;
     document.getElementById('accountMenu').classList.toggle('hidden', !ui.showAccountMenu);
+
+    var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
+    var showFinishBar = state.tab === 'log' && !!activeSession && activeSession.exercises.length > 0;
+    document.getElementById('sessionFinishBar').classList.toggle('hidden', !showFinishBar);
+
+    renderMuscleMapOverlay();
     renderConfirmModal();
   }
 
@@ -1952,6 +2095,16 @@
     if (name) recomputeExercisePRs(name);
     saveSessions();
     if (ui.editingSet && ui.editingSet.exId === exId) ui.editingSet = null;
+    renderApp();
+  }
+
+  function toggleExerciseDone(exId){
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex) return;
+    ex.done = !ex.done;
+    if (ex.done && ui.editingSet && ui.editingSet.exId === exId) ui.editingSet = null;
+    saveSessions();
     renderApp();
   }
 
@@ -2201,6 +2354,13 @@
      EVENT DELEGATION
      ========================================================= */
   document.getElementById('app').addEventListener('click', function(e){
+    if (e.target.id === 'mmOverlay'){
+      ui.showMuscleMap = false;
+      ui.selectedMuscle = null;
+      ui.pendingMuscle = null;
+      renderApp();
+      return;
+    }
     var el = e.target.closest('[data-action]');
     if (!el) return;
     var action = el.dataset.action;
@@ -2236,6 +2396,8 @@
       addExercise();
     } else if (action === 'delete-exercise'){
       openDeleteExerciseConfirm(el.dataset.ex);
+    } else if (action === 'toggle-exercise-done'){
+      toggleExerciseDone(el.dataset.ex);
     } else if (action === 'add-set'){
       addSet(el.dataset.ex);
     } else if (action === 'delete-set'){
@@ -2392,8 +2554,14 @@
     }
   });
   document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape' && ui.confirmModal){
+    if (e.key !== 'Escape') return;
+    if (ui.confirmModal){
       ui.confirmModal = null;
+      renderApp();
+    } else if (ui.showMuscleMap){
+      ui.showMuscleMap = false;
+      ui.selectedMuscle = null;
+      ui.pendingMuscle = null;
       renderApp();
     }
   });
