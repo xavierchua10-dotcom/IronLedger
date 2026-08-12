@@ -508,6 +508,24 @@
     flex-shrink:0;
   }
   .icon-btn:active{background:var(--panel-3);color:var(--text);}
+  .reset-log-btn{
+    background:none;
+    border:1px solid var(--accent-2-dim);
+    color:var(--accent-2);
+    font-size:16px;
+    line-height:1;
+    padding:0;
+    width:32px;
+    height:32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    border-radius:8px;
+    flex-shrink:0;
+    margin-left:auto;
+  }
+  .reset-log-btn:active{background:var(--panel-3);}
   .exercise-head-actions .icon-btn{
     border:1px solid var(--line);
   }
@@ -2008,6 +2026,7 @@
               '<span>'+fmtDate(session.date)+'</span>' +
               '<span><b>'+session.exercises.length+'</b> exercises</span>' +
               '<span><b>'+sessionSetCount(session)+'</b> sets</span>' +
+              (session.exercises.length > 0 ? '<button class="reset-log-btn" data-action="reset-log" aria-label="Reset log">&#8635;</button>' : '') +
             '</div>';
 
     html += '<div class="section-label">Add Exercise</div>';
@@ -3296,6 +3315,22 @@
     renderApp();
   }
 
+  // Clears only the exercises/sets of the current active session — the
+  // session itself stays (same date, same name if any), History and
+  // every other session are untouched.
+  function resetLog(){
+    var session = getActiveSession();
+    if (!session) return;
+    session.exercises = [];
+    ui.editingSet = null;
+    ui.editingExerciseName = null;
+    ui.expandedAddSet = {};
+    ui.draftSets = {};
+    saveSessions();
+    showToast('Log reset');
+    renderApp();
+  }
+
   var confirmCountdownTimer = null;
   function renderConfirmModal(){
     var overlay = document.getElementById('confirmOverlay');
@@ -3641,6 +3676,15 @@
       document.getElementById('importFile').click();
     } else if (action === 'clear-data'){
       openClearDataConfirm();
+    } else if (action === 'reset-log'){
+      ui.confirmModal = {
+        kind: 'reset-log',
+        title: 'Reset log?',
+        message: 'This clears every exercise and set from today\u2019s session \u2014 the session itself stays, just empty. Your History and other sessions aren\u2019t touched.',
+        confirmLabel: 'Reset Log',
+        variant: 'danger'
+      };
+      renderApp();
     }
   });
 
@@ -3781,6 +3825,7 @@
       else if (m && m.kind === 'start-routine') startRoutine(m.routineId);
       else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
       else if (m && m.kind === 'clear-data') clearAllData();
+      else if (m && m.kind === 'reset-log') resetLog();
       else if (m && m.kind === 'logout') logOut();
       else if (m && m.kind === 'delete-account') deleteAccount();
       else if (m && m.kind === 'add-set-global'){
