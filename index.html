@@ -660,6 +660,7 @@
     margin-bottom:14px;
   }
   .btn-block:active{background:var(--panel-2);}
+  .save-routine-btn{margin-top:12px;margin-bottom:0;}
   .add-exercise-bottom-btn{
     width:100%;
     padding:15px;
@@ -870,6 +871,25 @@
   .empty p{font-size:13px;line-height:1.6;margin:0;}
 
   /* ---------- History ---------- */
+  .history-search-input{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:var(--radius);
+    padding:12px;
+    font-size:16px;
+    margin-bottom:14px;
+  }
+  .history-search-input:focus{outline:none;border-color:var(--accent);}
+  .history-no-match{
+    text-align:center;
+    color:var(--text-faint);
+    font-size:13px;
+    padding:24px 0;
+  }
+  .history-no-match.hidden{display:none;}
+  .history-item.hidden{display:none;}
   .history-item{
     background:var(--panel);
     border:1px solid var(--line);
@@ -971,8 +991,8 @@
     cursor:pointer;
     padding:6px 0;
   }
-  .hi-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;}
-  .hi-print,.hi-edit{
+  .hi-actions{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;}
+  .hi-print,.hi-edit,.hi-repeat{
     background:none;
     border:1px solid var(--line);
     color:var(--accent);
@@ -983,7 +1003,7 @@
     padding:7px 12px;
     border-radius:8px;
   }
-  .hi-print:active,.hi-edit:active{background:var(--panel-3);}
+  .hi-print:active,.hi-edit:active,.hi-repeat:active{background:var(--panel-3);}
 
   /* ---------- Print receipt ---------- */
   .print-receipt{display:none;}
@@ -1114,6 +1134,7 @@
     font-family:'JetBrains Mono',monospace;
   }
   .settings-row .seg button.active{background:var(--accent);color:#1c1500;}
+  .routine-actions{display:flex;gap:8px;}
 
   /* ---------- Fixed finish-session bar ---------- */
   .session-finish-bar{
@@ -1298,9 +1319,21 @@
   .pr-tag.fresh{animation:prpulse 0.4s ease;}
 
   ::selection{background:var(--accent-dim);color:var(--text);}
+
+  .boot-loading{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:var(--bg); z-index:999;
+  }
+  .boot-loading-mark{
+    font-weight:800; letter-spacing:.04em; font-size:22px; color:var(--text);
+    opacity:.85; animation:bootPulse 1.1s ease-in-out infinite;
+  }
+  .boot-loading-mark span{color:var(--accent);}
+  @keyframes bootPulse{ 0%,100%{opacity:.4;} 50%{opacity:.9;} }
 </style>
 </head>
 <body>
+<div id="bootLoading" class="boot-loading"><div class="boot-loading-mark">IRON <span>LEDGER</span></div></div>
 <div id="app" class="hidden">
   <header class="topbar">
     <h1>IRON <span>LEDGER</span> <span class="brand-tag">savior</span></h1>
@@ -1335,8 +1368,60 @@
 <div class="confirm-overlay hidden" id="confirmOverlay">
   <div class="confirm-panel" id="confirmPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="routineNameOverlay">
+  <div class="confirm-panel" id="routineNamePanel"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
+
+<script type="module">
+  // =========================================================
+  // FIREBASE — Auth (Phase 1: real accounts that work across
+  // devices). Workout data itself still lives in localStorage
+  // on this device only, for now — that's Phase 2 (Firestore
+  // sync), not wired up yet.
+  // =========================================================
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+    signOut, onAuthStateChanged, deleteUser
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+  // ---- PASTE YOUR FIREBASE PROJECT CONFIG HERE ----
+  // Firebase console → Project settings → Your apps → SDK setup and config
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+  // ---------------------------------------------------
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  window.SaviorFirebase = {
+    signUp: function(email, password){
+      return createUserWithEmailAndPassword(auth, email, password).then(function(cred){ return cred.user; });
+    },
+    logIn: function(email, password){
+      return signInWithEmailAndPassword(auth, email, password).then(function(cred){ return cred.user; });
+    },
+    logOut: function(){
+      return signOut(auth);
+    },
+    deleteCurrentUser: function(){
+      return auth.currentUser ? deleteUser(auth.currentUser) : Promise.resolve();
+    },
+    onAuthChange: function(cb){
+      return onAuthStateChanged(auth, cb);
+    }
+  };
+
+  window.dispatchEvent(new Event('savior-firebase-ready'));
+</script>
 
 <script>
 (function(){
@@ -1347,11 +1432,12 @@
      ========================================================= */
   var STORAGE_SESSIONS = 'il_sessions_v1';
   var STORAGE_SETTINGS = 'il_settings_v1';
-  var STORAGE_ACCOUNTS = 'il_accounts_v1';
   var STORAGE_CURRENT_ACCOUNT = 'il_current_account_v1';
+  var STORAGE_ROUTINES = 'il_routines_v1';
 
   var state = {
     sessions: [],
+    routines: [],          // [{ id, name, exercises: [{ name, muscle }] }]
     settings: { unit: 'kg' },
     tab: 'log',
     currentAccount: null   // null (show gate) | 'guest' | account id
@@ -1366,10 +1452,12 @@
     pendingMuscle: null,
     editingSet: null,      // { exId, setId } or null
     editingHistoryName: null,  // sessionId currently being renamed, or null
+    historySearch: '',         // current History search query
     showAccountMenu: false,
     authMode: 'login',     // 'login' | 'signup'
     authError: null,
-    authDraft: { username: '' },
+    authBusy: false,
+    authDraft: { email: '' },
     confirmModal: null,           // { kind:'exercise'|'set'|'session', title, message, exId, setId, sessionId } or null
     pendingDeleteAccount: false,
     freshPRSetId: null,    // id of a just-logged set that should play the PR pulse animation once
@@ -1377,24 +1465,22 @@
     draftSets: {},          // exId -> { weight, reps } — unsaved input, kept across collapse/expand or tab switches
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
-    tabAnimating: false     // true while a tab-slide transition is in progress
+    tabAnimating: false,    // true while a tab-slide transition is in progress
+    savingRoutine: false    // true while the "Save as Routine" name panel is open
   };
 
   /* =========================================================
-     ACCOUNTS  (local, on-device only — no server, no sync)
+     ACCOUNTS
+     Real accounts (email/password) are Firebase Auth accounts —
+     the credentials + login work across devices. The workout
+     data itself (sessions/routines/settings) is still cached
+     locally per-device, scoped by the Firebase user's uid —
+     that part doesn't sync across devices yet (Phase 2).
+     Guest mode remains fully local-only, no Firebase involved.
      ========================================================= */
   function scopedKey(base){
     var acct = state.currentAccount;
     return (!acct || acct === 'guest') ? base : (base + '::' + acct);
-  }
-  function loadAccounts(){
-    try{
-      var raw = localStorage.getItem(STORAGE_ACCOUNTS);
-      return raw ? JSON.parse(raw) : [];
-    }catch(e){ return []; }
-  }
-  function saveAccounts(accounts){
-    localStorage.setItem(STORAGE_ACCOUNTS, JSON.stringify(accounts));
   }
   function loadCurrentAccountId(){
     return localStorage.getItem(STORAGE_CURRENT_ACCOUNT);
@@ -1403,33 +1489,27 @@
     if (id) localStorage.setItem(STORAGE_CURRENT_ACCOUNT, id);
     else localStorage.removeItem(STORAGE_CURRENT_ACCOUNT);
   }
-  function currentAccountUsername(){
+  function currentAccountEmail(){
     if (!state.currentAccount || state.currentAccount === 'guest') return 'Guest';
-    var accounts = loadAccounts();
-    var acct = accounts.find(function(a){ return a.id === state.currentAccount; });
-    return acct ? acct.username : 'Guest';
+    return state.currentAccountEmail || 'Account';
   }
-  // Basic on-device hashing via the browser's built-in crypto — this is not
-  // server-verified security, just keeps a plain password out of localStorage.
-  function hashPassword(pw){
-    var enc = new TextEncoder().encode(pw);
-    return crypto.subtle.digest('SHA-256', enc).then(function(buf){
-      return Array.from(new Uint8Array(buf)).map(function(b){
-        return b.toString(16).padStart(2, '0');
-      }).join('');
-    });
+  function isValidEmail(email){
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
-  // If someone already has data under the old unscoped keys (from before
-  // accounts existed), treat them as already-continuing-as-guest instead of
-  // interrupting them with a gate the first time this update loads.
-  function determineInitialAccount(){
-    var stored = loadCurrentAccountId();
-    if (stored) return stored;
-    try{
-      var legacy = localStorage.getItem(STORAGE_SESSIONS);
-      if (legacy && JSON.parse(legacy).length > 0) return 'guest';
-    }catch(e){}
-    return null;
+  // Maps Firebase Auth error codes to friendly, human-readable messages.
+  function firebaseAuthErrorMessage(err){
+    var code = err && err.code;
+    switch (code){
+      case 'auth/email-already-in-use': return 'That email is already registered';
+      case 'auth/invalid-email': return 'Enter a valid email address';
+      case 'auth/weak-password': return 'Password must be at least 6 characters';
+      case 'auth/user-not-found': return 'No account with that email';
+      case 'auth/wrong-password': return 'Incorrect password';
+      case 'auth/invalid-credential': return 'Incorrect email or password';
+      case 'auth/too-many-requests': return 'Too many attempts — try again in a bit';
+      case 'auth/network-request-failed': return 'Network error — check your connection';
+      default: return 'Something went wrong — try again';
+    }
   }
 
   function loadSessions(){
@@ -1446,6 +1526,15 @@
   }
   function saveSessions(){
     localStorage.setItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(state.sessions));
+  }
+  function loadRoutines(){
+    try{
+      var raw = localStorage.getItem(scopedKey(STORAGE_ROUTINES));
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveRoutines(){
+    localStorage.setItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(state.routines));
   }
   function saveSettings(){
     localStorage.setItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(state.settings));
@@ -1830,6 +1919,10 @@
               '<span class="plus-glyph">&#43;</span> Add Exercise' +
             '</button>';
 
+    if (session.exercises.length > 0){
+      html += '<button class="btn-block save-routine-btn" data-action="save-routine">Save as Routine</button>';
+    }
+
     document.getElementById('view').innerHTML = html;
   }
 
@@ -1933,10 +2026,13 @@
       html += '<div class="empty"><div class="glyph">&#128220;</div>' +
               '<p>No finished sessions yet.<br>Sessions you finish in the Log tab will show up here.</p></div>';
     } else {
+      html += '<input type="text" id="historySearchInput" class="history-search-input" autocomplete="off" placeholder="Search by exercise or session name" value="'+esc(ui.historySearch || '')+'">';
+      html += '<div class="history-no-match hidden" id="historyNoMatch">No sessions match your search.</div>';
       done.forEach(function(s){
         var expanded = !!ui.expandedHistory[s.id];
         var isEditingName = ui.editingHistoryName === s.id;
-        html += '<div class="history-item">';
+        var searchBlob = ((s.name || '') + ' ' + s.exercises.map(function(ex){ return ex.name; }).join(' ')).toLowerCase();
+        html += '<div class="history-item" data-search="'+esc(searchBlob)+'">';
         if (isEditingName){
           html += '<div class="history-item-head history-item-head-editing">' +
                     '<div class="hi-rename-row">' +
@@ -1975,6 +2071,7 @@
           });
           html += '<div class="hi-actions">' +
                     '<button class="hi-delete" data-action="delete-session" data-session="'+s.id+'">Delete session</button>' +
+                    '<button class="hi-repeat" data-action="repeat-session" data-session="'+s.id+'">Repeat</button>' +
                     '<button class="hi-edit" data-action="edit-session" data-session="'+s.id+'">Edit</button>' +
                     '<button class="hi-print" data-action="print-session" data-session="'+s.id+'">Print receipt</button>' +
                   '</div>';
@@ -1984,6 +2081,21 @@
       });
     }
     document.getElementById('view').innerHTML = html;
+    if (done.length > 0) filterHistoryList(ui.historySearch || '');
+  }
+
+  function filterHistoryList(query){
+    query = String(query || '').trim().toLowerCase();
+    var items = document.querySelectorAll('.history-item');
+    var anyVisible = false;
+    items.forEach(function(item){
+      var haystack = item.dataset.search || '';
+      var match = !query || haystack.indexOf(query) !== -1;
+      item.classList.toggle('hidden', !match);
+      if (match) anyVisible = true;
+    });
+    var noMatchEl = document.getElementById('historyNoMatch');
+    if (noMatchEl) noMatchEl.classList.toggle('hidden', anyVisible || !query);
   }
 
   /* =========================================================
@@ -2115,7 +2227,7 @@
     var html = '';
     html += '<div class="section-label">Account</div>';
     html += '<div class="settings-group">';
-    html += '<div class="settings-row"><div><div class="sr-label">'+esc(currentAccountUsername())+'</div>' +
+    html += '<div class="settings-row"><div><div class="sr-label">'+esc(currentAccountEmail())+'</div>' +
               '<div class="sr-sub">'+(state.currentAccount==='guest' ? 'Guest — this device only' : 'Local account, stored on this device')+'</div></div>' +
               '<button class="sr-action" data-action="log-out">Log out</button></div>';
     if (state.currentAccount !== 'guest'){
@@ -2133,6 +2245,22 @@
                 '<button data-action="set-unit" data-unit="lb" class="'+(state.settings.unit==='lb'?'active':'')+'">LB</button>' +
               '</div></div>';
     html += '</div>';
+
+    html += '<div class="section-label">Routines</div>';
+    if (state.routines.length === 0){
+      html += '<div class="settings-group"><div class="settings-row"><div><div class="sr-label">No saved routines yet</div><div class="sr-sub">Save a session\u2019s exercise list from the Log tab to reuse it</div></div></div></div>';
+    } else {
+      html += '<div class="settings-group">';
+      state.routines.forEach(function(r){
+        html += '<div class="settings-row"><div><div class="sr-label">'+esc(r.name)+'</div>' +
+                  '<div class="sr-sub">'+r.exercises.length+' exercise'+(r.exercises.length===1?'':'s')+'</div></div>' +
+                  '<div class="routine-actions">' +
+                    '<button class="sr-action" data-action="start-routine" data-routine="'+r.id+'">Start</button>' +
+                    '<button class="sr-action sr-action-danger" data-action="delete-routine" data-routine="'+r.id+'">Delete</button>' +
+                  '</div></div>';
+      });
+      html += '</div>';
+    }
 
     html += '<div class="section-label">Your data</div>';
     html += '<div class="settings-group">';
@@ -2240,10 +2368,10 @@
 
     document.getElementById('unitToggleBtn').textContent = state.settings.unit.toUpperCase();
 
-    var uname = currentAccountUsername();
-    document.getElementById('accountAvatarBtn').textContent = uname.charAt(0).toUpperCase();
+    var uemail = currentAccountEmail();
+    document.getElementById('accountAvatarBtn').textContent = uemail.charAt(0).toUpperCase();
     document.getElementById('accountMenuName').textContent =
-      state.currentAccount === 'guest' ? 'Guest — this device only' : uname;
+      state.currentAccount === 'guest' ? 'Guest — this device only' : uemail;
     document.getElementById('accountMenu').classList.toggle('hidden', !ui.showAccountMenu);
 
     var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
@@ -2257,23 +2385,31 @@
 
     renderMuscleMapOverlay();
     renderConfirmModal();
+    renderRoutineNamePanel();
     refreshAddSetGlobalBtn();
   }
 
   /* =========================================================
      AUTH GATE  (sign up / log in / guest)
      ========================================================= */
+  function hideBootLoading(){
+    var el = document.getElementById('bootLoading');
+    if (el) el.classList.add('hidden');
+  }
   function showAppShell(){
+    hideBootLoading();
     document.getElementById('authGate').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
   }
   function showAuthGateShell(){
+    hideBootLoading();
     document.getElementById('app').classList.add('hidden');
     document.getElementById('authGate').classList.remove('hidden');
   }
 
   function bootAccountData(){
     state.sessions = loadSessions();
+    state.routines = loadRoutines();
     state.settings = loadSettings();
     state.tab = 'log';
     ui.editingSet = null;
@@ -2283,9 +2419,15 @@
     ui.showAccountMenu = false;
   }
 
-  function loginToAccount(accountId){
-    setCurrentAccountId(accountId);
-    state.currentAccount = accountId;
+  // Called by the Firebase onAuthChange listener once a real login/signup
+  // succeeds — not called directly by handleLogIn/handleSignUp, since
+  // Firebase itself is the source of truth for "who's logged in."
+  function enterAccount(uidVal, email){
+    setCurrentAccountId(uidVal);
+    state.currentAccount = uidVal;
+    state.currentAccountEmail = email;
+    ui.authBusy = false;
+    ui.authError = null;
     bootAccountData();
     showAppShell();
     renderApp();
@@ -2300,13 +2442,17 @@
   }
 
   function logOut(){
+    var wasGuest = (state.currentAccount === 'guest');
     setCurrentAccountId(null);
     state.currentAccount = null;
+    state.currentAccountEmail = null;
     ui.showAccountMenu = false;
     ui.authMode = 'login';
     ui.authError = null;
-    ui.authDraft = { username: '' };
+    ui.authBusy = false;
+    ui.authDraft = { email: '' };
     ui.pendingDeleteAccount = false;
+    if (!wasGuest && window.SaviorFirebase) window.SaviorFirebase.logOut();
     showAuthGateShell();
     renderAuthGate();
   }
@@ -2314,53 +2460,66 @@
   function deleteAccount(){
     if (!state.currentAccount || state.currentAccount === 'guest') return;
     var id = state.currentAccount;
-    var accounts = loadAccounts().filter(function(a){ return a.id !== id; });
-    saveAccounts(accounts);
     localStorage.removeItem(STORAGE_SESSIONS + '::' + id);
     localStorage.removeItem(STORAGE_SETTINGS + '::' + id);
-    logOut();
-    showToast('Account deleted');
+    localStorage.removeItem(STORAGE_ROUTINES + '::' + id);
+    if (window.SaviorFirebase){
+      window.SaviorFirebase.deleteCurrentUser().then(function(){
+        logOut();
+        showToast('Account deleted');
+      }).catch(function(err){
+        showToast(err && err.code === 'auth/requires-recent-login'
+          ? 'Log out and back in, then try deleting again'
+          : 'Could not delete account — try again');
+      });
+    } else {
+      logOut();
+      showToast('Account deleted');
+    }
   }
 
-  function handleLogIn(username, password){
-    username = (username || '').trim();
-    if (!username || !password){
-      ui.authError = 'Enter your username and password';
+  function handleLogIn(email, password){
+    email = (email || '').trim();
+    if (!email || !password){
+      ui.authError = 'Enter your email and password';
       renderAuthGate();
       return;
     }
-    var accounts = loadAccounts();
-    var acct = accounts.find(function(a){ return a.username.toLowerCase() === username.toLowerCase(); });
-    if (!acct){
-      ui.authError = 'No account with that username';
+    if (!isValidEmail(email)){
+      ui.authError = 'Enter a valid email address';
       renderAuthGate();
       return;
     }
-    hashPassword(password).then(function(hash){
-      if (hash !== acct.passwordHash){
-        ui.authError = 'Incorrect password';
-        renderAuthGate();
-        return;
-      }
-      ui.authError = null;
-      loginToAccount(acct.id);
+    if (!window.SaviorFirebase){
+      ui.authError = 'Still connecting — try again in a moment';
+      renderAuthGate();
+      return;
+    }
+    ui.authError = null;
+    ui.authBusy = true;
+    renderAuthGate();
+    window.SaviorFirebase.logIn(email, password).catch(function(err){
+      ui.authBusy = false;
+      ui.authError = firebaseAuthErrorMessage(err);
+      renderAuthGate();
     });
+    // On success, the onAuthChange listener fires and takes it from here.
   }
 
-  function handleSignUp(username, password, confirmPassword){
-    username = (username || '').trim();
-    if (!username || !password){
-      ui.authError = 'Enter a username and password';
+  function handleSignUp(email, password, confirmPassword){
+    email = (email || '').trim();
+    if (!email || !password){
+      ui.authError = 'Enter an email and password';
       renderAuthGate();
       return;
     }
-    if (username.length < 2){
-      ui.authError = 'Username must be at least 2 characters';
+    if (!isValidEmail(email)){
+      ui.authError = 'Enter a valid email address';
       renderAuthGate();
       return;
     }
-    if (password.length < 4){
-      ui.authError = 'Password must be at least 4 characters';
+    if (password.length < 6){
+      ui.authError = 'Password must be at least 6 characters';
       renderAuthGate();
       return;
     }
@@ -2369,40 +2528,40 @@
       renderAuthGate();
       return;
     }
-    var accounts = loadAccounts();
-    var exists = accounts.some(function(a){ return a.username.toLowerCase() === username.toLowerCase(); });
-    if (exists){
-      ui.authError = 'That username is already taken';
+    if (!window.SaviorFirebase){
+      ui.authError = 'Still connecting — try again in a moment';
       renderAuthGate();
       return;
     }
-    hashPassword(password).then(function(hash){
-      var acct = { id: 'u_' + uid(), username: username, passwordHash: hash, createdAt: new Date().toISOString() };
-      accounts.push(acct);
-      saveAccounts(accounts);
-      ui.authError = null;
-      loginToAccount(acct.id);
+    ui.authError = null;
+    ui.authBusy = true;
+    renderAuthGate();
+    window.SaviorFirebase.signUp(email, password).catch(function(err){
+      ui.authBusy = false;
+      ui.authError = firebaseAuthErrorMessage(err);
+      renderAuthGate();
     });
   }
 
   function renderAuthGate(){
     var mode = ui.authMode || 'login';
+    var busy = !!ui.authBusy;
     var html = '<div class="auth-card">';
     html += '<div class="auth-title"><h1>IRON <span>LEDGER</span></h1><div class="auth-sub">savior</div></div>';
     html += '<div class="auth-tabs">' +
-              '<button class="'+(mode==='login'?'active':'')+'" data-action="auth-mode" data-mode="login">Log In</button>' +
-              '<button class="'+(mode==='signup'?'active':'')+'" data-action="auth-mode" data-mode="signup">Sign Up</button>' +
+              '<button class="'+(mode==='login'?'active':'')+'" data-action="auth-mode" data-mode="login"'+(busy?' disabled':'')+'>Log In</button>' +
+              '<button class="'+(mode==='signup'?'active':'')+'" data-action="auth-mode" data-mode="signup"'+(busy?' disabled':'')+'>Sign Up</button>' +
             '</div>';
-    html += '<div class="auth-field"><input type="text" id="authUsername" placeholder="Username" autocomplete="username" autocapitalize="none" value="'+esc(ui.authDraft.username || '')+'"></div>';
-    html += '<div class="auth-field"><input type="password" id="authPassword" placeholder="Password" autocomplete="'+(mode==='signup'?'new-password':'current-password')+'"></div>';
+    html += '<div class="auth-field"><input type="email" id="authEmail" placeholder="Email" autocomplete="email" autocapitalize="none" value="'+esc(ui.authDraft.email || '')+'"'+(busy?' disabled':'')+'></div>';
+    html += '<div class="auth-field"><input type="password" id="authPassword" placeholder="Password" autocomplete="'+(mode==='signup'?'new-password':'current-password')+'"'+(busy?' disabled':'')+'></div>';
     if (mode === 'signup'){
-      html += '<div class="auth-field"><input type="password" id="authConfirm" placeholder="Confirm password" autocomplete="new-password"></div>';
+      html += '<div class="auth-field"><input type="password" id="authConfirm" placeholder="Confirm password" autocomplete="new-password"'+(busy?' disabled':'')+'></div>';
     }
     html += '<div class="auth-error">'+(ui.authError ? esc(ui.authError) : '')+'</div>';
-    html += '<button class="auth-submit" data-action="'+(mode==='signup'?'do-signup':'do-login')+'">'+(mode==='signup'?'Create Account':'Log In')+'</button>';
+    html += '<button class="auth-submit" data-action="'+(mode==='signup'?'do-signup':'do-login')+'"'+(busy?' disabled':'')+'>'+(busy ? '\u2026' : (mode==='signup'?'Create Account':'Log In'))+'</button>';
     html += '<div class="auth-divider">or</div>';
-    html += '<button class="auth-guest-btn" data-action="continue-guest">Continue as Guest</button>';
-    html += '<div class="auth-note">Accounts stay on this device only — they don\u2019t sync across phones yet.</div>';
+    html += '<button class="auth-guest-btn" data-action="continue-guest"'+(busy?' disabled':'')+'>Continue as Guest</button>';
+    html += '<div class="auth-note">Your workout log stays on this device — logging in with the same email on another device won\u2019t bring your history over yet.</div>';
     html += '</div>';
     document.getElementById('authGate').innerHTML = html;
   }
@@ -2827,6 +2986,50 @@
     showToast('Editing ' + (target.name || 'session'));
   }
 
+  function openRepeatSessionConfirm(sessionId){
+    var session = state.sessions.find(function(s){ return s.id === sessionId; });
+    var name = session && session.name ? session.name : 'this session';
+    ui.confirmModal = {
+      kind: 'repeat-session',
+      title: 'Repeat ' + name + '?',
+      message: 'A new session starts with the same exercises (no sets yet, fresh start). If you have another session in progress, it\u2019ll be saved to History first.',
+      confirmLabel: 'Repeat',
+      variant: 'primary',
+      sessionId: sessionId
+    };
+    renderApp();
+  }
+
+  function repeatSession(sessionId){
+    var source = state.sessions.find(function(s){ return s.id === sessionId; });
+    if (!source) return;
+
+    var currentActive = state.sessions.find(function(s){ return s.status === 'active'; });
+    if (currentActive){
+      if (currentActive.exercises.length > 0){
+        currentActive.status = 'done';
+        if (!currentActive.finishedAt) currentActive.finishedAt = new Date().toISOString();
+      } else {
+        state.sessions = state.sessions.filter(function(s){ return s.id !== currentActive.id; });
+      }
+    }
+
+    var newSession = {
+      id: uid(),
+      name: '',
+      date: new Date().toISOString(),
+      status: 'active',
+      exercises: source.exercises.map(function(ex){
+        return { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false };
+      })
+    };
+    state.sessions.unshift(newSession);
+    saveSessions();
+    state.tab = 'log';
+    renderApp();
+    showToast('Repeating ' + (source.name || 'session'));
+  }
+
   function openFinishSessionConfirm(){
     ui.confirmModal = {
       kind: 'finish-session',
@@ -2851,7 +3054,9 @@
 
   function clearAllData(){
     state.sessions = [];
+    state.routines = [];
     saveSessions();
+    saveRoutines();
     showToast('All data erased');
     renderApp();
   }
@@ -2877,8 +3082,131 @@
       '</div>';
   }
 
+  function renderRoutineNamePanel(){
+    var overlay = document.getElementById('routineNameOverlay');
+    var panel = document.getElementById('routineNamePanel');
+    if (!ui.savingRoutine){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    panel.innerHTML =
+      '<div class="confirm-title">Save as Routine</div>' +
+      '<div class="confirm-message">Saves the exercise list only \u2014 no weights or reps. Use it to quickly start this same workout again later.</div>' +
+      '<input type="text" id="routineNameInput" class="hi-name-input" maxlength="60" placeholder="e.g. Push Day A" style="width:100%;box-sizing:border-box;margin:4px 0 12px;">' +
+      '<div class="confirm-buttons">' +
+        '<button class="confirm-btn-cancel" data-action="cancel-save-routine">Cancel</button>' +
+        '<button class="confirm-btn-primary" data-action="confirm-save-routine">Save</button>' +
+      '</div>';
+    setTimeout(function(){
+      var inp = document.getElementById('routineNameInput');
+      if (inp) inp.focus();
+    }, 30);
+  }
+
+  function openSaveRoutine(){
+    var session = getActiveSession();
+    if (!session.exercises.length){
+      showToast('Add at least one exercise first');
+      return;
+    }
+    ui.savingRoutine = true;
+    renderApp();
+  }
+
+  function cancelSaveRoutine(){
+    ui.savingRoutine = false;
+    renderApp();
+  }
+
+  function confirmSaveRoutine(){
+    var input = document.getElementById('routineNameInput');
+    var name = input ? input.value.trim() : '';
+    if (!name){
+      showToast('Give the routine a name');
+      return;
+    }
+    var session = getActiveSession();
+    var routine = {
+      id: uid(),
+      name: name,
+      exercises: session.exercises.map(function(ex){ return { name: ex.name, muscle: ex.muscle }; })
+    };
+    state.routines.unshift(routine);
+    saveRoutines();
+    ui.savingRoutine = false;
+    renderApp();
+    showToast('Routine saved');
+  }
+
+  function openStartRoutineConfirm(routineId){
+    var routine = state.routines.find(function(r){ return r.id === routineId; });
+    if (!routine) return;
+    ui.confirmModal = {
+      kind: 'start-routine',
+      title: 'Start ' + routine.name + '?',
+      message: 'A new session begins with these ' + routine.exercises.length + ' exercise' + (routine.exercises.length===1?'':'s') + ' loaded in, ready to log. If you have another session in progress, it\u2019ll be saved to History first.',
+      confirmLabel: 'Start',
+      variant: 'primary',
+      routineId: routineId
+    };
+    renderApp();
+  }
+
+  function startRoutine(routineId){
+    var routine = state.routines.find(function(r){ return r.id === routineId; });
+    if (!routine) return;
+
+    var currentActive = state.sessions.find(function(s){ return s.status === 'active'; });
+    if (currentActive){
+      if (currentActive.exercises.length > 0){
+        currentActive.status = 'done';
+        if (!currentActive.finishedAt) currentActive.finishedAt = new Date().toISOString();
+      } else {
+        state.sessions = state.sessions.filter(function(s){ return s.id !== currentActive.id; });
+      }
+    }
+
+    var newSession = {
+      id: uid(),
+      name: routine.name,
+      date: new Date().toISOString(),
+      status: 'active',
+      exercises: routine.exercises.map(function(ex){
+        return { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false };
+      })
+    };
+    state.sessions.unshift(newSession);
+    saveSessions();
+    state.tab = 'log';
+    renderApp();
+    showToast('Started ' + routine.name);
+  }
+
+  function openDeleteRoutineConfirm(routineId){
+    var routine = state.routines.find(function(r){ return r.id === routineId; });
+    var name = routine && routine.name ? routine.name : 'this routine';
+    ui.confirmModal = {
+      kind: 'routine',
+      title: 'Delete ' + name + '?',
+      message: 'This removes the saved routine. Sessions you already logged from it stay in History.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      routineId: routineId
+    };
+    renderApp();
+  }
+
+  function deleteRoutine(routineId){
+    state.routines = state.routines.filter(function(r){ return r.id !== routineId; });
+    saveRoutines();
+    renderApp();
+    showToast('Routine deleted');
+  }
+
   function exportData(){
-    var payload = { sessions: state.sessions, settings: state.settings, exportedAt: new Date().toISOString() };
+    var payload = { sessions: state.sessions, routines: state.routines, settings: state.settings, exportedAt: new Date().toISOString() };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -2902,8 +3230,10 @@
         var data = JSON.parse(evt.target.result);
         if (!data.sessions || !Array.isArray(data.sessions)) throw new Error('bad format');
         state.sessions = data.sessions;
+        if (data.routines && Array.isArray(data.routines)) state.routines = data.routines;
         if (data.settings) state.settings = data.settings;
         saveSessions();
+        saveRoutines();
         saveSettings();
         showToast('Backup restored');
         renderApp();
@@ -2938,6 +3268,7 @@
       ui.editingExerciseName = null;
       ui.showAccountMenu = false;
       ui.confirmModal = null;
+      ui.savingRoutine = false;
       ui.pendingDeleteAccount = false;
       switchTabWithSlide(targetTab);
     } else if (action === 'toggle-account-menu'){
@@ -2949,7 +3280,7 @@
         title: 'Log out?',
         message: state.currentAccount === 'guest'
           ? 'You\u2019ll return to the login screen. Guest data stays on this device.'
-          : 'You\u2019ll be signed out of ' + currentAccountUsername() + ' on this device.',
+          : 'You\u2019ll be signed out of ' + currentAccountEmail() + ' on this device.',
         confirmLabel: 'Log out',
         variant: 'primary'
       };
@@ -3027,12 +3358,20 @@
       openDeleteSessionConfirm(el.dataset.session);
     } else if (action === 'edit-session'){
       openEditSessionConfirm(el.dataset.session);
+    } else if (action === 'repeat-session'){
+      openRepeatSessionConfirm(el.dataset.session);
     } else if (action === 'print-session'){
       printSessionReceipt(el.dataset.session);
     } else if (action === 'set-unit'){
       state.settings.unit = el.dataset.unit;
       saveSettings();
       renderApp();
+    } else if (action === 'save-routine'){
+      openSaveRoutine();
+    } else if (action === 'start-routine'){
+      openStartRoutineConfirm(el.dataset.routine);
+    } else if (action === 'delete-routine'){
+      openDeleteRoutineConfirm(el.dataset.routine);
     } else if (action === 'export-data'){
       exportData();
     } else if (action === 'import-data'){
@@ -3057,6 +3396,10 @@
         if (t.classList.contains('set-weight-input')) ui.draftSets[exId].weight = t.value;
         else ui.draftSets[exId].reps = t.value;
       }
+    }
+    if (t.id === 'historySearchInput'){
+      ui.historySearch = t.value;
+      filterHistoryList(t.value);
     }
   });
 
@@ -3120,12 +3463,12 @@
       renderAuthGate();
     } else if (action === 'do-login'){
       handleLogIn(
-        document.getElementById('authUsername').value,
+        document.getElementById('authEmail').value,
         document.getElementById('authPassword').value
       );
     } else if (action === 'do-signup'){
       handleSignUp(
-        document.getElementById('authUsername').value,
+        document.getElementById('authEmail').value,
         document.getElementById('authPassword').value,
         document.getElementById('authConfirm').value
       );
@@ -3134,8 +3477,8 @@
     }
   });
   authGateEl.addEventListener('input', function(e){
-    if (e.target.id === 'authUsername'){
-      ui.authDraft.username = e.target.value;
+    if (e.target.id === 'authEmail'){
+      ui.authDraft.email = e.target.value;
     }
   });
   authGateEl.addEventListener('keydown', function(e){
@@ -3167,9 +3510,12 @@
       else if (m && m.kind === 'set') deleteSet(m.exId, m.setId);
       else if (m && m.kind === 'session') deleteSession(m.sessionId);
       else if (m && m.kind === 'edit-session') reopenSessionForEdit(m.sessionId);
+      else if (m && m.kind === 'repeat-session') repeatSession(m.sessionId);
       else if (m && m.kind === 'finish-session') finishSession();
       else if (m && m.kind === 'add-blank-exercise') addBlankExercise(m.muscle);
       else if (m && m.kind === 'add-named-exercise') addExercise(m.name, m.muscle);
+      else if (m && m.kind === 'start-routine') startRoutine(m.routineId);
+      else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
       else if (m && m.kind === 'clear-data') clearAllData();
       else if (m && m.kind === 'logout') logOut();
       else if (m && m.kind === 'add-set-global'){
@@ -3180,11 +3526,31 @@
       else renderApp();
     }
   });
+  var routineNameOverlayEl = document.getElementById('routineNameOverlay');
+  routineNameOverlayEl.addEventListener('click', function(e){
+    if (e.target === routineNameOverlayEl){
+      cancelSaveRoutine();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'cancel-save-routine') cancelSaveRoutine();
+    else if (el.dataset.action === 'confirm-save-routine') confirmSaveRoutine();
+  });
+  routineNameOverlayEl.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && e.target.id === 'routineNameInput'){
+      e.preventDefault();
+      confirmSaveRoutine();
+    }
+  });
+
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     if (ui.confirmModal){
       ui.confirmModal = null;
       renderApp();
+    } else if (ui.savingRoutine){
+      cancelSaveRoutine();
     } else if (ui.showMuscleMap){
       ui.showMuscleMap = false;
       ui.selectedMuscle = null;
@@ -3195,17 +3561,35 @@
 
   /* =========================================================
      INIT
+     Boots gated on Firebase resolving whether there's a logged-in
+     user (its own local session cache makes this near-instant on
+     repeat visits, but it's still async on first paint — hence the
+     brief #bootLoading splash). Guest mode is checked as a fallback
+     once Firebase confirms there's no logged-in user.
      ========================================================= */
-  state.currentAccount = determineInitialAccount();
-  if (state.currentAccount){
-    setCurrentAccountId(state.currentAccount);
-    bootAccountData();
-    showAppShell();
-    renderApp();
-  } else {
-    showAuthGateShell();
-    renderAuthGate();
+  function initAuthListener(){
+    if (!window.SaviorFirebase){
+      // Firebase module hasn't finished loading/initializing yet — retry shortly.
+      setTimeout(initAuthListener, 50);
+      return;
+    }
+    window.SaviorFirebase.onAuthChange(function(user){
+      if (user){
+        enterAccount(user.uid, user.email);
+      } else if (loadCurrentAccountId() === 'guest'){
+        state.currentAccount = 'guest';
+        bootAccountData();
+        showAppShell();
+        renderApp();
+      } else {
+        state.currentAccount = null;
+        state.currentAccountEmail = null;
+        showAuthGateShell();
+        renderAuthGate();
+      }
+    });
   }
+  initAuthListener();
 
   // Enables offline use + the "Install app" prompt on Android/Chrome.
   // Silently does nothing over file:// or if the browser lacks support.
