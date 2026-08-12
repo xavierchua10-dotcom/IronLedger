@@ -1508,7 +1508,9 @@
       case 'auth/invalid-credential': return 'Incorrect email or password';
       case 'auth/too-many-requests': return 'Too many attempts — try again in a bit';
       case 'auth/network-request-failed': return 'Network error — check your connection';
-      default: return 'Something went wrong — try again';
+      case 'auth/operation-not-allowed': return 'Email/Password sign-in isn\u2019t enabled yet in Firebase console';
+      case 'auth/unauthorized-domain': return 'This domain isn\u2019t whitelisted yet in Firebase console';
+      default: return 'Something went wrong (' + (code || 'unknown error') + ') — try again';
     }
   }
 
