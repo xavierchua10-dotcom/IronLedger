@@ -1331,6 +1331,23 @@
     cursor:pointer;
   }
   .confirm-btn-danger:active{opacity:0.85;}
+  .confirm-btn-primary:active{opacity:0.85;}
+  .confirm-btn-danger:disabled,
+  .confirm-btn-primary:disabled{
+    background:var(--panel-2);
+    color:var(--text-faint);
+    cursor:not-allowed;
+    opacity:1;
+  }
+  .confirm-btn-danger,.confirm-btn-primary{transition:background 0.25s ease;}
+  @keyframes confirmReadyPulse{
+    0%{box-shadow:0 0 0 0 rgba(255,255,255,0.45);}
+    100%{box-shadow:0 0 0 12px rgba(255,255,255,0);}
+  }
+  .confirm-btn-danger.just-ready,
+  .confirm-btn-primary.just-ready{
+    animation:confirmReadyPulse 0.6s ease-out;
+  }
   .confirm-btn-primary{
     flex:1;
     min-height:44px;
@@ -1345,7 +1362,6 @@
     text-transform:uppercase;
     cursor:pointer;
   }
-  .confirm-btn-primary:active{opacity:0.85;}
 
   @media (prefers-reduced-motion: reduce){
     .toast{transition:none;}
@@ -2336,7 +2352,7 @@
     if (state.currentAccount !== 'guest'){
       html += '<div class="settings-row"><div><div class="sr-label">Delete account</div>' +
                 '<div class="sr-sub">Permanently erases this account and its log</div></div>' +
-                '<button class="sr-action sr-action-danger" data-action="'+(ui.pendingDeleteAccount ? 'confirm-delete-account' : 'delete-account')+'">'+(ui.pendingDeleteAccount ? 'Tap again' : 'Delete')+'</button></div>';
+                '<button class="sr-action sr-action-danger" data-action="delete-account">Delete</button></div>';
     }
     html += '</div>';
 
@@ -3275,9 +3291,11 @@
     renderApp();
   }
 
+  var confirmCountdownTimer = null;
   function renderConfirmModal(){
     var overlay = document.getElementById('confirmOverlay');
     var panel = document.getElementById('confirmPanel');
+    if (confirmCountdownTimer){ clearInterval(confirmCountdownTimer); confirmCountdownTimer = null; }
     if (!ui.confirmModal){
       overlay.classList.add('hidden');
       panel.innerHTML = '';
@@ -3287,13 +3305,33 @@
     var m = ui.confirmModal;
     var confirmClass = m.variant === 'primary' ? 'confirm-btn-primary' : 'confirm-btn-danger';
     var confirmLabel = m.confirmLabel || 'Delete';
+    var counting = typeof m.countdown === 'number' && m.countdown > 0;
     panel.innerHTML =
       '<div class="confirm-title">' + esc(m.title) + '</div>' +
       '<div class="confirm-message">' + esc(m.message) + '</div>' +
       '<div class="confirm-buttons">' +
         '<button class="confirm-btn-cancel" data-action="cancel-confirm">Cancel</button>' +
-        '<button class="'+confirmClass+'" data-action="confirm-modal-action">'+esc(confirmLabel)+'</button>' +
+        '<button class="'+confirmClass+'" id="confirmActionBtn" data-action="confirm-modal-action"'+(counting?' disabled':'')+'>'+esc(counting ? confirmLabel + ' (' + m.countdown + ')' : confirmLabel)+'</button>' +
       '</div>';
+
+    if (counting){
+      confirmCountdownTimer = setInterval(function(){
+        if (!ui.confirmModal){ clearInterval(confirmCountdownTimer); confirmCountdownTimer = null; return; }
+        ui.confirmModal.countdown -= 1;
+        var btn = document.getElementById('confirmActionBtn');
+        if (!btn){ clearInterval(confirmCountdownTimer); confirmCountdownTimer = null; return; }
+        if (ui.confirmModal.countdown > 0){
+          btn.textContent = confirmLabel + ' (' + ui.confirmModal.countdown + ')';
+        } else {
+          clearInterval(confirmCountdownTimer);
+          confirmCountdownTimer = null;
+          btn.textContent = confirmLabel;
+          btn.disabled = false;
+          btn.classList.add('just-ready');
+          setTimeout(function(){ btn.classList.remove('just-ready'); }, 700);
+        }
+      }, 1000);
+    }
   }
 
   function renderRoutineNamePanel(){
@@ -3501,15 +3539,15 @@
       ui.showAccountMenu = false;
       renderApp();
     } else if (action === 'delete-account'){
-      ui.pendingDeleteAccount = true;
+      ui.confirmModal = {
+        kind: 'delete-account',
+        title: 'Delete account?',
+        message: 'This permanently erases your account and its entire workout log \u2014 there\u2019s no undoing this. Wait a moment, then tap to confirm.',
+        confirmLabel: 'Delete Account',
+        variant: 'danger',
+        countdown: 5
+      };
       renderApp();
-      setTimeout(function(){
-        ui.pendingDeleteAccount = false;
-        renderApp();
-      }, 4000);
-    } else if (action === 'confirm-delete-account'){
-      ui.pendingDeleteAccount = false;
-      deleteAccount();
     } else if (action === 'toggle-unit'){
       state.settings.unit = state.settings.unit === 'kg' ? 'lb' : 'kg';
       saveSettings();
@@ -3739,6 +3777,7 @@
       else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
       else if (m && m.kind === 'clear-data') clearAllData();
       else if (m && m.kind === 'logout') logOut();
+      else if (m && m.kind === 'delete-account') deleteAccount();
       else if (m && m.kind === 'add-set-global'){
         var session = getActiveSession();
         var ex = findExercise(session, m.exId);
