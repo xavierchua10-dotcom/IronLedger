@@ -2996,6 +2996,21 @@
     ui.newExerciseId = null;
   }
 
+  function openRenameExerciseConfirm(exId){
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex) return;
+    ui.confirmModal = {
+      kind: 'rename-exercise-confirm',
+      title: 'Rename exercise?',
+      message: 'Opens "' + ex.name + '" for renaming.',
+      confirmLabel: 'Rename',
+      variant: 'primary',
+      exId: exId
+    };
+    renderApp();
+  }
+
   function editExerciseName(exId, autoFocus){
     ui.editingExerciseName = exId;
     renderApp();
@@ -3222,6 +3237,25 @@
     recomputeExercisePRs(ex.name);
     saveSessions();
     if (ui.editingSet && ui.editingSet.setId === setId) ui.editingSet = null;
+    renderApp();
+  }
+
+  function openEditSetConfirm(exId, setId){
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex) return;
+    var st = ex.sets.find(function(s){ return s.id === setId; });
+    if (!st) return;
+    var idx = ex.sets.indexOf(st) + 1;
+    ui.confirmModal = {
+      kind: 'edit-set-open-confirm',
+      title: 'Edit this set?',
+      message: 'Opens set ' + idx + ' (' + fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps + ') of ' + ex.name + ' for editing.',
+      confirmLabel: 'Edit',
+      variant: 'primary',
+      exId: exId,
+      setId: setId
+    };
     renderApp();
   }
 
@@ -3848,7 +3882,7 @@
     } else if (action === 'delete-set'){
       openDeleteSetConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'edit-set'){
-      editSet(el.dataset.ex, el.dataset.set);
+      openEditSetConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'save-set-edit'){
       saveSetEdit(el.dataset.ex, el.dataset.set);
     } else if (action === 'cancel-set-edit'){
@@ -3877,7 +3911,7 @@
       ui.expandedHistory[sid] = !ui.expandedHistory[sid];
       renderApp();
     } else if (action === 'edit-exercise-name'){
-      editExerciseName(el.dataset.ex);
+      openRenameExerciseConfirm(el.dataset.ex);
     } else if (action === 'save-exercise-name'){
       saveExerciseName(el.dataset.ex);
     } else if (action === 'cancel-exercise-name'){
@@ -4077,6 +4111,12 @@
       }
       else if (m && m.kind === 'edit-set-confirm'){
         applySetEdit(m.exId, m.setId, m.weightKg, m.reps);
+      }
+      else if (m && m.kind === 'edit-set-open-confirm'){
+        editSet(m.exId, m.setId);
+      }
+      else if (m && m.kind === 'rename-exercise-confirm'){
+        editExerciseName(m.exId);
       }
       else renderApp();
     }
