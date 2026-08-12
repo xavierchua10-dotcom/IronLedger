@@ -480,6 +480,17 @@
     padding:2px 6px;
     margin-left:4px;
   }
+  .volume-badge{
+    background:var(--accent-dim);
+    color:var(--accent);
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.03em;
+    padding:3px 8px;
+    border-radius:10px;
+    white-space:nowrap;
+  }
   .icon-btn{
     background:none;
     border:none;
@@ -606,9 +617,9 @@
   }
   .add-set-row input:focus{outline:none;border-color:var(--accent);}
   .add-set-btn{
-    background:var(--accent);
+    background:#5ab7e8;
     border:none;
-    color:#1c1500;
+    color:#0b2733;
     font-weight:700;
     border-radius:8px;
     width:42px;
@@ -618,6 +629,33 @@
     flex-shrink:0;
   }
   .add-set-btn:active{opacity:0.85;}
+  .add-set-btn:disabled{
+    background:var(--panel-2);
+    color:var(--text-faint);
+    cursor:not-allowed;
+  }
+  .add-set-btn-group{display:flex;gap:6px;}
+  .add-set-toggle-btn{
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:1.5px dashed var(--accent-dim);
+    background:transparent;
+    color:var(--accent);
+    font-family:'Oswald',sans-serif;
+    font-size:13px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+  }
+  .add-set-toggle-btn:active{background:var(--panel-2);border-color:var(--accent);}
+  .add-set-toggle-btn .plus-glyph{font-size:16px;line-height:1;}
   .edit-btn-group{display:flex;gap:6px;}
   .save-edit-btn{
     background:var(--accent);
@@ -1108,6 +1146,7 @@
   .settings-row:first-child{border-top:none;}
   .settings-row .sr-label{font-size:14px;color:var(--text);}
   .settings-row .sr-sub{font-size:11px;color:var(--text-faint);margin-top:2px;}
+  .settings-row .sr-action,
   .settings-row button.sr-action{
     background:var(--panel-2);
     border:1px solid var(--line);
@@ -1117,6 +1156,8 @@
     font-size:12px;
     font-weight:600;
     cursor:pointer;
+    text-decoration:none;
+    display:inline-block;
   }
   .settings-row button.sr-action-danger{
     color:var(--accent-2);
@@ -1488,6 +1529,7 @@
     freshPRSetId: null,    // id of a just-logged set that should play the PR pulse animation once
     activeExId: null,      // exercise whose weight/reps inputs were last focused — used by the global Add Set button
     draftSets: {},          // exId -> { weight, reps } — unsaved input, kept across collapse/expand or tab switches
+    expandedAddSet: {},     // exId -> true when that exercise's add-set panel (kg/reps fields) is open
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     tabAnimating: false,    // true while a tab-slide transition is in progress
@@ -1989,16 +2031,14 @@
               '</div>';
     } else {
       html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
-              (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') + '</div>' +
+              (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
+              (ex.sets.length > 0 ? '<span class="volume-badge">VOL '+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</span>' : '') +
+              '</div>' +
               '<div class="exercise-head-actions">' +
                 '<button class="icon-btn" data-action="edit-exercise-name" data-ex="'+ex.id+'" aria-label="Rename exercise">&#9998;</button>' +
                 '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
                 '<button class="icon-btn" data-action="delete-exercise" data-ex="'+ex.id+'" aria-label="Delete exercise">&#10005;</button>' +
               '</div></div>';
-    }
-
-    if (ex.sets.length > 0){
-      html += '<div class="exercise-volume"><span>Volume</span><b>'+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</b></div>';
     }
 
     var editingSetId = (ui.editingSet && ui.editingSet.exId === ex.id) ? ui.editingSet.setId : null;
@@ -2033,14 +2073,31 @@
       html += '<div class="add-set-row editing-row">' +
                 '<input type="number" inputmode="decimal" step="0.5" class="set-weight-input" data-ex="'+ex.id+'" value="'+fmtWeight(editingSetObj.weightKg)+'">' +
                 '<input type="number" inputmode="numeric" step="1" class="set-reps-input" data-ex="'+ex.id+'" value="'+editingSetObj.reps+'">' +
-                '<button class="cancel-edit-btn" data-action="cancel-set-edit" aria-label="Cancel edit">&#10005;</button>' +
+                '<div class="add-set-btn-group">' +
+                  '<button class="add-set-btn" data-action="save-set-edit" data-ex="'+ex.id+'" data-set="'+editingSetObj.id+'" aria-label="Save changes">&#10003;</button>' +
+                  '<button class="cancel-edit-btn" data-action="cancel-set-edit" aria-label="Cancel edit">&#10005;</button>' +
+                '</div>' +
               '</div>';
     } else {
-      var draft = ui.draftSets[ex.id];
-      html += '<div class="add-set-row no-add-btn">' +
-                '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="set-weight-input" data-ex="'+ex.id+'" value="'+(draft && draft.weight != null ? esc(draft.weight) : '')+'">' +
-                '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="set-reps-input" data-ex="'+ex.id+'" value="'+(draft && draft.reps != null ? esc(draft.reps) : '')+'">' +
-              '</div>';
+      var isOpen = !!ui.expandedAddSet[ex.id];
+      if (isOpen){
+        var draft = ui.draftSets[ex.id];
+        var draftWeightKg = draft && draft.weight != null ? toStoredKg(draft.weight) : null;
+        var draftReps = draft && draft.reps != null ? parseInt(draft.reps, 10) : NaN;
+        var rowReady = draftWeightKg !== null && draftWeightKg > 0 && !isNaN(draftReps) && draftReps > 0;
+        html += '<div class="add-set-row">' +
+                  '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="set-weight-input" data-ex="'+ex.id+'" value="'+(draft && draft.weight != null ? esc(draft.weight) : '')+'">' +
+                  '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="set-reps-input" data-ex="'+ex.id+'" value="'+(draft && draft.reps != null ? esc(draft.reps) : '')+'">' +
+                  '<div class="add-set-btn-group">' +
+                    '<button class="add-set-btn" data-action="add-set-row" data-ex="'+ex.id+'" aria-label="Add set"'+(rowReady?'':' disabled')+'>&#10003;</button>' +
+                    '<button class="cancel-edit-btn" data-action="close-add-set" data-ex="'+ex.id+'" aria-label="Cancel">&#10005;</button>' +
+                  '</div>' +
+                '</div>';
+      } else {
+        html += '<button class="add-set-toggle-btn" data-action="open-add-set" data-ex="'+ex.id+'">' +
+                  '<span class="plus-glyph">&#43;</span> Add Set '+(ex.sets.length+1) +
+                '</button>';
+      }
     }
     html += '</div>';
     return html;
@@ -2318,6 +2375,14 @@
               '<button class="sr-action" data-action="import-data">Import</button></div>';
     html += '</div>';
 
+    html += '<div class="section-label">Support</div>';
+    html += '<div class="settings-group">';
+    html += '<div class="settings-row"><div><div class="sr-label">Instagram</div><div class="sr-sub">@im.savior_</div></div>' +
+              '<a class="sr-action" href="https://instagram.com/im.savior_" target="_blank" rel="noopener">Open</a></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Email</div><div class="sr-sub">xavierchua10@gmail.com</div></div>' +
+              '<a class="sr-action" href="mailto:xavierchua10@gmail.com">Email</a></div>';
+    html += '</div>';
+
     html += '<div class="section-label">Danger zone</div>';
     html += '<button class="btn-danger" data-action="clear-data">Erase all data</button>';
 
@@ -2432,6 +2497,8 @@
     renderMuscleMapOverlay();
     renderConfirmModal();
     renderRoutineNamePanel();
+    var addSetGlobalBtnEl = document.querySelector('.add-set-global-btn');
+    if (addSetGlobalBtnEl) addSetGlobalBtnEl.classList.add('hidden');
     refreshAddSetGlobalBtn();
   }
 
@@ -2842,6 +2909,50 @@
     btn.innerHTML = ui.editingSet ? '&#10003; Apply Changes' : '&#10003; Add Set';
   }
 
+  // Live-updates a single exercise's inline "+" button as its weight/reps
+  // inputs change, without needing a full re-render on every keystroke.
+  function refreshRowAddSetBtn(exId){
+    var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
+    if (!card) return;
+    var btn = card.querySelector('.add-set-btn');
+    var weightInput = card.querySelector('.set-weight-input');
+    var repsInput = card.querySelector('.set-reps-input');
+    if (!btn || !weightInput || !repsInput) return;
+    var weightKg = toStoredKg(weightInput.value);
+    var reps = parseInt(repsInput.value, 10);
+    btn.disabled = !(weightKg !== null && weightKg > 0 && !isNaN(reps) && reps > 0);
+  }
+
+  function openAddSetPanel(exId){
+    ui.expandedAddSet[exId] = true;
+    renderApp();
+    setTimeout(function(){
+      var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
+      var input = card && card.querySelector('.set-weight-input');
+      if (input){ input.focus(); }
+    }, 30);
+  }
+
+  function closeAddSetPanel(exId){
+    ui.expandedAddSet[exId] = false;
+    renderApp();
+  }
+
+  function openAddSetConfirm(ex, weightKg, reps){
+    ui.confirmModal = {
+      kind: 'add-set-global',
+      title: 'Add this set?',
+      message: fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + ' will be logged for ' + ex.name + '.',
+      confirmLabel: 'Add Set',
+      variant: 'primary',
+      exId: ex.id,
+      weightKg: weightKg,
+      reps: reps,
+      toFailure: false
+    };
+    renderApp();
+  }
+
   function addSetGlobal(){
     var target = activeAddSetTarget();
     if (!target){
@@ -2859,19 +2970,32 @@
       showToast('Enter a weight and reps first');
       return;
     }
+    openAddSetConfirm(ex, weightKg, reps);
+  }
 
-    ui.confirmModal = {
-      kind: 'add-set-global',
-      title: 'Add this set?',
-      message: fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + ' will be logged for ' + ex.name + '.',
-      confirmLabel: 'Add Set',
-      variant: 'primary',
-      exId: ex.id,
-      weightKg: weightKg,
-      reps: reps,
-      toFailure: false
-    };
-    renderApp();
+  // Triggered by the per-exercise "+" button — same confirmation flow as
+  // addSetGlobal, just targeting a specific exercise's row directly instead
+  // of relying on which input was last focused.
+  function addSetRow(exId){
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex) return;
+    if (!ex.name || !ex.name.trim()){
+      showToast('Exercise name can\u2019t be empty');
+      return;
+    }
+    var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
+    var weightInput = card && card.querySelector('.set-weight-input');
+    var repsInput = card && card.querySelector('.set-reps-input');
+    if (!weightInput || !repsInput) return;
+
+    var weightKg = toStoredKg(weightInput.value);
+    var reps = parseInt(repsInput.value, 10);
+    if (weightKg === null || weightKg <= 0 || isNaN(reps) || reps <= 0){
+      showToast('Enter a weight and reps first');
+      return;
+    }
+    openAddSetConfirm(ex, weightKg, reps);
   }
 
   function deleteSet(exId, setId){
@@ -2916,6 +3040,27 @@
       showToast('Enter a weight and reps first');
       return;
     }
+
+    ui.confirmModal = {
+      kind: 'edit-set-confirm',
+      title: 'Save changes?',
+      message: fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + ' will replace the current values for set ' + (ex.sets.indexOf(st) + 1) + ' of ' + ex.name + '.',
+      confirmLabel: 'Save',
+      variant: 'primary',
+      exId: exId,
+      setId: setId,
+      weightKg: weightKg,
+      reps: reps
+    };
+    renderApp();
+  }
+
+  function applySetEdit(exId, setId, weightKg, reps){
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex) return;
+    var st = ex.sets.find(function(s){ return s.id === setId; });
+    if (!st) return;
 
     st.weightKg = roundNice(weightKg);
     st.reps = reps;
@@ -3377,6 +3522,12 @@
       toggleExerciseDone(el.dataset.ex);
     } else if (action === 'add-set'){
       addSet(el.dataset.ex);
+    } else if (action === 'open-add-set'){
+      openAddSetPanel(el.dataset.ex);
+    } else if (action === 'close-add-set'){
+      closeAddSetPanel(el.dataset.ex);
+    } else if (action === 'add-set-row'){
+      addSetRow(el.dataset.ex);
     } else if (action === 'add-set-global'){
       if (ui.editingSet) saveSetEdit(ui.editingSet.exId, ui.editingSet.setId);
       else addSetGlobal();
@@ -3464,6 +3615,7 @@
         if (!ui.draftSets[exId]) ui.draftSets[exId] = {};
         if (t.classList.contains('set-weight-input')) ui.draftSets[exId].weight = t.value;
         else ui.draftSets[exId].reps = t.value;
+        refreshRowAddSetBtn(exId);
       }
     }
     if (t.id === 'historySearchInput'){
@@ -3590,7 +3742,11 @@
       else if (m && m.kind === 'add-set-global'){
         var session = getActiveSession();
         var ex = findExercise(session, m.exId);
+        ui.expandedAddSet[m.exId] = false;
         if (ex) commitSet(ex, m.weightKg, m.reps, m.toFailure);
+      }
+      else if (m && m.kind === 'edit-set-confirm'){
+        applySetEdit(m.exId, m.setId, m.weightKg, m.reps);
       }
       else renderApp();
     }
