@@ -3154,6 +3154,21 @@
     btn.disabled = !(weightKg !== null && weightKg > 0 && !isNaN(reps) && reps > 0);
   }
 
+  function openAddSetPanelConfirm(exId){
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex) return;
+    ui.confirmModal = {
+      kind: 'open-add-set-confirm',
+      title: 'Add a new set?',
+      message: 'Opens the kg/reps fields to log set ' + (ex.sets.length + 1) + ' for ' + ex.name + '.',
+      confirmLabel: 'Add Set',
+      variant: 'primary',
+      exId: exId
+    };
+    renderApp();
+  }
+
   function openAddSetPanel(exId){
     ui.expandedAddSet[exId] = true;
     renderApp();
@@ -3871,7 +3886,7 @@
     } else if (action === 'add-set'){
       addSet(el.dataset.ex);
     } else if (action === 'open-add-set'){
-      openAddSetPanel(el.dataset.ex);
+      openAddSetPanelConfirm(el.dataset.ex);
     } else if (action === 'close-add-set'){
       closeAddSetPanel(el.dataset.ex);
     } else if (action === 'add-set-row'){
@@ -4117,6 +4132,9 @@
       }
       else if (m && m.kind === 'rename-exercise-confirm'){
         editExerciseName(m.exId);
+      }
+      else if (m && m.kind === 'open-add-set-confirm'){
+        openAddSetPanel(m.exId);
       }
       else renderApp();
     }
