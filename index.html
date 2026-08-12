@@ -1376,16 +1376,20 @@
 
 <script type="module">
   // =========================================================
-  // FIREBASE — Auth (Phase 1: real accounts that work across
-  // devices). Workout data itself still lives in localStorage
-  // on this device only, for now — that's Phase 2 (Firestore
-  // sync), not wired up yet.
+  // FIREBASE — Auth + Firestore sync. Real accounts (email/password)
+  // work across devices, and workout data (sessions/routines/settings)
+  // syncs through Firestore too — one document per user, pushed on
+  // every local save and pulled down on login. Guest mode stays
+  // fully local-only and never touches Firebase.
   // =========================================================
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
     signOut, onAuthStateChanged, deleteUser
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    getFirestore, doc, setDoc, getDoc, deleteDoc, enableIndexedDbPersistence
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   // ---- PASTE YOUR FIREBASE PROJECT CONFIG HERE ----
   // Firebase console → Project settings → Your apps → SDK setup and config
@@ -1401,6 +1405,11 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // Lets writes/reads queue locally and sync automatically when back
+  // online, instead of failing outright while offline.
+  enableIndexedDbPersistence(db).catch(function(){ /* multiple tabs open, or unsupported browser — sync just won't be offline-durable, not fatal */ });
 
   window.SaviorFirebase = {
     signUp: function(email, password){
@@ -1417,6 +1426,22 @@
     },
     onAuthChange: function(cb){
       return onAuthStateChanged(auth, cb);
+    },
+    saveUserData: function(uidVal, data){
+      return setDoc(doc(db, 'users', uidVal), {
+        sessions: data.sessions || [],
+        routines: data.routines || [],
+        settings: data.settings || {},
+        updatedAt: Date.now()
+      });
+    },
+    loadUserData: function(uidVal){
+      return getDoc(doc(db, 'users', uidVal)).then(function(snap){
+        return snap.exists() ? snap.data() : null;
+      });
+    },
+    deleteUserData: function(uidVal){
+      return deleteDoc(doc(db, 'users', uidVal));
     }
   };
 
@@ -1528,6 +1553,7 @@
   }
   function saveSessions(){
     localStorage.setItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(state.sessions));
+    scheduleFirestoreSync();
   }
   function loadRoutines(){
     try{
@@ -1537,9 +1563,27 @@
   }
   function saveRoutines(){
     localStorage.setItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(state.routines));
+    scheduleFirestoreSync();
   }
   function saveSettings(){
     localStorage.setItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(state.settings));
+    scheduleFirestoreSync();
+  }
+
+  // ---- FIRESTORE SYNC (real accounts only — guest stays local-only) ----
+  var firestoreSyncTimer = null;
+  function scheduleFirestoreSync(){
+    if (!window.SaviorFirebase || !window.SaviorFirebase.saveUserData) return;
+    if (!state.currentAccount || state.currentAccount === 'guest') return;
+    var acct = state.currentAccount;
+    clearTimeout(firestoreSyncTimer);
+    firestoreSyncTimer = setTimeout(function(){
+      window.SaviorFirebase.saveUserData(acct, {
+        sessions: state.sessions,
+        routines: state.routines,
+        settings: state.settings
+      }).catch(function(err){ console.error('Firestore sync failed:', err); });
+    }, 800); // batches rapid successive saves (e.g. typing) into one write
   }
 
   function uid(){
@@ -2424,15 +2468,33 @@
   // Called by the Firebase onAuthChange listener once a real login/signup
   // succeeds — not called directly by handleLogIn/handleSignUp, since
   // Firebase itself is the source of truth for "who's logged in."
+  // Pulls the latest synced data from Firestore (if any) into this
+  // device's local cache before booting, so a login on a new device
+  // picks up existing history instead of showing an empty log.
   function enterAccount(uidVal, email){
     setCurrentAccountId(uidVal);
     state.currentAccount = uidVal;
     state.currentAccountEmail = email;
     ui.authBusy = false;
     ui.authError = null;
-    bootAccountData();
-    showAppShell();
-    renderApp();
+    var pull = (window.SaviorFirebase && window.SaviorFirebase.loadUserData)
+      ? window.SaviorFirebase.loadUserData(uidVal)
+      : Promise.resolve(null);
+    pull.then(function(remote){
+      if (remote){
+        if (remote.sessions) localStorage.setItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(remote.sessions));
+        if (remote.routines) localStorage.setItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(remote.routines));
+        if (remote.settings) localStorage.setItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(remote.settings));
+      }
+    }).catch(function(err){
+      // Offline or first login with nothing synced yet — fall back to
+      // whatever's cached locally on this device rather than blocking.
+      console.error('Firestore pull failed:', err);
+    }).then(function(){
+      bootAccountData();
+      showAppShell();
+      renderApp();
+    });
   }
 
   function continueAsGuest(){
@@ -2466,7 +2528,12 @@
     localStorage.removeItem(STORAGE_SETTINGS + '::' + id);
     localStorage.removeItem(STORAGE_ROUTINES + '::' + id);
     if (window.SaviorFirebase){
-      window.SaviorFirebase.deleteCurrentUser().then(function(){
+      var wipeRemote = window.SaviorFirebase.deleteUserData
+        ? window.SaviorFirebase.deleteUserData(id).catch(function(){})
+        : Promise.resolve();
+      wipeRemote.then(function(){
+        return window.SaviorFirebase.deleteCurrentUser();
+      }).then(function(){
         logOut();
         showToast('Account deleted');
       }).catch(function(err){
@@ -2563,7 +2630,7 @@
     html += '<button class="auth-submit" data-action="'+(mode==='signup'?'do-signup':'do-login')+'"'+(busy?' disabled':'')+'>'+(busy ? '\u2026' : (mode==='signup'?'Create Account':'Log In'))+'</button>';
     html += '<div class="auth-divider">or</div>';
     html += '<button class="auth-guest-btn" data-action="continue-guest"'+(busy?' disabled':'')+'>Continue as Guest</button>';
-    html += '<div class="auth-note">Your workout log stays on this device — logging in with the same email on another device won\u2019t bring your history over yet.</div>';
+    html += '<div class="auth-note">Accounts sync your workout log across devices. Guest mode stays on this device only.</div>';
     html += '</div>';
     document.getElementById('authGate').innerHTML = html;
   }
