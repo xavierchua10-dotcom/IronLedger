@@ -2274,7 +2274,7 @@
     html += '<div class="section-label">Account</div>';
     html += '<div class="settings-group">';
     html += '<div class="settings-row"><div><div class="sr-label">'+esc(currentAccountEmail())+'</div>' +
-              '<div class="sr-sub">'+(state.currentAccount==='guest' ? 'Guest — this device only' : 'Local account, stored on this device')+'</div></div>' +
+              '<div class="sr-sub">'+(state.currentAccount==='guest' ? 'Guest — this device only' : 'Synced to your account')+'</div></div>' +
               '<button class="sr-action" data-action="log-out">Log out</button></div>';
     if (state.currentAccount !== 'guest'){
       html += '<div class="settings-row"><div><div class="sr-label">Delete account</div>' +
