@@ -508,6 +508,49 @@
     flex-shrink:0;
   }
   .icon-btn:active{background:var(--panel-3);color:var(--text);}
+  .reminder-banner{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--panel-2);
+    border:1px solid var(--accent-dim);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:16px;
+  }
+  .reminder-banner-text{flex:1;font-size:12.5px;color:var(--text);line-height:1.4;}
+  .reminder-banner-text b{color:var(--accent);}
+  .reminder-banner-dismiss{
+    background:none;
+    border:none;
+    color:var(--text-faint);
+    font-size:16px;
+    cursor:pointer;
+    padding:4px;
+    flex-shrink:0;
+    line-height:1;
+  }
+  .reminder-banner-dismiss:active{color:var(--text);}
+  .session-meta-actions{display:flex;gap:8px;margin-left:auto;}
+  .help-trigger-btn{
+    background:none;
+    border:1px solid var(--accent-dim);
+    color:var(--accent);
+    font-family:'Oswald',sans-serif;
+    font-size:14px;
+    font-weight:700;
+    line-height:1;
+    padding:0;
+    width:32px;
+    height:32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    border-radius:8px;
+    flex-shrink:0;
+  }
+  .help-trigger-btn:active{background:var(--panel-3);}
   .reset-log-btn{
     background:none;
     border:1px solid var(--accent-2-dim);
@@ -523,9 +566,96 @@
     cursor:pointer;
     border-radius:8px;
     flex-shrink:0;
-    margin-left:auto;
   }
   .reset-log-btn:active{background:var(--panel-3);}
+  .help-panel{
+    width:100%;
+    max-width:380px;
+    max-height:78vh;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:0 16px 48px rgba(0,0,0,0.55);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .help-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:16px 18px 12px;
+    border-bottom:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .help-header h3{
+    font-family:'Oswald',sans-serif;
+    font-size:16px;
+    font-weight:700;
+    color:var(--text);
+    letter-spacing:0.02em;
+  }
+  .help-close-btn{
+    background:none;
+    border:none;
+    color:var(--text-faint);
+    font-size:18px;
+    cursor:pointer;
+    padding:4px;
+    line-height:1;
+  }
+  .help-close-btn:active{color:var(--text);}
+  .help-chat-area{
+    flex:1;
+    overflow-y:auto;
+    padding:16px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    min-height:80px;
+  }
+  .help-bubble{
+    max-width:85%;
+    padding:10px 13px;
+    border-radius:12px;
+    font-size:12.5px;
+    line-height:1.45;
+  }
+  .help-bubble-user{
+    align-self:flex-end;
+    background:var(--accent);
+    color:#1c1500;
+    font-weight:600;
+    border-bottom-right-radius:4px;
+  }
+  .help-bubble-answer{
+    align-self:flex-start;
+    background:var(--panel-3);
+    color:var(--text);
+    border:1px solid var(--line);
+    border-bottom-left-radius:4px;
+  }
+  .help-topics{
+    flex-shrink:0;
+    padding:12px 18px 16px;
+    border-top:1px solid var(--line);
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    max-height:150px;
+    overflow-y:auto;
+  }
+  .help-topic-chip{
+    background:var(--panel-3);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    border-radius:16px;
+    padding:7px 12px;
+    font-size:11.5px;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .help-topic-chip:active{background:var(--panel);border-color:var(--accent-dim);color:var(--accent);}
   .exercise-head-actions .icon-btn{
     border:1px solid var(--line);
   }
@@ -1446,6 +1576,9 @@
 <div class="confirm-overlay hidden" id="routineNameOverlay">
   <div class="confirm-panel" id="routineNamePanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="helpOverlay">
+  <div class="help-panel" id="helpPanel"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
 
@@ -1564,6 +1697,8 @@
     activeExId: null,      // exercise whose weight/reps inputs were last focused — used by the global Add Set button
     draftSets: {},          // exId -> { weight, reps } — unsaved input, kept across collapse/expand or tab switches
     expandedAddSet: {},     // exId -> true when that exercise's add-set panel (kg/reps fields) is open
+    showHelp: false,
+    helpLog: [],            // [{ q, a }, ...] — topics tapped so far in this Help session
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     tabAnimating: false,    // true while a tab-slide transition is in progress
@@ -1707,6 +1842,32 @@
       saveSessions();
     }
     return active;
+  }
+
+  // ---- IN-APP "HAVEN'T TRAINED IN A WHILE" NUDGE ----
+  // Free, no backend: just checks the gap since your last finished session
+  // whenever the app is opened. Not a real push notification — this only
+  // shows up while you're actually looking at the app.
+  function daysSinceLastWorkout(){
+    var doneSessions = state.sessions.filter(function(s){ return s.status === 'done'; });
+    if (!doneSessions.length) return null;
+    var latest = doneSessions.reduce(function(a, b){
+      var aTime = new Date(a.finishedAt || a.date).getTime();
+      var bTime = new Date(b.finishedAt || b.date).getTime();
+      return aTime > bTime ? a : b;
+    });
+    var lastDate = new Date(latest.finishedAt || latest.date);
+    var now = new Date();
+    var d1 = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+    var d2 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.round((d2 - d1) / 86400000);
+  }
+  function reminderDismissedToday(){
+    var stored = localStorage.getItem(scopedKey('il_reminder_dismissed'));
+    return stored === new Date().toDateString();
+  }
+  function dismissReminderToday(){
+    localStorage.setItem(scopedKey('il_reminder_dismissed'), new Date().toDateString());
   }
 
   // Re-derive isPR flags for every set of a given exercise name, across all
@@ -2020,13 +2181,27 @@
   function renderLog(){
     var session = getActiveSession();
     var html = '';
+
+    if (session.exercises.length === 0 && !reminderDismissedToday()){
+      var gap = daysSinceLastWorkout();
+      if (gap !== null && gap >= 2){
+        html += '<div class="reminder-banner">' +
+                  '<div class="reminder-banner-text">It\u2019s been <b>' + gap + ' days</b> since your last session \u2014 ready to log one?</div>' +
+                  '<button class="reminder-banner-dismiss" data-action="dismiss-reminder" aria-label="Dismiss">&#10005;</button>' +
+                '</div>';
+      }
+    }
+
     html += '<input type="text" class="session-name-input" placeholder="Untitled session — e.g. Push Day, Legs, Full Body" ' +
             'value="'+esc(session.name)+'" data-role="session-name">';
     html += '<div class="session-meta">' +
               '<span>'+fmtDate(session.date)+'</span>' +
               '<span><b>'+session.exercises.length+'</b> exercises</span>' +
               '<span><b>'+sessionSetCount(session)+'</b> sets</span>' +
-              (session.exercises.length > 0 ? '<button class="reset-log-btn" data-action="reset-log" aria-label="Reset log">&#8635;</button>' : '') +
+              '<div class="session-meta-actions">' +
+                '<button class="help-trigger-btn" data-action="open-help" aria-label="Help">?</button>' +
+                (session.exercises.length > 0 ? '<button class="reset-log-btn" data-action="reset-log" aria-label="Reset log">&#8635;</button>' : '') +
+              '</div>' +
             '</div>';
 
     html += '<div class="section-label">Add Exercise</div>';
@@ -2537,6 +2712,7 @@
     renderMuscleMapOverlay();
     renderConfirmModal();
     renderRoutineNamePanel();
+    renderHelpOverlay();
     var addSetGlobalBtnEl = document.querySelector('.add-set-global-btn');
     if (addSetGlobalBtnEl) addSetGlobalBtnEl.classList.add('hidden');
     refreshAddSetGlobalBtn();
@@ -3397,6 +3573,66 @@
     }, 30);
   }
 
+  /* =========================================================
+     HELP — fixed, pre-written Q&A. Not AI, no API calls, free.
+     Tapping a topic just appends its canned answer to the chat log.
+     ========================================================= */
+  var HELP_TOPICS = [
+    { q: 'How do I log a set?', a: 'Tap "+ Add Set" under any exercise, enter your weight and reps, then tap the checkmark. You\u2019ll get a quick confirmation before it\u2019s saved.' },
+    { q: 'How do I edit or delete a set?', a: 'Tap the pencil icon next to a set to edit it, or the \u2715 to delete it. Edits also need a quick confirmation before saving.' },
+    { q: 'What does PR mean?', a: 'PR = Personal Record. It shows up when a set beats your best estimated 1-rep max for that exercise, based on your logged history.' },
+    { q: 'How does "Pick by muscle group" work?', a: 'Tap it to browse exercises grouped by muscle (chest, back, legs, etc.) instead of typing a name from scratch.' },
+    { q: 'What does "Save as Routine" do?', a: 'It saves your current session\u2019s exercise list as a reusable template, so a new session can start with the same exercises pre-loaded.' },
+    { q: 'How do I switch kg/lb?', a: 'Tap the KG/LB button top right. It converts the display instantly \u2014 your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.' },
+    { q: 'Does my data sync across devices?', a: 'Only with a real account, not Guest. Guest mode stays on this device only. Sign in with the same email on another device to bring your history over.' },
+    { q: 'What does the reset icon do?', a: 'It clears every exercise and set from today\u2019s session only \u2014 the session stays, just empty. History and other sessions are never touched.' },
+    { q: 'Where can I see past workouts?', a: 'The History tab shows every finished session, with total volume and sets for each.' },
+    { q: 'What\u2019s in the Progress tab?', a: 'Trends over time \u2014 volume, PRs, and estimated 1-rep max per exercise.' }
+  ];
+
+  function openHelp(){
+    ui.showHelp = true;
+    renderHelpOverlay();
+  }
+  function closeHelp(){
+    ui.showHelp = false;
+    renderHelpOverlay();
+  }
+  function askHelpTopic(idx){
+    var topic = HELP_TOPICS[idx];
+    if (!topic) return;
+    ui.helpLog.push(topic);
+    renderHelpOverlay();
+  }
+  function renderHelpOverlay(){
+    var overlay = document.getElementById('helpOverlay');
+    var panel = document.getElementById('helpPanel');
+    if (!ui.showHelp){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var chatHtml = '';
+    if (ui.helpLog.length === 0){
+      chatHtml += '<div class="help-bubble help-bubble-answer">Hey! Tap a question below and I\u2019ll walk you through it.</div>';
+    } else {
+      ui.helpLog.forEach(function(item){
+        chatHtml += '<div class="help-bubble help-bubble-user">'+esc(item.q)+'</div>';
+        chatHtml += '<div class="help-bubble help-bubble-answer">'+esc(item.a)+'</div>';
+      });
+    }
+    var topicsHtml = HELP_TOPICS.map(function(t, i){
+      return '<button class="help-topic-chip" data-action="ask-help-topic" data-idx="'+i+'">'+esc(t.q)+'</button>';
+    }).join('');
+    panel.innerHTML =
+      '<div class="help-header"><h3>Help</h3><button class="help-close-btn" data-action="close-help" aria-label="Close">&#10005;</button></div>' +
+      '<div class="help-chat-area" id="helpChatArea">' + chatHtml + '</div>' +
+      '<div class="help-topics">' + topicsHtml + '</div>';
+    var area = document.getElementById('helpChatArea');
+    if (area) area.scrollTop = area.scrollHeight;
+  }
+
   function openSaveRoutine(){
     var session = getActiveSession();
     if (!session.exercises.length){
@@ -3685,6 +3921,11 @@
         variant: 'danger'
       };
       renderApp();
+    } else if (action === 'dismiss-reminder'){
+      dismissReminderToday();
+      renderApp();
+    } else if (action === 'open-help'){
+      openHelp();
     }
   });
 
@@ -3858,6 +4099,18 @@
     }
   });
 
+  var helpOverlayEl = document.getElementById('helpOverlay');
+  helpOverlayEl.addEventListener('click', function(e){
+    if (e.target === helpOverlayEl){
+      closeHelp();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-help') closeHelp();
+    else if (el.dataset.action === 'ask-help-topic') askHelpTopic(parseInt(el.dataset.idx, 10));
+  });
+
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     if (ui.confirmModal){
@@ -3865,6 +4118,8 @@
       renderApp();
     } else if (ui.savingRoutine){
       cancelSaveRoutine();
+    } else if (ui.showHelp){
+      closeHelp();
     } else if (ui.showMuscleMap){
       ui.showMuscleMap = false;
       ui.selectedMuscle = null;
