@@ -2505,7 +2505,12 @@
     var showFinishBar = state.tab === 'log' && !!activeSession && activeSession.exercises.length > 0;
     document.getElementById('sessionFinishBar').classList.toggle('hidden', !showFinishBar);
 
-    var canFinish = !!activeSession && sessionSetCount(activeSession) > 0;
+    // Anyone mid-edit (typing a set, renaming an exercise, or the add-set
+    // panel open) shouldn't be able to accidentally tap Finish Session —
+    // it sits right above the keyboard in those moments.
+    var isMidEdit = !!ui.editingSet || !!ui.editingExerciseName ||
+      Object.keys(ui.expandedAddSet).some(function(k){ return ui.expandedAddSet[k]; });
+    var canFinish = !!activeSession && sessionSetCount(activeSession) > 0 && !isMidEdit;
     var finishBtnEl = document.getElementById('finishSessionBtn');
     finishBtnEl.disabled = !canFinish;
     finishBtnEl.classList.toggle('ready', canFinish);
