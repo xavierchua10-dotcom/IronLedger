@@ -1519,6 +1519,17 @@
   .pro-print-btn{width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:10px;padding:12px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;}
   .pro-print-btn:active{opacity:0.9;}
 
+  /* ---------- Print menu overlay (choose PDF vs PDF Pro) ---------- */
+  .print-menu-panel{max-width:340px;}
+  .print-menu-body{padding:8px 18px 18px;display:flex;flex-direction:column;gap:10px;}
+  .print-menu-option{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;font-family:inherit;cursor:pointer;color:var(--text);}
+  .print-menu-option:active{background:var(--panel-3);}
+  .print-menu-option .pmo-icon{font-size:18px;flex-shrink:0;width:22px;text-align:center;}
+  .print-menu-option .pmo-text{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .print-menu-option .pmo-title{font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.02em;text-transform:uppercase;}
+  .print-menu-option .pmo-sub{font-size:11px;color:var(--text-faint);}
+  .print-menu-option.pro .pmo-title{color:var(--accent);}
+
   /* shared receipt-content classes, styled for the dark on-screen preview */
   .pro-panel-body .prc-stats{display:flex;gap:8px;margin-bottom:14px;}
   .pro-panel-body .prc-stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;}
@@ -1907,6 +1918,9 @@
 <div class="confirm-overlay hidden" id="proOverlay">
   <div class="pro-panel" id="proPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="printMenuOverlay">
+  <div class="pro-panel print-menu-panel" id="printMenuPanel"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
 
@@ -2035,6 +2049,8 @@
     showBrief: false,       // Brief (activity log) overlay open state
     showProReceipt: false,  // Pro PDF receipt overlay open state (preview or paywall)
     proReceiptSessionId: null,  // sessionId the Pro receipt overlay is showing, or null
+    showPrintMenu: false,    // Print menu overlay open state (choose PDF vs PDF Pro)
+    printMenuSessionId: null,  // sessionId the print menu overlay is showing, or null
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     tabAnimating: false,    // true while a tab-slide transition is in progress
@@ -2668,6 +2684,48 @@
     return html;
   }
 
+  function openPrintMenu(sessionId){
+    ui.printMenuSessionId = sessionId;
+    ui.showPrintMenu = true;
+    renderPrintMenuOverlay();
+  }
+  function closePrintMenu(){
+    ui.showPrintMenu = false;
+    ui.printMenuSessionId = null;
+    renderPrintMenuOverlay();
+  }
+  function renderPrintMenuOverlay(){
+    var overlay = document.getElementById('printMenuOverlay');
+    var panel = document.getElementById('printMenuPanel');
+    if (!ui.showPrintMenu){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    var s = state.sessions.find(function(x){ return x.id === ui.printMenuSessionId; });
+    if (!s){
+      overlay.classList.add('hidden');
+      ui.showPrintMenu = false;
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Print</h3>' +
+        '<button class="pro-panel-close" data-action="close-print-menu" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="print-menu-body">' +
+        '<button class="print-menu-option" data-action="print-pdf-choice" data-session="'+s.id+'">' +
+          '<span class="pmo-icon">&#128196;</span>' +
+          '<span class="pmo-text"><span class="pmo-title">Print PDF</span><span class="pmo-sub">Classic receipt layout</span></span>' +
+        '</button>' +
+        '<button class="print-menu-option pro" data-action="print-pdf-pro-choice" data-session="'+s.id+'">' +
+          '<span class="pmo-icon">&#9733;</span>' +
+          '<span class="pmo-text"><span class="pmo-title">Print PDF Pro</span><span class="pmo-sub">Modern layout with progress tips</span></span>' +
+        '</button>' +
+      '</div>';
+  }
+
   function openProReceipt(sessionId){
     ui.proReceiptSessionId = sessionId;
     ui.showProReceipt = true;
@@ -2960,8 +3018,7 @@
                     '<button class="hi-delete" data-action="delete-session" data-session="'+s.id+'">Delete session</button>' +
                     '<button class="hi-repeat" data-action="repeat-session" data-session="'+s.id+'">Repeat</button>' +
                     '<button class="hi-edit" data-action="edit-session" data-session="'+s.id+'">Edit</button>' +
-                    '<button class="hi-print" data-action="print-session" data-session="'+s.id+'">Print receipt</button>' +
-                    '<button class="hi-print-pro" data-action="open-pro-receipt" data-session="'+s.id+'">Print PRO &#9733;</button>' +
+                    '<button class="hi-print" data-action="open-print-menu" data-session="'+s.id+'">Print</button>' +
                   '</div>';
           html += '</div>';
         }
@@ -4639,10 +4696,8 @@
       openEditSessionConfirm(el.dataset.session);
     } else if (action === 'repeat-session'){
       openRepeatSessionConfirm(el.dataset.session);
-    } else if (action === 'print-session'){
-      printSessionReceipt(el.dataset.session);
-    } else if (action === 'open-pro-receipt'){
-      openProReceipt(el.dataset.session);
+    } else if (action === 'open-print-menu'){
+      openPrintMenu(el.dataset.session);
     } else if (action === 'set-unit'){
       state.settings.unit = el.dataset.unit;
       saveSettings();
@@ -4922,6 +4977,27 @@
     }
   });
 
+  var printMenuOverlayEl = document.getElementById('printMenuOverlay');
+  printMenuOverlayEl.addEventListener('click', function(e){
+    if (e.target === printMenuOverlayEl){
+      closePrintMenu();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-print-menu'){
+      closePrintMenu();
+    } else if (el.dataset.action === 'print-pdf-choice'){
+      var sid = el.dataset.session;
+      closePrintMenu();
+      printSessionReceipt(sid);
+    } else if (el.dataset.action === 'print-pdf-pro-choice'){
+      var sid2 = el.dataset.session;
+      closePrintMenu();
+      openProReceipt(sid2);
+    }
+  });
+
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     if (ui.confirmModal){
@@ -4937,6 +5013,8 @@
       closeBrief();
     } else if (ui.showProReceipt){
       closeProReceipt();
+    } else if (ui.showPrintMenu){
+      closePrintMenu();
     } else if (ui.showMuscleMap){
       ui.showMuscleMap = false;
       ui.selectedMuscle = null;
