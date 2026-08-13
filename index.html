@@ -4643,12 +4643,6 @@
       printSessionReceipt(el.dataset.session);
     } else if (action === 'open-pro-receipt'){
       openProReceipt(el.dataset.session);
-    } else if (action === 'close-pro-receipt'){
-      closeProReceipt();
-    } else if (action === 'print-pro-receipt'){
-      printSessionReceiptPro(el.dataset.session);
-    } else if (action === 'attempt-unlock-pro'){
-      attemptUnlockPro();
     } else if (action === 'set-unit'){
       state.settings.unit = el.dataset.unit;
       saveSettings();
@@ -4919,7 +4913,13 @@
     }
     var el = e.target.closest('[data-action]');
     if (!el) return;
-    if (el.dataset.action === 'close-pro-receipt') closeProReceipt();
+    if (el.dataset.action === 'close-pro-receipt'){
+      closeProReceipt();
+    } else if (el.dataset.action === 'print-pro-receipt'){
+      printSessionReceiptPro(el.dataset.session);
+    } else if (el.dataset.action === 'attempt-unlock-pro'){
+      attemptUnlockPro();
+    }
   });
 
   document.addEventListener('keydown', function(e){
