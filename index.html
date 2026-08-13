@@ -1400,6 +1400,19 @@
     border-radius:8px;
   }
   .hi-print:active,.hi-edit:active,.hi-repeat:active{background:var(--panel-3);}
+  .hi-print-pro{
+    background:linear-gradient(135deg, var(--accent), #d9971f);
+    border:1px solid var(--accent-dim);
+    color:#1c1500;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    cursor:pointer;
+    padding:7px 12px;
+    border-radius:8px;
+  }
+  .hi-print-pro:active{opacity:0.88;}
 
   /* ---------- Print receipt ---------- */
   .print-receipt{display:none;}
@@ -1442,6 +1455,99 @@
   .print-receipt .pr-set{display:flex;justify-content:space-between;padding-left:6px;}
   .print-receipt .pr-set .pr-pr{font-weight:700;color:#b8860b;}
   .print-receipt .pr-footer{text-align:center;font-size:10px;margin-top:14px;letter-spacing:0.04em;color:#b8860b;}
+
+  /* ---------- Print receipt: PRO (modern layout, printed) ---------- */
+  .print-receipt.pro{
+    font-family:'Inter',sans-serif;
+    width:520px;
+    padding:0;
+  }
+  .print-receipt.pro .prc-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #14161a;padding-bottom:10px;margin-bottom:14px;}
+  .print-receipt.pro .prc-brand{font-family:'Oswald',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.04em;text-transform:uppercase;color:#14161a;}
+  .print-receipt.pro .prc-brand-accent{color:#c99a2e;}
+  .print-receipt.pro .prc-badge{font-family:'Oswald',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;background:#14161a;color:#f2b134;padding:4px 10px;border-radius:20px;}
+  .print-receipt.pro .prc-meta{display:flex;justify-content:space-between;font-size:11px;color:#666;margin-bottom:18px;}
+  .print-receipt.pro .prc-stats{display:flex;gap:10px;margin-bottom:20px;}
+  .print-receipt.pro .prc-stat{flex:1;border:1px solid #ddd;border-radius:10px;padding:10px 12px;}
+  .print-receipt.pro .prc-stat-label{font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:#888;}
+  .print-receipt.pro .prc-stat-value{font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:#14161a;}
+  .print-receipt.pro .prc-ex{border:1px solid #e2e2e2;border-radius:10px;padding:12px 14px;margin-bottom:10px;page-break-inside:avoid;}
+  .print-receipt.pro .prc-ex-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;gap:8px;}
+  .print-receipt.pro .prc-ex-name{font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;text-transform:uppercase;color:#14161a;}
+  .print-receipt.pro .prc-ex-muscle{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;}
+  .print-receipt.pro .prc-set{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid #f4f4f4;color:#222;}
+  .print-receipt.pro .prc-set-time{color:#999;font-size:10px;margin-right:6px;}
+  .print-receipt.pro .prc-pr{color:#c99a2e;font-weight:700;}
+  .print-receipt.pro .prc-tip{margin-top:6px;padding:8px 10px;background:#f7f4ea;border-left:3px solid #c99a2e;font-size:10.5px;color:#444;border-radius:0 6px 6px 0;}
+  .print-receipt.pro .prc-tip b{color:#14161a;}
+  .print-receipt.pro .prc-footer{text-align:center;font-size:10px;color:#999;margin-top:16px;letter-spacing:0.04em;}
+
+  /* ---------- Pro receipt overlay (on-screen preview + paywall) ---------- */
+  .pro-panel{
+    width:100%;
+    max-width:440px;
+    max-height:84vh;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:0 16px 48px rgba(0,0,0,0.55);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .pro-panel-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 4px;flex-shrink:0;gap:10px;}
+  .pro-panel-header h3{
+    font-family:'Oswald',sans-serif;
+    font-size:15px;
+    font-weight:700;
+    color:var(--text);
+    letter-spacing:0.02em;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    min-width:0;
+  }
+  .pro-panel-badge{font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:var(--accent);color:#1c1500;padding:2px 8px;border-radius:20px;flex-shrink:0;}
+  .pro-panel-close{background:none;border:none;color:var(--text-faint);font-size:18px;cursor:pointer;padding:4px;line-height:1;flex-shrink:0;}
+  .pro-panel-close:active{color:var(--text);}
+  .pro-panel-sub{padding:0 18px 12px;font-size:11.5px;color:var(--text-faint);border-bottom:1px solid var(--line);}
+  .pro-panel-body{padding:14px 18px;overflow-y:auto;flex:1;}
+  .pro-panel-footer{padding:14px 18px;border-top:1px solid var(--line);flex-shrink:0;}
+  .pro-print-btn{width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:10px;padding:12px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;}
+  .pro-print-btn:active{opacity:0.9;}
+
+  /* shared receipt-content classes, styled for the dark on-screen preview */
+  .pro-panel-body .prc-stats{display:flex;gap:8px;margin-bottom:14px;}
+  .pro-panel-body .prc-stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;}
+  .pro-panel-body .prc-stat-label{font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-faint);}
+  .pro-panel-body .prc-stat-value{font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;color:var(--text);margin-top:2px;}
+  .pro-panel-body .prc-ex{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;}
+  .pro-panel-body .prc-ex-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;gap:8px;}
+  .pro-panel-body .prc-ex-name{font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;color:var(--text);text-transform:uppercase;}
+  .pro-panel-body .prc-ex-muscle{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;}
+  .pro-panel-body .prc-set{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);padding:2px 0;gap:8px;}
+  .pro-panel-body .prc-set-time{color:var(--text-faint);font-size:10.5px;margin-right:6px;}
+  .pro-panel-body .prc-pr{color:var(--accent);font-weight:700;}
+  .pro-panel-body .prc-tip{margin-top:8px;padding:9px 10px;background:rgba(242,177,52,0.08);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;font-size:11.5px;color:var(--text-dim);line-height:1.5;}
+  .pro-panel-body .prc-tip b{color:var(--text);}
+
+  /* ---------- Pro paywall ---------- */
+  .paywall-body{padding:6px 20px 22px;text-align:center;}
+  .paywall-icon{font-size:34px;margin-bottom:8px;}
+  .paywall-title{font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px;}
+  .paywall-sub{font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:16px;}
+  .paywall-features{text-align:left;list-style:none;padding:0;margin:0 0 18px;}
+  .paywall-features li{font-size:12.5px;color:var(--text-dim);padding:7px 0;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:flex-start;}
+  .paywall-features li:last-child{border-bottom:none;}
+  .paywall-features li .chk{color:var(--accent);flex-shrink:0;}
+  .paywall-price{font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:12px;}
+  .paywall-price span{font-size:11px;color:var(--text-faint);font-weight:400;}
+  .paywall-unlock-btn{width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:10px;padding:13px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;margin-bottom:8px;}
+  .paywall-unlock-btn:active{opacity:0.9;}
+  .paywall-note{font-size:10.5px;color:var(--text-faint);}
 
   /* ---------- Progress ---------- */
   .progress-select{
@@ -1798,6 +1904,9 @@
 <div class="confirm-overlay hidden" id="supportOverlay">
   <div class="support-panel" id="supportPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="proOverlay">
+  <div class="pro-panel" id="proPanel"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
 
@@ -1924,6 +2033,8 @@
     helpLog: [],            // [{ q, a }, ...] — topics tapped so far in this Help session
     showSupport: false,     // support/"buy me a coffee" overlay open state
     showBrief: false,       // Brief (activity log) overlay open state
+    showProReceipt: false,  // Pro PDF receipt overlay open state (preview or paywall)
+    proReceiptSessionId: null,  // sessionId the Pro receipt overlay is showing, or null
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     tabAnimating: false,    // true while a tab-slide transition is in progress
@@ -2425,6 +2536,7 @@
   function printSessionReceipt(sessionId){
     var s = state.sessions.find(function(x){ return x.id === sessionId; });
     if (!s) return;
+    document.getElementById('printReceipt').classList.remove('pro');
     var html = '<div class="pr-brand">IRON <span class="pr-brand-accent">LEDGER</span></div>';
     html += '<div class="pr-tagline">savior &middot; workout receipt</div>';
     html += '<div class="pr-line"></div>';
@@ -2445,6 +2557,195 @@
     html += '<div class="pr-line"></div>';
     html += '<div class="pr-footer">Thanks for the work.<br>Logged with Iron Ledger &mdash; Savior</div>';
     document.getElementById('printReceipt').innerHTML = html;
+    window.print();
+  }
+
+  /* =========================================================
+     PRO PDF RECEIPT
+     A second, "pro" print-to-PDF version of the session receipt:
+     modern layout, a timestamp on every logged set, and a short
+     progressive-overload tip per exercise (add reps vs add weight).
+     Gated behind isProUnlocked() until real payments are wired up —
+     PRO_UNLOCK_EMAILS is a manual allowlist for testing that account,
+     and state.settings.proUnlocked is the flag a future purchase flow
+     would set once a payment actually goes through.
+     ========================================================= */
+  var PRO_UNLOCK_EMAILS = ['xavierchua10@gmail.com'];
+
+  function isProUnlocked(){
+    var email = (state.currentAccountEmail || '').trim().toLowerCase();
+    if (email && PRO_UNLOCK_EMAILS.indexOf(email) !== -1) return true;
+    return !!(state.settings && state.settings.proUnlocked);
+  }
+
+  // Best e1rm for this exercise name across all sessions, excluding a
+  // given set of set ids (used to exclude "today's" sets so we're
+  // comparing against the lifter's prior history, not this session).
+  function priorBestE1RM(exerciseName, excludeSetIds){
+    var name = exerciseName.trim().toLowerCase();
+    var best = 0;
+    state.sessions.forEach(function(s){
+      s.exercises.forEach(function(ex){
+        if (ex.name.trim().toLowerCase() !== name) return;
+        ex.sets.forEach(function(st){
+          if (excludeSetIds.indexOf(st.id) !== -1) return;
+          var val = e1rm(st.weightKg, st.reps);
+          if (val > best) best = val;
+        });
+      });
+    });
+    return best;
+  }
+
+  // A small, sane next-session weight bump — not exact science, just a
+  // reasonable plate-friendly increment scaled to the current load.
+  function smallIncrementKg(weightKg){
+    var stepKg = weightKg >= 60 ? 2.5 : (weightKg >= 20 ? 1.25 : 0.5);
+    return roundNice(weightKg + stepKg);
+  }
+
+  // Simple progressive-overload heuristic per exercise:
+  //  - below your recent best  -> match it before pushing further
+  //  - top set >=12 reps       -> add weight next time
+  //  - top set <=5 reps        -> build reps before adding load
+  //  - otherwise               -> add a rep or two at the same weight
+  function overloadTipForExercise(ex){
+    var sets = ex.sets;
+    if (!sets || !sets.length) return null;
+    var best = sets[0];
+    sets.forEach(function(st){
+      if (e1rm(st.weightKg, st.reps) > e1rm(best.weightKg, best.reps)) best = st;
+    });
+    var setIds = sets.map(function(st){ return st.id; });
+    var prior = priorBestE1RM(ex.name, setIds);
+    var thisE1 = e1rm(best.weightKg, best.reps);
+    var headline, detail;
+    if (prior > 0 && thisE1 < prior - 0.001){
+      headline = 'Match your recent best';
+      detail = 'Top set here was ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + best.reps + ', below your recent best on ' + ex.name + '. Aim to match that number before chasing a new PR.';
+    } else if (best.reps >= 12){
+      headline = 'Add weight next time';
+      detail = 'You hit ' + best.reps + ' reps at ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + '. Bump the load to about ' + fmtWeight(smallIncrementKg(best.weightKg)) + ' ' + unitLabel() + ' next session and reset toward the bottom of your rep range.';
+    } else if (best.reps <= 5){
+      headline = 'Build reps before load';
+      detail = 'Top set was ' + best.reps + ' reps at ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + '. Keep the weight here and chase 1\u20132 more reps next session before adding load.';
+    } else {
+      headline = 'Add a rep or two';
+      detail = 'Top set: ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + best.reps + '. Aim for ' + (best.reps + 1) + '\u2013' + (best.reps + 2) + ' reps at the same weight next session before increasing the load.';
+    }
+    return { headline: headline, detail: detail };
+  }
+
+  // Shared HTML for the Pro receipt's content — stats row, then one card
+  // per exercise with every set (each with its logged timestamp) and an
+  // overload tip. Reused by both the on-screen preview (.pro-panel-body)
+  // and the printed PDF (#printReceipt.pro) — each scopes the .prc-*
+  // classes to its own theme.
+  function buildProReceiptHtml(s){
+    var html = '<div class="prc-stats">' +
+                  '<div class="prc-stat"><div class="prc-stat-label">Exercises</div><div class="prc-stat-value">'+s.exercises.length+'</div></div>' +
+                  '<div class="prc-stat"><div class="prc-stat-label">Sets</div><div class="prc-stat-value">'+sessionSetCount(s)+'</div></div>' +
+                  '<div class="prc-stat"><div class="prc-stat-label">Volume ('+unitLabel()+')</div><div class="prc-stat-value">'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+'</div></div>' +
+                '</div>';
+    s.exercises.forEach(function(ex){
+      var tip = overloadTipForExercise(ex);
+      html += '<div class="prc-ex">' +
+                '<div class="prc-ex-head"><span class="prc-ex-name">'+esc(ex.name)+'</span>' +
+                (ex.muscle ? '<span class="prc-ex-muscle">'+esc(ex.muscle)+'</span>' : '') +
+                '</div>';
+      ex.sets.forEach(function(st, i){
+        html += '<div class="prc-set"><span>'+(i+1)+'. '+fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps+'</span>' +
+                  '<span>' +
+                    (st.timestamp ? '<span class="prc-set-time">'+fmtTime(st.timestamp)+'</span>' : '') +
+                    (st.isPR ? ' <span class="prc-pr">PR</span>' : '') +
+                  '</span></div>';
+      });
+      if (tip){
+        html += '<div class="prc-tip"><b>'+esc(tip.headline)+':</b> '+esc(tip.detail)+'</div>';
+      }
+      html += '</div>';
+    });
+    return html;
+  }
+
+  function openProReceipt(sessionId){
+    ui.proReceiptSessionId = sessionId;
+    ui.showProReceipt = true;
+    renderProOverlay();
+  }
+  function closeProReceipt(){
+    ui.showProReceipt = false;
+    ui.proReceiptSessionId = null;
+    renderProOverlay();
+  }
+  function attemptUnlockPro(){
+    showToast('Payments aren\u2019t connected yet \u2014 check back soon');
+  }
+
+  function renderProOverlay(){
+    var overlay = document.getElementById('proOverlay');
+    var panel = document.getElementById('proPanel');
+    if (!ui.showProReceipt){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    var s = state.sessions.find(function(x){ return x.id === ui.proReceiptSessionId; });
+    if (!s){
+      overlay.classList.add('hidden');
+      ui.showProReceipt = false;
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    if (!isProUnlocked()){
+      panel.innerHTML =
+        '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Iron Ledger Pro</h3>' +
+          '<button class="pro-panel-close" data-action="close-pro-receipt" aria-label="Close">&#10005;</button>' +
+        '</div>' +
+        '<div class="paywall-body">' +
+          '<div class="paywall-icon">&#128274;</div>' +
+          '<div class="paywall-title">Unlock the Pro receipt</div>' +
+          '<div class="paywall-sub">A modern, printable PDF for \u201c'+esc(s.name || 'this session')+'\u201d with a timestamp on every set and progressive-overload guidance for each exercise.</div>' +
+          '<ul class="paywall-features">' +
+            '<li><span class="chk">&#10003;</span> Timestamp on every logged set</li>' +
+            '<li><span class="chk">&#10003;</span> Modern, redesigned PDF layout</li>' +
+            '<li><span class="chk">&#10003;</span> Add-weight or add-reps guidance per exercise</li>' +
+          '</ul>' +
+          '<div class="paywall-price">Coming soon<span> &middot; one-time unlock</span></div>' +
+          '<button class="paywall-unlock-btn" data-action="attempt-unlock-pro">Notify me when it\u2019s live</button>' +
+          '<div class="paywall-note">Payments aren\u2019t connected yet \u2014 check back soon.</div>' +
+        '</div>';
+      return;
+    }
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> '+esc(s.name || 'Untitled session')+'</h3>' +
+        '<button class="pro-panel-close" data-action="close-pro-receipt" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-sub">'+fmtDate(s.finishedAt || s.date)+' &middot; '+fmtTime(s.finishedAt || s.date)+'</div>' +
+      '<div class="pro-panel-body">' + buildProReceiptHtml(s) + '</div>' +
+      '<div class="pro-panel-footer">' +
+        '<button class="pro-print-btn" data-action="print-pro-receipt" data-session="'+s.id+'">Save / Print PDF</button>' +
+      '</div>';
+  }
+
+  function printSessionReceiptPro(sessionId){
+    var s = state.sessions.find(function(x){ return x.id === sessionId; });
+    if (!s) return;
+    if (!isProUnlocked()){
+      showToast('Pro isn\u2019t unlocked on this account yet');
+      return;
+    }
+    var el = document.getElementById('printReceipt');
+    el.classList.add('pro');
+    var html = '<div class="prc-head">' +
+                  '<div class="prc-brand">IRON <span class="prc-brand-accent">LEDGER</span></div>' +
+                  '<div class="prc-badge">PRO</div>' +
+                '</div>' +
+                '<div class="prc-meta"><span>'+esc(s.name || 'Untitled session')+'</span><span>'+fmtDate(s.finishedAt || s.date)+' &middot; '+fmtTime(s.finishedAt || s.date)+'</span></div>';
+    html += buildProReceiptHtml(s);
+    html += '<div class="prc-footer">Iron Ledger Pro &mdash; Savior. Timestamps reflect when each set was logged.</div>';
+    el.innerHTML = html;
     window.print();
   }
 
@@ -2660,6 +2961,7 @@
                     '<button class="hi-repeat" data-action="repeat-session" data-session="'+s.id+'">Repeat</button>' +
                     '<button class="hi-edit" data-action="edit-session" data-session="'+s.id+'">Edit</button>' +
                     '<button class="hi-print" data-action="print-session" data-session="'+s.id+'">Print receipt</button>' +
+                    '<button class="hi-print-pro" data-action="open-pro-receipt" data-session="'+s.id+'">Print PRO &#9733;</button>' +
                   '</div>';
           html += '</div>';
         }
@@ -4339,6 +4641,14 @@
       openRepeatSessionConfirm(el.dataset.session);
     } else if (action === 'print-session'){
       printSessionReceipt(el.dataset.session);
+    } else if (action === 'open-pro-receipt'){
+      openProReceipt(el.dataset.session);
+    } else if (action === 'close-pro-receipt'){
+      closeProReceipt();
+    } else if (action === 'print-pro-receipt'){
+      printSessionReceiptPro(el.dataset.session);
+    } else if (action === 'attempt-unlock-pro'){
+      attemptUnlockPro();
     } else if (action === 'set-unit'){
       state.settings.unit = el.dataset.unit;
       saveSettings();
@@ -4601,6 +4911,17 @@
     if (el.dataset.action === 'close-support') closeSupport();
   });
 
+  var proOverlayEl = document.getElementById('proOverlay');
+  proOverlayEl.addEventListener('click', function(e){
+    if (e.target === proOverlayEl){
+      closeProReceipt();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-pro-receipt') closeProReceipt();
+  });
+
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     if (ui.confirmModal){
@@ -4614,6 +4935,8 @@
       closeSupport();
     } else if (ui.showBrief){
       closeBrief();
+    } else if (ui.showProReceipt){
+      closeProReceipt();
     } else if (ui.showMuscleMap){
       ui.showMuscleMap = false;
       ui.selectedMuscle = null;
