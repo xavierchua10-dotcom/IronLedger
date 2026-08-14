@@ -1557,6 +1557,24 @@
   }
   .price-cta-btn:active{opacity:0.9;}
 
+  .trial-offer-card{
+    background:rgba(242,177,52,0.08);border:1px solid var(--accent-dim);border-radius:14px;
+    padding:18px;text-align:center;margin-bottom:16px;
+  }
+  .trial-offer-title{font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:5px;}
+  .trial-offer-sub{font-size:12px;color:var(--text-dim);line-height:1.5;margin-bottom:14px;}
+  .trial-offer-btn{
+    width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:10px;
+    padding:14px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;
+    letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;
+  }
+  .trial-offer-btn:active{opacity:0.9;}
+  .trial-offer-btn:disabled{opacity:0.6;}
+  .trial-offer-divider{
+    text-align:center;font-size:10.5px;color:var(--text-faint);text-transform:uppercase;
+    letter-spacing:0.05em;margin:4px 0 16px;position:relative;
+  }
+
   /* ---------- Progress lock (Basic tier, 3-day/month window) ---------- */
   .progress-tab-wrap{position:relative;}
   .progress-blur{filter:blur(5px);user-select:none;pointer-events:none;}
@@ -2033,15 +2051,17 @@
     deleteUserData: function(uidVal){
       return deleteDoc(doc(db, 'users', uidVal));
     },
-    // Creates the /users/{uid} subscription/tier fields exactly once,
-    // the first time this account is ever seen — starts the 3-day free
-    // Pro trial and, for the developer override email, permanent Pro.
-    // Safe to call on every login: it's a no-op once trialStartDate exists.
+    // Creates the /users/{uid} tier/subscription fields exactly once,
+    // the first time this account is ever seen. Does NOT start the
+    // 3-day free trial — trial only begins when the user explicitly
+    // taps "Start Free Trial" in the pricing modal (see startTrial()
+    // below). Dev override email still gets permanent Pro immediately.
+    // Safe to call on every login: it's a no-op once the doc exists.
     ensureUserDoc: function(uidVal, email){
       var ref = doc(db, 'users', uidVal);
       return getDoc(ref).then(function(snap){
         var existing = snap.exists() ? snap.data() : null;
-        if (existing && existing.trialStartDate){
+        if (existing){
           return existing;
         }
         var now = Date.now();
@@ -2050,16 +2070,32 @@
           email: email || '',
           tier: 'basic',
           isDev: isDev,
-          trialStartDate: now,
-          trialEndDate: now + TRIAL_DAYS * 24 * 60 * 60 * 1000,
-          subscription: { status: isDev ? 'dev' : 'trialing', plan: null, currentPeriodEnd: null, startedAt: null },
+          trialStartDate: null,
+          trialEndDate: null,
+          subscription: { status: isDev ? 'dev' : 'none', plan: null, currentPeriodEnd: null, startedAt: null },
           progressAccess: {},
-          createdAt: (existing && existing.createdAt) || now,
+          createdAt: now,
           updatedAt: now
         };
         return setDoc(ref, fresh, { merge: true }).then(function(){
-          return Object.assign({}, existing, fresh);
+          return fresh;
         });
+      });
+    },
+    // Called only when the user explicitly taps "Start Free Trial" in
+    // the pricing modal. One-time — Firestore rules reject this write
+    // if trialStartDate is already set, so it can't be replayed to
+    // extend the trial. Deliberately does not touch subscription/tier/
+    // isDev (the update security rule blocks client writes to those).
+    startTrial: function(uidVal){
+      var now = Date.now();
+      var end = now + TRIAL_DAYS * 24 * 60 * 60 * 1000;
+      return setDoc(doc(db, 'users', uidVal), {
+        trialStartDate: now,
+        trialEndDate: end,
+        updatedAt: now
+      }, { merge: true }).then(function(){
+        return { trialStartDate: now, trialEndDate: end };
       });
     },
     // Realtime listener on the user's own doc — picks up subscription
@@ -2101,7 +2137,10 @@
      SUBSCRIPTION / PRO TIER
      Basic (free) vs Pro. Pro is unlocked by, in priority order:
        1. the developer override email — permanent, no checks
-       2. an active 3-day free trial (trialEndDate, set once at signup)
+       2. an active 3-day free trial (trialEndDate) — NOT started
+          automatically at signup; only begins the moment the user
+          taps "Start Free Trial" in the pricing modal (see
+          startFreeTrial() / trialAvailable() below)
        3. a paid plan (subscription.currentPeriodEnd in the future)
      state.userDoc mirrors the Firestore /users/{uid} doc in realtime
      (see subscribeUserDoc). Guest mode never has a userDoc — guests
@@ -2168,7 +2207,8 @@
     tabAnimating: false,    // true while a tab-slide transition is in progress
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
     showPricing: false,     // Pricing/upgrade modal open state
-    billingCycle: 'monthly' // 'monthly' | 'annual' — toggle state inside the pricing modal
+    billingCycle: 'monthly', // 'monthly' | 'annual' — toggle state inside the pricing modal
+    startingTrial: false    // true while the "Start Free Trial" write is in flight
   };
 
   /* =========================================================
@@ -2997,6 +3037,37 @@
     window.open(url, '_blank', 'noopener');
   }
 
+  // True only for a real (non-guest) account that has never started its
+  // one-time 3-day trial. Once trialStartDate is set — whether the trial
+  // is still running or has since expired — this goes false for good.
+  function trialAvailable(){
+    if (state.currentAccount === 'guest' || isDevOverride()) return false;
+    return !(state.userDoc && state.userDoc.trialStartDate);
+  }
+
+  // Fired by the "Start Free Trial" button in the pricing modal. Writes
+  // trialStartDate/trialEndDate to Firestore, then refreshes every UI
+  // surface that depends on trial state (pricing modal, trial banner,
+  // Settings, the gold star icon).
+  function startFreeTrial(){
+    if (state.currentAccount === 'guest' || !window.SaviorFirebase || !window.SaviorFirebase.startTrial) return;
+    if (!trialAvailable()) return;
+    ui.startingTrial = true;
+    renderPricingPanel();
+    window.SaviorFirebase.startTrial(state.currentAccount).then(function(fields){
+      state.userDoc = Object.assign({}, state.userDoc, fields);
+      ui.startingTrial = false;
+      renderApp();
+      renderPricingPanel();
+      showToast('Free trial started \u2014 3 days of Pro unlocked');
+    }).catch(function(err){
+      ui.startingTrial = false;
+      renderPricingPanel();
+      showToast('Couldn\u2019t start trial \u2014 check your connection and try again');
+      console.error('startTrial failed:', err);
+    });
+  }
+
   function renderPricingPanel(){
     var overlay = document.getElementById('pricingOverlay');
     var panel = document.getElementById('pricingPanel');
@@ -3034,6 +3105,7 @@
     }
 
     var cycle = ui.billingCycle === 'annual' ? 'annual' : 'monthly';
+    var showTrialOffer = trialAvailable();
     panel.innerHTML =
       '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Go Pro</h3>' +
         '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
@@ -3044,6 +3116,14 @@
           '<li><span class="chk">&#10003;</span> Unlimited Progress \u2014 charts, PRs, trends</li>' +
           '<li><span class="chk">&#10003;</span> Print Pro PDF \u2014 modern layout + overload tips</li>' +
         '</ul>' +
+        (showTrialOffer
+          ? '<div class="trial-offer-card">' +
+              '<div class="trial-offer-title">&#9733; Try Pro free for 3 days</div>' +
+              '<div class="trial-offer-sub">No card needed. Cancel anytime \u2014 or just let it lapse back to Basic.</div>' +
+              '<button class="trial-offer-btn" data-action="start-free-trial"'+(ui.startingTrial?' disabled':'')+'>'+(ui.startingTrial?'Starting\u2026':'Start Free Trial')+'</button>' +
+            '</div>' +
+            '<div class="trial-offer-divider">or subscribe now</div>'
+          : '') +
         '<div class="billing-toggle'+(cycle === 'annual' ? ' annual' : '')+'" role="tablist">' +
           '<button class="'+(cycle==='monthly'?'active':'')+'" data-action="set-billing-cycle" data-cycle="monthly">Monthly</button>' +
           '<button class="'+(cycle==='annual'?'active':'')+'" data-action="set-billing-cycle" data-cycle="annual">Annual<span class="bt-save">-33%</span></button>' +
@@ -3578,7 +3658,7 @@
     html += '<div class="settings-group">';
     if (state.currentAccount === 'guest'){
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
-                '<div class="sr-sub">Create a free account to start a 3-day Pro trial</div></div></div>';
+                '<div class="sr-sub">Create a free account, then start a 3-day Pro trial anytime</div></div></div>';
     } else if (isDevOverride()){
       html += '<div class="settings-row"><div><div class="sr-label">&#9733; Pro <span class="dev-badge">DEV</span></div>' +
                 '<div class="sr-sub">Developer account — permanent Pro access</div></div></div>';
@@ -3586,6 +3666,10 @@
       html += '<div class="settings-row"><div><div class="sr-label">&#9733; Pro</div>' +
                 '<div class="sr-sub">'+esc(proExpiryLabel())+'</div></div>' +
                 '<button class="sr-action" data-action="open-pricing">Manage</button></div>';
+    } else if (trialAvailable()){
+      html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
+                '<div class="sr-sub">Try 3 days of Pro free \u2014 no card needed</div></div>' +
+                '<button class="sr-action" data-action="open-pricing">Start Trial</button></div>';
     } else {
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
                 '<div class="sr-sub">Upgrade for full timestamps, unlimited Progress & Pro PDF</div></div>' +
@@ -5400,6 +5484,8 @@
       renderPricingPanel();
     } else if (el.dataset.action === 'start-checkout'){
       startCheckout(el.dataset.plan === 'annual' ? 'annual' : 'monthly');
+    } else if (el.dataset.action === 'start-free-trial'){
+      startFreeTrial();
     }
   });
 
