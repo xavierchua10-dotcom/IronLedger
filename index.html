@@ -818,8 +818,15 @@
     border-radius:6px;
   }
   .set-row .set-idx{color:var(--text-faint);}
-  .set-row .set-detail{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .set-row .set-detail{
+    color:var(--text);display:flex;align-items:center;min-width:0;overflow:hidden;
+  }
+  .set-row .set-detail .set-wr{
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex-shrink:1;
+  }
   .set-row .set-detail .x{color:var(--text-faint);margin:0 4px;}
+  .set-row .set-detail .set-time{flex-shrink:0;white-space:nowrap;}
+  .set-row .set-detail .pr-tag{flex-shrink:0;}
   .set-row .set-flags{display:flex;gap:5px;align-items:center;justify-content:flex-end;}
   .flame{color:var(--accent-2);font-size:12px;}
   .pr-tag{
@@ -1480,10 +1487,11 @@
     width:40px;height:40px;border-radius:50%;
     background:var(--panel-2);border:1px solid var(--line);
     padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    flex-shrink:0;font-size:18px;line-height:1;color:var(--text-faint);
+    flex-shrink:0;color:var(--text-faint);
   }
   .pro-star-btn:active{background:var(--panel-3);}
   .pro-star-btn.is-pro{color:#1c1500;background:var(--accent);border-color:var(--accent);}
+  .pro-star-glyph{font-size:23px;line-height:1;display:block;transform:translateY(1px);}
   .pro-badge-mini{
     display:inline-block;font-size:9px;font-weight:700;letter-spacing:0.08em;
     text-transform:uppercase;background:var(--accent);color:#1c1500;
@@ -1502,6 +1510,11 @@
     font-size:12px;color:var(--text-dim);
   }
   .trial-banner.hidden{display:none;}
+  .trial-banner.trial-banner-ended{
+    background:rgba(193,68,60,0.12);border-bottom-color:var(--accent-2);
+  }
+  .trial-banner.trial-banner-ended .trial-banner-star{color:var(--accent-2);}
+  .trial-banner.trial-banner-ended .trial-banner-cta{background:var(--accent-2);color:#fff;}
   .trial-banner-star{color:var(--accent);font-size:13px;flex-shrink:0;}
   .trial-banner-text{flex:1;min-width:0;}
   .trial-banner-text b{color:var(--text);}
@@ -1924,7 +1937,7 @@
     <h1>IRON <span>LEDGER</span> <span class="brand-tag">savior</span></h1>
     <div class="topbar-right">
       <div class="account-wrap">
-        <button class="pro-star-btn" id="proStarBtn" data-action="open-pricing" aria-label="Upgrade to Pro">&#9733;</button>
+        <button class="pro-star-btn" id="proStarBtn" data-action="open-pricing" aria-label="Upgrade to Pro"><span class="pro-star-glyph">&#9733;</span></button>
         <button class="account-avatar" id="accountAvatarBtn" data-action="toggle-account-menu">G</button>
         <div class="account-menu hidden" id="accountMenu">
           <div class="account-menu-name" id="accountMenuName">Guest</div>
@@ -2787,6 +2800,17 @@
     return !!end && Date.now() < end;
   }
 
+  // True once a trial has actually run its course (started AND ended) —
+  // distinct from "never started," which trialAvailable() covers. Used
+  // to show a clear "trial ended" notice instead of the banner just
+  // silently disappearing.
+  function isTrialExpired(){
+    var u = state.userDoc;
+    var start = u && toMillis(u.trialStartDate);
+    var end = u && toMillis(u.trialEndDate);
+    return !!start && !!end && Date.now() >= end;
+  }
+
   function isPaidPlanActive(){
     var u = state.userDoc;
     var end = u && u.subscription && toMillis(u.subscription.currentPeriodEnd);
@@ -3247,16 +3271,36 @@
   function renderTrialBanner(){
     var el = document.getElementById('trialBanner');
     if (!el) return;
-    if (isDevOverride() || state.currentAccount === 'guest' || !state.userDoc || isPaidPlanActive() || !isTrialActive()){
+    if (isDevOverride() || state.currentAccount === 'guest' || !state.userDoc || isPaidPlanActive()){
       el.classList.add('hidden');
+      el.classList.remove('trial-banner-ended');
       el.innerHTML = '';
       return;
     }
-    el.classList.remove('hidden');
-    el.innerHTML =
-      '<span class="trial-banner-star">&#9733;</span>' +
-      '<span class="trial-banner-text">Pro trial \u2014 <b>'+esc(trialDaysLeftLabel())+'</b></span>' +
-      '<button class="trial-banner-cta" data-action="open-pricing">Upgrade</button>';
+    if (isTrialActive()){
+      el.classList.remove('hidden');
+      el.classList.remove('trial-banner-ended');
+      el.innerHTML =
+        '<span class="trial-banner-star">&#9733;</span>' +
+        '<span class="trial-banner-text">Pro trial \u2014 <b>'+esc(trialDaysLeftLabel())+'</b></span>' +
+        '<button class="trial-banner-cta" data-action="open-pricing">Upgrade</button>';
+      return;
+    }
+    // Trial ran its course and lapsed back to Basic — say so explicitly
+    // (with a way to subscribe right there) instead of the banner just
+    // vanishing with no explanation of why Pro features locked back up.
+    if (isTrialExpired()){
+      el.classList.remove('hidden');
+      el.classList.add('trial-banner-ended');
+      el.innerHTML =
+        '<span class="trial-banner-star">&#9733;</span>' +
+        '<span class="trial-banner-text">Your free trial has ended \u2014 <b>back to Basic</b></span>' +
+        '<button class="trial-banner-cta" data-action="open-pricing">Subscribe</button>';
+      return;
+    }
+    el.classList.add('hidden');
+    el.classList.remove('trial-banner-ended');
+    el.innerHTML = '';
   }
 
   /* =========================================================
@@ -3346,7 +3390,8 @@
         if (isEditingRow) editingSetObj = st;
         html += '<div class="set-row'+(isEditingRow ? ' editing' : '')+'">' +
                   '<span class="set-idx">'+(i+1)+'</span>' +
-                  '<span class="set-detail">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+
+                  '<span class="set-detail">' +
+                    '<span class="set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
                     (st.timestamp ? '<span class="set-time"> &middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
                     (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
                   '</span>' +
