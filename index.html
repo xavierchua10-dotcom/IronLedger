@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#14161a">
-<title>Iron Ledger — Workout Log</title>
+<title>SaviorFit Logger — Workout Log</title>
 <meta name="description" content="Log your lifts, any style, any split. A free workout tracker by Savior.">
 <!--
   UPDATE THE URLS BELOW once this is live on GitHub Pages / Netlify.
@@ -12,26 +12,26 @@
   link previews (WhatsApp, iMessage, Twitter, etc.) fetch og:image
   from the internet, so it only works once it's actually hosted there.
   Upload og-image.png to the same folder as this file, then point
-  og:image at it, e.g. https://yourusername.github.io/iron-ledger/og-image.png
+  og:image at it, e.g. https://yourusername.github.io/saviorfit-logger/og-image.png
 -->
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://xavierchua10-dotcom.github.io/IronLedger/">
-<meta property="og:title" content="Iron Ledger — Workout Log">
+<meta property="og:url" content="https://xavierchua10-dotcom.github.io/SaviorFitLogger/">
+<meta property="og:title" content="SaviorFit Logger — Workout Log">
 <meta property="og:description" content="Log your lifts, any style, any split. A free workout tracker by Savior.">
-<meta property="og:image" content="https://xavierchua10-dotcom.github.io/IronLedger/og-image.png">
+<meta property="og:image" content="https://xavierchua10-dotcom.github.io/SaviorFitLogger/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Iron Ledger — Workout Log">
+<meta name="twitter:title" content="SaviorFit Logger — Workout Log">
 <meta name="twitter:description" content="Log your lifts, any style, any split. A free workout tracker by Savior.">
-<meta name="twitter:image" content="https://xavierchua10-dotcom.github.io/IronLedger/og-image.png">
+<meta name="twitter:image" content="https://xavierchua10-dotcom.github.io/SaviorFitLogger/og-image.png">
 <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Iron Ledger">
+<meta name="apple-mobile-web-app-title" content="SaviorFit Logger">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -1932,10 +1932,10 @@
 </style>
 </head>
 <body>
-<div id="bootLoading" class="boot-loading"><div class="boot-loading-mark">IRON <span>LEDGER</span></div></div>
+<div id="bootLoading" class="boot-loading"><div class="boot-loading-mark">SAVIORFIT <span>LOGGER</span></div></div>
 <div id="app" class="hidden">
   <header class="topbar">
-    <h1>IRON <span>LEDGER</span> <span class="brand-tag">savior</span></h1>
+    <h1>SAVIORFIT <span>LOGGER</span></h1>
     <div class="topbar-right">
       <div class="account-wrap">
         <button class="pro-star-btn" id="proStarBtn" data-action="open-pricing" aria-label="Upgrade to Pro"><span class="pro-star-glyph">&#9733;</span></button>
@@ -2763,8 +2763,8 @@
     var s = state.sessions.find(function(x){ return x.id === sessionId; });
     if (!s) return;
     document.getElementById('printReceipt').classList.remove('pro');
-    var html = '<div class="pr-brand">IRON <span class="pr-brand-accent">LEDGER</span></div>';
-    html += '<div class="pr-tagline">savior &middot; workout receipt</div>';
+    var html = '<div class="pr-brand">SAVIORFIT <span class="pr-brand-accent">LOGGER</span></div>';
+    html += '<div class="pr-tagline">workout receipt</div>';
     html += '<div class="pr-line"></div>';
     html += '<div class="pr-session-name">'+esc(s.name || 'Untitled session')+'</div>';
     html += '<div class="pr-row"><span>'+fmtDate(s.finishedAt || s.date)+'</span><span>'+tsOrLock(s.finishedAt || s.date)+'</span></div>';
@@ -2781,7 +2781,7 @@
     html += '<div class="pr-row"><span>Sets</span><span>'+sessionSetCount(s)+'</span></div>';
     html += '<div class="pr-row"><span>Total volume</span><span>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+'</span></div>';
     html += '<div class="pr-line"></div>';
-    html += '<div class="pr-footer">Thanks for the work.<br>Logged with Iron Ledger &mdash; Savior</div>';
+    html += '<div class="pr-footer">Thanks for the work.<br>Logged with SaviorFit Logger</div>';
     document.getElementById('printReceipt').innerHTML = html;
     window.print();
   }
@@ -3192,7 +3192,7 @@
 
     if (isDevOverride()){
       panel.innerHTML =
-        '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Iron Ledger Pro</h3>' +
+        '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> SaviorFit Logger Pro</h3>' +
           '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
         '</div>' +
         '<div class="paywall-body">' +
@@ -3205,7 +3205,7 @@
 
     if (isProActive()){
       panel.innerHTML =
-        '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Iron Ledger Pro</h3>' +
+        '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> SaviorFit Logger Pro</h3>' +
           '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
         '</div>' +
         '<div class="paywall-body">' +
@@ -3305,7 +3305,7 @@
     overlay.classList.remove('hidden');
     if (!isProActive()){
       panel.innerHTML =
-        '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Iron Ledger Pro</h3>' +
+        '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> SaviorFit Logger Pro</h3>' +
           '<button class="pro-panel-close" data-action="close-pro-receipt" aria-label="Close">&#10005;</button>' +
         '</div>' +
         '<div class="paywall-body">' +
@@ -3343,12 +3343,12 @@
     var el = document.getElementById('printReceipt');
     el.classList.add('pro');
     var html = '<div class="prc-head">' +
-                  '<div class="prc-brand">IRON <span class="prc-brand-accent">LEDGER</span></div>' +
+                  '<div class="prc-brand">SAVIORFIT <span class="prc-brand-accent">LOGGER</span></div>' +
                   '<div class="prc-badge">PRO</div>' +
                 '</div>' +
                 '<div class="prc-meta"><span>'+esc(s.name || 'Untitled session')+'</span><span>'+fmtDate(s.finishedAt || s.date)+' &middot; '+fmtTime(s.finishedAt || s.date)+'</span></div>';
     html += buildProReceiptHtml(s);
-    html += '<div class="prc-footer">Iron Ledger Pro &mdash; Savior. Timestamps reflect when each set was logged.</div>';
+    html += '<div class="prc-footer">SaviorFit Logger Pro. Timestamps reflect when each set was logged.</div>';
     el.innerHTML = html;
     window.print();
   }
@@ -4245,7 +4245,7 @@
     var mode = ui.authMode || 'login';
     var busy = !!ui.authBusy;
     var html = '<div class="auth-card">';
-    html += '<div class="auth-title"><h1>IRON <span>LEDGER</span></h1><div class="auth-sub">savior</div></div>';
+    html += '<div class="auth-title"><h1>SAVIORFIT <span>LOGGER</span></h1></div>';
     html += '<div class="auth-tabs">' +
               '<button class="'+(mode==='login'?'active':'')+'" data-action="auth-mode" data-mode="login"'+(busy?' disabled':'')+'>Log In</button>' +
               '<button class="'+(mode==='signup'?'active':'')+'" data-action="auth-mode" data-mode="signup"'+(busy?' disabled':'')+'>Sign Up</button>' +
@@ -5189,7 +5189,7 @@
     var d = new Date();
     var stamp = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     a.href = url;
-    a.download = 'iron-ledger-backup-' + stamp + '.json';
+    a.download = 'saviorfit-logger-backup-' + stamp + '.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -5796,7 +5796,7 @@
         await deferredPrompt.userChoice;
         deferredPrompt = null;
       } else if (isIOS){
-        alert('To install Iron Ledger:\n\n1. Tap the Share icon\n2. Tap "Add to Home Screen"');
+        alert('To install SaviorFit Logger:\n\n1. Tap the Share icon\n2. Tap "Add to Home Screen"');
       }
     });
 
