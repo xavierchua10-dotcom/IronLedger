@@ -468,6 +468,15 @@
     margin:22px 0 8px;
   }
   .section-label:first-child{margin-top:0;}
+  .history-old-toggle{
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    user-select:none;
+  }
+  .history-old-toggle:active{opacity:0.7;}
+  .history-old-caret{font-size:9px;}
 
   input[type=text].session-name-input{
     width:100%;
@@ -1560,6 +1569,117 @@
   .paywall-unlock-btn:active{opacity:0.9;}
   .paywall-note{font-size:10.5px;color:var(--text-faint);}
 
+  /* ---------- Gold star Pro button (topbar) ---------- */
+  .pro-star-btn{
+    width:40px;height:40px;border-radius:50%;
+    background:var(--panel-2);border:1px solid var(--line);
+    padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;font-size:18px;line-height:1;color:var(--text-faint);
+  }
+  .pro-star-btn:active{background:var(--panel-3);}
+  .pro-star-btn.is-pro{color:#1c1500;background:var(--accent);border-color:var(--accent);}
+  .pro-badge-mini{
+    display:inline-block;font-size:9px;font-weight:700;letter-spacing:0.08em;
+    text-transform:uppercase;background:var(--accent);color:#1c1500;
+    padding:2px 7px;border-radius:20px;margin-left:6px;vertical-align:middle;
+  }
+  .dev-badge{
+    display:inline-block;font-size:8px;font-weight:700;letter-spacing:0.08em;
+    text-transform:uppercase;background:var(--panel-3);color:var(--text-dim);
+    padding:2px 6px;border-radius:20px;margin-left:6px;vertical-align:middle;border:1px solid var(--line);
+  }
+
+  /* ---------- Trial banner ---------- */
+  .trial-banner{
+    display:flex;align-items:center;gap:8px;padding:9px 16px;
+    background:rgba(242,177,52,0.10);border-bottom:1px solid var(--accent-dim);
+    font-size:12px;color:var(--text-dim);
+  }
+  .trial-banner.hidden{display:none;}
+  .trial-banner-star{color:var(--accent);font-size:13px;flex-shrink:0;}
+  .trial-banner-text{flex:1;min-width:0;}
+  .trial-banner-text b{color:var(--text);}
+  .trial-banner-cta{
+    background:var(--accent);color:#1c1500;border:none;border-radius:20px;
+    padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:0.03em;
+    text-transform:uppercase;cursor:pointer;flex-shrink:0;font-family:'Oswald',sans-serif;
+  }
+
+  /* ---------- Pricing modal ---------- */
+  .pricing-body{padding:6px 20px 22px;}
+  .billing-toggle{
+    display:flex;align-items:center;justify-content:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:999px;
+    padding:4px;margin:14px 0 18px;position:relative;
+  }
+  .billing-toggle button{
+    flex:1;border:none;background:none;color:var(--text-dim);
+    font-family:'Oswald',sans-serif;font-weight:700;font-size:12.5px;
+    letter-spacing:0.03em;text-transform:uppercase;padding:10px 12px;
+    border-radius:999px;cursor:pointer;position:relative;z-index:1;
+    transition:color 0.2s ease;
+  }
+  .billing-toggle button.active{color:#1c1500;}
+  .billing-toggle::before{
+    content:'';position:absolute;top:4px;bottom:4px;left:4px;
+    width:calc(50% - 4px);background:var(--accent);border-radius:999px;
+    transition:transform 0.22s cubic-bezier(0.22,0.61,0.36,1);z-index:0;
+  }
+  .billing-toggle.annual::before{transform:translateX(100%);}
+  .bt-save{
+    position:absolute;top:-9px;right:6px;background:var(--accent-2);color:#fff;
+    font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;
+    padding:2px 7px;border-radius:20px;pointer-events:none;z-index:2;
+  }
+  .price-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:18px;text-align:center;margin-bottom:14px;position:relative;
+  }
+  .price-card.featured{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
+  .price-savings-badge{
+    display:inline-block;background:var(--accent);color:#1c1500;
+    font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;
+    padding:4px 10px;border-radius:20px;margin-bottom:10px;
+  }
+  .price-card-amount{font-family:'Oswald',sans-serif;font-size:32px;font-weight:800;color:var(--text);}
+  .price-card-amount span{font-size:13px;font-weight:500;color:var(--text-faint);}
+  .price-card-sub{font-size:11.5px;color:var(--text-faint);margin:4px 0 16px;}
+  .price-cta-btn{
+    width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:10px;
+    padding:14px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;
+    letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;
+  }
+  .price-cta-btn:active{opacity:0.9;}
+
+  /* ---------- Progress lock (Basic tier, 3-day/month window) ---------- */
+  .progress-tab-wrap{position:relative;}
+  .progress-blur{filter:blur(5px);user-select:none;pointer-events:none;}
+  .progress-lock-overlay{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:28px 20px;
+    background:rgba(20,22,26,0.62);border-radius:var(--radius);
+  }
+  .progress-lock-icon{font-size:30px;margin-bottom:10px;}
+  .progress-lock-title{font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;}
+  .progress-lock-sub{font-size:12px;color:var(--text-dim);line-height:1.5;max-width:280px;margin-bottom:16px;}
+  .progress-lock-cta{
+    background:var(--accent);color:#1c1500;border:none;border-radius:10px;
+    padding:12px 20px;font-family:'Oswald',sans-serif;font-weight:700;font-size:12.5px;
+    letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:6px;
+  }
+
+  /* ---------- Redacted timestamp (Basic tier) ---------- */
+  .ts-lock{color:var(--text-faint);font-size:10px;cursor:default;}
+
+  /* ---------- Google sign-in button ---------- */
+  .auth-google-btn{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    border-radius:10px;padding:13px;font-size:13px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;
+  }
+  .auth-google-btn:active{background:var(--panel-3);}
+  .auth-google-btn svg{flex-shrink:0;}
+
   /* ---------- Progress ---------- */
   .progress-select{
     width:100%;
@@ -1870,6 +1990,7 @@
   <header class="topbar">
     <h1>IRON <span>LEDGER</span> <span class="brand-tag">savior</span></h1>
     <div class="topbar-right">
+      <button class="pro-star-btn" id="proStarBtn" data-action="open-pricing" aria-label="Upgrade to Pro">&#9733;</button>
       <button class="support-btn" id="supportBtn" data-action="open-support" aria-label="Support the developer">
         <img src="data:image/png;base64,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" alt="Support">
       </button>
@@ -1884,6 +2005,7 @@
       <button class="unit-toggle" id="unitToggleBtn" data-action="toggle-unit">KG</button>
     </div>
   </header>
+  <div class="trial-banner hidden" id="trialBanner"></div>
   <main id="view"></main>
   <div class="session-finish-bar hidden" id="sessionFinishBar">
     <button class="btn-primary" id="finishSessionBtn" data-action="finish-session" disabled>Finish Session</button>
@@ -1918,6 +2040,9 @@
 <div class="confirm-overlay hidden" id="proOverlay">
   <div class="pro-panel" id="proPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="pricingOverlay">
+  <div class="pro-panel pricing-panel" id="pricingPanel"></div>
+</div>
 <div class="confirm-overlay hidden" id="printMenuOverlay">
   <div class="pro-panel print-menu-panel" id="printMenuPanel"></div>
 </div>
@@ -1935,10 +2060,10 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-    signOut, onAuthStateChanged, deleteUser
+    signOut, onAuthStateChanged, deleteUser, GoogleAuthProvider, signInWithPopup
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
-    getFirestore, doc, setDoc, getDoc, deleteDoc, enableIndexedDbPersistence
+    getFirestore, doc, setDoc, getDoc, deleteDoc, enableIndexedDbPersistence, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   // ---- PASTE YOUR FIREBASE PROJECT CONFIG HERE ----
@@ -1956,10 +2081,18 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const googleProvider = new GoogleAuthProvider();
 
   // Lets writes/reads queue locally and sync automatically when back
   // online, instead of failing outright while offline.
   enableIndexedDbPersistence(db).catch(function(){ /* multiple tabs open, or unsupported browser — sync just won't be offline-durable, not fatal */ });
+
+  // The one email that gets permanent Pro, no payment or trial/expiry
+  // check ever applied to it. Kept here (not just in the app script)
+  // so the very first Firestore doc this account gets is already
+  // correctly tagged isDev:true.
+  var DEV_OVERRIDE_EMAIL = 'xavierchua10@gmail.com';
+  var TRIAL_DAYS = 3;
 
   window.SaviorFirebase = {
     signUp: function(email, password){
@@ -1967,6 +2100,9 @@
     },
     logIn: function(email, password){
       return signInWithEmailAndPassword(auth, email, password).then(function(cred){ return cred.user; });
+    },
+    signInWithGoogle: function(){
+      return signInWithPopup(auth, googleProvider).then(function(cred){ return cred.user; });
     },
     logOut: function(){
       return signOut(auth);
@@ -1977,13 +2113,17 @@
     onAuthChange: function(cb){
       return onAuthStateChanged(auth, cb);
     },
+    // NOTE: merge:true is essential here — this doc also holds tier/
+    // subscription/trial fields (see ensureUserDoc below). A plain
+    // (non-merge) setDoc on every workout save would silently wipe
+    // those fields back out the next time the user logs a set.
     saveUserData: function(uidVal, data){
       return setDoc(doc(db, 'users', uidVal), {
         sessions: data.sessions || [],
         routines: data.routines || [],
         settings: data.settings || {},
         updatedAt: Date.now()
-      });
+      }, { merge: true });
     },
     loadUserData: function(uidVal){
       return getDoc(doc(db, 'users', uidVal)).then(function(snap){
@@ -1992,6 +2132,49 @@
     },
     deleteUserData: function(uidVal){
       return deleteDoc(doc(db, 'users', uidVal));
+    },
+    // Creates the /users/{uid} subscription/tier fields exactly once,
+    // the first time this account is ever seen — starts the 3-day free
+    // Pro trial and, for the developer override email, permanent Pro.
+    // Safe to call on every login: it's a no-op once trialStartDate exists.
+    ensureUserDoc: function(uidVal, email){
+      var ref = doc(db, 'users', uidVal);
+      return getDoc(ref).then(function(snap){
+        var existing = snap.exists() ? snap.data() : null;
+        if (existing && existing.trialStartDate){
+          return existing;
+        }
+        var now = Date.now();
+        var isDev = (email || '').trim().toLowerCase() === DEV_OVERRIDE_EMAIL;
+        var fresh = {
+          email: email || '',
+          tier: 'basic',
+          isDev: isDev,
+          trialStartDate: now,
+          trialEndDate: now + TRIAL_DAYS * 24 * 60 * 60 * 1000,
+          subscription: { status: isDev ? 'dev' : 'trialing', plan: null, currentPeriodEnd: null, startedAt: null },
+          progressAccess: {},
+          createdAt: (existing && existing.createdAt) || now,
+          updatedAt: now
+        };
+        return setDoc(ref, fresh, { merge: true }).then(function(){
+          return Object.assign({}, existing, fresh);
+        });
+      });
+    },
+    // Realtime listener on the user's own doc — picks up subscription
+    // changes (e.g. a future payment webhook writing currentPeriodEnd)
+    // without needing a reload or re-login.
+    onUserDocChange: function(uidVal, cb){
+      return onSnapshot(doc(db, 'users', uidVal), function(snap){
+        cb(snap.exists() ? snap.data() : null);
+      }, function(err){ console.error('User doc listen failed:', err); });
+    },
+    // Client-side partial updates — used for things a user is allowed to
+    // touch themselves (e.g. this month's Progress-tab first-use marker).
+    // Security rules block this same path from writing tier/isDev/subscription.
+    updateUserDoc: function(uidVal, data){
+      return setDoc(doc(db, 'users', uidVal), data, { merge: true });
     }
   };
 
@@ -2010,8 +2193,35 @@
   var STORAGE_CURRENT_ACCOUNT = 'il_current_account_v1';
   var STORAGE_ROUTINES = 'il_routines_v1';
   var STORAGE_ACTIVITY_LOG = 'il_activity_log_v1';
+  var STORAGE_PROGRESS_ACCESS = 'il_progress_access_v1';
   var ACTIVITY_LOG_MAX = 300;
   var ACTIVITY_LOG_MAX_AGE_MS = 24 * 60 * 60 * 1000; // Brief entries auto-expire after 24h
+
+  /* =========================================================
+     SUBSCRIPTION / PRO TIER
+     Basic (free) vs Pro. Pro is unlocked by, in priority order:
+       1. the developer override email — permanent, no checks
+       2. an active 3-day free trial (trialEndDate, set once at signup)
+       3. a paid plan (subscription.currentPeriodEnd in the future)
+     state.userDoc mirrors the Firestore /users/{uid} doc in realtime
+     (see subscribeUserDoc). Guest mode never has a userDoc — guests
+     are always Basic, with no trial (trials require a real account).
+     ========================================================= */
+  var DEV_OVERRIDE_EMAIL = 'xavierchua10@gmail.com';
+  var TRIAL_DAYS = 3;
+  var PROGRESS_FREE_DAYS_PER_MONTH = 3;
+  var PRICE_MONTHLY = 9.99;
+  var PRICE_ANNUAL = 79.99;
+  // ---- PASTE YOUR STRIPE PAYMENT LINKS HERE ----
+  // Stripe Dashboard → Payment Links → create one for Monthly ($9.99/mo)
+  // and one for Annual ($79.99/yr). client_reference_id is appended
+  // automatically so the checkout can be tied back to the Firebase uid.
+  // IMPORTANT: actually granting Pro after a successful payment must
+  // happen server-side — a Stripe webhook + a Cloud Function (Admin SDK)
+  // that writes subscription.currentPeriodEnd on /users/{uid}. Client
+  // code can never be trusted to grant itself Pro (see security rules).
+  var STRIPE_LINK_MONTHLY = '';
+  var STRIPE_LINK_ANNUAL = '';
 
   var state = {
     sessions: [],
@@ -2019,11 +2229,14 @@
     settings: { unit: 'kg' },
     activityLog: [],       // [{ id, time, message, tag }, ...] newest first — the "Brief"
     tab: 'log',
-    currentAccount: null   // null (show gate) | 'guest' | account id
+    currentAccount: null,  // null (show gate) | 'guest' | account id
+    userDoc: null,         // realtime mirror of Firestore /users/{uid} — tier, trial, subscription, progressAccess
+    progressAccess: {}     // month key ('2026-08') -> { firstUseAt }. Guest source of truth; real-account fallback until userDoc loads.
   };
 
   var ui = {
     expandedHistory: {},   // sessionId -> bool
+    showOldHistory: false, // whether the collapsed "Older" History group is expanded
     progressExercise: null,
     showMuscleMap: false,
     muscleMapView: 'front',
@@ -2054,7 +2267,9 @@
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     tabAnimating: false,    // true while a tab-slide transition is in progress
-    savingRoutine: false    // true while the "Save as Routine" name panel is open
+    savingRoutine: false,   // true while the "Save as Routine" name panel is open
+    showPricing: false,     // Pricing/upgrade modal open state
+    billingCycle: 'monthly' // 'monthly' | 'annual' — toggle state inside the pricing modal
   };
 
   /* =========================================================
@@ -2140,6 +2355,20 @@
   }
   function saveActivityLog(){
     localStorage.setItem(scopedKey(STORAGE_ACTIVITY_LOG), JSON.stringify(state.activityLog));
+  }
+
+  // Guest-mode (and pre-sync fallback) storage for the Progress tab's
+  // per-calendar-month "3 free days" tracker. Real accounts prefer
+  // state.userDoc.progressAccess (Firestore) once it's loaded — see
+  // progressAccessState().
+  function loadProgressAccessLocal(){
+    try{
+      var raw = localStorage.getItem(scopedKey(STORAGE_PROGRESS_ACCESS));
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveProgressAccessLocal(){
+    localStorage.setItem(scopedKey(STORAGE_PROGRESS_ACCESS), JSON.stringify(state.progressAccess));
   }
 
   // Records an entry in the Brief (activity log) — every add/edit/delete/rename
@@ -2557,7 +2786,7 @@
     html += '<div class="pr-tagline">savior &middot; workout receipt</div>';
     html += '<div class="pr-line"></div>';
     html += '<div class="pr-session-name">'+esc(s.name || 'Untitled session')+'</div>';
-    html += '<div class="pr-row"><span>'+fmtDate(s.finishedAt || s.date)+'</span><span>'+fmtTime(s.finishedAt || s.date)+'</span></div>';
+    html += '<div class="pr-row"><span>'+fmtDate(s.finishedAt || s.date)+'</span><span>'+tsOrLock(s.finishedAt || s.date)+'</span></div>';
     html += '<div class="pr-line"></div>';
     s.exercises.forEach(function(ex){
       html += '<div class="pr-ex-name">'+esc(ex.name)+(ex.muscle ? ' <span class="pr-ex-muscle">('+esc(ex.muscle)+')</span>' : '')+'</div>';
@@ -2581,17 +2810,128 @@
      A second, "pro" print-to-PDF version of the session receipt:
      modern layout, a timestamp on every logged set, and a short
      progressive-overload tip per exercise (add reps vs add weight).
-     Gated behind isProUnlocked() until real payments are wired up —
-     PRO_UNLOCK_EMAILS is a manual allowlist for testing that account,
-     and state.settings.proUnlocked is the flag a future purchase flow
-     would set once a payment actually goes through.
+     Gated behind isProActive() — see the SUBSCRIPTION / PRO TIER
+     helpers below for how that's determined.
      ========================================================= */
-  var PRO_UNLOCK_EMAILS = ['xavierchua10@gmail.com'];
 
-  function isProUnlocked(){
+  // True for the one hardcoded developer email — permanent Pro,
+  // no trial/expiry check ever applied.
+  function isDevOverride(){
     var email = (state.currentAccountEmail || '').trim().toLowerCase();
-    if (email && PRO_UNLOCK_EMAILS.indexOf(email) !== -1) return true;
-    return !!(state.settings && state.settings.proUnlocked);
+    return !!email && email === DEV_OVERRIDE_EMAIL;
+  }
+
+  // Firestore may give us numbers (what this app writes) or, if the doc
+  // was ever touched with a native Firestore Timestamp, an object with
+  // a toMillis() method — normalize either into a plain epoch ms number.
+  function toMillis(v){
+    if (v == null) return null;
+    if (typeof v === 'number') return v;
+    if (typeof v.toMillis === 'function') return v.toMillis();
+    var t = new Date(v).getTime();
+    return isNaN(t) ? null : t;
+  }
+
+  function isTrialActive(){
+    var u = state.userDoc;
+    var end = u && toMillis(u.trialEndDate);
+    return !!end && Date.now() < end;
+  }
+
+  function isPaidPlanActive(){
+    var u = state.userDoc;
+    var end = u && u.subscription && toMillis(u.subscription.currentPeriodEnd);
+    return !!end && Date.now() < end;
+  }
+
+  // The single source of truth for Pro access everywhere in the app.
+  function isProActive(){
+    if (state.currentAccount === 'guest') return false;
+    if (isDevOverride()) return true;
+    if (isTrialActive()) return true;
+    if (isPaidPlanActive()) return true;
+    return false;
+  }
+  // Old name, kept as an alias — a couple of call sites below still use it.
+  function isProUnlocked(){ return isProActive(); }
+
+  function trialDaysLeftLabel(){
+    var u = state.userDoc;
+    var end = u && toMillis(u.trialEndDate);
+    if (!end) return '';
+    var msLeft = Math.max(0, end - Date.now());
+    var daysLeft = Math.ceil(msLeft / (24 * 60 * 60 * 1000));
+    if (daysLeft >= 1) return daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left';
+    var hoursLeft = Math.max(1, Math.ceil(msLeft / (60 * 60 * 1000)));
+    return hoursLeft + ' hr' + (hoursLeft === 1 ? '' : 's') + ' left';
+  }
+
+  function proExpiryLabel(){
+    if (isDevOverride()) return 'Developer account — permanent Pro access';
+    var u = state.userDoc;
+    if (!u) return '';
+    if (isPaidPlanActive()){
+      var plan = (u.subscription && u.subscription.plan === 'annual') ? 'Annual' : 'Monthly';
+      var end = toMillis(u.subscription.currentPeriodEnd);
+      return plan + ' plan — renews ' + fmtDateShort(new Date(end).toISOString());
+    }
+    if (isTrialActive()){
+      return 'Free trial — ' + trialDaysLeftLabel();
+    }
+    return '';
+  }
+
+  function monthKey(d){
+    d = d || new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  // Basic tier gets PROGRESS_FREE_DAYS_PER_MONTH days of Progress-tab
+  // access, counted from the first time it's opened in a given calendar
+  // month — not the calendar days of that month. Pro/trial/dev always
+  // pass through unlocked. Has the side effect of recording "first use"
+  // the first time it's called for a new month (idempotent after that).
+  function progressAccessState(){
+    if (isProActive()) return { locked: false };
+    var mk = monthKey();
+    var map = (state.currentAccount === 'guest')
+      ? (state.progressAccess || {})
+      : ((state.userDoc && state.userDoc.progressAccess) || state.progressAccess || {});
+    var rec = map[mk];
+    if (!rec){
+      recordProgressFirstUse(mk);
+      return { locked: false };
+    }
+    var firstUseAt = toMillis(rec.firstUseAt) || rec.firstUseAt;
+    var elapsedDays = (Date.now() - firstUseAt) / (24 * 60 * 60 * 1000);
+    return { locked: elapsedDays >= PROGRESS_FREE_DAYS_PER_MONTH };
+  }
+
+  function recordProgressFirstUse(mk){
+    var rec = { firstUseAt: Date.now() };
+    if (state.currentAccount === 'guest'){
+      state.progressAccess = state.progressAccess || {};
+      if (state.progressAccess[mk]) return;
+      state.progressAccess[mk] = rec;
+      saveProgressAccessLocal();
+    } else if (state.currentAccount){
+      state.userDoc = state.userDoc || {};
+      state.userDoc.progressAccess = state.userDoc.progressAccess || {};
+      if (state.userDoc.progressAccess[mk]) return;
+      state.userDoc.progressAccess[mk] = rec;
+      if (window.SaviorFirebase && window.SaviorFirebase.updateUserDoc){
+        var patch = { progressAccess: {} };
+        patch.progressAccess[mk] = rec;
+        window.SaviorFirebase.updateUserDoc(state.currentAccount, patch).catch(function(){});
+      }
+    }
+  }
+
+  // Redacts a set/session timestamp for Basic tier — Pro sees the real
+  // clock time, Basic sees a small lock glyph in its place.
+  function tsOrLock(iso){
+    if (!iso) return '';
+    return isProActive() ? fmtTime(iso) : '<span class="ts-lock" title="Upgrade to Pro to see set times">&#128274;</span>';
   }
 
   // Best e1rm for this exercise name across all sessions, excluding a
@@ -2726,6 +3066,107 @@
       '</div>';
   }
 
+  /* =========================================================
+     PRICING MODAL  (Basic → Pro upgrade)
+     ========================================================= */
+  function openPricing(){
+    ui.showPricing = true;
+    renderPricingPanel();
+  }
+  function closePricing(){
+    ui.showPricing = false;
+    renderPricingPanel();
+  }
+
+  // Opens the appropriate Stripe Payment Link in a new tab, tagging it
+  // with client_reference_id so a webhook can tie the payment back to
+  // this Firebase uid. Actually marking the account Pro after payment
+  // has to happen server-side (see the note by STRIPE_LINK_* above) —
+  // this call only launches checkout, it never grants Pro itself.
+  function startCheckout(plan){
+    if (state.currentAccount === 'guest'){
+      showToast('Create a free account first \u2014 Guest data can\u2019t hold a subscription');
+      return;
+    }
+    var link = plan === 'annual' ? STRIPE_LINK_ANNUAL : STRIPE_LINK_MONTHLY;
+    if (!link){
+      showToast('Payments aren\u2019t connected yet \u2014 check back soon');
+      return;
+    }
+    var sep = link.indexOf('?') === -1 ? '?' : '&';
+    var url = link + sep + 'client_reference_id=' + encodeURIComponent(state.currentAccount);
+    window.open(url, '_blank', 'noopener');
+  }
+
+  function renderPricingPanel(){
+    var overlay = document.getElementById('pricingOverlay');
+    var panel = document.getElementById('pricingPanel');
+    if (!ui.showPricing){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+
+    if (isDevOverride()){
+      panel.innerHTML =
+        '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Iron Ledger Pro</h3>' +
+          '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
+        '</div>' +
+        '<div class="paywall-body">' +
+          '<div class="paywall-icon">&#9733;</div>' +
+          '<div class="paywall-title">You\u2019re on the house</div>' +
+          '<div class="paywall-sub">Developer account \u2014 permanent Pro access, no payment needed.</div>' +
+        '</div>';
+      return;
+    }
+
+    if (isProActive()){
+      panel.innerHTML =
+        '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Iron Ledger Pro</h3>' +
+          '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
+        '</div>' +
+        '<div class="paywall-body">' +
+          '<div class="paywall-icon">&#9733;</div>' +
+          '<div class="paywall-title">You\u2019re Pro</div>' +
+          '<div class="paywall-sub">'+esc(proExpiryLabel())+'</div>' +
+        '</div>';
+      return;
+    }
+
+    var cycle = ui.billingCycle === 'annual' ? 'annual' : 'monthly';
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Go Pro</h3>' +
+        '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pricing-body">' +
+        '<ul class="paywall-features">' +
+          '<li><span class="chk">&#10003;</span> Full timestamps on every set, everywhere</li>' +
+          '<li><span class="chk">&#10003;</span> Unlimited Progress \u2014 charts, PRs, trends</li>' +
+          '<li><span class="chk">&#10003;</span> Print Pro PDF \u2014 modern layout + overload tips</li>' +
+        '</ul>' +
+        '<div class="billing-toggle'+(cycle === 'annual' ? ' annual' : '')+'" role="tablist">' +
+          '<button class="'+(cycle==='monthly'?'active':'')+'" data-action="set-billing-cycle" data-cycle="monthly">Monthly</button>' +
+          '<button class="'+(cycle==='annual'?'active':'')+'" data-action="set-billing-cycle" data-cycle="annual">Annual<span class="bt-save">-33%</span></button>' +
+        '</div>' +
+        (cycle === 'monthly'
+          ? '<div class="price-card">' +
+              '<div class="price-card-amount">$'+PRICE_MONTHLY.toFixed(2)+'<span>/month</span></div>' +
+              '<div class="price-card-sub">Cancel anytime</div>' +
+              '<button class="price-cta-btn" data-action="start-checkout" data-plan="monthly">Start Monthly \u2014 $'+PRICE_MONTHLY.toFixed(2)+'/mo</button>' +
+            '</div>'
+          : '<div class="price-card featured">' +
+              '<div class="price-savings-badge">Save ~33% \u00b7 4 months free</div>' +
+              '<div class="price-card-amount">$'+PRICE_ANNUAL.toFixed(2)+'<span>/year</span></div>' +
+              '<div class="price-card-sub">$'+(PRICE_ANNUAL/12).toFixed(2)+'/mo billed annually</div>' +
+              '<button class="price-cta-btn" data-action="start-checkout" data-plan="annual">Start Annual \u2014 $'+PRICE_ANNUAL.toFixed(2)+'/yr</button>' +
+            '</div>') +
+        (state.currentAccount === 'guest'
+          ? '<div class="paywall-note">Create a free account first \u2014 Guest data doesn\u2019t sync or hold a subscription.</div>'
+          : '<div class="paywall-note">Secure checkout via Stripe. Manage or cancel anytime.</div>') +
+      '</div>';
+  }
+
   function openProReceipt(sessionId){
     ui.proReceiptSessionId = sessionId;
     ui.showProReceipt = true;
@@ -2736,10 +3177,6 @@
     ui.proReceiptSessionId = null;
     renderProOverlay();
   }
-  function attemptUnlockPro(){
-    showToast('Payments aren\u2019t connected yet \u2014 check back soon');
-  }
-
   function renderProOverlay(){
     var overlay = document.getElementById('proOverlay');
     var panel = document.getElementById('proPanel');
@@ -2756,7 +3193,7 @@
       return;
     }
     overlay.classList.remove('hidden');
-    if (!isProUnlocked()){
+    if (!isProActive()){
       panel.innerHTML =
         '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Iron Ledger Pro</h3>' +
           '<button class="pro-panel-close" data-action="close-pro-receipt" aria-label="Close">&#10005;</button>' +
@@ -2770,9 +3207,8 @@
             '<li><span class="chk">&#10003;</span> Modern, redesigned PDF layout</li>' +
             '<li><span class="chk">&#10003;</span> Add-weight or add-reps guidance per exercise</li>' +
           '</ul>' +
-          '<div class="paywall-price">Coming soon<span> &middot; one-time unlock</span></div>' +
-          '<button class="paywall-unlock-btn" data-action="attempt-unlock-pro">Notify me when it\u2019s live</button>' +
-          '<div class="paywall-note">Payments aren\u2019t connected yet \u2014 check back soon.</div>' +
+          '<button class="paywall-unlock-btn" data-action="open-pricing">' + (state.currentAccount === 'guest' ? 'Create an account to go Pro' : 'See Pro plans') + '</button>' +
+          '<div class="paywall-note">' + (state.currentAccount === 'guest' ? 'Guest data doesn\u2019t sync or hold a subscription.' : 'Monthly $9.99 or Annual $79.99 \u2014 cancel anytime.') + '</div>' +
         '</div>';
       return;
     }
@@ -2805,6 +3241,21 @@
     html += '<div class="prc-footer">Iron Ledger Pro &mdash; Savior. Timestamps reflect when each set was logged.</div>';
     el.innerHTML = html;
     window.print();
+  }
+
+  function renderTrialBanner(){
+    var el = document.getElementById('trialBanner');
+    if (!el) return;
+    if (isDevOverride() || state.currentAccount === 'guest' || !state.userDoc || isPaidPlanActive() || !isTrialActive()){
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    el.innerHTML =
+      '<span class="trial-banner-star">&#9733;</span>' +
+      '<span class="trial-banner-text">Pro trial \u2014 <b>'+esc(trialDaysLeftLabel())+'</b></span>' +
+      '<button class="trial-banner-cta" data-action="open-pricing">Upgrade</button>';
   }
 
   /* =========================================================
@@ -2895,10 +3346,7 @@
         html += '<div class="set-row'+(isEditingRow ? ' editing' : '')+'">' +
                   '<span class="set-idx">'+(i+1)+'</span>' +
                   '<span class="set-detail">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+
-                    (st.timestamp ? '<span class="set-time"> &middot; '+fmtTime(st.timestamp)+'</span>' : '') +
-                  '</span>' +
-                  '<span class="set-flags">' +
-                    (st.toFailure ? '<span class="flame">&#9679; failure</span>' : '') +
+                    (st.timestamp ? '<span class="set-time"> &middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
                     (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
                   '</span>' +
                   '<span class="set-actions">' +
@@ -2964,6 +3412,61 @@
   /* =========================================================
      RENDER: HISTORY TAB
      ========================================================= */
+  // Renders a single History list item (the collapsible session row).
+  // Pulled out so the "this week" and "older" groups can both use it.
+  function renderHistoryItem(s){
+    var expanded = !!ui.expandedHistory[s.id];
+    var isEditingName = ui.editingHistoryName === s.id;
+    var searchBlob = ((s.name || '') + ' ' + s.exercises.map(function(ex){ return ex.name; }).join(' ')).toLowerCase();
+    var html = '<div class="history-item" data-search="'+esc(searchBlob)+'">';
+    if (isEditingName){
+      html += '<div class="history-item-head history-item-head-editing">' +
+                '<div class="hi-rename-row">' +
+                  '<input type="text" class="hi-name-input" id="hiNameInput" maxlength="60" value="'+esc(s.name || '')+'" placeholder="Session name">' +
+                  '<div class="edit-btn-group">' +
+                    '<button class="save-edit-btn" data-action="save-history-name" data-session="'+s.id+'" aria-label="Save name">&#10003;</button>' +
+                    '<button class="cancel-edit-btn" data-action="cancel-history-name" aria-label="Cancel">&#10005;</button>' +
+                  '</div>' +
+                '</div>' +
+              '</div>';
+    } else {
+      html += '<div class="history-item-head" data-action="toggle-history" data-session="'+s.id+'">' +
+                '<div class="hi-left">' +
+                  '<span class="hi-name">'+esc(s.name || 'Untitled session')+'</span>' +
+                  '<span class="hi-date">'+fmtDate(s.finishedAt || s.date)+' &middot; '+tsOrLock(s.finishedAt || s.date)+'</span>' +
+                  durationBarHTML(s) +
+                '</div>' +
+                '<div class="hi-right">' +
+                  '<button class="set-act-btn hi-rename-btn" data-action="edit-history-name" data-session="'+s.id+'" aria-label="Rename session">&#9998;</button>' +
+                  '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol</div>' +
+                '</div>' +
+              '</div>';
+    }
+    if (expanded){
+      html += '<div class="history-item-body">';
+      s.exercises.forEach(function(ex){
+        html += '<div class="hi-ex"><div class="hi-ex-name">'+esc(ex.name)+
+                (ex.muscle ? ' <span class="muscle-badge sm">'+esc(ex.muscle)+'</span>' : '') +
+                '</div><div class="hi-ex-sets">';
+        html += ex.sets.map(function(st){
+          return fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps +
+                 (st.timestamp ? ' <span class="set-time">&middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
+                 (st.isPR ? '<span class="pr-tag">PR</span>' : '');
+        }).join('<br>');
+        html += '</div></div>';
+      });
+      html += '<div class="hi-actions">' +
+                '<button class="hi-delete" data-action="delete-session" data-session="'+s.id+'">Delete session</button>' +
+                '<button class="hi-repeat" data-action="repeat-session" data-session="'+s.id+'">Repeat</button>' +
+                '<button class="hi-edit" data-action="edit-session" data-session="'+s.id+'">Edit</button>' +
+                '<button class="hi-print" data-action="open-print-menu" data-session="'+s.id+'">Print</button>' +
+              '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
   function renderHistory(){
     var done = state.sessions.filter(function(s){ return s.status === 'done'; });
     var html = '';
@@ -2973,57 +3476,35 @@
     } else {
       html += '<input type="text" id="historySearchInput" class="history-search-input" autocomplete="off" placeholder="Search by exercise or session name" value="'+esc(ui.historySearch || '')+'">';
       html += '<div class="history-no-match hidden" id="historyNoMatch">No sessions match your search.</div>';
+
+      // Split into "this week" (last 7 days) vs everything older, so the
+      // list stays short by default and old sessions don't clutter it.
+      var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      var recent = [];
+      var older = [];
       done.forEach(function(s){
-        var expanded = !!ui.expandedHistory[s.id];
-        var isEditingName = ui.editingHistoryName === s.id;
-        var searchBlob = ((s.name || '') + ' ' + s.exercises.map(function(ex){ return ex.name; }).join(' ')).toLowerCase();
-        html += '<div class="history-item" data-search="'+esc(searchBlob)+'">';
-        if (isEditingName){
-          html += '<div class="history-item-head history-item-head-editing">' +
-                    '<div class="hi-rename-row">' +
-                      '<input type="text" class="hi-name-input" id="hiNameInput" maxlength="60" value="'+esc(s.name || '')+'" placeholder="Session name">' +
-                      '<div class="edit-btn-group">' +
-                        '<button class="save-edit-btn" data-action="save-history-name" data-session="'+s.id+'" aria-label="Save name">&#10003;</button>' +
-                        '<button class="cancel-edit-btn" data-action="cancel-history-name" aria-label="Cancel">&#10005;</button>' +
-                      '</div>' +
-                    '</div>' +
-                  '</div>';
-        } else {
-          html += '<div class="history-item-head" data-action="toggle-history" data-session="'+s.id+'">' +
-                    '<div class="hi-left">' +
-                      '<span class="hi-name">'+esc(s.name || 'Untitled session')+'</span>' +
-                      '<span class="hi-date">'+fmtDate(s.finishedAt || s.date)+' &middot; '+fmtTime(s.finishedAt || s.date)+'</span>' +
-                      durationBarHTML(s) +
-                    '</div>' +
-                    '<div class="hi-right">' +
-                      '<button class="set-act-btn hi-rename-btn" data-action="edit-history-name" data-session="'+s.id+'" aria-label="Rename session">&#9998;</button>' +
-                      '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol</div>' +
-                    '</div>' +
-                  '</div>';
-        }
-        if (expanded){
-          html += '<div class="history-item-body">';
-          s.exercises.forEach(function(ex){
-            html += '<div class="hi-ex"><div class="hi-ex-name">'+esc(ex.name)+
-                    (ex.muscle ? ' <span class="muscle-badge sm">'+esc(ex.muscle)+'</span>' : '') +
-                    '</div><div class="hi-ex-sets">';
-            html += ex.sets.map(function(st){
-              return fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps +
-                     (st.timestamp ? ' <span class="set-time">&middot; '+fmtTime(st.timestamp)+'</span>' : '') +
-                     (st.isPR ? '<span class="pr-tag">PR</span>' : '');
-            }).join('<br>');
-            html += '</div></div>';
-          });
-          html += '<div class="hi-actions">' +
-                    '<button class="hi-delete" data-action="delete-session" data-session="'+s.id+'">Delete session</button>' +
-                    '<button class="hi-repeat" data-action="repeat-session" data-session="'+s.id+'">Repeat</button>' +
-                    '<button class="hi-edit" data-action="edit-session" data-session="'+s.id+'">Edit</button>' +
-                    '<button class="hi-print" data-action="open-print-menu" data-session="'+s.id+'">Print</button>' +
-                  '</div>';
-          html += '</div>';
-        }
-        html += '</div>';
+        var t = new Date(s.finishedAt || s.date).getTime();
+        if (!isNaN(t) && t >= cutoff) recent.push(s);
+        else older.push(s);
       });
+
+      if (older.length > 0 && recent.length > 0){
+        html += '<div class="section-label">This week</div>';
+      }
+      recent.forEach(function(s){ html += renderHistoryItem(s); });
+
+      if (older.length > 0){
+        // While actively searching, always include older sessions so the
+        // search can actually find them, regardless of collapsed state.
+        var oldOpen = !!ui.showOldHistory || !!(ui.historySearch && ui.historySearch.trim());
+        html += '<div class="section-label history-old-toggle" data-action="toggle-old-history">' +
+                  'Older (' + older.length + ') ' +
+                  '<span class="history-old-caret">' + (oldOpen ? '&#9650;' : '&#9660;') + '</span>' +
+                '</div>';
+        if (oldOpen){
+          older.forEach(function(s){ html += renderHistoryItem(s); });
+        }
+      }
     }
     document.getElementById('view').innerHTML = html;
     if (done.length > 0) filterHistoryList(ui.historySearch || '');
@@ -3047,6 +3528,7 @@
      RENDER: PROGRESS TAB
      ========================================================= */
   function renderProgress(){
+    var access = progressAccessState();
     var names = allExerciseNames();
     var html = '';
     if (names.length === 0){
@@ -3094,6 +3576,17 @@
       prSets.slice().reverse().slice(0, 8).forEach(function(p){
         html += '<div class="pr-list-item"><span>'+fmtDateShort(p.date)+'</span><span class="pl-w">'+fmtWeight(p.weightKg)+' '+unitLabel()+' &times; '+p.reps+'</span></div>';
       });
+    }
+
+    if (access.locked){
+      var lockHtml =
+        '<div class="progress-lock-overlay">' +
+          '<div class="progress-lock-icon">&#128274;</div>' +
+          '<div class="progress-lock-title">Progress is a Pro feature</div>' +
+          '<div class="progress-lock-sub">Basic gives you '+PROGRESS_FREE_DAYS_PER_MONTH+' days of Progress access each calendar month. Go Pro for unlimited access.</div>' +
+          '<button class="progress-lock-cta" data-action="open-pricing"><span>&#9733;</span> Upgrade to Pro</button>' +
+        '</div>';
+      html = '<div class="progress-tab-wrap"><div class="progress-blur">' + html + '</div>' + lockHtml + '</div>';
     }
 
     document.getElementById('view').innerHTML = html;
@@ -3179,6 +3672,25 @@
       html += '<div class="settings-row"><div><div class="sr-label">Delete account</div>' +
                 '<div class="sr-sub">Permanently erases this account and its log</div></div>' +
                 '<button class="sr-action sr-action-danger" data-action="delete-account">Delete</button></div>';
+    }
+    html += '</div>';
+
+    html += '<div class="section-label">Plan</div>';
+    html += '<div class="settings-group">';
+    if (state.currentAccount === 'guest'){
+      html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
+                '<div class="sr-sub">Create a free account to start a 3-day Pro trial</div></div></div>';
+    } else if (isDevOverride()){
+      html += '<div class="settings-row"><div><div class="sr-label">&#9733; Pro <span class="dev-badge">DEV</span></div>' +
+                '<div class="sr-sub">Developer account — permanent Pro access</div></div></div>';
+    } else if (isProActive()){
+      html += '<div class="settings-row"><div><div class="sr-label">&#9733; Pro</div>' +
+                '<div class="sr-sub">'+esc(proExpiryLabel())+'</div></div>' +
+                '<button class="sr-action" data-action="open-pricing">Manage</button></div>';
+    } else {
+      html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
+                '<div class="sr-sub">Upgrade for full timestamps, unlimited Progress & Pro PDF</div></div>' +
+                '<button class="sr-action" data-action="open-pricing">Upgrade</button></div>';
     }
     html += '</div>';
 
@@ -3325,9 +3837,18 @@
 
     var uemail = currentAccountEmail();
     document.getElementById('accountAvatarBtn').textContent = uemail.charAt(0).toUpperCase();
-    document.getElementById('accountMenuName').textContent =
-      state.currentAccount === 'guest' ? 'Guest — this device only' : uemail;
+    var menuNameEl = document.getElementById('accountMenuName');
+    var proTag = isDevOverride() ? ' <span class="dev-badge">DEV</span>' : (isProActive() ? ' <span class="pro-badge-mini">PRO</span>' : '');
+    menuNameEl.innerHTML = (state.currentAccount === 'guest' ? 'Guest — this device only' : esc(uemail)) + (state.currentAccount === 'guest' ? '' : proTag);
     document.getElementById('accountMenu').classList.toggle('hidden', !ui.showAccountMenu);
+
+    var proStarBtnEl = document.getElementById('proStarBtn');
+    if (proStarBtnEl){
+      var proNow = isProActive();
+      proStarBtnEl.classList.toggle('is-pro', proNow);
+      proStarBtnEl.setAttribute('aria-label', proNow ? 'Pro plan — manage' : 'Upgrade to Pro');
+    }
+    renderTrialBanner();
 
     var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
     var showFinishBar = state.tab === 'log' && !!activeSession && activeSession.exercises.length > 0;
@@ -3375,6 +3896,7 @@
     state.routines = loadRoutines();
     state.settings = loadSettings();
     state.activityLog = loadActivityLog();
+    state.progressAccess = loadProgressAccessLocal();
     purgeStaleActivity();
     state.tab = 'log';
     ui.editingSet = null;
@@ -3382,6 +3904,23 @@
     ui.showMuscleMap = false;
     ui.pendingMuscle = null;
     ui.showAccountMenu = false;
+    ui.showPricing = false;
+    ui.billingCycle = 'monthly';
+  }
+
+  // Realtime listener on the current user's Firestore doc — keeps
+  // state.userDoc (tier/trial/subscription/progressAccess) in sync
+  // without needing a reload, e.g. once a payment webhook eventually
+  // writes subscription.currentPeriodEnd server-side.
+  var userDocUnsub = null;
+  function subscribeUserDoc(uidVal){
+    if (userDocUnsub){ userDocUnsub(); userDocUnsub = null; }
+    if (!window.SaviorFirebase || !window.SaviorFirebase.onUserDocChange) return;
+    userDocUnsub = window.SaviorFirebase.onUserDocChange(uidVal, function(docData){
+      state.userDoc = docData;
+      renderApp();
+      renderPricingPanel();
+    });
   }
 
   // Called by the Firebase onAuthChange listener once a real login/signup
@@ -3389,7 +3928,10 @@
   // Firebase itself is the source of truth for "who's logged in."
   // Pulls the latest synced data from Firestore (if any) into this
   // device's local cache before booting, so a login on a new device
-  // picks up existing history instead of showing an empty log.
+  // picks up existing history instead of showing an empty log. Also
+  // provisions (once, ever) the account's tier/trial/subscription
+  // fields on the same /users/{uid} doc, then keeps them live via a
+  // realtime listener.
   function enterAccount(uidVal, email){
     setCurrentAccountId(uidVal);
     state.currentAccount = uidVal;
@@ -3399,7 +3941,12 @@
     var pull = (window.SaviorFirebase && window.SaviorFirebase.loadUserData)
       ? window.SaviorFirebase.loadUserData(uidVal)
       : Promise.resolve(null);
-    pull.then(function(remote){
+    var ensureDoc = (window.SaviorFirebase && window.SaviorFirebase.ensureUserDoc)
+      ? window.SaviorFirebase.ensureUserDoc(uidVal, email)
+      : Promise.resolve(null);
+    Promise.all([pull, ensureDoc]).then(function(results){
+      var remote = results[0];
+      state.userDoc = results[1];
       if (remote){
         if (remote.sessions) localStorage.setItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(remote.sessions));
         if (remote.routines) localStorage.setItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(remote.routines));
@@ -3411,6 +3958,7 @@
       console.error('Firestore pull failed:', err);
     }).then(function(){
       bootAccountData();
+      subscribeUserDoc(uidVal);
       showAppShell();
       renderApp();
     });
@@ -3419,6 +3967,7 @@
   function continueAsGuest(){
     setCurrentAccountId('guest');
     state.currentAccount = 'guest';
+    state.userDoc = null;
     bootAccountData();
     showAppShell();
     renderApp();
@@ -3426,15 +3975,19 @@
 
   function logOut(){
     var wasGuest = (state.currentAccount === 'guest');
+    if (userDocUnsub){ userDocUnsub(); userDocUnsub = null; }
     setCurrentAccountId(null);
     state.currentAccount = null;
     state.currentAccountEmail = null;
+    state.userDoc = null;
+    state.progressAccess = {};
     ui.showAccountMenu = false;
     ui.authMode = 'login';
     ui.authError = null;
     ui.authBusy = false;
     ui.authDraft = { email: '' };
     ui.pendingDeleteAccount = false;
+    ui.showPricing = false;
     if (!wasGuest && window.SaviorFirebase) window.SaviorFirebase.logOut();
     showAuthGateShell();
     renderAuthGate();
@@ -3447,6 +4000,7 @@
     localStorage.removeItem(STORAGE_SETTINGS + '::' + id);
     localStorage.removeItem(STORAGE_ROUTINES + '::' + id);
     localStorage.removeItem(STORAGE_ACTIVITY_LOG + '::' + id);
+    localStorage.removeItem(STORAGE_PROGRESS_ACCESS + '::' + id);
     if (window.SaviorFirebase){
       var wipeRemote = window.SaviorFirebase.deleteUserData
         ? window.SaviorFirebase.deleteUserData(id).catch(function(){})
@@ -3532,6 +4086,26 @@
     });
   }
 
+  function handleGoogleSignIn(){
+    if (!window.SaviorFirebase || !window.SaviorFirebase.signInWithGoogle){
+      ui.authError = 'Still connecting — try again in a moment';
+      renderAuthGate();
+      return;
+    }
+    ui.authError = null;
+    ui.authBusy = true;
+    renderAuthGate();
+    window.SaviorFirebase.signInWithGoogle().catch(function(err){
+      ui.authBusy = false;
+      // Popup closed by the user isn't really an "error" worth showing.
+      if (err && err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request'){
+        ui.authError = firebaseAuthErrorMessage(err);
+      }
+      renderAuthGate();
+    });
+    // On success, the onAuthChange listener fires and takes it from here.
+  }
+
   function renderAuthGate(){
     var mode = ui.authMode || 'login';
     var busy = !!ui.authBusy;
@@ -3549,6 +4123,10 @@
     html += '<div class="auth-error">'+(ui.authError ? esc(ui.authError) : '')+'</div>';
     html += '<button class="auth-submit" data-action="'+(mode==='signup'?'do-signup':'do-login')+'"'+(busy?' disabled':'')+'>'+(busy ? '\u2026' : (mode==='signup'?'Create Account':'Log In'))+'</button>';
     html += '<div class="auth-divider">or</div>';
+    html += '<button class="auth-google-btn" data-action="continue-google"'+(busy?' disabled':'')+'>' +
+              '<svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.85 2.08-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.87 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.81 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33C2.44 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.59-2.59C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>' +
+              'Continue with Google' +
+            '</button>';
     html += '<button class="auth-guest-btn" data-action="continue-guest"'+(busy?' disabled':'')+'>Continue as Guest</button>';
     html += '<div class="auth-note">Accounts sync your workout log across devices. Guest mode stays on this device only.</div>';
     html += '</div>';
@@ -3825,6 +4403,34 @@
 
   function closeAddSetPanel(exId){
     ui.expandedAddSet[exId] = false;
+    delete ui.draftSets[exId];
+    renderApp();
+  }
+
+  // Gate for the \u2715 on the add-set panel: if the person has typed a weight
+  // or reps value that hasn't been logged yet, confirm before discarding it
+  // instead of silently closing the panel mid-entry.
+  function requestCloseAddSetPanel(exId){
+    var draft = ui.draftSets[exId];
+    var hasWeight = draft && draft.weight != null && String(draft.weight).trim() !== '';
+    var hasReps = draft && draft.reps != null && String(draft.reps).trim() !== '';
+    if (!hasWeight && !hasReps){
+      closeAddSetPanel(exId);
+      return;
+    }
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    var weightPart = hasWeight ? fmtWeight(parseFloat(draft.weight) || 0) + ' ' + unitLabel() : 'a weight';
+    var repsPart = hasReps ? ' \u00d7 ' + draft.reps + ' reps' : '';
+    ui.confirmModal = {
+      kind: 'discard-set-entry',
+      title: 'Discard this set?',
+      message: 'You\u2019ve entered ' + weightPart + repsPart + ' for ' + (ex ? ex.name : 'this exercise') +
+        ' that hasn\u2019t been logged yet. Closing now will discard it.',
+      confirmLabel: 'Discard',
+      variant: 'danger',
+      exId: exId
+    };
     renderApp();
   }
 
@@ -4641,7 +5247,7 @@
     } else if (action === 'open-add-set'){
       openAddSetPanelConfirm(el.dataset.ex);
     } else if (action === 'close-add-set'){
-      closeAddSetPanel(el.dataset.ex);
+      requestCloseAddSetPanel(el.dataset.ex);
     } else if (action === 'add-set-row'){
       addSetRow(el.dataset.ex);
     } else if (action === 'add-set-global'){
@@ -4677,6 +5283,9 @@
     } else if (action === 'toggle-history'){
       var sid = el.dataset.session;
       ui.expandedHistory[sid] = !ui.expandedHistory[sid];
+      renderApp();
+    } else if (action === 'toggle-old-history'){
+      ui.showOldHistory = !ui.showOldHistory;
       renderApp();
     } else if (action === 'edit-exercise-name'){
       openRenameExerciseConfirm(el.dataset.ex);
@@ -4732,6 +5341,8 @@
       openSupport();
     } else if (action === 'open-brief'){
       openBrief();
+    } else if (action === 'open-pricing'){
+      openPricing();
     }
   });
 
@@ -4829,6 +5440,8 @@
       );
     } else if (action === 'continue-guest'){
       continueAsGuest();
+    } else if (action === 'continue-google'){
+      handleGoogleSignIn();
     }
   });
   authGateEl.addEventListener('input', function(e){
@@ -4893,6 +5506,9 @@
       }
       else if (m && m.kind === 'open-add-set-confirm'){
         openAddSetPanel(m.exId);
+      }
+      else if (m && m.kind === 'discard-set-entry'){
+        closeAddSetPanel(m.exId);
       }
       else renderApp();
     }
@@ -4972,8 +5588,27 @@
       closeProReceipt();
     } else if (el.dataset.action === 'print-pro-receipt'){
       printSessionReceiptPro(el.dataset.session);
-    } else if (el.dataset.action === 'attempt-unlock-pro'){
-      attemptUnlockPro();
+    } else if (el.dataset.action === 'open-pricing'){
+      closeProReceipt();
+      openPricing();
+    }
+  });
+
+  var pricingOverlayEl = document.getElementById('pricingOverlay');
+  pricingOverlayEl.addEventListener('click', function(e){
+    if (e.target === pricingOverlayEl){
+      closePricing();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-pricing'){
+      closePricing();
+    } else if (el.dataset.action === 'set-billing-cycle'){
+      ui.billingCycle = el.dataset.cycle === 'annual' ? 'annual' : 'monthly';
+      renderPricingPanel();
+    } else if (el.dataset.action === 'start-checkout'){
+      startCheckout(el.dataset.plan === 'annual' ? 'annual' : 'monthly');
     }
   });
 
@@ -5013,6 +5648,8 @@
       closeBrief();
     } else if (ui.showProReceipt){
       closeProReceipt();
+    } else if (ui.showPricing){
+      closePricing();
     } else if (ui.showPrintMenu){
       closePrintMenu();
     } else if (ui.showMuscleMap){
@@ -5042,18 +5679,28 @@
         enterAccount(user.uid, user.email);
       } else if (loadCurrentAccountId() === 'guest'){
         state.currentAccount = 'guest';
+        state.userDoc = null;
         bootAccountData();
         showAppShell();
         renderApp();
       } else {
         state.currentAccount = null;
         state.currentAccountEmail = null;
+        state.userDoc = null;
         showAuthGateShell();
         renderAuthGate();
       }
     });
   }
   initAuthListener();
+
+  // Keeps the trial-countdown banner's wording fresh while the app sits
+  // open (e.g. "2 days left" -> "1 day left") without needing any other
+  // interaction to trigger a re-render.
+  setInterval(function(){
+    var appShellVisible = !document.getElementById('app').classList.contains('hidden');
+    if (appShellVisible) renderTrialBanner();
+  }, 60000);
 
   // Enables offline use + the "Install app" prompt on Android/Chrome.
   // Silently does nothing over file:// or if the browser lacks support.
