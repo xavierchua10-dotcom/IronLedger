@@ -4377,7 +4377,8 @@
       message: 'Adds this exercise to today\u2019s session.',
       confirmLabel: 'Add',
       variant: 'primary',
-      exId: exId
+      exId: exId,
+      name: name
     };
     renderApp();
   }
@@ -4388,7 +4389,7 @@
     session.exercises.push(newEx);
     saveSessions();
     ui.newExerciseId = newEx.id;
-    editExerciseName(newEx.id, false); // rename row shown, but no auto keyboard — user taps in when ready
+    editExerciseName(newEx.id); // auto-focuses the name field so the keyboard opens right away
   }
 
   function discardPendingNewExercise(){
@@ -4430,12 +4431,17 @@
     renderApp();
   }
 
-  function saveExerciseName(exId){
+  function saveExerciseName(exId, providedName){
     var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
-    var input = document.getElementById('exNameInput');
-    var name = input ? input.value.trim() : '';
+    var name;
+    if (providedName != null){
+      name = providedName.trim();
+    } else {
+      var input = document.getElementById('exNameInput');
+      name = input ? input.value.trim() : '';
+    }
     if (!name){
       showToast('Exercise name can\u2019t be empty');
       return;
@@ -5667,7 +5673,7 @@
         editHistoryName(m.sessionId);
       }
       else if (m && m.kind === 'save-new-exercise-name-confirm'){
-        saveExerciseName(m.exId);
+        saveExerciseName(m.exId, m.name);
       }
       else if (m && m.kind === 'open-add-set-confirm'){
         openAddSetPanel(m.exId);
