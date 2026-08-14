@@ -2197,6 +2197,10 @@
   // over — sends the "your free trial has started" email. Update this
   // if the webhook's site URL ever changes (e.g. a new Netlify site).
   var TRIAL_EMAIL_ENDPOINT = 'https://ubiquitous-gaufre-bcda53.netlify.app/.netlify/functions/send-trial-email';
+  // Same Netlify site, one more function — opens Stripe's own hosted
+  // Customer Portal so a paying user can cancel/switch plans/update
+  // their card themselves, without messaging Xavier directly.
+  var PORTAL_ENDPOINT = 'https://ubiquitous-gaufre-bcda53.netlify.app/.netlify/functions/create-portal-session';
 
   var state = {
     sessions: [],
@@ -2245,7 +2249,8 @@
     showPricing: false,     // Pricing/upgrade modal open state
     billingCycle: 'monthly', // 'monthly' | 'annual' — toggle state inside the pricing modal
     startingTrial: false,   // true while the "Start Free Trial" write is in flight
-    confirmingTrial: false  // true while the inline "Start trial?" confirm step is shown
+    confirmingTrial: false, // true while the inline "Start trial?" confirm step is shown
+    openingPortal: false    // true while a Stripe Customer Portal link is being requested
   };
 
   /* =========================================================
@@ -3138,6 +3143,43 @@
     });
   }
 
+  // Opens Stripe's hosted Customer Portal in a new tab, where a paying
+  // user can cancel, switch plans, or update their card themselves —
+  // no message to Xavier needed. Only meaningful for someone with a
+  // real Stripe subscription (isPaidPlanActive()) — trial-only or dev
+  // accounts have no Stripe customer to manage, so this isn't shown to
+  // them at all (see renderPricingPanel/renderSettings).
+  function openManageSubscription(){
+    if (!window.SaviorFirebase || !window.SaviorFirebase.getIdToken || !PORTAL_ENDPOINT) return;
+    if (ui.openingPortal) return;
+    ui.openingPortal = true;
+    renderPricingPanel();
+    renderApp();
+    window.SaviorFirebase.getIdToken().then(function(token){
+      if (!token) throw new Error('Not logged in');
+      return fetch(PORTAL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ returnUrl: window.location.href })
+      });
+    }).then(function(res){ return res.json(); }).then(function(data){
+      ui.openingPortal = false;
+      renderPricingPanel();
+      renderApp();
+      if (data && data.url){
+        window.open(data.url, '_blank', 'noopener');
+      } else {
+        showToast('Couldn\u2019t open subscription management \u2014 try again shortly');
+      }
+    }).catch(function(err){
+      ui.openingPortal = false;
+      renderPricingPanel();
+      renderApp();
+      showToast('Couldn\u2019t open subscription management \u2014 try again shortly');
+      console.error('openManageSubscription failed:', err);
+    });
+  }
+
   function renderPricingPanel(){
     var overlay = document.getElementById('pricingOverlay');
     var panel = document.getElementById('pricingPanel');
@@ -3170,6 +3212,9 @@
           '<div class="paywall-icon">&#9733;</div>' +
           '<div class="paywall-title">You\u2019re Pro</div>' +
           '<div class="paywall-sub">'+esc(proExpiryLabel())+'</div>' +
+          (isPaidPlanActive()
+            ? '<button class="trial-offer-btn" data-action="manage-subscription"'+(ui.openingPortal?' disabled':'')+' style="margin-top:16px;">'+(ui.openingPortal?'Opening\u2026':'Manage Subscription')+'</button>'
+            : '') +
         '</div>';
       return;
     }
@@ -5601,6 +5646,8 @@
       renderPricingPanel();
     } else if (el.dataset.action === 'start-free-trial'){
       startFreeTrial();
+    } else if (el.dataset.action === 'manage-subscription'){
+      openManageSubscription();
     }
   });
 
