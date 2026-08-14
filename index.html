@@ -4419,10 +4419,13 @@
     ui.editingExerciseName = exId;
     renderApp();
     if (autoFocus === false) return;
-    setTimeout(function(){
-      var input = document.getElementById('exNameInput');
-      if (input){ input.focus(); input.select(); }
-    }, 30);
+    // Focus synchronously, in the same tick as the user's tap — mobile
+    // browsers (esp. in-app browsers like Telegram's) only trust a focus
+    // call to keep the on-screen keyboard open if it happens directly
+    // within the originating gesture. Wrapping this in setTimeout, even
+    // a few ms, breaks that trust and the keyboard flashes then closes.
+    var input = document.getElementById('exNameInput');
+    if (input){ input.focus(); input.select(); }
   }
 
   function cancelExerciseNameEdit(){
@@ -4587,11 +4590,9 @@
   function openAddSetPanel(exId){
     ui.expandedAddSet[exId] = true;
     renderApp();
-    setTimeout(function(){
-      var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
-      var input = card && card.querySelector('.set-weight-input');
-      if (input){ input.focus(); }
-    }, 30);
+    var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
+    var input = card && card.querySelector('.set-weight-input');
+    if (input){ input.focus(); }
   }
 
   function closeAddSetPanel(exId){
@@ -4723,11 +4724,9 @@
   function editSet(exId, setId){
     ui.editingSet = { exId: exId, setId: setId };
     renderApp();
-    setTimeout(function(){
-      var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
-      var input = card && card.querySelector('.set-weight-input');
-      if (input){ input.focus(); input.select(); }
-    }, 30);
+    var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
+    var input = card && card.querySelector('.set-weight-input');
+    if (input){ input.focus(); input.select(); }
   }
 
   function cancelEditSet(){
@@ -4845,10 +4844,8 @@
   function editHistoryName(sessionId){
     ui.editingHistoryName = sessionId;
     renderApp();
-    setTimeout(function(){
-      var input = document.getElementById('hiNameInput');
-      if (input){ input.focus(); input.select(); }
-    }, 30);
+    var input = document.getElementById('hiNameInput');
+    if (input){ input.focus(); input.select(); }
   }
 
   function cancelHistoryNameEdit(){
