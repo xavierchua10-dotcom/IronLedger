@@ -1541,10 +1541,11 @@
   .billing-toggle button.active{color:#1c1500;}
   .billing-toggle::before{
     content:'';position:absolute;top:4px;bottom:4px;left:4px;
-    width:calc(50% - 4px);background:var(--accent);border-radius:999px;
+    width:calc(33.333% - 5.333px);background:var(--accent);border-radius:999px;
     transition:transform 0.22s cubic-bezier(0.22,0.61,0.36,1);z-index:0;
   }
-  .billing-toggle.annual::before{transform:translateX(100%);}
+  .billing-toggle.monthly::before{transform:translateX(100%);}
+  .billing-toggle.annual::before{transform:translateX(200%);}
   .bt-save{
     position:absolute;top:-9px;right:6px;background:var(--accent-2);color:#fff;
     font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;
@@ -2053,6 +2054,12 @@
     onAuthChange: function(cb){
       return onAuthStateChanged(auth, cb);
     },
+    // Used only to call the send-trial-email Netlify function — proves
+    // to that function this request really came from a logged-in
+    // Firebase user, so it can't be used to spam arbitrary addresses.
+    getIdToken: function(){
+      return auth.currentUser ? auth.currentUser.getIdToken() : Promise.resolve(null);
+    },
     // NOTE: merge:true is essential here — this doc also holds tier/
     // subscription/trial fields (see ensureUserDoc below). A plain
     // (non-merge) setDoc on every workout save would silently wipe
@@ -2171,18 +2178,25 @@
   var DEV_OVERRIDE_EMAIL = 'xavierchua10@gmail.com';
   var TRIAL_DAYS = 3;
   var PROGRESS_FREE_DAYS_PER_MONTH = 3;
+  var PRICE_WEEKLY = 1.99;
   var PRICE_MONTHLY = 9.99;
   var PRICE_ANNUAL = 79.99;
   // ---- PASTE YOUR STRIPE PAYMENT LINKS HERE ----
-  // Stripe Dashboard → Payment Links → create one for Monthly ($9.99/mo)
-  // and one for Annual ($79.99/yr). client_reference_id is appended
-  // automatically so the checkout can be tied back to the Firebase uid.
+  // Stripe Dashboard → Payment Links → create one for Weekly ($1.99/wk),
+  // one for Monthly ($9.99/mo), and one for Annual ($79.99/yr).
+  // client_reference_id is appended automatically so the checkout can
+  // be tied back to the Firebase uid.
   // IMPORTANT: actually granting Pro after a successful payment must
   // happen server-side — a Stripe webhook + a Cloud Function (Admin SDK)
   // that writes subscription.currentPeriodEnd on /users/{uid}. Client
   // code can never be trusted to grant itself Pro (see security rules).
+  var STRIPE_LINK_WEEKLY = 'https://buy.stripe.com/eVqbJ32V740baNp6Fc4wM07';
   var STRIPE_LINK_MONTHLY = 'https://buy.stripe.com/cNi4gBanz54ff3FaVs4wM05';
   var STRIPE_LINK_ANNUAL = 'https://buy.stripe.com/7sY3cx3Zb54f1cPd3A4wM06';
+  // The same Netlify site the Stripe webhook lives on, one function
+  // over — sends the "your free trial has started" email. Update this
+  // if the webhook's site URL ever changes (e.g. a new Netlify site).
+  var TRIAL_EMAIL_ENDPOINT = 'https://ubiquitous-gaufre-bcda53.netlify.app/.netlify/functions/send-trial-email';
 
   var state = {
     sessions: [],
@@ -2844,7 +2858,8 @@
     var u = state.userDoc;
     if (!u) return '';
     if (isPaidPlanActive()){
-      var plan = (u.subscription && u.subscription.plan === 'annual') ? 'Annual' : 'Monthly';
+      var planKey = u.subscription && u.subscription.plan;
+      var plan = planKey === 'annual' ? 'Annual' : planKey === 'weekly' ? 'Weekly' : 'Monthly';
       var end = toMillis(u.subscription.currentPeriodEnd);
       return plan + ' plan — renews ' + fmtDateShort(new Date(end).toISOString());
     }
@@ -3062,7 +3077,7 @@
       showToast('Create a free account first \u2014 Guest data can\u2019t hold a subscription');
       return;
     }
-    var link = plan === 'annual' ? STRIPE_LINK_ANNUAL : STRIPE_LINK_MONTHLY;
+    var link = plan === 'annual' ? STRIPE_LINK_ANNUAL : (plan === 'weekly' ? STRIPE_LINK_WEEKLY : STRIPE_LINK_MONTHLY);
     if (!link){
       showToast('Payments aren\u2019t connected yet \u2014 check back soon');
       return;
@@ -3084,6 +3099,23 @@
   // trialStartDate/trialEndDate to Firestore, then refreshes every UI
   // surface that depends on trial state (pricing modal, trial banner,
   // Settings, the gold star icon).
+  // Fires the "your trial has started" email in the background — never
+  // awaited by the caller, never blocks the trial itself from starting,
+  // and any failure here is just logged, not surfaced to the user (an
+  // unsent welcome email isn't worth interrupting them over).
+  function sendTrialStartEmail(){
+    if (!window.SaviorFirebase || !window.SaviorFirebase.getIdToken || !TRIAL_EMAIL_ENDPOINT) return;
+    window.SaviorFirebase.getIdToken().then(function(token){
+      if (!token) return;
+      return fetch(TRIAL_EMAIL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+    }).catch(function(err){
+      console.error('Trial-start email request failed:', err);
+    });
+  }
+
   function startFreeTrial(){
     if (state.currentAccount === 'guest' || !window.SaviorFirebase || !window.SaviorFirebase.startTrial) return;
     if (!trialAvailable()) return;
@@ -3096,6 +3128,7 @@
       renderApp();
       renderPricingPanel();
       showToast('Free trial started \u2014 3 days of Pro unlocked');
+      sendTrialStartEmail();
     }).catch(function(err){
       ui.startingTrial = false;
       ui.confirmingTrial = false;
@@ -3141,7 +3174,7 @@
       return;
     }
 
-    var cycle = ui.billingCycle === 'annual' ? 'annual' : 'monthly';
+    var cycle = (ui.billingCycle === 'annual' || ui.billingCycle === 'weekly') ? ui.billingCycle : 'monthly';
     var showTrialOffer = trialAvailable();
     panel.innerHTML =
       '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Go Pro</h3>' +
@@ -3170,11 +3203,18 @@
                 '</div>') +
             '<div class="trial-offer-divider">or subscribe now</div>'
           : '') +
-        '<div class="billing-toggle'+(cycle === 'annual' ? ' annual' : '')+'" role="tablist">' +
+        '<div class="billing-toggle '+cycle+'" role="tablist">' +
+          '<button class="'+(cycle==='weekly'?'active':'')+'" data-action="set-billing-cycle" data-cycle="weekly">Weekly</button>' +
           '<button class="'+(cycle==='monthly'?'active':'')+'" data-action="set-billing-cycle" data-cycle="monthly">Monthly</button>' +
           '<button class="'+(cycle==='annual'?'active':'')+'" data-action="set-billing-cycle" data-cycle="annual">Annual<span class="bt-save">-33%</span></button>' +
         '</div>' +
-        (cycle === 'monthly'
+        (cycle === 'weekly'
+          ? '<div class="price-card">' +
+              '<div class="price-card-amount">$'+PRICE_WEEKLY.toFixed(2)+'<span>/week</span></div>' +
+              '<div class="price-card-sub">Cancel anytime</div>' +
+              '<button class="price-cta-btn" data-action="start-checkout" data-plan="weekly">Start Weekly \u2014 $'+PRICE_WEEKLY.toFixed(2)+'/wk</button>' +
+            '</div>'
+          : cycle === 'monthly'
           ? '<div class="price-card">' +
               '<div class="price-card-amount">$'+PRICE_MONTHLY.toFixed(2)+'<span>/month</span></div>' +
               '<div class="price-card-sub">Cancel anytime</div>' +
@@ -5547,10 +5587,12 @@
     if (el.dataset.action === 'close-pricing'){
       closePricing();
     } else if (el.dataset.action === 'set-billing-cycle'){
-      ui.billingCycle = el.dataset.cycle === 'annual' ? 'annual' : 'monthly';
+      var c = el.dataset.cycle;
+      ui.billingCycle = (c === 'annual' || c === 'weekly') ? c : 'monthly';
       renderPricingPanel();
     } else if (el.dataset.action === 'start-checkout'){
-      startCheckout(el.dataset.plan === 'annual' ? 'annual' : 'monthly');
+      var p = el.dataset.plan;
+      startCheckout((p === 'annual' || p === 'weekly') ? p : 'monthly');
     } else if (el.dataset.action === 'request-start-trial'){
       ui.confirmingTrial = true;
       renderPricingPanel();
