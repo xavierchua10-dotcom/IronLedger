@@ -781,6 +781,13 @@
     cursor:pointer;
   }
   .brief-clear-btn:active{background:var(--panel-3);}
+  .brief-footer{
+    flex-shrink:0;
+    display:flex;
+    justify-content:flex-end;
+    padding:10px 18px;
+    border-top:1px solid var(--line);
+  }
   .exercise-head-actions .icon-btn{
     border:1px solid var(--line);
   }
@@ -805,7 +812,7 @@
 
   .set-row{
     display:grid;
-    grid-template-columns:20px 1fr auto 80px;
+    grid-template-columns:20px 1fr 80px;
     align-items:center;
     gap:6px;
     padding:4px 0;
@@ -4003,6 +4010,7 @@
     renderConfirmModal();
     renderRoutineNamePanel();
     renderHelpOverlay();
+    renderBriefOverlay();
     var addSetGlobalBtnEl = document.querySelector('.add-set-global-btn');
     if (addSetGlobalBtnEl) addSetGlobalBtnEl.classList.add('hidden');
     refreshAddSetGlobalBtn();
@@ -4326,6 +4334,50 @@
       variant: 'primary',
       name: name,
       muscle: muscle || null
+    };
+    renderApp();
+  }
+
+  function openToggleUnitConfirm(){
+    var next = state.settings.unit === 'kg' ? 'lb' : 'kg';
+    ui.confirmModal = {
+      kind: 'toggle-unit',
+      title: 'Switch to ' + next.toUpperCase() + '?',
+      message: 'Changes how weights are shown everywhere in the app. Your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.',
+      confirmLabel: 'Switch',
+      variant: 'primary'
+    };
+    renderApp();
+  }
+
+  function openRenameSessionConfirm(sessionId){
+    var session = state.sessions.find(function(s){ return s.id === sessionId; });
+    var name = session && session.name ? session.name : 'this session';
+    ui.confirmModal = {
+      kind: 'rename-session-confirm',
+      title: 'Rename session?',
+      message: 'Opens \u201c' + name + '\u201d for renaming.',
+      confirmLabel: 'Rename',
+      variant: 'primary',
+      sessionId: sessionId
+    };
+    renderApp();
+  }
+
+  function openSaveNewExerciseNameConfirm(exId){
+    var input = document.getElementById('exNameInput');
+    var name = input ? input.value.trim() : '';
+    if (!name){
+      showToast('Exercise name can\u2019t be empty');
+      return;
+    }
+    ui.confirmModal = {
+      kind: 'save-new-exercise-name-confirm',
+      title: 'Add \u201c' + name + '\u201d?',
+      message: 'Adds this exercise to today\u2019s session.',
+      confirmLabel: 'Add',
+      variant: 'primary',
+      exId: exId
     };
     renderApp();
   }
@@ -5081,6 +5133,70 @@
     if (area) area.scrollTop = area.scrollHeight;
   }
 
+  /* =========================================================
+     BRIEF — activity log overlay. Entries are recorded by
+     logActivity() throughout the app and auto-expire after 24h
+     (see purgeStaleActivity). This block just displays them.
+     ========================================================= */
+  function openBrief(){
+    ui.showBrief = true;
+    renderBriefOverlay();
+  }
+  function closeBrief(){
+    ui.showBrief = false;
+    renderBriefOverlay();
+  }
+  function deleteBriefEntry(entryId){
+    state.activityLog = state.activityLog.filter(function(e){ return e.id !== entryId; });
+    saveActivityLog();
+    renderBriefOverlay();
+  }
+  function clearBrief(){
+    state.activityLog = [];
+    saveActivityLog();
+    renderBriefOverlay();
+    showToast('Brief cleared');
+  }
+  function renderBriefOverlay(){
+    var overlay = document.getElementById('briefOverlay');
+    var panel = document.getElementById('briefPanel');
+    if (!ui.showBrief){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    purgeStaleActivity();
+    var listHtml = '';
+    if (state.activityLog.length === 0){
+      listHtml = '<div class="brief-empty">Nothing logged in the last 24h. Add, edit, or rename something in Log or History and it\u2019ll show up here.</div>';
+    } else {
+      var lastDay = null;
+      state.activityLog.forEach(function(entry){
+        var day = fmtDate(entry.time);
+        if (day !== lastDay){
+          listHtml += '<div class="brief-day-label">'+esc(day)+'</div>';
+          lastDay = day;
+        }
+        listHtml += '<div class="brief-entry">' +
+                      '<div class="brief-entry-time">'+esc(fmtTime(entry.time))+'</div>' +
+                      '<div class="brief-entry-body">' +
+                        '<div class="brief-entry-msg">'+esc(entry.message)+'</div>' +
+                        '<span class="brief-entry-tag">'+esc(entry.tag)+'</span>' +
+                      '</div>' +
+                      '<button class="brief-entry-del" data-action="delete-brief-entry" data-entry="'+entry.id+'" aria-label="Delete entry">&#10005;</button>' +
+                    '</div>';
+      });
+    }
+    panel.innerHTML =
+      '<div class="brief-header">' +
+        '<div><h3>Brief</h3><div class="brief-header-sub">Auto-clears after 24h</div></div>' +
+        '<button class="brief-close-btn" data-action="close-brief" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="brief-list">' + listHtml + '</div>' +
+      (state.activityLog.length ? '<div class="brief-footer"><button class="brief-clear-btn" data-action="clear-brief">Clear all</button></div>' : '');
+  }
+
   function openSaveRoutine(){
     var session = getActiveSession();
     if (!session.exercises.length){
@@ -5273,9 +5389,7 @@
       };
       renderApp();
     } else if (action === 'toggle-unit'){
-      state.settings.unit = state.settings.unit === 'kg' ? 'lb' : 'kg';
-      saveSettings();
-      renderApp();
+      openToggleUnitConfirm();
     } else if (action === 'add-blank-exercise'){
       openAddExerciseConfirm();
     } else if (action === 'delete-exercise'){
@@ -5330,11 +5444,12 @@
     } else if (action === 'edit-exercise-name'){
       openRenameExerciseConfirm(el.dataset.ex);
     } else if (action === 'save-exercise-name'){
-      saveExerciseName(el.dataset.ex);
+      if (ui.newExerciseId === el.dataset.ex) openSaveNewExerciseNameConfirm(el.dataset.ex);
+      else saveExerciseName(el.dataset.ex);
     } else if (action === 'cancel-exercise-name'){
       cancelExerciseNameEdit();
     } else if (action === 'edit-history-name'){
-      editHistoryName(el.dataset.session);
+      openRenameSessionConfirm(el.dataset.session);
     } else if (action === 'save-history-name'){
       saveHistoryName(el.dataset.session);
     } else if (action === 'cancel-history-name'){
@@ -5435,7 +5550,8 @@
         saveHistoryName(ui.editingHistoryName);
       } else if (e.target.id === 'exNameInput'){
         e.preventDefault();
-        saveExerciseName(ui.editingExerciseName);
+        if (ui.newExerciseId === ui.editingExerciseName) openSaveNewExerciseNameConfirm(ui.editingExerciseName);
+        else saveExerciseName(ui.editingExerciseName);
       }
     } else if (e.key === 'Escape' && e.target.id === 'hiNameInput'){
       e.preventDefault();
@@ -5541,6 +5657,17 @@
       }
       else if (m && m.kind === 'rename-exercise-confirm'){
         editExerciseName(m.exId);
+      }
+      else if (m && m.kind === 'toggle-unit'){
+        state.settings.unit = state.settings.unit === 'kg' ? 'lb' : 'kg';
+        saveSettings();
+        renderApp();
+      }
+      else if (m && m.kind === 'rename-session-confirm'){
+        editHistoryName(m.sessionId);
+      }
+      else if (m && m.kind === 'save-new-exercise-name-confirm'){
+        saveExerciseName(m.exId);
       }
       else if (m && m.kind === 'open-add-set-confirm'){
         openAddSetPanel(m.exId);
