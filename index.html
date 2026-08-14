@@ -2139,7 +2139,7 @@
     // without needing a reload or re-login.
     onUserDocChange: function(uidVal, cb){
       return onSnapshot(doc(db, 'users', uidVal), function(snap){
-        cb(snap.exists() ? snap.data() : null);
+        cb(snap.exists() ? snap.data() : null, snap.metadata);
       }, function(err){ console.error('User doc listen failed:', err); });
     },
     // Client-side partial updates — used for things a user is allowed to
@@ -4059,7 +4059,18 @@
   function subscribeUserDoc(uidVal){
     if (userDocUnsub){ userDocUnsub(); userDocUnsub = null; }
     if (!window.SaviorFirebase || !window.SaviorFirebase.onUserDocChange) return;
-    userDocUnsub = window.SaviorFirebase.onUserDocChange(uidVal, function(docData){
+    userDocUnsub = window.SaviorFirebase.onUserDocChange(uidVal, function(docData, metadata){
+      // Skip local echoes of our own writes. This same /users/{uid} doc
+      // also receives the debounced workout-data sync (sessions/routines/
+      // settings), and Firestore fires this listener instantly with the
+      // optimistic local value the moment that write is queued — before
+      // it ever reaches the server. Without this guard, typing an
+      // exercise name would trigger a renderApp() ~800ms later (when the
+      // debounced sync fires), tearing down the focused input and
+      // dismissing the keyboard mid-type. Genuine remote changes (another
+      // device, a payment webhook) arrive with hasPendingWrites false and
+      // still go through normally.
+      if (metadata && metadata.hasPendingWrites) return;
       state.userDoc = docData;
       renderApp();
       renderPricingPanel();
