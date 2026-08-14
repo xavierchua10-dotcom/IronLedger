@@ -1512,7 +1512,7 @@
   }
 
   /* ---------- Pricing modal ---------- */
-  .pricing-body{padding:6px 20px 22px;}
+  .pricing-body{padding:6px 20px 22px;overflow-y:auto;overflow-x:hidden;flex:1;-webkit-overflow-scrolling:touch;}
   .billing-toggle{
     display:flex;align-items:center;justify-content:center;
     background:var(--panel);border:1px solid var(--line);border-radius:999px;
@@ -1570,6 +1570,15 @@
   }
   .trial-offer-btn:active{opacity:0.9;}
   .trial-offer-btn:disabled{opacity:0.6;}
+  .trial-offer-confirm-row{display:flex;gap:8px;}
+  .trial-offer-confirm-row .trial-offer-btn{flex:1;}
+  .trial-offer-cancel-btn{
+    flex:1;background:none;border:1px solid var(--line);color:var(--text-dim);
+    border-radius:10px;padding:14px;font-family:'Oswald',sans-serif;font-weight:700;
+    font-size:13px;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;
+  }
+  .trial-offer-cancel-btn:active{opacity:0.8;}
+  .trial-offer-cancel-btn:disabled{opacity:0.5;}
   .trial-offer-divider{
     text-align:center;font-size:10.5px;color:var(--text-faint);text-transform:uppercase;
     letter-spacing:0.05em;margin:4px 0 16px;position:relative;
@@ -2208,7 +2217,8 @@
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
     showPricing: false,     // Pricing/upgrade modal open state
     billingCycle: 'monthly', // 'monthly' | 'annual' — toggle state inside the pricing modal
-    startingTrial: false    // true while the "Start Free Trial" write is in flight
+    startingTrial: false,   // true while the "Start Free Trial" write is in flight
+    confirmingTrial: false  // true while the inline "Start trial?" confirm step is shown
   };
 
   /* =========================================================
@@ -3014,6 +3024,7 @@
   }
   function closePricing(){
     ui.showPricing = false;
+    ui.confirmingTrial = false;
     renderPricingPanel();
   }
 
@@ -3057,11 +3068,13 @@
     window.SaviorFirebase.startTrial(state.currentAccount).then(function(fields){
       state.userDoc = Object.assign({}, state.userDoc, fields);
       ui.startingTrial = false;
+      ui.confirmingTrial = false;
       renderApp();
       renderPricingPanel();
       showToast('Free trial started \u2014 3 days of Pro unlocked');
     }).catch(function(err){
       ui.startingTrial = false;
+      ui.confirmingTrial = false;
       renderPricingPanel();
       showToast('Couldn\u2019t start trial \u2014 check your connection and try again');
       console.error('startTrial failed:', err);
@@ -3117,11 +3130,20 @@
           '<li><span class="chk">&#10003;</span> Print Pro PDF \u2014 modern layout + overload tips</li>' +
         '</ul>' +
         (showTrialOffer
-          ? '<div class="trial-offer-card">' +
-              '<div class="trial-offer-title">&#9733; Try Pro free for 3 days</div>' +
-              '<div class="trial-offer-sub">No card needed. Cancel anytime \u2014 or just let it lapse back to Basic.</div>' +
-              '<button class="trial-offer-btn" data-action="start-free-trial"'+(ui.startingTrial?' disabled':'')+'>'+(ui.startingTrial?'Starting\u2026':'Start Free Trial')+'</button>' +
-            '</div>' +
+          ? (ui.confirmingTrial
+              ? '<div class="trial-offer-card">' +
+                  '<div class="trial-offer-title">Start your free trial?</div>' +
+                  '<div class="trial-offer-sub">3 days of full Pro access begins right now. You can only do this once per account.</div>' +
+                  '<div class="trial-offer-confirm-row">' +
+                    '<button class="trial-offer-cancel-btn" data-action="cancel-start-trial"'+(ui.startingTrial?' disabled':'')+'>Cancel</button>' +
+                    '<button class="trial-offer-btn" data-action="start-free-trial"'+(ui.startingTrial?' disabled':'')+'>'+(ui.startingTrial?'Starting\u2026':'Yes, Start Trial')+'</button>' +
+                  '</div>' +
+                '</div>'
+              : '<div class="trial-offer-card">' +
+                  '<div class="trial-offer-title">&#9733; Try Pro free for 3 days</div>' +
+                  '<div class="trial-offer-sub">No card needed. Cancel anytime \u2014 or just let it lapse back to Basic.</div>' +
+                  '<button class="trial-offer-btn" data-action="request-start-trial">Start Free Trial</button>' +
+                '</div>') +
             '<div class="trial-offer-divider">or subscribe now</div>'
           : '') +
         '<div class="billing-toggle'+(cycle === 'annual' ? ' annual' : '')+'" role="tablist">' +
@@ -5484,6 +5506,12 @@
       renderPricingPanel();
     } else if (el.dataset.action === 'start-checkout'){
       startCheckout(el.dataset.plan === 'annual' ? 'annual' : 'monthly');
+    } else if (el.dataset.action === 'request-start-trial'){
+      ui.confirmingTrial = true;
+      renderPricingPanel();
+    } else if (el.dataset.action === 'cancel-start-trial'){
+      ui.confirmingTrial = false;
+      renderPricingPanel();
     } else if (el.dataset.action === 'start-free-trial'){
       startFreeTrial();
     }
