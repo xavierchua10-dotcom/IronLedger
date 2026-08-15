@@ -4,6 +4,33 @@
 // the whole app. This just lets it open offline and enables the "Install
 // app" prompt on Android/Chrome.
 
+// ---------------------------------------------------
+// PUSH NOTIFICATIONS (Firebase Cloud Messaging)
+// Handles a push that arrives while this tab is closed/backgrounded —
+// this is the only code that's still "awake" at that point, so it's
+// responsible for actually showing the OS notification. Foreground
+// pushes (tab open) are handled separately, inside index.html itself.
+// ---------------------------------------------------
+importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyA5zTxIK6Yn81BZ03_rlUUgWjGBkbtL2Wo",
+  authDomain: "iron-ledge.firebaseapp.com",
+  projectId: "iron-ledge",
+  storageBucket: "iron-ledge.firebasestorage.app",
+  messagingSenderId: "978680753798",
+  appId: "1:978680753798:web:13fdbdb6b4bd3dbc72ab07"
+});
+
+var messaging = firebase.messaging();
+messaging.onBackgroundMessage(function(payload){
+  self.registration.showNotification(payload.notification.title, {
+    body: payload.notification.body,
+    icon: '/apple-touch-icon.png'
+  });
+});
+
 var CACHE_NAME = 'iron-ledger-v1';
 var CORE_ASSETS = [
   './',
