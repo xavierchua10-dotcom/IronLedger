@@ -2731,6 +2731,15 @@
      ========================================================= */
   function getActiveSession(){
     var active = state.sessions.find(function(s){ return s.status === 'active'; });
+    if (active && active.exercises.length === 0 && !isSameLocalDay(active.date)){
+      // Left over from a previous day, never actually used (no exercises
+      // added yet) — treat it as today's session instead of showing
+      // yesterday's date on an empty log. A session that already has
+      // exercises is left alone even across midnight, since that's a real
+      // in-progress workout, not a stale leftover.
+      active.date = new Date().toISOString();
+      saveSessions();
+    }
     if (!active){
       active = {
         id: uid(),
@@ -3049,6 +3058,13 @@
     var mm = m < 10 ? '0'+m : m;
     return h + ':' + mm + ' ' + ampm;
   }
+  // Compares by local calendar day (year/month/date), not by 24h distance —
+  // used to tell whether a session's date is genuinely "today" on this
+  // device, regardless of what time it was created.
+  function isSameLocalDay(iso, ref){
+    var a = new Date(iso), b = ref || new Date();
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
 
   function printSessionReceipt(sessionId){
     var s = state.sessions.find(function(x){ return x.id === sessionId; });
@@ -3213,9 +3229,9 @@
 
   // Redacts a set/session timestamp for Basic tier — Pro sees the real
   // clock time, Basic sees a small lock glyph in its place.
-  function tsOrLock(iso){
+  function tsOrLock(iso, label){
     if (!iso) return '';
-    return isProActive() ? fmtTime(iso) : '<span class="ts-lock" title="Upgrade to Pro to see set times">&#128274;</span>';
+    return isProActive() ? fmtTime(iso) : '<span class="ts-lock" title="Upgrade to Pro to see '+(label || 'set times')+'">&#128274;</span>';
   }
 
   // Best e1rm for this exercise name across all sessions, excluding a
