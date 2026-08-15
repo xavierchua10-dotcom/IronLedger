@@ -141,6 +141,21 @@
     align-items:center;
   }
   .unit-toggle:active{background:var(--panel-3);}
+  .session-meta-actions .unit-toggle{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    font-size:11px;
+    padding:0;
+    width:32px;
+    height:32px;
+    min-height:0;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
 
   .install-app-btn{
     background:var(--accent);
@@ -180,6 +195,15 @@
     justify-content:center;
   }
   .account-avatar:active{background:var(--panel-3);}
+  /* The icon inside this button gets replaced on every renderApp() call
+     (which fires constantly, from nearly any interaction anywhere in the
+     app). If a tap's touchstart lands on that icon and a re-render swaps
+     it out before touchend, iOS/Android WebKit can silently drop the
+     click because the original touch target no longer exists. Making the
+     icon pointer-events:none means a tap always resolves straight to the
+     button itself (which never gets swapped out), regardless of how
+     often its contents change mid-gesture. */
+  .account-avatar svg{pointer-events:none;display:block;}
   .account-menu{
     position:absolute;
     top:calc(100% + 8px);
@@ -188,7 +212,7 @@
     border:1px solid var(--line);
     border-radius:10px;
     padding:10px;
-    min-width:160px;
+    min-width:180px;
     box-shadow:0 8px 24px rgba(0,0,0,0.45);
     z-index:20;
   }
@@ -201,6 +225,38 @@
     margin-bottom:8px;
     word-break:break-word;
   }
+  .account-menu-avatar-label{
+    font-size:10px;
+    color:var(--text-faint);
+    font-weight:600;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    padding:0 2px;
+    margin-bottom:6px;
+  }
+  .account-menu-avatar-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
+    margin-bottom:10px;
+  }
+  .avatar-pick-btn{
+    width:100%;
+    height:48px;
+    min-width:44px;
+    border-radius:8px;
+    border:1.5px solid var(--line);
+    background:var(--panel-3);
+    color:var(--text-dim);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+  }
+  .avatar-pick-btn:active{background:var(--panel-2);}
+  .avatar-pick-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+  .avatar-pick-btn svg{pointer-events:none;display:block;}
   .account-menu-logout{
     width:100%;
     background:none;
@@ -283,6 +339,20 @@
     font-size:16px;
   }
   .auth-field input:focus{outline:none;border-color:var(--accent);}
+  .auth-avatar-label{
+    font-size:11px;
+    color:var(--text-dim);
+    font-weight:600;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    margin:2px 0 8px;
+  }
+  .auth-avatar-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-bottom:16px;
+  }
   .auth-error{
     color:var(--accent-2);
     font-size:12px;
@@ -1023,7 +1093,7 @@
     text-transform:uppercase;
     font-weight:700;
     cursor:pointer;
-    margin-top:16px;
+    margin-top:0;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -1031,6 +1101,19 @@
   }
   .add-exercise-bottom-btn:active{background:var(--panel-2);border-color:var(--accent);}
   .add-exercise-bottom-btn .plus-glyph{font-size:18px;line-height:1;}
+
+  /* ---------- Add-exercise row (icon toggle + add button) ---------- */
+  .exercise-actions-row{
+    display:flex;
+    align-items:stretch;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .exercise-actions-row--after-list{margin-top:16px;}
+  .exercise-actions-row .add-exercise-bottom-btn{
+    flex:1 1 auto;
+    min-width:0;
+  }
   .btn-primary{
     width:100%;
     padding:15px;
@@ -1065,13 +1148,21 @@
 
   /* ---------- Muscle map ---------- */
   .mm-toggle-btn{
+    flex:0 0 auto;
+    width:52px;
+    height:52px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:var(--radius);
     border:2px solid var(--accent);
     background:var(--accent-dim);
     color:var(--accent);
-    font-weight:700;
-    padding:14px;
+    padding:0;
+    cursor:pointer;
   }
   .mm-toggle-btn:active{background:var(--accent);color:#1c1500;}
+  .mm-toggle-btn svg{display:block;width:22px;height:22px;}
 
   /* ---------- Muscle map overlay (floating card) ---------- */
   .mm-overlay{
@@ -1554,16 +1645,17 @@
   .paywall-unlock-btn:active{opacity:0.9;}
   .paywall-note{font-size:10.5px;color:var(--text-faint);}
 
-  /* ---------- Gold star Pro button (topbar) ---------- */
+  /* ---------- Gold "PRO" panel button (topbar) ---------- */
   .pro-star-btn{
-    width:40px;height:40px;border-radius:50%;
+    width:auto;height:32px;min-width:44px;border-radius:8px;
     background:var(--panel-2);border:1px solid var(--line);
-    padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    padding:0 10px;cursor:pointer;display:flex;align-items:center;justify-content:center;
     flex-shrink:0;color:var(--text-faint);
+    font-family:'Oswald',sans-serif;font-size:12px;font-weight:700;
+    letter-spacing:0.05em;text-transform:uppercase;
   }
   .pro-star-btn:active{background:var(--panel-3);}
   .pro-star-btn.is-pro{color:#1c1500;background:var(--accent);border-color:var(--accent);}
-  .pro-star-glyph{font-size:23px;line-height:1;display:block;transform:translateY(1px);}
   .pro-badge-mini{
     display:inline-block;font-size:9px;font-weight:700;letter-spacing:0.08em;
     text-transform:uppercase;background:var(--accent);color:#1c1500;
@@ -2019,15 +2111,16 @@
     <h1>SAVIORFIT <span>LOGGER</span></h1>
     <div class="topbar-right">
       <div class="account-wrap">
-        <button class="pro-star-btn" id="proStarBtn" data-action="open-pricing" aria-label="Upgrade to Pro"><span class="pro-star-glyph">&#9733;</span></button>
+        <button class="pro-star-btn" id="proStarBtn" data-action="open-pricing" aria-label="Upgrade to Pro">PRO</button>
         <button class="account-avatar" id="accountAvatarBtn" data-action="toggle-account-menu">G</button>
         <div class="account-menu hidden" id="accountMenu">
           <div class="account-menu-name" id="accountMenuName">Guest</div>
+          <div class="account-menu-avatar-label" id="accountMenuAvatarLabel">Icon</div>
+          <div class="account-menu-avatar-grid" id="accountMenuAvatarGrid"></div>
           <button class="account-menu-logout" data-action="log-out">Log out</button>
         </div>
       </div>
       <button class="install-app-btn hidden" id="installAppBtn" aria-label="Install app">&#8595; Install</button>
-      <button class="unit-toggle" id="unitToggleBtn" data-action="toggle-unit">KG</button>
     </div>
   </header>
   <div class="trial-banner hidden" id="trialBanner"></div>
@@ -2369,10 +2462,32 @@
   // yet as of this comment. See setup notes for its expected shape.
   var WELCOME_PUSH_ENDPOINT = 'https://ubiquitous-gaufre-bcda53.netlify.app/.netlify/functions/send-welcome-push';
 
+  // ---- Preset profile icons (no upload — just a small built-in set) ----
+  var DEFAULT_AVATAR = 'dumbbell';
+  var AVATAR_ORDER = ['dumbbell', 'flame', 'bolt', 'target', 'crown', 'mountain'];
+  var AVATAR_ICONS = {
+    dumbbell: '<rect x="1" y="9" width="3" height="6" rx="1"/><rect x="4.5" y="7" width="2.5" height="10" rx="1"/><rect x="17" y="7" width="2.5" height="10" rx="1"/><rect x="20" y="9" width="3" height="6" rx="1"/><rect x="7" y="10.75" width="10" height="2.5" rx="1"/>',
+    flame: '<path d="M12 2c2.5 3 5 6.5 5 10a5 5 0 0 1-10 0c0-1.8.9-3.2 2-4.3-.1 1.6.7 2.3 1.5 2.3.9 0 1.5-.7 1.5-1.6 0-1.4-1-2.3 0-6.4z"/>',
+    bolt: '<path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/>',
+    target: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="4.2" fill="currentColor"/>',
+    crown: '<path d="M3 8l4 3 5-6 5 6 4-3-2 10H5L3 8z"/>',
+    mountain: '<path d="M3 18l6-10 4 6 2-3 6 7H3z"/>',
+    // Fixed, non-selectable — used only for the Guest account (blank
+    // person silhouette). Deliberately left out of AVATAR_ORDER so it
+    // never shows up as a pickable option in the icon grid.
+    guest: '<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.42 3.58-8 8-8s8 3.58 8 8z"/>'
+  };
+  function avatarSvg(key, size){
+    var shapes = AVATAR_ICONS[key];
+    if (!shapes) return null;
+    var s = size || 20;
+    return '<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="currentColor" xmlns="http://www.w3.org/2000/svg">'+shapes+'</svg>';
+  }
+
   var state = {
     sessions: [],
     routines: [],          // [{ id, name, exercises: [{ name, muscle }] }]
-    settings: { unit: 'kg' },
+    settings: { unit: 'kg', avatar: null },
     activityLog: [],       // [{ id, time, message, tag }, ...] newest first — the "Brief"
     tab: 'log',
     currentAccount: null,  // null (show gate) | 'guest' | account id
@@ -2395,7 +2510,8 @@
     authMode: 'login',     // 'login' | 'signup'
     authError: null,
     authBusy: false,
-    authDraft: { email: '' },
+    authDraft: { email: '', avatar: DEFAULT_AVATAR },
+    awaitingAvatarPick: false,   // true right after a brand-new account is created, until they pick an icon
     confirmModal: null,           // { kind:'exercise'|'set'|'session', title, message, exId, setId, sessionId } or null
     pendingDeleteAccount: false,
     freshPRSetId: null,    // id of a just-logged set that should play the PR pulse animation once
@@ -2478,8 +2594,8 @@
   function loadSettings(){
     try{
       var raw = localStorage.getItem(scopedKey(STORAGE_SETTINGS));
-      return raw ? JSON.parse(raw) : { unit: 'kg' };
-    }catch(e){ return { unit: 'kg' }; }
+      return raw ? JSON.parse(raw) : { unit: 'kg', avatar: null };
+    }catch(e){ return { unit: 'kg', avatar: null }; }
   }
   function saveSessions(){
     localStorage.setItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(state.sessions));
@@ -3332,6 +3448,25 @@
     ui.confirmingTrial = false;
     renderPricingPanel();
   }
+  // Guest tapped "Sign Up / Log In" from the Pro paywall. Guests never had
+  // a Firebase session to sign out of, so this just closes the paywall and
+  // swaps to the auth gate (defaulting to Sign Up, since that's what they
+  // came here for) — same as a normal guest log-out, local data untouched.
+  function promptGuestSignUp(){
+    ui.showPricing = false;
+    ui.confirmingTrial = false;
+    renderPricingPanel();
+    setCurrentAccountId(null);
+    state.currentAccount = null;
+    state.currentAccountEmail = null;
+    state.userDoc = null;
+    ui.authMode = 'signup';
+    ui.authError = null;
+    ui.authBusy = false;
+    ui.authDraft = { email: '', avatar: DEFAULT_AVATAR };
+    showAuthGateShell();
+    renderAuthGate();
+  }
 
   // Opens the appropriate Stripe Payment Link in a new tab, tagging it
   // with client_reference_id so a webhook can tie the payment back to
@@ -3520,6 +3655,20 @@
     }
     overlay.classList.remove('hidden');
 
+    if (state.currentAccount === 'guest'){
+      panel.innerHTML =
+        '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Go Pro</h3>' +
+          '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
+        '</div>' +
+        '<div class="paywall-body">' +
+          '<div class="paywall-icon">&#9733;</div>' +
+          '<div class="paywall-title">Sign up to go Pro</div>' +
+          '<div class="paywall-sub">Guest data doesn\u2019t sync or hold a subscription. Create a free account (or log in) to unlock Pro tiers.</div>' +
+          '<button class="paywall-unlock-btn" data-action="guest-signup-prompt">Sign Up / Log In</button>' +
+        '</div>';
+      return;
+    }
+
     if (isDevOverride()){
       panel.innerHTML =
         '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> SaviorFit Logger Pro</h3>' +
@@ -3601,9 +3750,7 @@
               '<div class="price-card-sub">$'+(PRICE_ANNUAL/12).toFixed(2)+'/mo billed annually</div>' +
               '<button class="price-cta-btn" data-action="start-checkout" data-plan="annual">Start Annual \u2014 $'+PRICE_ANNUAL.toFixed(2)+'/yr</button>' +
             '</div>') +
-        (state.currentAccount === 'guest'
-          ? '<div class="paywall-note">Create a free account first \u2014 Guest data doesn\u2019t sync or hold a subscription.</div>'
-          : '<div class="paywall-note">Secure checkout via Stripe. Manage or cancel anytime.</div>') +
+        '<div class="paywall-note">Secure checkout via Stripe. Manage or cancel anytime.</div>' +
       '</div>';
   }
 
@@ -3742,23 +3889,39 @@
               '<span><b>'+session.exercises.length+'</b> exercises</span>' +
               '<span><b>'+sessionSetCount(session)+'</b> sets</span>' +
               '<div class="session-meta-actions">' +
+                '<button class="unit-toggle" id="unitToggleBtn" data-action="toggle-unit">'+state.settings.unit.toUpperCase()+'</button>' +
                 '<button class="help-trigger-btn" data-action="open-help" aria-label="Help">?</button>' +
                 (session.exercises.length > 0 ? '<button class="reset-log-btn" data-action="reset-log" aria-label="Reset log">&#8635;</button>' : '') +
               '</div>' +
             '</div>';
 
     html += '<div class="section-label">Add Exercise</div>';
-    html += '<button class="btn-block mm-toggle-btn" data-action="toggle-muscle-map">Pick by muscle group</button>';
 
-    if (session.exercises.length > 0){
+    var muscleIconBtn = '<button class="mm-toggle-btn" data-action="toggle-muscle-map" title="Pick by muscle group" aria-label="Pick by muscle group">' +
+        '<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">' +
+          '<rect x="1" y="9" width="3" height="6" rx="1"/>' +
+          '<rect x="4.5" y="7" width="2.5" height="10" rx="1"/>' +
+          '<rect x="17" y="7" width="2.5" height="10" rx="1"/>' +
+          '<rect x="20" y="9" width="3" height="6" rx="1"/>' +
+          '<rect x="7" y="10.75" width="10" height="2.5" rx="1"/>' +
+        '</svg>' +
+      '</button>';
+
+    var addExerciseRow = '<div class="exercise-actions-row' + (session.exercises.length > 0 ? ' exercise-actions-row--after-list' : '') + '">' +
+          muscleIconBtn +
+          '<button class="add-exercise-bottom-btn" data-action="add-blank-exercise">' +
+            '<span class="plus-glyph">&#43;</span> Add Exercise' +
+          '</button>' +
+        '</div>';
+
+    if (session.exercises.length === 0){
+      html += addExerciseRow;
+    } else {
       session.exercises.forEach(function(ex){
         html += renderExerciseCard(session, ex);
       });
+      html += addExerciseRow;
     }
-
-    html += '<button class="add-exercise-bottom-btn" data-action="add-blank-exercise">' +
-              '<span class="plus-glyph">&#43;</span> Add Exercise' +
-            '</button>';
 
     if (session.exercises.length > 0){
       html += '<button class="btn-block save-routine-btn" data-action="save-routine">Save as Routine</button>';
@@ -4135,11 +4298,12 @@
     html += '<div class="settings-row"><div><div class="sr-label">'+esc(currentAccountEmail())+'</div>' +
               '<div class="sr-sub">'+(state.currentAccount==='guest' ? 'Guest — this device only' : 'Synced to your account')+'</div></div>' +
               '<button class="sr-action" data-action="log-out">Log out</button></div>';
-    if (state.currentAccount !== 'guest'){
-      html += '<div class="settings-row"><div><div class="sr-label">Delete account</div>' +
-                '<div class="sr-sub">Permanently erases this account and its log</div></div>' +
-                '<button class="sr-action sr-action-danger" data-action="delete-account">Delete</button></div>';
-    }
+    html += '</div>';
+
+    html += '<div class="section-label">Brief</div>';
+    html += '<div class="settings-group">';
+    html += '<div class="settings-row"><div><div class="sr-label">Brief</div><div class="sr-sub">Every add, edit, and rename \u2014 what changed and when</div></div>' +
+              '<button class="sr-action" data-action="open-brief">View</button></div>';
     html += '</div>';
 
     html += '<div class="section-label">Plan</div>';
@@ -4198,8 +4362,6 @@
               '<button class="sr-action" data-action="export-data">Export</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Import backup</div><div class="sr-sub">Restore from a JSON file</div></div>' +
               '<button class="sr-action" data-action="import-data">Import</button></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Brief</div><div class="sr-sub">Every add, edit, and rename \u2014 what changed and when</div></div>' +
-              '<button class="sr-action" data-action="open-brief">View</button></div>';
     if (state.currentAccount !== 'guest'){
       var pushOn = !!(state.userDoc && state.userDoc.fcmToken);
       html += '<div class="settings-row"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+(pushOn ? 'Enabled on this device' : 'Get a nudge when it\u2019s been a while')+'</div></div>' +
@@ -4217,6 +4379,13 @@
 
     html += '<div class="section-label">Danger zone</div>';
     html += '<button class="btn-danger" data-action="clear-data">Erase all data</button>';
+    if (state.currentAccount !== 'guest'){
+      html += '<div class="settings-group" style="margin-top:10px;">' +
+                '<div class="settings-row"><div><div class="sr-label">Delete account</div>' +
+                '<div class="sr-sub">Permanently erases this account and its log</div></div>' +
+                '<button class="sr-action sr-action-danger" data-action="delete-account">Delete</button></div>' +
+              '</div>';
+    }
 
     html += '<input type="file" id="importFile" accept="application/json" style="display:none;">';
 
@@ -4309,10 +4478,26 @@
     else if (state.tab === 'progress') renderProgress();
     else if (state.tab === 'settings') renderSettings();
 
-    document.getElementById('unitToggleBtn').textContent = state.settings.unit.toUpperCase();
+    var unitBtn = document.getElementById('unitToggleBtn');
+    if (unitBtn) unitBtn.textContent = state.settings.unit.toUpperCase();
 
     var uemail = currentAccountEmail();
-    document.getElementById('accountAvatarBtn').textContent = uemail.charAt(0).toUpperCase();
+    var isGuest = (state.currentAccount === 'guest');
+    var avatarBtnEl = document.getElementById('accountAvatarBtn');
+    var chosenAvatar = isGuest ? 'guest' : (state.settings && state.settings.avatar);
+    avatarBtnEl.innerHTML = chosenAvatar ? avatarSvg(chosenAvatar, 20) : esc(uemail.charAt(0).toUpperCase());
+    var avatarLabelEl = document.getElementById('accountMenuAvatarLabel');
+    var avatarGridEl = document.getElementById('accountMenuAvatarGrid');
+    if (avatarLabelEl) avatarLabelEl.classList.toggle('hidden', isGuest);
+    if (avatarGridEl){
+      avatarGridEl.classList.toggle('hidden', isGuest);
+      if (!isGuest && ui.showAccountMenu){
+        avatarGridEl.innerHTML = AVATAR_ORDER.map(function(key){
+          var isActive = chosenAvatar === key;
+          return '<button class="avatar-pick-btn'+(isActive?' active':'')+'" data-action="set-avatar" data-avatar="'+key+'" aria-label="'+key+' icon">'+avatarSvg(key,18)+'</button>';
+        }).join('');
+      }
+    }
     var menuNameEl = document.getElementById('accountMenuName');
     var proTag = isDevOverride() ? ' <span class="dev-badge">DEV</span>' : (isProActive() ? ' <span class="pro-badge-mini">PRO</span>' : '');
     menuNameEl.innerHTML = (state.currentAccount === 'guest' ? 'Guest — this device only' : esc(uemail)) + (state.currentAccount === 'guest' ? '' : proTag);
@@ -4455,9 +4640,19 @@
     }).then(function(isNewAccount){
       bootAccountData();
       subscribeUserDoc(uidVal);
-      showAppShell();
-      renderApp();
-      if (isNewAccount) sendWelcomePush();
+      if (isNewAccount){
+        // Brand-new account — hold off on the dashboard until they've
+        // picked an icon (see renderAvatarPickGate()). Start them on the
+        // default so there's always something valid saved either way.
+        state.settings.avatar = DEFAULT_AVATAR;
+        saveSettings();
+        sendWelcomePush();
+        ui.awaitingAvatarPick = true;
+        renderAuthGate();
+      } else {
+        showAppShell();
+        renderApp();
+      }
     });
   }
 
@@ -4482,7 +4677,8 @@
     ui.authMode = 'login';
     ui.authError = null;
     ui.authBusy = false;
-    ui.authDraft = { email: '' };
+    ui.authDraft = { email: '', avatar: DEFAULT_AVATAR };
+    ui.awaitingAvatarPick = false;
     ui.pendingDeleteAccount = false;
     ui.showPricing = false;
     if (!wasGuest && window.SaviorFirebase) window.SaviorFirebase.logOut();
@@ -4604,6 +4800,10 @@
   }
 
   function renderAuthGate(){
+    if (ui.awaitingAvatarPick){
+      renderAvatarPickGate();
+      return;
+    }
     var mode = ui.authMode || 'login';
     var busy = !!ui.authBusy;
     var html = '<div class="auth-card">';
@@ -4626,6 +4826,26 @@
             '</button>';
     html += '<button class="auth-guest-btn" data-action="continue-guest"'+(busy?' disabled':'')+'>Continue as Guest</button>';
     html += '<div class="auth-note">Accounts sync your workout log across devices. Guest mode stays on this device only.</div>';
+    html += '</div>';
+    document.getElementById('authGate').innerHTML = html;
+  }
+
+  // Shown once, right after a brand-new account is created (email/password
+  // or Google), before the dashboard is reachable. Selection is staged in
+  // ui.authDraft.avatar and only committed to state.settings on Continue,
+  // so idle taps in the grid don't trigger a save/sync each time.
+  function renderAvatarPickGate(){
+    var chosen = ui.authDraft.avatar || DEFAULT_AVATAR;
+    var html = '<div class="auth-card">';
+    html += '<div class="auth-title"><h1>SAVIORFIT <span>LOGGER</span></h1></div>';
+    html += '<div class="auth-avatar-label" style="margin-top:6px;">Pick an icon</div>';
+    html += '<div class="auth-avatar-grid">';
+    AVATAR_ORDER.forEach(function(key){
+      var isActive = chosen === key;
+      html += '<button type="button" class="avatar-pick-btn'+(isActive?' active':'')+'" data-action="pick-onboarding-avatar" data-avatar="'+key+'" aria-label="'+key+' icon">'+avatarSvg(key,22)+'</button>';
+    });
+    html += '</div>';
+    html += '<button class="auth-submit" data-action="confirm-onboarding-avatar">Continue</button>';
     html += '</div>';
     document.getElementById('authGate').innerHTML = html;
   }
@@ -5737,6 +5957,12 @@
     } else if (action === 'toggle-account-menu'){
       ui.showAccountMenu = !ui.showAccountMenu;
       renderApp();
+    } else if (action === 'set-avatar'){
+      if (state.currentAccount === 'guest') return; // fixed icon, not changeable
+      state.settings.avatar = el.dataset.avatar;
+      saveSettings();
+      ui.showAccountMenu = false;
+      renderApp();
     } else if (action === 'log-out'){
       ui.confirmModal = {
         kind: 'logout',
@@ -5971,6 +6197,15 @@
       continueAsGuest();
     } else if (action === 'continue-google'){
       handleGoogleSignIn();
+    } else if (action === 'pick-onboarding-avatar'){
+      ui.authDraft.avatar = el.dataset.avatar;
+      renderAuthGate();
+    } else if (action === 'confirm-onboarding-avatar'){
+      state.settings.avatar = ui.authDraft.avatar || DEFAULT_AVATAR;
+      saveSettings();
+      ui.awaitingAvatarPick = false;
+      showAppShell();
+      renderApp();
     }
   });
   authGateEl.addEventListener('input', function(e){
@@ -6138,6 +6373,8 @@
     if (!el) return;
     if (el.dataset.action === 'close-pricing'){
       closePricing();
+    } else if (el.dataset.action === 'guest-signup-prompt'){
+      promptGuestSignUp();
     } else if (el.dataset.action === 'set-billing-cycle'){
       var c = el.dataset.cycle;
       ui.billingCycle = (c === 'annual' || c === 'weekly') ? c : 'monthly';
