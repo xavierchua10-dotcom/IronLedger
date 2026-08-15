@@ -2115,8 +2115,6 @@
         <button class="account-avatar" id="accountAvatarBtn" data-action="toggle-account-menu">G</button>
         <div class="account-menu hidden" id="accountMenu">
           <div class="account-menu-name" id="accountMenuName">Guest</div>
-          <div class="account-menu-avatar-label" id="accountMenuAvatarLabel">Icon</div>
-          <div class="account-menu-avatar-grid" id="accountMenuAvatarGrid"></div>
           <button class="account-menu-logout" data-action="log-out">Log out</button>
         </div>
       </div>
@@ -2163,6 +2161,9 @@
 </div>
 <div class="confirm-overlay hidden" id="exTipOverlay">
   <div class="pro-panel" id="exTipPanel"></div>
+</div>
+<div class="confirm-overlay hidden" id="avatarPickOverlay">
+  <div class="pro-panel" id="avatarPickPanel"></div>
 </div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
@@ -2533,6 +2534,8 @@
     tabAnimating: false,    // true while a tab-slide transition is in progress
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
     showPricing: false,     // Pricing/upgrade modal open state
+    showAvatarPick: false,  // Profile icon picker overlay open state
+    avatarPickDraft: null,  // staged icon selection, applied only on confirm
     billingCycle: 'monthly', // 'monthly' | 'annual' — toggle state inside the pricing modal
     startingTrial: false,   // true while the "Start Free Trial" write is in flight
     confirmingTrial: false, // true while the inline "Start trial?" confirm step is shown
@@ -3453,6 +3456,59 @@
   }
 
   /* =========================================================
+     PROFILE ICON PICKER (Settings → Account)
+     Selecting an icon only stages it in ui.avatarPickDraft — nothing is
+     applied until Confirm is tapped, so a stray tap can't silently change
+     the account's icon.
+     ========================================================= */
+  function openAvatarPick(){
+    if (state.currentAccount === 'guest') return; // fixed icon, not changeable
+    ui.avatarPickDraft = state.settings.avatar || DEFAULT_AVATAR;
+    ui.showAvatarPick = true;
+    renderAvatarPickOverlay();
+  }
+  function closeAvatarPick(){
+    ui.showAvatarPick = false;
+    ui.avatarPickDraft = null;
+    renderAvatarPickOverlay();
+  }
+  function confirmAvatarPick(){
+    if (ui.avatarPickDraft){
+      state.settings.avatar = ui.avatarPickDraft;
+      saveSettings();
+    }
+    ui.showAvatarPick = false;
+    ui.avatarPickDraft = null;
+    renderApp();
+  }
+  function renderAvatarPickOverlay(){
+    var overlay = document.getElementById('avatarPickOverlay');
+    var panel = document.getElementById('avatarPickPanel');
+    if (!ui.showAvatarPick){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var draft = ui.avatarPickDraft || state.settings.avatar || DEFAULT_AVATAR;
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Profile icon</h3>' +
+        '<button class="pro-panel-close" data-action="close-avatar-pick" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' +
+        '<div class="account-menu-avatar-grid" style="margin-bottom:0;">' +
+          AVATAR_ORDER.map(function(key){
+            var isActive = draft === key;
+            return '<button type="button" class="avatar-pick-btn'+(isActive?' active':'')+'" data-action="pick-avatar-draft" data-avatar="'+key+'" aria-label="'+key+' icon">'+avatarSvg(key,18)+'</button>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+      '<div class="pro-panel-footer">' +
+        '<button class="pro-print-btn" data-action="confirm-avatar-pick">Save</button>' +
+      '</div>';
+  }
+
+  /* =========================================================
      PRICING MODAL  (Basic → Pro upgrade)
      ========================================================= */
   function openPricing(){
@@ -4230,7 +4286,7 @@
           '<div class="progress-lock-icon">&#128274;</div>' +
           '<div class="progress-lock-title">Progress is a Pro feature</div>' +
           '<div class="progress-lock-sub">Basic gives you '+PROGRESS_FREE_DAYS_PER_MONTH+' days of Progress access each calendar month. Go Pro for unlimited access.</div>' +
-          '<button class="progress-lock-cta" data-action="open-pricing"><span>&#9733;</span> Upgrade to Pro</button>' +
+          '<button class="progress-lock-cta" data-action="open-pricing"><span>&#9733;</span> ' + (state.currentAccount === 'guest' ? 'Create an account to go Pro' : 'See Pro plans') + '</button>' +
         '</div>';
       html = '<div class="progress-tab-wrap"><div class="progress-blur">' + html + '</div>' + lockHtml + '</div>';
     }
@@ -4314,6 +4370,11 @@
     html += '<div class="settings-row"><div><div class="sr-label">'+esc(currentAccountEmail())+'</div>' +
               '<div class="sr-sub">'+(state.currentAccount==='guest' ? 'Guest — this device only' : 'Synced to your account')+'</div></div>' +
               '<button class="sr-action" data-action="log-out">Log out</button></div>';
+    if (state.currentAccount !== 'guest'){
+      html += '<div class="settings-row"><div><div class="sr-label">Profile icon</div>' +
+                '<div class="sr-sub">Choose how your account appears</div></div>' +
+                '<button class="sr-action" data-action="open-avatar-pick">Change</button></div>';
+    }
     html += '</div>';
 
     html += '<div class="section-label">Brief</div>';
@@ -4502,18 +4563,6 @@
     var avatarBtnEl = document.getElementById('accountAvatarBtn');
     var chosenAvatar = isGuest ? 'guest' : (state.settings && state.settings.avatar);
     avatarBtnEl.innerHTML = chosenAvatar ? avatarSvg(chosenAvatar, 20) : esc(uemail.charAt(0).toUpperCase());
-    var avatarLabelEl = document.getElementById('accountMenuAvatarLabel');
-    var avatarGridEl = document.getElementById('accountMenuAvatarGrid');
-    if (avatarLabelEl) avatarLabelEl.classList.toggle('hidden', isGuest);
-    if (avatarGridEl){
-      avatarGridEl.classList.toggle('hidden', isGuest);
-      if (!isGuest && ui.showAccountMenu){
-        avatarGridEl.innerHTML = AVATAR_ORDER.map(function(key){
-          var isActive = chosenAvatar === key;
-          return '<button class="avatar-pick-btn'+(isActive?' active':'')+'" data-action="set-avatar" data-avatar="'+key+'" aria-label="'+key+' icon">'+avatarSvg(key,18)+'</button>';
-        }).join('');
-      }
-    }
     var menuNameEl = document.getElementById('accountMenuName');
     var proTag = isDevOverride() ? ' <span class="dev-badge">DEV</span>' : (isProActive() ? ' <span class="pro-badge-mini">PRO</span>' : '');
     menuNameEl.innerHTML = (state.currentAccount === 'guest' ? 'Guest — this device only' : esc(uemail)) + (state.currentAccount === 'guest' ? '' : proTag);
@@ -4546,6 +4595,7 @@
     renderRoutineNamePanel();
     renderHelpOverlay();
     renderBriefOverlay();
+    renderAvatarPickOverlay();
     var addSetGlobalBtnEl = document.querySelector('.add-set-global-btn');
     if (addSetGlobalBtnEl) addSetGlobalBtnEl.classList.add('hidden');
     refreshAddSetGlobalBtn();
@@ -5973,12 +6023,8 @@
     } else if (action === 'toggle-account-menu'){
       ui.showAccountMenu = !ui.showAccountMenu;
       renderApp();
-    } else if (action === 'set-avatar'){
-      if (state.currentAccount === 'guest') return; // fixed icon, not changeable
-      state.settings.avatar = el.dataset.avatar;
-      saveSettings();
-      ui.showAccountMenu = false;
-      renderApp();
+    } else if (action === 'open-avatar-pick'){
+      openAvatarPick();
     } else if (action === 'log-out'){
       ui.confirmModal = {
         kind: 'logout',
@@ -6448,6 +6494,24 @@
     }
   });
 
+  var avatarPickOverlayEl = document.getElementById('avatarPickOverlay');
+  avatarPickOverlayEl.addEventListener('click', function(e){
+    if (e.target === avatarPickOverlayEl){
+      closeAvatarPick();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-avatar-pick'){
+      closeAvatarPick();
+    } else if (el.dataset.action === 'pick-avatar-draft'){
+      ui.avatarPickDraft = el.dataset.avatar;
+      renderAvatarPickOverlay();
+    } else if (el.dataset.action === 'confirm-avatar-pick'){
+      confirmAvatarPick();
+    }
+  });
+
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     if (ui.confirmModal){
@@ -6467,6 +6531,8 @@
       closePrintMenu();
     } else if (ui.showExTip){
       closeExTip();
+    } else if (ui.showAvatarPick){
+      closeAvatarPick();
     } else if (ui.showMuscleMap){
       ui.showMuscleMap = false;
       ui.selectedMuscle = null;
