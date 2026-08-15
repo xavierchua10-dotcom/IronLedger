@@ -2057,6 +2057,9 @@
   import {
     getFirestore, doc, setDoc, getDoc, deleteDoc, enableIndexedDbPersistence, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import {
+    getMessaging, getToken, onMessage, isSupported as isMessagingSupported
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
 
   // ---- PASTE YOUR FIREBASE PROJECT CONFIG HERE ----
   // Firebase console → Project settings → Your apps → SDK setup and config
@@ -2078,6 +2081,32 @@
   // Lets writes/reads queue locally and sync automatically when back
   // online, instead of failing outright while offline.
   enableIndexedDbPersistence(db).catch(function(){ /* multiple tabs open, or unsupported browser — sync just won't be offline-durable, not fatal */ });
+
+  // ---------------------------------------------------
+  // PUSH NOTIFICATIONS (Firebase Cloud Messaging)
+  // Wrapped so a browser that doesn't support messaging (older Safari,
+  // no service-worker support, etc.) can never throw during module load
+  // and take the rest of Firebase (auth/sync) down with it — every
+  // messaging call below resolves to null instead on failure.
+  // ---------------------------------------------------
+  var messagingInstance = null;
+  var messagingChecked = false;
+  function getMessagingInstance(){
+    if (messagingChecked) return Promise.resolve(messagingInstance);
+    return isMessagingSupported().then(function(supported){
+      messagingChecked = true;
+      if (!supported) return null;
+      try {
+        messagingInstance = getMessaging(app);
+      } catch (e){
+        messagingInstance = null;
+      }
+      return messagingInstance;
+    }).catch(function(){
+      messagingChecked = true;
+      return null;
+    });
+  }
 
   // The one email that gets permanent Pro, no payment or trial/expiry
   // check ever applied to it. Kept here (not just in the app script)
@@ -2158,6 +2187,11 @@
           updatedAt: now
         };
         return setDoc(ref, fresh, { merge: true }).then(function(){
+          // __isNewAccount is an in-memory-only marker for enterAccount()
+          // to detect "just signed up" and trigger the welcome push —
+          // it was never included in the setDoc call above, so it's
+          // never written to Firestore, only seen on this one resolve.
+          fresh.__isNewAccount = true;
           return fresh;
         });
       });
@@ -2191,6 +2225,39 @@
     // Security rules block this same path from writing tier/isDev/subscription.
     updateUserDoc: function(uidVal, data){
       return setDoc(doc(db, 'users', uidVal), data, { merge: true });
+    },
+    // Asks for notification permission, then exchanges it for an FCM
+    // token scoped to the page's already-registered service worker
+    // (sw.js) — reused rather than a separate firebase-messaging-sw.js,
+    // so there's only one service worker controlling the page. sw.js
+    // itself needs the Firebase Messaging background-handler snippet
+    // added to it for this to actually work; see the setup notes.
+    // Resolves to the token string, or null if permission was denied,
+    // messaging isn't supported in this browser, or anything failed.
+    requestPushToken: function(vapidKey){
+      if (!('Notification' in window) || !('serviceWorker' in navigator)){
+        return Promise.resolve(null);
+      }
+      return Notification.requestPermission().then(function(permission){
+        if (permission !== 'granted') return null;
+        return navigator.serviceWorker.ready.then(function(reg){
+          return getMessagingInstance().then(function(messaging){
+            if (!messaging) return null;
+            return getToken(messaging, { vapidKey: vapidKey, serviceWorkerRegistration: reg });
+          });
+        });
+      }).catch(function(err){
+        console.error('Push permission/token failed:', err);
+        return null;
+      });
+    },
+    // Fires cb(payload) for a push that arrives while this tab is open
+    // and focused. Background pushes (tab closed/backgrounded) are
+    // handled entirely inside sw.js instead — this never sees those.
+    onForegroundPush: function(cb){
+      getMessagingInstance().then(function(messaging){
+        if (messaging) onMessage(messaging, cb);
+      });
     }
   };
 
@@ -2252,6 +2319,16 @@
   // Customer Portal so a paying user can cancel/switch plans/update
   // their card themselves, without messaging Xavier directly.
   var PORTAL_ENDPOINT = 'https://ubiquitous-gaufre-bcda53.netlify.app/.netlify/functions/create-portal-session';
+  // Firebase console → Project settings → Cloud Messaging → Web Push
+  // certificates → generate/copy the key pair. Required before push
+  // notifications can be enabled; requestPushToken() silently resolves
+  // to null without a real key here.
+  var FCM_VAPID_KEY = 'BBEwAFY4aYKpnWMsgo2bGe1X4jKT_32UtP_SBcOTfyJHhvE_LcRdQxe6l9HppjC_dULjIlutaYC-S_m7j347NlM';
+  // Same Netlify site, one more function — sends the one-time "welcome"
+  // push right after a brand-new account is created (see enterAccount).
+  // Needs to be added to the Netlify functions folder; it isn't built
+  // yet as of this comment. See setup notes for its expected shape.
+  var WELCOME_PUSH_ENDPOINT = 'https://ubiquitous-gaufre-bcda53.netlify.app/.netlify/functions/send-welcome-push';
 
   var state = {
     sessions: [],
@@ -2304,7 +2381,8 @@
     billingCycle: 'monthly', // 'monthly' | 'annual' — toggle state inside the pricing modal
     startingTrial: false,   // true while the "Start Free Trial" write is in flight
     confirmingTrial: false, // true while the inline "Start trial?" confirm step is shown
-    openingPortal: false    // true while a Stripe Customer Portal link is being requested
+    openingPortal: false,    // true while a Stripe Customer Portal link is being requested
+    pushBusy: false          // true while requesting notification permission / saving the FCM token
   };
 
   /* =========================================================
@@ -3320,6 +3398,70 @@
     });
   }
 
+  function enablePushNotifications(){
+    if (state.currentAccount === 'guest'){
+      showToast('Create an account first \u2014 push needs somewhere to save the subscription');
+      return;
+    }
+    if (!window.SaviorFirebase || !window.SaviorFirebase.requestPushToken){
+      showToast('Push isn\u2019t supported in this browser');
+      return;
+    }
+    if (ui.pushBusy) return;
+    ui.pushBusy = true;
+    renderApp();
+    window.SaviorFirebase.requestPushToken(FCM_VAPID_KEY).then(function(token){
+      ui.pushBusy = false;
+      if (!token){
+        renderApp();
+        showToast('Notifications weren\u2019t enabled \u2014 permission denied or unsupported here');
+        return;
+      }
+      window.SaviorFirebase.updateUserDoc(state.currentAccount, {
+        fcmToken: token,
+        fcmTokenUpdatedAt: Date.now()
+      }).then(function(){
+        showToast('Notifications enabled');
+        renderApp();
+      }).catch(function(err){
+        renderApp();
+        showToast('Got permission, but couldn\u2019t save it \u2014 try again shortly');
+        console.error('Saving FCM token failed:', err);
+      });
+    }).catch(function(err){
+      ui.pushBusy = false;
+      renderApp();
+      showToast('Notifications weren\u2019t enabled \u2014 try again shortly');
+      console.error('requestPushToken failed:', err);
+    });
+  }
+
+  function sendWelcomePush(){
+    if (state.currentAccount === 'guest' || !window.SaviorFirebase || !window.SaviorFirebase.requestPushToken){
+      return;
+    }
+    window.SaviorFirebase.requestPushToken(FCM_VAPID_KEY).then(function(token){
+      if (!token) return; // permission denied or unsupported — skip quietly, no nagging at signup
+      return window.SaviorFirebase.updateUserDoc(state.currentAccount, {
+        fcmToken: token,
+        fcmTokenUpdatedAt: Date.now()
+      }).then(function(){
+        if (!WELCOME_PUSH_ENDPOINT || !window.SaviorFirebase.getIdToken) return;
+        return window.SaviorFirebase.getIdToken().then(function(idToken){
+          if (!idToken) return;
+          return fetch(WELCOME_PUSH_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' }
+          }).catch(function(err){
+            console.error('send-welcome-push request failed:', err);
+          });
+        });
+      });
+    }).catch(function(err){
+      console.error('sendWelcomePush failed:', err);
+    });
+  }
+
   function renderPricingPanel(){
     var overlay = document.getElementById('pricingOverlay');
     var panel = document.getElementById('pricingPanel');
@@ -4010,6 +4152,11 @@
               '<button class="sr-action" data-action="import-data">Import</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Brief</div><div class="sr-sub">Every add, edit, and rename \u2014 what changed and when</div></div>' +
               '<button class="sr-action" data-action="open-brief">View</button></div>';
+    if (state.currentAccount !== 'guest'){
+      var pushOn = !!(state.userDoc && state.userDoc.fcmToken);
+      html += '<div class="settings-row"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+(pushOn ? 'Enabled on this device' : 'Get a nudge when it\u2019s been a while')+'</div></div>' +
+                '<button class="sr-action" data-action="enable-push"'+(ui.pushBusy ? ' disabled' : '')+'>'+(ui.pushBusy ? '\u2026' : (pushOn ? 'Re-enable' : 'Enable'))+'</button></div>';
+    }
     html += '</div>';
 
     html += '<div class="section-label">Support</div>';
@@ -4241,20 +4388,28 @@
     Promise.all([pull, ensureDoc]).then(function(results){
       var remote = results[0];
       state.userDoc = results[1];
+      // See ensureUserDoc — this in-memory-only marker means the
+      // /users/{uid} doc was just created for the first time (a real
+      // signup, or a first-ever Google sign-in), not a returning login.
+      var isNewAccount = !!(state.userDoc && state.userDoc.__isNewAccount);
+      if (state.userDoc) delete state.userDoc.__isNewAccount;
       if (remote){
         if (remote.sessions) localStorage.setItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(remote.sessions));
         if (remote.routines) localStorage.setItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(remote.routines));
         if (remote.settings) localStorage.setItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(remote.settings));
       }
+      return isNewAccount;
     }).catch(function(err){
       // Offline or first login with nothing synced yet — fall back to
       // whatever's cached locally on this device rather than blocking.
       console.error('Firestore pull failed:', err);
-    }).then(function(){
+      return false;
+    }).then(function(isNewAccount){
       bootAccountData();
       subscribeUserDoc(uidVal);
       showAppShell();
       renderApp();
+      if (isNewAccount) sendWelcomePush();
     });
   }
 
@@ -5650,6 +5805,8 @@
       openHelp();
     } else if (action === 'open-brief'){
       openBrief();
+    } else if (action === 'enable-push'){
+      enablePushNotifications();
     } else if (action === 'open-pricing'){
       openPricing();
     }
@@ -6031,6 +6188,23 @@
     });
   }
   initAuthListener();
+
+  // Foreground push: while this tab is open and focused, FCM delivers
+  // the payload here instead of as a native OS notification (that only
+  // happens for background/closed tabs, handled inside sw.js). Just
+  // surface it as a toast so it's not silently dropped.
+  (function initForegroundPush(){
+    if (!window.SaviorFirebase || !window.SaviorFirebase.onForegroundPush){
+      setTimeout(initForegroundPush, 50);
+      return;
+    }
+    window.SaviorFirebase.onForegroundPush(function(payload){
+      var body = (payload && payload.notification && payload.notification.body)
+        || (payload && payload.data && payload.data.body)
+        || 'New notification';
+      showToast(body);
+    });
+  })();
 
   // Keeps the trial-countdown banner's wording fresh while the app sits
   // open (e.g. "2 days left" -> "1 day left") without needing any other
