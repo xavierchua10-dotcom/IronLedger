@@ -1890,6 +1890,15 @@
     padding:24px;
     z-index:100;
   }
+  /* The confirm/"are you sure?" dialog can be triggered from inside any
+     other overlay (Brief's Clear all, History's Delete session, Danger
+     Zone, etc.) — it needs to always win the stacking order regardless
+     of which overlay opened it, not just whichever happens to sit later
+     in the HTML. Every other overlay shares the same z-index as the one
+     above, so document order decides ties; this one's z-index is bumped
+     above all of them so it's never buried behind whatever it was
+     opened on top of. */
+  #confirmOverlay{ z-index:150; }
   .confirm-overlay.hidden{display:none;}
   .confirm-panel{
     width:100%;
@@ -5499,6 +5508,17 @@
     saveActivityLog();
     renderBriefOverlay();
   }
+  function confirmDeleteBriefEntry(entryId){
+    ui.confirmModal = {
+      kind: 'brief-entry',
+      entryId: entryId,
+      title: 'Delete this entry?',
+      message: 'This removes just this one line from the Brief. Nothing else is affected.',
+      confirmLabel: 'Delete',
+      variant: 'danger'
+    };
+    renderConfirmModal();
+  }
   function clearBrief(){
     state.activityLog = [];
     saveActivityLog();
@@ -5995,6 +6015,7 @@
       else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
       else if (m && m.kind === 'clear-data') clearAllData();
       else if (m && m.kind === 'clear-brief') clearBrief();
+      else if (m && m.kind === 'brief-entry') deleteBriefEntry(m.entryId);
       else if (m && m.kind === 'reset-log') resetLog();
       else if (m && m.kind === 'logout') logOut();
       else if (m && m.kind === 'delete-account') deleteAccount();
@@ -6072,7 +6093,7 @@
     var el = e.target.closest('[data-action]');
     if (!el) return;
     if (el.dataset.action === 'close-brief') closeBrief();
-    else if (el.dataset.action === 'delete-brief-entry') deleteBriefEntry(el.dataset.entry);
+    else if (el.dataset.action === 'delete-brief-entry') confirmDeleteBriefEntry(el.dataset.entry);
     else if (el.dataset.action === 'open-pricing'){
       closeBrief();
       openPricing();
