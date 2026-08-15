@@ -2232,23 +2232,28 @@
     // so there's only one service worker controlling the page. sw.js
     // itself needs the Firebase Messaging background-handler snippet
     // added to it for this to actually work; see the setup notes.
-    // Resolves to the token string, or null if permission was denied,
-    // messaging isn't supported in this browser, or anything failed.
+    // Resolves to { token, error } — token is null on any failure, with
+    // error set to a short diagnostic string (permission state, "not
+    // supported", or the underlying getToken() error name/message) so
+    // the caller can surface exactly what went wrong instead of a
+    // generic "didn't work."
     requestPushToken: function(vapidKey){
       if (!('Notification' in window) || !('serviceWorker' in navigator)){
-        return Promise.resolve(null);
+        return Promise.resolve({ token: null, error: 'not supported in this browser' });
       }
       return Notification.requestPermission().then(function(permission){
-        if (permission !== 'granted') return null;
+        if (permission !== 'granted') return { token: null, error: 'permission: ' + permission };
         return navigator.serviceWorker.ready.then(function(reg){
           return getMessagingInstance().then(function(messaging){
-            if (!messaging) return null;
-            return getToken(messaging, { vapidKey: vapidKey, serviceWorkerRegistration: reg });
+            if (!messaging) return { token: null, error: 'messaging unsupported in this browser' };
+            return getToken(messaging, { vapidKey: vapidKey, serviceWorkerRegistration: reg })
+              .then(function(token){ return { token: token, error: null }; });
           });
         });
       }).catch(function(err){
         console.error('Push permission/token failed:', err);
-        return null;
+        var msg = err && (err.code || err.message) ? (err.code || err.message) : String(err);
+        return { token: null, error: msg };
       });
     },
     // Fires cb(payload) for a push that arrives while this tab is open
@@ -3410,11 +3415,12 @@
     if (ui.pushBusy) return;
     ui.pushBusy = true;
     renderApp();
-    window.SaviorFirebase.requestPushToken(FCM_VAPID_KEY).then(function(token){
+    window.SaviorFirebase.requestPushToken(FCM_VAPID_KEY).then(function(result){
       ui.pushBusy = false;
+      var token = result && result.token;
       if (!token){
         renderApp();
-        showToast('Notifications weren\u2019t enabled \u2014 permission denied or unsupported here');
+        showToast('Not enabled \u2014 ' + ((result && result.error) || 'unknown error'));
         return;
       }
       window.SaviorFirebase.updateUserDoc(state.currentAccount, {
@@ -3440,8 +3446,12 @@
     if (state.currentAccount === 'guest' || !window.SaviorFirebase || !window.SaviorFirebase.requestPushToken){
       return;
     }
-    window.SaviorFirebase.requestPushToken(FCM_VAPID_KEY).then(function(token){
-      if (!token) return; // permission denied or unsupported — skip quietly, no nagging at signup
+    window.SaviorFirebase.requestPushToken(FCM_VAPID_KEY).then(function(result){
+      var token = result && result.token;
+      if (!token){
+        console.error('sendWelcomePush: no token \u2014', result && result.error);
+        return; // permission denied or unsupported — skip quietly, no nagging at signup
+      }
       return window.SaviorFirebase.updateUserDoc(state.currentAccount, {
         fcmToken: token,
         fcmTokenUpdatedAt: Date.now()
