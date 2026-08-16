@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Iron Ledger",
-  "short_name": "Iron Ledger",
+  "name": "SaviorFit Logger",
+  "short_name": "SaviorFit",
   "description": "Log your lifts. Any style, any split.",
   "start_url": ".",
   "scope": ".",
