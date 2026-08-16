@@ -2248,7 +2248,7 @@
   // so the very first Firestore doc this account gets is already
   // correctly tagged isDev:true.
   var DEV_OVERRIDE_EMAIL = 'xavierchua10@gmail.com';
-  var TRIAL_DAYS = 3;
+  var TRIAL_DAYS = 14;
 
   window.SaviorFirebase = {
     signUp: function(email, password){
@@ -2297,7 +2297,7 @@
     },
     // Creates the /users/{uid} tier/subscription fields exactly once,
     // the first time this account is ever seen. Does NOT start the
-    // 3-day free trial — trial only begins when the user explicitly
+    // 14-day free trial — trial only begins when the user explicitly
     // taps "Start Free Trial" in the pricing modal (see startTrial()
     // below). Dev override email still gets permanent Pro immediately.
     // Safe to call on every login: it's a no-op once the doc exists.
@@ -2425,7 +2425,7 @@
      SUBSCRIPTION / PRO TIER
      Basic (free) vs Pro. Pro is unlocked by, in priority order:
        1. the developer override email — permanent, no checks
-       2. an active 3-day free trial (trialEndDate) — NOT started
+       2. an active 14-day free trial (trialEndDate) — NOT started
           automatically at signup; only begins the moment the user
           taps "Start Free Trial" in the pricing modal (see
           startFreeTrial() / trialAvailable() below)
@@ -2435,7 +2435,7 @@
      are always Basic, with no trial (trials require a real account).
      ========================================================= */
   var DEV_OVERRIDE_EMAIL = 'xavierchua10@gmail.com';
-  var TRIAL_DAYS = 3;
+  var TRIAL_DAYS = 14;
   var PROGRESS_FREE_DAYS_PER_MONTH = 3;
   var PRICE_WEEKLY = 1.99;
   var PRICE_MONTHLY = 9.99;
@@ -3614,7 +3614,7 @@
   }
 
   // True only for a real (non-guest) account that has never started its
-  // one-time 3-day trial. Once trialStartDate is set — whether the trial
+  // one-time 14-day trial. Once trialStartDate is set — whether the trial
   // is still running or has since expired — this goes false for good.
   function trialAvailable(){
     if (state.currentAccount === 'guest' || isDevOverride()) return false;
@@ -3624,7 +3624,8 @@
   // Fired by the "Start Free Trial" button in the pricing modal. Writes
   // trialStartDate/trialEndDate to Firestore, then refreshes every UI
   // surface that depends on trial state (pricing modal, trial banner,
-  // Settings, the gold star icon).
+  // Settings, the gold star icon). One-time 14-day trial — see
+  // TRIAL_DAYS above.
   // Fires the "your trial has started" email in the background — never
   // awaited by the caller, never blocks the trial itself from starting,
   // and any failure here is just logged, not surfaced to the user (an
@@ -3653,7 +3654,7 @@
       ui.confirmingTrial = false;
       renderApp();
       renderPricingPanel();
-      showToast('Free trial started \u2014 3 days of Pro unlocked');
+      showToast('Free trial started \u2014 14 days of Pro unlocked');
       sendTrialStartEmail();
     }).catch(function(err){
       ui.startingTrial = false;
@@ -3839,14 +3840,14 @@
           ? (ui.confirmingTrial
               ? '<div class="trial-offer-card">' +
                   '<div class="trial-offer-title">Start your free trial?</div>' +
-                  '<div class="trial-offer-sub">3 days of full Pro access begins right now. You can only do this once per account.</div>' +
+                  '<div class="trial-offer-sub">14 days of full Pro access begins right now. You can only do this once per account.</div>' +
                   '<div class="trial-offer-confirm-row">' +
                     '<button class="trial-offer-cancel-btn" data-action="cancel-start-trial"'+(ui.startingTrial?' disabled':'')+'>Cancel</button>' +
                     '<button class="trial-offer-btn" data-action="start-free-trial"'+(ui.startingTrial?' disabled':'')+'>'+(ui.startingTrial?'Starting\u2026':'Yes, Start Trial')+'</button>' +
                   '</div>' +
                 '</div>'
               : '<div class="trial-offer-card">' +
-                  '<div class="trial-offer-title">&#9733; Try Pro free for 3 days</div>' +
+                  '<div class="trial-offer-title">&#9733; Try Pro free for 14 days</div>' +
                   '<div class="trial-offer-sub">No card needed. Cancel anytime \u2014 or just let it lapse back to Basic.</div>' +
                   '<button class="trial-offer-btn" data-action="request-start-trial">Start Free Trial</button>' +
                 '</div>') +
@@ -4444,7 +4445,7 @@
     html += '<div class="settings-group">';
     if (state.currentAccount === 'guest'){
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
-                '<div class="sr-sub">Create a free account, then start a 3-day Pro trial anytime</div></div></div>';
+                '<div class="sr-sub">Create a free account, then start a 14-day Pro trial anytime</div></div></div>';
     } else if (isDevOverride()){
       html += '<div class="settings-row"><div><div class="sr-label">&#9733; Pro <span class="dev-badge">DEV</span></div>' +
                 '<div class="sr-sub">Developer account — permanent Pro access</div></div></div>';
@@ -4454,7 +4455,7 @@
                 '<button class="sr-action" data-action="open-pricing">Manage</button></div>';
     } else if (trialAvailable()){
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
-                '<div class="sr-sub">Try 3 days of Pro free \u2014 no card needed</div></div>' +
+                '<div class="sr-sub">Try 14 days of Pro free \u2014 no card needed</div></div>' +
                 '<button class="sr-action" data-action="open-pricing">Start Trial</button></div>';
     } else {
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
