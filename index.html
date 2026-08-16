@@ -2152,6 +2152,9 @@
 <div class="confirm-overlay hidden" id="routineNameOverlay">
   <div class="confirm-panel" id="routineNamePanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="deletePasswordOverlay">
+  <div class="confirm-panel" id="deletePasswordPanel"></div>
+</div>
 <div class="confirm-overlay hidden" id="helpOverlay">
   <div class="help-panel" id="helpPanel"></div>
 </div>
@@ -2187,7 +2190,8 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-    signOut, onAuthStateChanged, deleteUser, GoogleAuthProvider, signInWithPopup
+    signOut, onAuthStateChanged, deleteUser, GoogleAuthProvider, signInWithPopup,
+    reauthenticateWithCredential, EmailAuthProvider, reauthenticateWithPopup
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     getFirestore, doc, setDoc, getDoc, deleteDoc, enableIndexedDbPersistence, onSnapshot
@@ -2265,6 +2269,36 @@
     },
     deleteCurrentUser: function(){
       return auth.currentUser ? deleteUser(auth.currentUser) : Promise.resolve();
+    },
+    // True for an account that signed in with Google only (no email/password
+    // credential on file) — those accounts have no password to check, so
+    // re-auth has to go through a Google popup instead. Synchronous: just
+    // reads the already-loaded currentUser's providerData, no network call.
+    isGoogleOnlyAccount: function(){
+      var user = auth.currentUser;
+      if (!user || !user.providerData) return false;
+      var hasGoogle = user.providerData.some(function(p){ return p.providerId === 'google.com'; });
+      var hasPassword = user.providerData.some(function(p){ return p.providerId === 'password'; });
+      return hasGoogle && !hasPassword;
+    },
+    // Re-proves the currently signed-in user's identity right before a
+    // destructive action (account deletion) — Firebase requires a recent
+    // sign-in for deleteUser() anyway, and this doubles as an explicit
+    // "are you really you" check so a device left unlocked/logged-in
+    // can't have its account deleted by someone else in one tap.
+    // Google-only accounts re-auth via popup and ignore the password arg;
+    // email/password accounts need a non-empty password.
+    reauthenticate: function(password){
+      var user = auth.currentUser;
+      if (!user) return Promise.reject({ code: 'auth/no-current-user' });
+      var hasGoogle = user.providerData.some(function(p){ return p.providerId === 'google.com'; });
+      var hasPassword = user.providerData.some(function(p){ return p.providerId === 'password'; });
+      if (hasGoogle && !hasPassword){
+        return reauthenticateWithPopup(user, googleProvider);
+      }
+      if (!password) return Promise.reject({ code: 'auth/missing-password' });
+      var cred = EmailAuthProvider.credential(user.email, password);
+      return reauthenticateWithCredential(user, cred);
     },
     onAuthChange: function(cb){
       return onAuthStateChanged(auth, cb);
@@ -2523,6 +2557,9 @@
     awaitingAvatarPick: false,   // true right after a brand-new account is created, until they pick an icon
     confirmModal: null,           // { kind:'exercise'|'set'|'session', title, message, exId, setId, sessionId } or null
     pendingDeleteAccount: false,
+    confirmingDeleteAccountPassword: false,  // true while the post-countdown re-auth panel is open
+    deleteAccountPasswordBusy: false,
+    deleteAccountPasswordError: null,
     freshPRSetId: null,    // id of a just-logged set that should play the PR pulse animation once
     activeExId: null,      // exercise whose weight/reps inputs were last focused — used by the global Add Set button
     draftSets: {},          // exId -> { weight, reps } — unsaved input, kept across collapse/expand or tab switches
@@ -4651,6 +4688,7 @@
     renderMuscleMapOverlay();
     renderConfirmModal();
     renderRoutineNamePanel();
+    renderDeleteAccountPasswordPanel();
     renderHelpOverlay();
     renderBriefOverlay();
     renderAvatarPickOverlay();
@@ -4844,6 +4882,98 @@
     } else {
       logOut();
       showToast('Account deleted');
+    }
+  }
+
+  /* =========================================================
+     DELETE ACCOUNT — RE-AUTH STEP
+     After the danger-zone countdown confirm, before deleteAccount()
+     actually runs, the user has to re-prove who they are: password for
+     email/password accounts, a Google popup for Google-only accounts.
+     Wrong password (or a canceled/failed Google popup) aborts the whole
+     flow — no retry loop, no deletion, just back to Settings with the
+     account untouched. They can tap Delete again from Settings to
+     restart the flow from the top if it was a typo.
+     ========================================================= */
+  function openDeleteAccountPasswordConfirm(){
+    if (!window.SaviorFirebase || !window.SaviorFirebase.reauthenticate) return;
+    ui.confirmingDeleteAccountPassword = true;
+    ui.deleteAccountPasswordBusy = false;
+    ui.deleteAccountPasswordError = null;
+    renderDeleteAccountPasswordPanel();
+  }
+
+  function cancelDeleteAccountPasswordConfirm(){
+    ui.confirmingDeleteAccountPassword = false;
+    ui.deleteAccountPasswordBusy = false;
+    ui.deleteAccountPasswordError = null;
+    renderDeleteAccountPasswordPanel();
+  }
+
+  // Wrong password / failed Google re-auth -> abort back to the account,
+  // no deletion, no retry loop. Only a genuine successful re-auth reaches
+  // deleteAccount() below.
+  function submitDeleteAccountPasswordConfirm(){
+    if (ui.deleteAccountPasswordBusy) return;
+    var isGoogleOnly = window.SaviorFirebase.isGoogleOnlyAccount && window.SaviorFirebase.isGoogleOnlyAccount();
+    var passwordInput = document.getElementById('deletePasswordInput');
+    var password = isGoogleOnly ? null : (passwordInput ? passwordInput.value : '');
+    if (!isGoogleOnly && !password){
+      ui.deleteAccountPasswordError = 'Enter your password';
+      renderDeleteAccountPasswordPanel();
+      return;
+    }
+    ui.deleteAccountPasswordBusy = true;
+    ui.deleteAccountPasswordError = null;
+    renderDeleteAccountPasswordPanel();
+    window.SaviorFirebase.reauthenticate(password).then(function(){
+      ui.confirmingDeleteAccountPassword = false;
+      ui.deleteAccountPasswordBusy = false;
+      renderDeleteAccountPasswordPanel();
+      deleteAccount();
+    }).catch(function(err){
+      // Any failure — wrong password, canceled Google popup, network
+      // issue — aborts the deletion entirely and returns to the account.
+      ui.confirmingDeleteAccountPassword = false;
+      ui.deleteAccountPasswordBusy = false;
+      ui.deleteAccountPasswordError = null;
+      renderDeleteAccountPasswordPanel();
+      var isCanceledPopup = err && (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request');
+      showToast(isCanceledPopup ? 'Account not deleted' : ('Account not deleted — ' + firebaseAuthErrorMessage(err)));
+    });
+  }
+
+  function renderDeleteAccountPasswordPanel(){
+    var overlay = document.getElementById('deletePasswordOverlay');
+    var panel = document.getElementById('deletePasswordPanel');
+    if (!ui.confirmingDeleteAccountPassword){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var isGoogleOnly = window.SaviorFirebase.isGoogleOnlyAccount && window.SaviorFirebase.isGoogleOnlyAccount();
+    var busy = ui.deleteAccountPasswordBusy;
+    var html = '<div class="confirm-title">Confirm it\u2019s you</div>';
+    if (isGoogleOnly){
+      html += '<div class="confirm-message">This account signs in with Google \u2014 confirm through the Google popup to finish deleting it. Wrong account or canceled popup and nothing gets deleted.</div>';
+    } else {
+      html += '<div class="confirm-message">Enter your password to permanently delete this account. Get it wrong and nothing gets deleted \u2014 you\u2019ll just land back here.</div>' +
+              '<input type="password" id="deletePasswordInput" class="hi-name-input" placeholder="Password" autocomplete="current-password" style="width:100%;box-sizing:border-box;margin:4px 0 6px;"'+(busy?' disabled':'')+'>';
+      if (ui.deleteAccountPasswordError){
+        html += '<div style="color:var(--accent-2);font-size:12px;margin:0 0 8px;">'+esc(ui.deleteAccountPasswordError)+'</div>';
+      }
+    }
+    html += '<div class="confirm-buttons">' +
+              '<button class="confirm-btn-cancel" data-action="cancel-delete-password"'+(busy?' disabled':'')+'>Cancel</button>' +
+              '<button class="confirm-btn-danger" data-action="confirm-delete-password"'+(busy?' disabled':'')+'>'+(busy?'Checking\u2026':(isGoogleOnly?'Confirm with Google':'Delete Account'))+'</button>' +
+            '</div>';
+    panel.innerHTML = html;
+    if (!isGoogleOnly){
+      setTimeout(function(){
+        var inp = document.getElementById('deletePasswordInput');
+        if (inp) inp.focus();
+      }, 30);
     }
   }
 
@@ -5710,8 +5840,9 @@
     ui.confirmModal = {
       kind: 'clear-data',
       title: 'Erase all data?',
-      message: 'This permanently deletes ' + (totalSessions > 0 ? 'all ' + totalSessions + ' finished session' + (totalSessions === 1 ? '' : 's') + ', ' : '') + 'every set, and every PR on this device. This can\u2019t be undone.',
-      confirmLabel: 'Erase everything'
+      message: 'This permanently deletes ' + (totalSessions > 0 ? 'all ' + totalSessions + ' finished session' + (totalSessions === 1 ? '' : 's') + ', ' : '') + 'every set, and every PR on this device. This can\u2019t be undone. Wait a moment, then tap to confirm.',
+      confirmLabel: 'Erase everything',
+      countdown: 5
     };
     renderApp();
   }
@@ -6131,10 +6262,12 @@
       ui.showAccountMenu = false;
       renderApp();
     } else if (action === 'delete-account'){
+      var deleteNeedsGoogle = window.SaviorFirebase && window.SaviorFirebase.isGoogleOnlyAccount && window.SaviorFirebase.isGoogleOnlyAccount();
       ui.confirmModal = {
         kind: 'delete-account',
         title: 'Delete account?',
-        message: 'This permanently erases your account and its entire workout log \u2014 there\u2019s no undoing this. Wait a moment, then tap to confirm.',
+        message: 'This permanently erases your account and its entire workout log \u2014 there\u2019s no undoing this. Wait a moment, then tap to confirm' +
+          (deleteNeedsGoogle ? ', then confirm with Google.' : ', then enter your password.'),
         confirmLabel: 'Delete Account',
         variant: 'danger',
         countdown: 5
@@ -6408,7 +6541,7 @@
       else if (m && m.kind === 'brief-entry') deleteBriefEntry(m.entryId);
       else if (m && m.kind === 'reset-log') resetLog();
       else if (m && m.kind === 'logout') logOut();
-      else if (m && m.kind === 'delete-account') deleteAccount();
+      else if (m && m.kind === 'delete-account') openDeleteAccountPasswordConfirm();
       else if (m && m.kind === 'add-set-global'){
         var session = getActiveSession();
         var ex = findExercise(session, m.exId);
@@ -6459,6 +6592,24 @@
     if (e.key === 'Enter' && e.target.id === 'routineNameInput'){
       e.preventDefault();
       confirmSaveRoutine();
+    }
+  });
+
+  var deletePasswordOverlayEl = document.getElementById('deletePasswordOverlay');
+  deletePasswordOverlayEl.addEventListener('click', function(e){
+    if (e.target === deletePasswordOverlayEl){
+      if (!ui.deleteAccountPasswordBusy) cancelDeleteAccountPasswordConfirm();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'cancel-delete-password') cancelDeleteAccountPasswordConfirm();
+    else if (el.dataset.action === 'confirm-delete-password') submitDeleteAccountPasswordConfirm();
+  });
+  deletePasswordOverlayEl.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && e.target.id === 'deletePasswordInput'){
+      e.preventDefault();
+      submitDeleteAccountPasswordConfirm();
     }
   });
 
@@ -6612,6 +6763,8 @@
       renderApp();
     } else if (ui.savingRoutine){
       cancelSaveRoutine();
+    } else if (ui.confirmingDeleteAccountPassword){
+      if (!ui.deleteAccountPasswordBusy) cancelDeleteAccountPasswordConfirm();
     } else if (ui.showHelp){
       closeHelp();
     } else if (ui.showBrief){
