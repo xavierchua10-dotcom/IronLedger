@@ -2194,7 +2194,7 @@
     reauthenticateWithCredential, EmailAuthProvider, reauthenticateWithPopup
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
-    getFirestore, doc, setDoc, getDoc, deleteDoc, enableIndexedDbPersistence, onSnapshot
+    getFirestore, doc, setDoc, getDoc, deleteDoc, enableIndexedDbPersistence, onSnapshot, writeBatch
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import {
     getMessaging, getToken, onMessage, isSupported as isMessagingSupported
@@ -2248,11 +2248,12 @@
   }
 
   // The one email that gets permanent Pro, no payment or trial/expiry
-  // check ever applied to it. Kept here (not just in the app script)
-  // so the very first Firestore doc this account gets is already
-  // correctly tagged isDev:true.
-  var DEV_OVERRIDE_EMAIL = 'xavierchua10@gmail.com';
-  var TRIAL_DAYS = 14;
+  // check ever applied to it. Sourced from window.SaviorConfig, which
+  // the main app script sets before this deferred module ever runs —
+  // see the comment there. Don't hardcode a value here; edit it in the
+  // main app script only, so the two layers can't drift apart.
+  var DEV_OVERRIDE_EMAIL = window.SaviorConfig && window.SaviorConfig.devEmail;
+  var TRIAL_DAYS = (window.SaviorConfig && window.SaviorConfig.trialDays) || 14;
 
   window.SaviorFirebase = {
     signUp: function(email, password){
@@ -2366,18 +2367,30 @@
       });
     },
     // Called only when the user explicitly taps "Start Free Trial" in
-    // the pricing modal. One-time — Firestore rules reject this write
-    // if trialStartDate is already set, so it can't be replayed to
-    // extend the trial. Deliberately does not touch subscription/tier/
-    // isDev (the update security rule blocks client writes to those).
+    // the pricing modal. One-time — enforced two ways: (1) Firestore
+    // rules reject this write if trialStartDate is already set on the
+    // /users/{uid} doc, so it can't be replayed to extend the trial;
+    // (2) a permanent, undeletable /trialClaims/{uid} doc is written in
+    // the SAME batch, and the update rule also requires that doc not
+    // already exist. That second check is what stops someone from
+    // deleting just their /users/{uid} doc (bypassing the app entirely,
+    // straight through the Firestore SDK) to make ensureUserDoc() treat
+    // them as brand-new and hand out a fresh trial — trialClaims never
+    // gets deleted, so the exists() check still blocks it. Needs the
+    // matching Firestore security rules (see notes near DEV_OVERRIDE_EMAIL).
+    // Deliberately does not touch subscription/tier/isDev (the update
+    // security rule blocks client writes to those).
     startTrial: function(uidVal){
       var now = Date.now();
       var end = now + TRIAL_DAYS * 24 * 60 * 60 * 1000;
-      return setDoc(doc(db, 'users', uidVal), {
+      var batch = writeBatch(db);
+      batch.set(doc(db, 'users', uidVal), {
         trialStartDate: now,
         trialEndDate: end,
         updatedAt: now
-      }, { merge: true }).then(function(){
+      }, { merge: true });
+      batch.set(doc(db, 'trialClaims', uidVal), { claimedAt: now });
+      return batch.commit().then(function(){
         return { trialStartDate: now, trialEndDate: end };
       });
     },
@@ -2470,6 +2483,13 @@
      ========================================================= */
   var DEV_OVERRIDE_EMAIL = 'xavierchua10@gmail.com';
   var TRIAL_DAYS = 14;
+  // This classic script runs synchronously as the parser reaches it —
+  // before the deferred `type="module"` Firebase script below ever
+  // executes (module scripts always defer to after parsing, regardless
+  // of source order). That guarantees this is set before the Firebase
+  // module reads it. Single source of truth for both: change the value
+  // here only, never in the Firebase script.
+  window.SaviorConfig = { devEmail: DEV_OVERRIDE_EMAIL, trialDays: TRIAL_DAYS };
   var PROGRESS_FREE_DAYS_PER_MONTH = 3;
   var PRICE_WEEKLY = 1.99;
   var PRICE_MONTHLY = 9.99;
