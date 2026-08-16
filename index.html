@@ -2605,8 +2605,8 @@
     return localStorage.getItem(STORAGE_CURRENT_ACCOUNT);
   }
   function setCurrentAccountId(id){
-    if (id) localStorage.setItem(STORAGE_CURRENT_ACCOUNT, id);
-    else localStorage.removeItem(STORAGE_CURRENT_ACCOUNT);
+    if (id) safeSetItem(STORAGE_CURRENT_ACCOUNT, id);
+    else { try{ localStorage.removeItem(STORAGE_CURRENT_ACCOUNT); }catch(e){} }
   }
   function currentAccountEmail(){
     if (!state.currentAccount || state.currentAccount === 'guest') return 'Guest';
@@ -2633,6 +2633,27 @@
     }
   }
 
+  // Wraps localStorage.setItem so a quota/availability failure (Safari
+  // Private Browsing caps localStorage at ~0 bytes, some browsers block
+  // it entirely) never throws up into a caller like commitSet() and
+  // silently kills the "log a set" flow mid-workout. Returns true/false
+  // so callers can warn the user once instead of failing invisibly.
+  function safeSetItem(key, value){
+    try{
+      localStorage.setItem(key, value);
+      return true;
+    }catch(e){
+      console.error('localStorage write failed:', e);
+      return false;
+    }
+  }
+  var storageWarnedThisSession = false;
+  function warnStorageUnavailableOnce(){
+    if (storageWarnedThisSession) return;
+    storageWarnedThisSession = true;
+    showToast('Local storage is unavailable (private browsing?) \u2014 changes may not be saved');
+  }
+
   function loadSessions(){
     try{
       var raw = localStorage.getItem(scopedKey(STORAGE_SESSIONS));
@@ -2646,7 +2667,8 @@
     }catch(e){ return { unit: 'kg', avatar: null }; }
   }
   function saveSessions(){
-    localStorage.setItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(state.sessions));
+    var ok = safeSetItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(state.sessions));
+    if (!ok) warnStorageUnavailableOnce();
     scheduleFirestoreSync();
   }
   function loadRoutines(){
@@ -2656,11 +2678,13 @@
     }catch(e){ return []; }
   }
   function saveRoutines(){
-    localStorage.setItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(state.routines));
+    var ok = safeSetItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(state.routines));
+    if (!ok) warnStorageUnavailableOnce();
     scheduleFirestoreSync();
   }
   function saveSettings(){
-    localStorage.setItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(state.settings));
+    var ok = safeSetItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(state.settings));
+    if (!ok) warnStorageUnavailableOnce();
     scheduleFirestoreSync();
   }
   function loadActivityLog(){
@@ -2670,7 +2694,7 @@
     }catch(e){ return []; }
   }
   function saveActivityLog(){
-    localStorage.setItem(scopedKey(STORAGE_ACTIVITY_LOG), JSON.stringify(state.activityLog));
+    safeSetItem(scopedKey(STORAGE_ACTIVITY_LOG), JSON.stringify(state.activityLog));
   }
 
   // Guest-mode (and pre-sync fallback) storage for the Progress tab's
@@ -2684,7 +2708,7 @@
     }catch(e){ return {}; }
   }
   function saveProgressAccessLocal(){
-    localStorage.setItem(scopedKey(STORAGE_PROGRESS_ACCESS), JSON.stringify(state.progressAccess));
+    safeSetItem(scopedKey(STORAGE_PROGRESS_ACCESS), JSON.stringify(state.progressAccess));
   }
 
   // Records an entry in the Brief (activity log) — every add/edit/delete/rename
@@ -2785,6 +2809,10 @@
   // it's bench, leg press, or something custom-named, no muscle tagging
   // or config needed.
   var HISTORY_CAP_MULTIPLIER = 4;
+  // Same idea as MAX_LOGGABLE_WEIGHT_KG, but for reps — a flat sanity
+  // ceiling so a fat-fingered "150" instead of "15" can't slip through
+  // and feed a wildly wrong number into the overload-tip math.
+  var MAX_LOGGABLE_REPS = 100;
 
   // Highest raw weight ever logged under this exact exercise name (simple
   // max, not e1rm — an intuitive "biggest number you've typed here").
@@ -2808,6 +2836,7 @@
   // to the flat sanity cap.
   function weightRepsError(weightKg, reps, exerciseName){
     if (weightKg === null || weightKg <= 0 || isNaN(reps) || reps <= 0) return 'Enter a weight and reps first';
+    if (reps > MAX_LOGGABLE_REPS) return 'That\u2019s over ' + MAX_LOGGABLE_REPS + ' reps \u2014 double check the number';
     var priorBest = exerciseName ? bestLoggedWeightKg(exerciseName) : 0;
     if (priorBest > 0){
       var cap = priorBest * HISTORY_CAP_MULTIPLIER;
@@ -2869,7 +2898,7 @@
     return stored === new Date().toDateString();
   }
   function dismissReminderToday(){
-    localStorage.setItem(scopedKey('il_reminder_dismissed'), new Date().toDateString());
+    safeSetItem(scopedKey('il_reminder_dismissed'), new Date().toDateString());
   }
 
   // Re-derive isPR flags for every set of a given exercise name, across all
@@ -4816,9 +4845,9 @@
       var isNewAccount = !!(state.userDoc && state.userDoc.__isNewAccount);
       if (state.userDoc) delete state.userDoc.__isNewAccount;
       if (remote){
-        if (remote.sessions) localStorage.setItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(remote.sessions));
-        if (remote.routines) localStorage.setItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(remote.routines));
-        if (remote.settings) localStorage.setItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(remote.settings));
+        if (remote.sessions) safeSetItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(remote.sessions));
+        if (remote.routines) safeSetItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(remote.routines));
+        if (remote.settings) safeSetItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(remote.settings));
       }
       return isNewAccount;
     }).catch(function(err){
