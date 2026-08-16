@@ -159,24 +159,6 @@
     flex-shrink:0;
   }
 
-  .install-app-btn{
-    background:var(--accent);
-    border:none;
-    color:#14161a;
-    font-family:'JetBrains Mono',monospace;
-    font-size:12px;
-    font-weight:700;
-    letter-spacing:0.05em;
-    padding:9px 12px;
-    min-height:40px;
-    border-radius:20px;
-    cursor:pointer;
-    display:inline-flex;
-    align-items:center;
-    gap:5px;
-  }
-  .install-app-btn:active{background:var(--accent-dim);color:var(--text);}
-
   .hidden{display:none !important;}
 
   .topbar-right{display:flex;align-items:center;gap:10px;}
@@ -2126,9 +2108,9 @@
           <button class="account-menu-logout" data-action="log-out">Log out</button>
         </div>
       </div>
-      <button class="install-app-btn hidden" id="installAppBtn" aria-label="Install app">&#8595; Install</button>
     </div>
   </header>
+  <div class="trial-banner hidden" id="installBanner"></div>
   <div class="trial-banner hidden" id="trialBanner"></div>
   <main id="view"></main>
   <div class="session-finish-bar hidden" id="sessionFinishBar">
@@ -2605,7 +2587,9 @@
     startingTrial: false,   // true while the "Start Free Trial" write is in flight
     confirmingTrial: false, // true while the inline "Start trial?" confirm step is shown
     openingPortal: false,    // true while a Stripe Customer Portal link is being requested
-    pushBusy: false          // true while requesting notification permission / saving the FCM token
+    pushBusy: false,          // true while requesting notification permission / saving the FCM token
+    installPromptAvailable: false,  // true once there's a real install opportunity to show the banner for
+    installIsIOS: false      // true on iOS Safari specifically — no beforeinstallprompt there, so the banner's CTA shows manual steps instead of triggering a native prompt
   };
 
   /* =========================================================
@@ -2919,6 +2903,19 @@
   }
   function dismissReminderToday(){
     safeSetItem(scopedKey('il_reminder_dismissed'), new Date().toDateString());
+  }
+
+  // Install-banner dismissal is a device/browser-level decision, not a
+  // per-account one — deliberately NOT run through scopedKey() (unlike
+  // the reminder dismiss above), so it stays dismissed across logging
+  // in/out of different accounts on the same device. Permanent (no
+  // daily reset) since re-nagging about installing every day would be
+  // far more annoying than the "haven't logged a workout" reminder.
+  function installBannerDismissedPermanently(){
+    return localStorage.getItem('il_install_banner_dismissed_v1') === '1';
+  }
+  function dismissInstallBannerPermanently(){
+    safeSetItem('il_install_banner_dismissed_v1', '1');
   }
 
   // Re-derive isPR flags for every set of a given exercise name, across all
@@ -4104,6 +4101,32 @@
     el.innerHTML = '';
   }
 
+  // Shows the "install this as an app" banner — same visual pattern as
+  // the trial banner above (reuses its CSS classes) plus a dismiss (X)
+  // button. Only appears when there's an actual install opportunity:
+  // Android/Chrome fired beforeinstallprompt (captured in the IIFE near
+  // the bottom of this script), or this is iOS Safari, which never
+  // fires that event but can still be walked through manually. Hidden
+  // once already installed, or once the person's dismissed it (see
+  // installBannerDismissedPermanently — that check already happened
+  // before ui.installPromptAvailable was ever set true, but it's
+  // re-checked here too in case dismissal happens after the flag is set).
+  function renderInstallBanner(){
+    var el = document.getElementById('installBanner');
+    if (!el) return;
+    if (!ui.installPromptAvailable || installBannerDismissedPermanently()){
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    el.innerHTML =
+      '<span class="trial-banner-star">&#8595;</span>' +
+      '<span class="trial-banner-text">Install SaviorFit Logger \u2014 <b>works offline, opens like a real app</b></span>' +
+      '<button class="trial-banner-cta" data-action="install-app">Install</button>' +
+      '<button class="reminder-banner-dismiss" data-action="dismiss-install-banner" aria-label="Dismiss">&#10005;</button>';
+  }
+
   /* =========================================================
      RENDER: LOG TAB
      ========================================================= */
@@ -4746,6 +4769,7 @@
       proStarBtnEl.setAttribute('aria-label', proNow ? 'Pro plan — manage' : 'Upgrade to Pro');
     }
     renderTrialBanner();
+    renderInstallBanner();
 
     var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
     var showFinishBar = state.tab === 'log' && !!activeSession && activeSession.exercises.length > 0;
@@ -4878,6 +4902,19 @@
     }).then(function(isNewAccount){
       bootAccountData();
       subscribeUserDoc(uidVal);
+      // Marks "last opened the app" for the 2-day inactivity push job
+      // (a Netlify scheduled function — see send-inactivity-push.js).
+      // Clearing inactivityPushSentAt here re-arms it: once this account
+      // goes quiet again, the next scheduled run is free to nudge them
+      // again, rather than staying permanently silenced after one nudge.
+      // Fire-and-forget — a failed write here just means this boot
+      // doesn't count toward "active," nothing user-facing breaks.
+      if (window.SaviorFirebase && window.SaviorFirebase.updateUserDoc){
+        window.SaviorFirebase.updateUserDoc(uidVal, {
+          lastActiveAt: Date.now(),
+          inactivityPushSentAt: null
+        }).catch(function(err){ console.error('lastActiveAt update failed:', err); });
+      }
       if (isNewAccount){
         // Brand-new account — hold off on the dashboard until they've
         // picked an icon (see renderAvatarPickGate()). Start them on the
@@ -6458,6 +6495,11 @@
     } else if (action === 'dismiss-reminder'){
       dismissReminderToday();
       renderApp();
+    } else if (action === 'install-app'){
+      triggerInstallPrompt();
+    } else if (action === 'dismiss-install-banner'){
+      dismissInstallBannerPermanently();
+      renderInstallBanner();
     } else if (action === 'open-help'){
       openHelp();
     } else if (action === 'open-brief'){
@@ -6950,47 +6992,56 @@
     syncAppHeight();
   }
 
-  // --- Custom "Install App" button ---
-  // Chrome/Edge fire beforeinstallprompt; we capture it and trigger it
-  // ourselves from our own button instead of relying on the browser's
-  // own (often-suppressed) mini-infobar. iOS Safari never fires this
-  // event, so we show manual "Add to Home Screen" instructions instead.
-  (function(){
-    var installBtn = document.getElementById('installAppBtn');
-    if (!installBtn) return;
-    var deferredPrompt = null;
+  // --- "Install this as an app" banner ---
+  // Chrome/Edge fire beforeinstallprompt; captured here and triggered
+  // from the banner's own "Install" button (see triggerInstallPrompt,
+  // wired through the same data-action delegation as everything else)
+  // instead of relying on the browser's own often-suppressed
+  // mini-infobar. iOS Safari never fires this event, so on iOS the
+  // banner still shows, but its button walks through manual "Add to
+  // Home Screen" steps instead of triggering a native prompt.
+  var deferredInstallPrompt = null;
 
-    function isStandalone(){
-      return window.matchMedia('(display-mode: standalone)').matches ||
-             window.navigator.standalone === true;
+  function isStandaloneDisplay(){
+    return window.matchMedia('(display-mode: standalone)').matches ||
+           window.navigator.standalone === true;
+  }
+
+  // Called from the delegated click handler above when the banner's
+  // "Install" button is tapped.
+  function triggerInstallPrompt(){
+    if (deferredInstallPrompt){
+      var promptEvent = deferredInstallPrompt;
+      deferredInstallPrompt = null;
+      ui.installPromptAvailable = false;
+      renderInstallBanner();
+      promptEvent.prompt();
+      promptEvent.userChoice.catch(function(){});
+    } else if (ui.installIsIOS){
+      alert('To install SaviorFit Logger:\n\n1. Tap the Share icon\n2. Tap "Add to Home Screen"');
     }
-    if (isStandalone()) return; // already installed
+  }
+
+  (function(){
+    if (isStandaloneDisplay()) return; // already installed — nothing to offer
 
     window.addEventListener('beforeinstallprompt', function(e){
       e.preventDefault();
-      deferredPrompt = e;
-      installBtn.classList.remove('hidden');
+      deferredInstallPrompt = e;
+      ui.installPromptAvailable = true;
+      renderInstallBanner();
     });
 
-    var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    if (isIOS){
-      installBtn.classList.remove('hidden');
+    if (/iphone|ipad|ipod/i.test(navigator.userAgent)){
+      ui.installIsIOS = true;
+      ui.installPromptAvailable = true;
+      renderInstallBanner();
     }
 
-    installBtn.addEventListener('click', async function(){
-      if (deferredPrompt){
-        installBtn.classList.add('hidden');
-        deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
-        deferredPrompt = null;
-      } else if (isIOS){
-        alert('To install SaviorFit Logger:\n\n1. Tap the Share icon\n2. Tap "Add to Home Screen"');
-      }
-    });
-
     window.addEventListener('appinstalled', function(){
-      installBtn.classList.add('hidden');
-      deferredPrompt = null;
+      deferredInstallPrompt = null;
+      ui.installPromptAvailable = false;
+      renderInstallBanner();
     });
   })();
 })();
