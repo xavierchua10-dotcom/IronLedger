@@ -2729,6 +2729,50 @@
   }
   function unitLabel(){ return state.settings.unit; }
 
+  // Anything above this is virtually never a real lift — it's a fat finger
+  // (extra zero, decimal in the wrong place). Only used as a fallback for
+  // an exercise that's never been logged before, since there's nothing to
+  // compare against yet. Stored value is always kg regardless of the
+  // user's display unit.
+  var MAX_LOGGABLE_WEIGHT_KG = 500;
+  // Once an exercise HAS history, the cap tightens to a multiple of your
+  // own best on that exact exercise name — adapts automatically whether
+  // it's bench, leg press, or something custom-named, no muscle tagging
+  // or config needed.
+  var HISTORY_CAP_MULTIPLIER = 4;
+
+  // Highest raw weight ever logged under this exact exercise name (simple
+  // max, not e1rm — an intuitive "biggest number you've typed here").
+  function bestLoggedWeightKg(exerciseName){
+    var name = (exerciseName || '').trim().toLowerCase();
+    if (!name) return 0;
+    var best = 0;
+    state.sessions.forEach(function(s){
+      s.exercises.forEach(function(ex){
+        if (ex.name.trim().toLowerCase() !== name) return;
+        ex.sets.forEach(function(st){
+          if (st.weightKg > best) best = st.weightKg;
+        });
+      });
+    });
+    return best;
+  }
+
+  // Returns an error message to show in a toast, or null if the entry is
+  // fine to log. exerciseName is optional — omitting it just falls back
+  // to the flat sanity cap.
+  function weightRepsError(weightKg, reps, exerciseName){
+    if (weightKg === null || weightKg <= 0 || isNaN(reps) || reps <= 0) return 'Enter a weight and reps first';
+    var priorBest = exerciseName ? bestLoggedWeightKg(exerciseName) : 0;
+    if (priorBest > 0){
+      var cap = priorBest * HISTORY_CAP_MULTIPLIER;
+      if (weightKg > cap) return 'That\u2019s way past your best here (' + fmtWeight(priorBest) + ' ' + unitLabel() + ') \u2014 double check the number';
+    } else if (weightKg > MAX_LOGGABLE_WEIGHT_KG){
+      return 'That\u2019s over ' + fmtWeight(MAX_LOGGABLE_WEIGHT_KG) + ' ' + unitLabel() + ' \u2014 double check the number';
+    }
+    return null;
+  }
+
   /* =========================================================
      SESSION / EXERCISE / SET HELPERS
      ========================================================= */
@@ -5137,12 +5181,32 @@
     var weightKg = toStoredKg(weightInput.value);
     var reps = parseInt(repsInput.value, 10);
 
-    if (weightKg === null || weightKg <= 0 || isNaN(reps) || reps <= 0){
-      showToast('Enter a weight and reps first');
+    var err = weightRepsError(weightKg, reps, ex.name);
+    if (err){
+      showToast(err);
       return;
     }
 
     commitSet(ex, weightKg, reps, false);
+  }
+
+  // Fires only on a wild, out-of-nowhere jump (5x+ the previous best for
+  // that exercise) — never on someone's first-ever log of an exercise
+  // (nothing to compare against yet), and it never blocks the save. Pure
+  // comic relief for an obvious fat-finger, not a data gate.
+  var SUS_WEIGHT_JOKES = [
+    'Brotha, you sure about {w}{u} on {ex}? \ud83d\udc80',
+    '{w}{u}?? Bro thinks he\u2019s in the Avengers \ud83e\udea8',
+    'That\u2019s not a PR, that\u2019s a typo \ud83d\ude2d',
+    '{w}{u} on {ex} \u2014 Hafth\u00f3r Bj\u00f6rnsson wants a word \ud83d\udcaa',
+    'Lifting weights or moving a small car? ({w}{u}) \ud83d\ude97',
+    'New world record or fat-finger? \ud83d\udc40 ({w}{u})'
+  ];
+  function susWeightJoke(exName, weightKg, prevBestE1rm){
+    if (!prevBestE1rm || prevBestE1rm <= 0) return null;
+    if (weightKg < prevBestE1rm * 5) return null;
+    var msg = SUS_WEIGHT_JOKES[Math.floor(Math.random() * SUS_WEIGHT_JOKES.length)];
+    return msg.replace('{w}', fmtWeight(weightKg)).replace('{u}', unitLabel()).replace('{ex}', exName);
   }
 
   function commitSet(ex, weightKg, reps, toFailure){
@@ -5165,7 +5229,10 @@
     ui.freshPRSetId = isPR ? setId : null;
     renderApp();
     ui.freshPRSetId = null;
-    if (isPR) showToast('New PR on ' + ex.name + '!');
+    if (isPR){
+      var joke = susWeightJoke(ex.name, weightKg, prevBest);
+      showToast(joke || ('New PR on ' + ex.name + '!'));
+    }
   }
 
   function activeAddSetTarget(){
@@ -5296,8 +5363,9 @@
     }
     var weightKg = toStoredKg(target.weightInput.value);
     var reps = parseInt(target.repsInput.value, 10);
-    if (weightKg === null || weightKg <= 0 || isNaN(reps) || reps <= 0){
-      showToast('Enter a weight and reps first');
+    var err = weightRepsError(weightKg, reps, ex.name);
+    if (err){
+      showToast(err);
       return;
     }
     openAddSetConfirm(ex, weightKg, reps);
@@ -5321,8 +5389,9 @@
 
     var weightKg = toStoredKg(weightInput.value);
     var reps = parseInt(repsInput.value, 10);
-    if (weightKg === null || weightKg <= 0 || isNaN(reps) || reps <= 0){
-      showToast('Enter a weight and reps first');
+    var err = weightRepsError(weightKg, reps, ex.name);
+    if (err){
+      showToast(err);
       return;
     }
     openAddSetConfirm(ex, weightKg, reps);
@@ -5386,8 +5455,9 @@
 
     var weightKg = toStoredKg(weightInput.value);
     var reps = parseInt(repsInput.value, 10);
-    if (weightKg === null || weightKg <= 0 || isNaN(reps) || reps <= 0){
-      showToast('Enter a weight and reps first');
+    var err = weightRepsError(weightKg, reps, ex.name);
+    if (err){
+      showToast(err);
       return;
     }
 
