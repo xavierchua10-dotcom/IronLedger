@@ -3353,15 +3353,33 @@
     return roundNice(weightKg + stepKg);
   }
 
+  // A bigger jump for sets that badly overshoot the rep range (>15) — at
+  // that point the weight is just too light, so a normal plate-sized bump
+  // isn't enough. Scaled by load (not a flat number): we use the same
+  // e1RM math as the rest of the app to back-solve a weight that should
+  // land the lifter back around the bottom of the 8-12 range, then snap
+  // it to a plate-friendly step sized to the current load.
+  function loadScaledJumpKg(weightKg, reps){
+    var e1 = e1rm(weightKg, reps);
+    var raw = e1 / (1 + REP_RANGE_MIN / 30);
+    var stepKg = weightKg >= 60 ? 2.5 : (weightKg >= 20 ? 1.25 : 0.5);
+    var snapped = Math.round(raw / stepKg) * stepKg;
+    // never suggest less than the normal small bump, even if the math
+    // undershoots for some edge-case rep/weight combo
+    return roundNice(Math.max(snapped, smallIncrementKg(weightKg)));
+  }
+
   // Progressive-overload heuristic per exercise, fixed to an 8-12 rep
   // hypertrophy range (double progression):
   //  - below your recent best     -> match it before pushing further
-  //  - top set >=12 reps          -> top of the range, add weight next time
+  //  - top set >15 reps           -> way too light, load-scaled bigger jump
+  //  - top set 12-15 reps         -> top of the range, add weight next time
   //  - top set 8-11 reps          -> in range, chase one more rep at same weight
   //  - top set <8 reps            -> under range, hold weight and build to 8
   //                                   (only drop weight if it's genuinely too heavy)
   var REP_RANGE_MIN = 8;
   var REP_RANGE_MAX = 12;
+  var REP_RANGE_OVERSHOOT = 15;
   function overloadTipForExercise(ex){
     var sets = ex.sets;
     if (!sets || !sets.length) return null;
@@ -3377,6 +3395,11 @@
       headline = 'Match your recent best';
       target = 'Maintain ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' until you match your recent best';
       detail = 'Top set here was ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + best.reps + ', below your recent best on ' + ex.name + '. Aim to match that number before chasing a new PR.';
+    } else if (best.reps > REP_RANGE_OVERSHOOT){
+      var bigKg = loadScaledJumpKg(best.weightKg, best.reps);
+      headline = 'Weight is too light \u2014 jump up';
+      target = 'Target: ' + fmtWeight(bigKg) + ' ' + unitLabel() + ' next session, aim to land in ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' reps';
+      detail = 'You hit ' + best.reps + ' reps at ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u2014 well past the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range, so this weight is too light. Based on that effort, jump up to about ' + fmtWeight(bigKg) + ' ' + unitLabel() + ' next session \u2014 scaled to your current strength \u2014 and aim to land back in the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' range.';
     } else if (best.reps >= REP_RANGE_MAX){
       var nextKg = smallIncrementKg(best.weightKg);
       headline = 'Add weight next time';
