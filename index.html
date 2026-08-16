@@ -5315,6 +5315,11 @@
       if (ui.newExerciseId === exId) discardPendingNewExercise();
       ui.editingExerciseName = null;
     }
+    // Collapsing hides the add-set input row from view, but doesn't
+    // otherwise clear it — leaving expandedAddSet[exId] stuck true would
+    // silently keep Finish Session disabled with no visual sign why,
+    // since the collapsed card never renders that panel to close it.
+    if (ex.done && ui.expandedAddSet[exId]) ui.expandedAddSet[exId] = false;
     saveSessions();
     renderApp();
   }
