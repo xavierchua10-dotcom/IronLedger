@@ -3353,11 +3353,15 @@
     return roundNice(weightKg + stepKg);
   }
 
-  // Simple progressive-overload heuristic per exercise:
-  //  - below your recent best  -> match it before pushing further
-  //  - top set >15 reps        -> add weight next time
-  //  - top set <=5 reps        -> build reps before adding load
-  //  - otherwise               -> add a rep or two at the same weight
+  // Progressive-overload heuristic per exercise, fixed to an 8-12 rep
+  // hypertrophy range (double progression):
+  //  - below your recent best     -> match it before pushing further
+  //  - top set >=12 reps          -> top of the range, add weight next time
+  //  - top set 8-11 reps          -> in range, chase one more rep at same weight
+  //  - top set <8 reps            -> under range, hold weight and build to 8
+  //                                   (only drop weight if it's genuinely too heavy)
+  var REP_RANGE_MIN = 8;
+  var REP_RANGE_MAX = 12;
   function overloadTipForExercise(ex){
     var sets = ex.sets;
     if (!sets || !sets.length) return null;
@@ -3373,19 +3377,19 @@
       headline = 'Match your recent best';
       target = 'Maintain ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' until you match your recent best';
       detail = 'Top set here was ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + best.reps + ', below your recent best on ' + ex.name + '. Aim to match that number before chasing a new PR.';
-    } else if (best.reps > 15){
+    } else if (best.reps >= REP_RANGE_MAX){
       var nextKg = smallIncrementKg(best.weightKg);
       headline = 'Add weight next time';
-      target = 'Target: ' + fmtWeight(nextKg) + ' ' + unitLabel() + ' next session';
-      detail = 'You hit ' + best.reps + ' reps at ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u2014 past 15 reps means it\u2019s time to add load. Bump the weight to about ' + fmtWeight(nextKg) + ' ' + unitLabel() + ' next session and reset toward the bottom of your rep range.';
-    } else if (best.reps <= 5){
-      headline = 'Build reps before load';
-      target = 'Maintain ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ', chase ' + (best.reps + 1) + '\u2013' + (best.reps + 2) + ' reps';
-      detail = 'Top set was ' + best.reps + ' reps at ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + '. Keep the weight here and chase 1\u20132 more reps next session before adding load.';
+      target = 'Target: ' + fmtWeight(nextKg) + ' ' + unitLabel() + ' next session, aim for ' + REP_RANGE_MIN + ' reps';
+      detail = 'You hit ' + best.reps + ' reps at ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u2014 the top of the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range. Bump the weight to about ' + fmtWeight(nextKg) + ' ' + unitLabel() + ' next session and reset toward ' + REP_RANGE_MIN + ' reps.';
+    } else if (best.reps < REP_RANGE_MIN){
+      headline = 'Work back up to ' + REP_RANGE_MIN + ' reps';
+      target = 'Same weight, ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ', aim for ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' reps';
+      detail = 'Top set was ' + best.reps + ' reps at ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u2014 below the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range. Keep the same weight next session and aim to reach at least ' + REP_RANGE_MIN + ' reps. If it still feels too heavy to get there, drop the weight slightly and build back up within ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + '.';
     } else {
-      headline = 'Add a rep or two';
-      target = 'Maintain ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ', aim for ' + (best.reps + 1) + '\u2013' + (best.reps + 2) + ' reps';
-      detail = 'Top set: ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + best.reps + '. Aim for ' + (best.reps + 1) + '\u2013' + (best.reps + 2) + ' reps at the same weight next session \u2014 once you pass 15 reps, it\u2019s time to increase the load.';
+      headline = 'Add a rep next time';
+      target = 'Maintain ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ', aim for ' + (best.reps + 1) + ' reps';
+      detail = 'Top set: ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + best.reps + '. Keep the same weight and aim for ' + (best.reps + 1) + ' reps next session \u2014 once you reach ' + REP_RANGE_MAX + ', it\u2019s time to add weight.';
     }
     return { headline: headline, target: target, detail: detail };
   }
