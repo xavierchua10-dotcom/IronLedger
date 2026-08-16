@@ -4283,7 +4283,6 @@
      RENDER: PROGRESS TAB
      ========================================================= */
   function renderProgress(){
-    var access = progressAccessState();
     var names = allExerciseNames();
     var html = '';
     if (names.length === 0){
@@ -4292,6 +4291,11 @@
       document.getElementById('view').innerHTML = html;
       return;
     }
+    // Only counts as "using" the Progress tab (and starts the Basic-tier
+    // 3-free-days-per-month clock — see progressAccessState) once there's
+    // actually something loggable to view. Checked after the empty-account
+    // guard above so simply opening an empty tab doesn't burn a free day.
+    var access = progressAccessState();
     if (!ui.progressExercise || names.indexOf(ui.progressExercise) === -1){
       ui.progressExercise = names[0];
     }
@@ -4787,6 +4791,10 @@
   function logOut(){
     var wasGuest = (state.currentAccount === 'guest');
     if (userDocUnsub){ userDocUnsub(); userDocUnsub = null; }
+    // Cancel any pending debounced Firestore sync (see scheduleFirestoreSync)
+    // — otherwise a save queued just before logging out can still fire
+    // ~800ms later and write to the account that was just logged out of.
+    clearTimeout(firestoreSyncTimer);
     setCurrentAccountId(null);
     state.currentAccount = null;
     state.currentAccountEmail = null;
@@ -4808,6 +4816,11 @@
   function deleteAccount(){
     if (!state.currentAccount || state.currentAccount === 'guest') return;
     var id = state.currentAccount;
+    // Cancel any pending debounced Firestore sync (see scheduleFirestoreSync)
+    // — without this, a save queued just before deletion can fire ~800ms
+    // later with merge:true and silently recreate the doc we're about to
+    // wipe, right after deleteUserData() removes it.
+    clearTimeout(firestoreSyncTimer);
     localStorage.removeItem(STORAGE_SESSIONS + '::' + id);
     localStorage.removeItem(STORAGE_SETTINGS + '::' + id);
     localStorage.removeItem(STORAGE_ROUTINES + '::' + id);
