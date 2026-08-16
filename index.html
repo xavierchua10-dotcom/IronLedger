@@ -45,6 +45,8 @@
     --text:#e9e6df;
     --text-dim:#8b9098;
     --text-faint:#5c6169;
+    --mm-body:#4a5262;
+    --mm-body-line:#8b93a3;
     --accent:#f2b134;
     --accent-dim:#7a6224;
     --accent-2:#c1443c;
@@ -1211,7 +1213,7 @@
   }
   .mm-diagram-col{
     flex:0 0 auto;
-    width:112px;
+    width:128px;
   }
   .mm-list-col{
     flex:1;
@@ -1245,14 +1247,20 @@
   .mm-svg-wrap{
     display:flex;
     justify-content:center;
+    background:radial-gradient(ellipse 70% 65% at center, rgba(255,255,255,0.05), transparent 72%);
+    border-radius:12px;
+    padding:6px 0;
   }
   .mm-svg-wrap svg{
     display:block;
     width:100%;
-    max-width:112px;
+    max-width:128px;
     height:auto;
+    filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4));
   }
-  .mm-shape{cursor:pointer;transition:fill 0.15s ease, fill-opacity 0.15s ease;}
+  .mm-shape{cursor:pointer;transition:fill 0.15s ease, fill-opacity 0.15s ease, filter 0.15s ease;}
+  .mm-shape:active{fill-opacity:1 !important;}
+  .mm-shape.selected{filter:drop-shadow(0 0 5px rgba(242,177,52,0.75));}
   .mm-shape-static{pointer-events:none;}
   @media (prefers-reduced-motion: reduce){
     .mm-shape{transition:none;}
@@ -3002,13 +3010,14 @@
     shapes.forEach(function(s){
       var isMuscle = !!s.muscle;
       var isSel = isMuscle && s.muscle === selected;
-      var fill = isSel ? 'var(--accent)' : 'var(--panel-3)';
-      var fillOpacity = !isMuscle ? '1' : (isSel ? '1' : '0.6');
-      var stroke = isSel ? 'var(--accent)' : 'var(--line)';
+      var fill = isSel ? 'var(--accent)' : 'var(--mm-body)';
+      var fillOpacity = !isMuscle ? '0.85' : (isSel ? '1' : '0.9');
+      var stroke = isSel ? 'var(--accent)' : 'var(--mm-body-line)';
+      var strokeWidth = isSel ? '2' : '1.5';
       var extra = isMuscle
         ? ' class="mm-shape'+(isSel?' selected':'')+'" data-action="mm-select-muscle" data-muscle="'+esc(s.muscle)+'"'
         : ' class="mm-shape-static"';
-      var common = 'fill="'+fill+'" fill-opacity="'+fillOpacity+'" stroke="'+stroke+'" stroke-width="1.5"'+extra;
+      var common = 'fill="'+fill+'" fill-opacity="'+fillOpacity+'" stroke="'+stroke+'" stroke-width="'+strokeWidth+'"'+extra;
       if (s.type === 'circle'){
         svg += '<circle cx="'+s.cx+'" cy="'+s.cy+'" r="'+s.r+'" '+common+'/>';
       } else if (s.type === 'ellipse'){
