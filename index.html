@@ -1252,6 +1252,29 @@
   .template-card-sub{font-size:12.5px;color:var(--text-dim);margin-bottom:2px;}
   .template-card-count{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.04em;}
 
+  /* ---------- Notification bell overlay ---------- */
+  .notif-card{
+    padding:14px 16px;
+    border-radius:var(--radius);
+    border:1.5px solid var(--line);
+    background:var(--panel-2);
+    margin-bottom:10px;
+  }
+  .notif-card:last-child{margin-bottom:0;}
+  .notif-card.urgent{border-color:var(--accent-2-dim);}
+  .notif-card-title{
+    font-family:'Oswald',sans-serif;
+    font-size:14px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:var(--text);
+    margin-bottom:4px;
+  }
+  .notif-card.urgent .notif-card-title{color:var(--accent-2);}
+  .notif-card-msg{font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+  .notif-empty{text-align:center;color:var(--text-faint);font-size:13px;padding:24px 12px;}
+
   /* ---------- Muscle map overlay (floating card) ---------- */
   .mm-overlay{
     position:fixed;
@@ -1752,6 +1775,20 @@
   }
   .pro-star-btn:active{background:var(--panel-3);}
   .pro-star-btn.is-pro{color:#1c1500;background:var(--accent);border-color:var(--accent);}
+  .notif-bell-btn{
+    position:relative;
+    width:32px;height:32px;border-radius:8px;
+    background:var(--panel-2);border:1px solid var(--line);
+    padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;color:var(--text-dim);
+  }
+  .notif-bell-btn:active{background:var(--panel-3);}
+  .notif-bell-btn svg{display:block;width:17px;height:17px;}
+  .notif-bell-dot{
+    position:absolute;top:5px;right:6px;
+    width:8px;height:8px;border-radius:50%;
+    background:var(--accent-2);border:1.5px solid var(--bg);
+  }
   .pro-badge-mini{
     display:inline-block;font-size:9px;font-weight:700;letter-spacing:0.08em;
     text-transform:uppercase;background:var(--accent);color:#1c1500;
@@ -2207,6 +2244,12 @@
     <h1>SAVIORFIT <span>LOGGER</span></h1>
     <div class="topbar-right">
       <div class="account-wrap">
+        <button class="notif-bell-btn" id="notifBellBtn" data-action="open-notifications" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+          </svg>
+          <span class="notif-bell-dot hidden" id="notifBellDot"></span>
+        </button>
         <button class="pro-star-btn" id="proStarBtn" data-action="open-pricing" aria-label="Upgrade to Pro">PRO</button>
         <button class="account-avatar" id="accountAvatarBtn" data-action="toggle-account-menu">G</button>
         <div class="account-menu hidden" id="accountMenu">
@@ -2266,6 +2309,9 @@
 </div>
 <div class="confirm-overlay hidden" id="templatePickerOverlay">
   <div class="pro-panel" id="templatePickerPanel"></div>
+</div>
+<div class="confirm-overlay hidden" id="notifOverlay">
+  <div class="pro-panel" id="notifPanel"></div>
 </div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
@@ -2696,6 +2742,7 @@
     showPricing: false,     // Pricing/upgrade modal open state
     showAvatarPick: false,  // Profile icon picker overlay open state
     showTemplatePicker: false,  // Start-from-template overlay open state
+    showNotifications: false,  // Notification bell overlay open state
     avatarPickDraft: null,  // staged icon selection, applied only on confirm
     billingCycle: 'monthly', // 'monthly' | 'annual' — toggle state inside the pricing modal
     startingTrial: false,   // true while the "Start Free Trial" write is in flight
@@ -3990,6 +4037,82 @@
   }
 
   /* =========================================================
+     NOTIFICATION BELL
+     Computed fresh every time the bell is tapped or renderApp() runs —
+     deliberately not a stored/persisted feed. Reuses the exact same
+     trial-state helpers (isTrialActive/isTrialExpired/trialDaysLeftLabel)
+     the trial banner already uses, and the same daysSinceLastWorkout()
+     the inline "been X days" reminder banner already uses, so the bell
+     never disagrees with what those already say elsewhere in the app.
+     ========================================================= */
+  function getNotifications(){
+    var list = [];
+    if (!isDevOverride() && state.currentAccount !== 'guest' && state.userDoc && !isPaidPlanActive()){
+      if (isTrialActive()){
+        var daysLeft = Math.ceil(Math.max(0, toMillis(state.userDoc.trialEndDate) - Date.now()) / (24 * 60 * 60 * 1000));
+        var soon = daysLeft <= 3;
+        list.push({
+          title: soon ? 'Trial ending soon' : 'Pro trial active',
+          message: 'Your free trial has ' + trialDaysLeftLabel() + '.' +
+                    (soon ? ' Subscribe to keep Pro features when it ends.' : ' Full Pro access is unlocked until then.'),
+          urgent: soon
+        });
+      } else if (isTrialExpired()){
+        list.push({
+          title: 'Trial ended',
+          message: 'Your free trial has ended and you\u2019re back on Basic. Subscribe anytime to unlock Pro again.',
+          urgent: true
+        });
+      }
+    }
+    var gap = daysSinceLastWorkout();
+    if (gap !== null && gap >= 2){
+      list.push({
+        title: 'Time for a session',
+        message: 'It\u2019s been ' + gap + ' days since your last workout \u2014 ready to log one?',
+        urgent: true
+      });
+    }
+    return list;
+  }
+
+  function openNotifications(){
+    ui.showNotifications = true;
+    renderNotifOverlay();
+  }
+  function closeNotifications(){
+    ui.showNotifications = false;
+    renderNotifOverlay();
+  }
+
+  function renderNotifOverlay(){
+    var overlay = document.getElementById('notifOverlay');
+    var panel = document.getElementById('notifPanel');
+    if (!ui.showNotifications){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var notifs = getNotifications();
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Notifications</h3>' +
+        '<button class="pro-panel-close" data-action="close-notifications" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' +
+        (notifs.length === 0
+          ? '<div class="notif-empty">You\u2019re all caught up.</div>'
+          : notifs.map(function(n){
+              return '<div class="notif-card'+(n.urgent ? ' urgent' : '')+'">' +
+                '<div class="notif-card-title">'+esc(n.title)+'</div>' +
+                '<div class="notif-card-msg">'+esc(n.message)+'</div>' +
+              '</div>';
+            }).join('')
+        ) +
+      '</div>';
+  }
+
+  /* =========================================================
      PRICING MODAL  (Basic → Pro upgrade)
      ========================================================= */
   function openPricing(){
@@ -5101,6 +5224,10 @@
       var proNow = isProActive();
       proStarBtnEl.classList.toggle('is-pro', proNow);
       proStarBtnEl.setAttribute('aria-label', proNow ? 'Pro plan — manage' : 'Upgrade to Pro');
+    }
+    var notifBellDotEl = document.getElementById('notifBellDot');
+    if (notifBellDotEl){
+      notifBellDotEl.classList.toggle('hidden', !getNotifications().some(function(n){ return n.urgent; }));
     }
     renderTrialBanner();
     renderInstallBanner();
@@ -6777,6 +6904,8 @@
     } else if (action === 'toggle-account-menu'){
       ui.showAccountMenu = !ui.showAccountMenu;
       renderApp();
+    } else if (action === 'open-notifications'){
+      openNotifications();
     } else if (action === 'open-avatar-pick'){
       openAvatarPick();
     } else if (action === 'log-out'){
@@ -7314,6 +7443,19 @@
     }
   });
 
+  var notifOverlayEl = document.getElementById('notifOverlay');
+  notifOverlayEl.addEventListener('click', function(e){
+    if (e.target === notifOverlayEl){
+      closeNotifications();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-notifications'){
+      closeNotifications();
+    }
+  });
+
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     if (ui.confirmModal){
@@ -7339,6 +7481,8 @@
       closeAvatarPick();
     } else if (ui.showTemplatePicker){
       closeTemplatePicker();
+    } else if (ui.showNotifications){
+      closeNotifications();
     } else if (ui.showMuscleMap){
       ui.showMuscleMap = false;
       ui.selectedMuscle = null;
