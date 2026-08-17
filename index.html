@@ -981,6 +981,16 @@
     padding:2px 6px;
     border-radius:10px;
   }
+  .failure-tag{
+    background:var(--accent-2-dim);
+    color:var(--accent-2);
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    padding:2px 6px;
+    border-radius:10px;
+    margin-left:6px;
+  }
   .set-actions{display:flex;gap:4px;justify-content:flex-end;}
   .set-act-btn{
     background:none;
@@ -1644,6 +1654,7 @@
   .print-receipt.pro .prc-set{display:flex;justify-content:space-between;font-size:10.5px;padding:2px 0;border-bottom:1px solid #f4f4f4;color:#222;}
   .print-receipt.pro .prc-set-time{color:#999;font-size:9.5px;margin-right:6px;}
   .print-receipt.pro .prc-pr{color:#c99a2e;font-weight:700;}
+  .print-receipt.pro .prc-fail{color:#a83a32;font-weight:700;}
   .print-receipt.pro .prc-tip{margin-top:5px;padding:7px 9px;background:#f7f4ea;border-left:3px solid #c99a2e;font-size:10px;color:#444;border-radius:0 6px 6px 0;}
   .print-receipt.pro .prc-tip b{color:#14161a;}
   .print-receipt.pro .prc-tip.compact{padding:5px 8px;font-size:9.5px;line-height:1.35;}
@@ -1710,6 +1721,7 @@
   .pro-panel-body .prc-set{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);padding:2px 0;gap:8px;}
   .pro-panel-body .prc-set-time{color:var(--text-faint);font-size:10.5px;margin-right:6px;}
   .pro-panel-body .prc-pr{color:var(--accent);font-weight:700;}
+  .pro-panel-body .prc-fail{color:var(--accent-2);font-weight:700;}
   .pro-panel-body .prc-tip{margin-top:8px;padding:9px 10px;background:rgba(242,177,52,0.08);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;font-size:11.5px;color:var(--text-dim);line-height:1.5;}
   .pro-panel-body .prc-tip b{color:var(--text);}
   .pro-panel-body .prc-tip-target{margin-top:5px;font-weight:700;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:0.03em;}
@@ -3429,8 +3441,11 @@
     s.exercises.forEach(function(ex){
       html += '<div class="pr-ex-name">'+esc(ex.name)+(ex.muscle ? ' <span class="pr-ex-muscle">('+esc(ex.muscle)+')</span>' : '')+'</div>';
       ex.sets.forEach(function(st, i){
+        var prTags = [];
+        if (st.isPR) prTags.push('PR');
+        if (st.toFailure) prTags.push('F');
         html += '<div class="pr-set"><span>'+(i+1)+'. '+fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps+'</span>' +
-                  '<span class="pr-pr">'+(st.isPR ? 'PR' : '')+'</span></div>';
+                  '<span class="pr-pr">'+esc(prTags.join(' \u00b7 '))+'</span></div>';
       });
     });
     html += '<div class="pr-line"></div>';
@@ -3676,13 +3691,16 @@
       target = 'Maintain ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ', aim for ' + (best.reps + 1) + ' reps';
       detail = 'Top set: ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + best.reps + '. Keep the same weight and aim for ' + (best.reps + 1) + ' reps next session \u2014 once you reach ' + REP_RANGE_MAX + ', it\u2019s time to add weight.';
     }
-    // Purely additive: only speaks up when a set was EXPLICITLY marked to
-    // failure (the flame toggle on the set row). Every set defaults to
-    // toFailure: false whether it genuinely wasn't taken to failure or the
-    // lifter just never touched the toggle — those two cases are
-    // indistinguishable, so the recommendation logic above never branches
-    // on "false." This only ever adds confidence, never second-guesses.
+    // Only speaks up when a set was EXPLICITLY marked to failure (the
+    // flame toggle on the set row) — every set defaults to toFailure:
+    // false whether it genuinely wasn't taken to failure or the lifter
+    // just never touched the toggle, so the recommendation logic above
+    // never branches on "false." This never changes the recommendation
+    // itself, just confirms it more confidently — and now shows in the
+    // headline (not just buried in the detail text) so it's actually
+    // visible without reading the whole paragraph.
     if (best.toFailure){
+      headline = '\ud83d\udd25 ' + headline;
       detail += ' You marked this set as taken to failure \u2014 that\u2019s genuine max effort, so trust this number.';
     }
     return { headline: headline, target: target, detail: detail };
@@ -3726,6 +3744,7 @@
                   '<span>' +
                     (st.timestamp ? '<span class="prc-set-time">'+fmtTime(st.timestamp)+'</span>' : '') +
                     (st.isPR ? ' <span class="prc-pr">PR</span>' : '') +
+                    (st.toFailure ? ' <span class="prc-fail">F</span>' : '') +
                   '</span></div>';
       });
       html += renderTipHtml(tip, compact);
@@ -4655,7 +4674,8 @@
         html += ex.sets.map(function(st){
           return fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps +
                  (st.timestamp ? ' <span class="set-time">&middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
-                 (st.isPR ? '<span class="pr-tag">PR</span>' : '');
+                 (st.isPR ? '<span class="pr-tag">PR</span>' : '') +
+                 (st.toFailure ? '<span class="failure-tag">FAILURE</span>' : '');
         }).join('<br>');
         html += '</div></div>' +
                 '<button class="hi-tip-btn'+(tipLocked ? ' locked' : '')+'" data-action="open-ex-tip" data-session="'+s.id+'" data-ex="'+ex.id+'" aria-label="Tips and target for '+esc(ex.name)+'">&#128161;</button>' +
