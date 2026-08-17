@@ -3230,9 +3230,31 @@
         { name: 'Standing Calf Raise', muscle: 'Calves', optional: true },
         { name: 'Cable Crunch', muscle: 'Abs' }
       ]
+    },
+    fullBodyA: {
+      label: 'Full Body A',
+      exercises: [
+        { name: 'Back Squat', muscle: 'Quads' },
+        { name: 'Bench Press', muscle: 'Chest' },
+        { name: 'Barbell Row', muscle: 'Back' },
+        { name: 'Overhead Press', muscle: 'Shoulders' },
+        { name: 'Romanian Deadlift', muscle: 'Hamstrings' },
+        { name: 'Hanging Leg Raise', muscle: 'Abs' }
+      ]
+    },
+    fullBodyB: {
+      label: 'Full Body B',
+      exercises: [
+        { name: 'Leg Press', muscle: 'Quads' },
+        { name: 'Incline Bench Press', muscle: 'Chest' },
+        { name: 'Pull-ups', muscle: 'Back' },
+        { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders' },
+        { name: 'Leg Curl', muscle: 'Hamstrings' },
+        { name: 'Cable Crunch', muscle: 'Abs' }
+      ]
     }
   };
-  var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'upper', 'lower'];
+  var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'upper', 'lower', 'fullBodyA', 'fullBodyB'];
 
   // "Chest 3 · Shoulders 2 · Triceps 2" style summary line for a template card.
   function templateSummaryLine(tpl){
