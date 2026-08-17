@@ -943,7 +943,7 @@
 
   .set-row{
     display:grid;
-    grid-template-columns:20px 1fr 32px 80px;
+    grid-template-columns:20px 1fr 80px;
     align-items:center;
     gap:6px;
     padding:4px 0;
@@ -965,30 +965,6 @@
   .set-row .set-detail .x{color:var(--text-faint);margin:0 4px;}
   .set-row .set-detail .set-time{flex-shrink:0;white-space:nowrap;}
   .set-row .set-detail .pr-tag{flex-shrink:0;margin-left:6px;}
-  .set-row .set-flags{display:flex;gap:5px;align-items:center;justify-content:flex-end;}
-  .failure-toggle-btn{
-    background:none;
-    border:1.5px solid var(--line);
-    font-size:13px;
-    line-height:1;
-    cursor:pointer;
-    width:28px;
-    height:28px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:50%;
-    padding:0;
-    opacity:0.35;
-    filter:grayscale(1);
-  }
-  .failure-toggle-btn:active{opacity:0.7;}
-  .failure-toggle-btn.active{
-    opacity:1;
-    filter:none;
-    border-color:var(--accent-2);
-    background:var(--accent-2-dim);
-  }
   .flame{color:var(--accent-2);font-size:12px;}
   .pr-tag{
     background:var(--accent-2-dim);
@@ -998,16 +974,6 @@
     letter-spacing:0.04em;
     padding:2px 6px;
     border-radius:10px;
-  }
-  .failure-tag{
-    background:var(--accent-2-dim);
-    color:var(--accent-2);
-    font-size:10px;
-    font-weight:700;
-    letter-spacing:0.04em;
-    padding:2px 6px;
-    border-radius:10px;
-    margin-left:6px;
   }
   .set-actions{display:flex;gap:4px;justify-content:flex-end;}
   .set-act-btn{
@@ -1308,6 +1274,45 @@
   }
   .notif-card-action:active{opacity:0.85;}
   .notif-empty{text-align:center;color:var(--text-faint);font-size:13px;padding:24px 12px;}
+
+  /* ---------- Rest timer duration picker ---------- */
+  .rest-timer-picker-display{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:22px;
+    padding:20px 0 8px;
+  }
+  .rest-timer-adjust-btn{
+    width:44px;height:44px;
+    border-radius:50%;
+    border:1.5px solid var(--accent-dim);
+    background:transparent;
+    color:var(--accent);
+    font-size:20px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .rest-timer-adjust-btn:active{background:var(--accent-dim);}
+  .rest-timer-adjust-btn:disabled{opacity:0.3;}
+  .rest-timer-picker-time{
+    font-family:'JetBrains Mono',monospace;
+    font-size:36px;
+    font-weight:700;
+    color:var(--text);
+    min-width:110px;
+    text-align:center;
+  }
+  .rest-timer-picker-sub{
+    text-align:center;
+    font-size:11px;
+    color:var(--text-faint);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    padding-bottom:10px;
+  }
 
   /* ---------- Muscle map overlay (floating card) ---------- */
   .mm-overlay{
@@ -1711,7 +1716,6 @@
   .print-receipt.pro .prc-set{display:flex;justify-content:space-between;font-size:10.5px;padding:2px 0;border-bottom:1px solid #f4f4f4;color:#222;}
   .print-receipt.pro .prc-set-time{color:#999;font-size:9.5px;margin-right:6px;}
   .print-receipt.pro .prc-pr{color:#c99a2e;font-weight:700;}
-  .print-receipt.pro .prc-fail{color:#a83a32;font-weight:700;}
   .print-receipt.pro .prc-tip{margin-top:5px;padding:7px 9px;background:#f7f4ea;border-left:3px solid #c99a2e;font-size:10px;color:#444;border-radius:0 6px 6px 0;}
   .print-receipt.pro .prc-tip b{color:#14161a;}
   .print-receipt.pro .prc-tip.compact{padding:5px 8px;font-size:9.5px;line-height:1.35;}
@@ -1778,7 +1782,6 @@
   .pro-panel-body .prc-set{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);padding:2px 0;gap:8px;}
   .pro-panel-body .prc-set-time{color:var(--text-faint);font-size:10.5px;margin-right:6px;}
   .pro-panel-body .prc-pr{color:var(--accent);font-weight:700;}
-  .pro-panel-body .prc-fail{color:var(--accent-2);font-weight:700;}
   .pro-panel-body .prc-tip{margin-top:8px;padding:9px 10px;background:rgba(242,177,52,0.08);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;font-size:11.5px;color:var(--text-dim);line-height:1.5;}
   .pro-panel-body .prc-tip b{color:var(--text);}
   .pro-panel-body .prc-tip-target{margin-top:5px;font-weight:700;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:0.03em;}
@@ -2051,6 +2054,44 @@
   .routine-actions{display:flex;gap:8px;}
 
   /* ---------- Fixed finish-session bar ---------- */
+  .rest-timer-bar{
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 16px;
+    border-top:1px solid var(--accent-dim);
+    background:rgba(242,177,52,0.10);
+  }
+  .rest-timer-bar.hidden{display:none;}
+  .rest-timer-label{
+    font-family:'Oswald',sans-serif;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--accent);
+  }
+  .rest-timer-time{
+    font-family:'JetBrains Mono',monospace;
+    font-size:16px;
+    font-weight:700;
+    color:var(--text);
+    flex:1;
+  }
+  .rest-timer-skip{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    padding:6px 12px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .rest-timer-skip:active{background:var(--panel-3);}
   .session-finish-bar{
     flex-shrink:0;
     display:flex;
@@ -2300,6 +2341,11 @@
   </header>
   <div class="trial-banner hidden" id="installBanner"></div>
   <main id="view"></main>
+  <div class="rest-timer-bar hidden" id="restTimerBar">
+    <span class="rest-timer-label">Rest</span>
+    <span class="rest-timer-time" id="restTimerTime">0:00</span>
+    <button class="rest-timer-skip" data-action="skip-rest-timer">Skip</button>
+  </div>
   <div class="session-finish-bar hidden" id="sessionFinishBar">
     <button class="btn-primary" id="finishSessionBtn" data-action="finish-session" disabled>Finish Session</button>
     <button class="add-set-global-btn" data-action="add-set-global" disabled>&#10003; Add Set</button>
@@ -2347,6 +2393,9 @@
 </div>
 <div class="confirm-overlay hidden" id="templatePickerOverlay">
   <div class="pro-panel" id="templatePickerPanel"></div>
+</div>
+<div class="confirm-overlay hidden" id="restTimerPickerOverlay">
+  <div class="pro-panel" id="restTimerPickerPanel"></div>
 </div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
@@ -2777,6 +2826,9 @@
     showPricing: false,     // Pricing/upgrade modal open state
     showAvatarPick: false,  // Profile icon picker overlay open state
     showTemplatePicker: false,  // Start-from-template overlay open state
+    showRestTimerPicker: false, // Rest timer duration picker overlay open state
+    restTimerDraftSeconds: 90,  // Duration currently being tuned in the picker, before Start is pressed
+    restTimer: null,            // { endsAt, totalSeconds } while a rest timer is actively running, else null
     showNotifications: false,  // Notification bell overlay open state
     avatarPickDraft: null,  // staged icon selection, applied only on confirm
     billingCycle: 'monthly', // 'monthly' | 'annual' — toggle state inside the pricing modal
@@ -3523,11 +3575,8 @@
     s.exercises.forEach(function(ex){
       html += '<div class="pr-ex-name">'+esc(ex.name)+(ex.muscle ? ' <span class="pr-ex-muscle">('+esc(ex.muscle)+')</span>' : '')+'</div>';
       ex.sets.forEach(function(st, i){
-        var prTags = [];
-        if (st.isPR) prTags.push('PR');
-        if (st.toFailure) prTags.push('F');
         html += '<div class="pr-set"><span>'+(i+1)+'. '+fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps+'</span>' +
-                  '<span class="pr-pr">'+esc(prTags.join(' \u00b7 '))+'</span></div>';
+                  '<span class="pr-pr">'+(st.isPR ? 'PR' : '')+'</span></div>';
       });
     });
     html += '<div class="pr-line"></div>';
@@ -3773,18 +3822,6 @@
       target = 'Maintain ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ', aim for ' + (best.reps + 1) + ' reps';
       detail = 'Top set: ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + best.reps + '. Keep the same weight and aim for ' + (best.reps + 1) + ' reps next session \u2014 once you reach ' + REP_RANGE_MAX + ', it\u2019s time to add weight.';
     }
-    // Only speaks up when a set was EXPLICITLY marked to failure (the
-    // flame toggle on the set row) — every set defaults to toFailure:
-    // false whether it genuinely wasn't taken to failure or the lifter
-    // just never touched the toggle, so the recommendation logic above
-    // never branches on "false." This never changes the recommendation
-    // itself, just confirms it more confidently — and now shows in the
-    // headline (not just buried in the detail text) so it's actually
-    // visible without reading the whole paragraph.
-    if (best.toFailure){
-      headline = '\ud83d\udd25 ' + headline;
-      detail += ' You marked this set as taken to failure \u2014 that\u2019s genuine max effort, so trust this number.';
-    }
     return { headline: headline, target: target, detail: detail };
   }
 
@@ -3826,7 +3863,6 @@
                   '<span>' +
                     (st.timestamp ? '<span class="prc-set-time">'+fmtTime(st.timestamp)+'</span>' : '') +
                     (st.isPR ? ' <span class="prc-pr">PR</span>' : '') +
-                    (st.toFailure ? ' <span class="prc-fail">F</span>' : '') +
                   '</span></div>';
       });
       html += renderTipHtml(tip, compact);
@@ -4069,6 +4105,129 @@
     saveSessions();
     renderApp();
     showToast('Started ' + tpl.label);
+  }
+
+  /* =========================================================
+     REST TIMER
+     Two-step flow after logging a set: a yes/no confirm (reusing the
+     app's existing generic confirm modal), then — if yes — a duration
+     picker overlay (1:00–5:00, 15s steps). Once started, the countdown
+     itself lives in a small bar between the exercise list and the
+     Finish/Add Set bar, not another modal, so it never blocks logging
+     the next set while resting.
+     ========================================================= */
+  var restTimerInterval = null;
+
+  function fmtMMSS(totalSeconds){
+    var m = Math.floor(totalSeconds / 60);
+    var s = totalSeconds % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  // Called from commitSet() right after a set is logged.
+  function openAskRestTimer(){
+    if (ui.restTimer) return; // already resting — don't ask to stack another
+    ui.confirmModal = {
+      kind: 'ask-rest-timer',
+      title: 'Rest timer?',
+      message: 'Start a rest timer before your next set?',
+      confirmLabel: 'Yes',
+      variant: 'primary'
+    };
+    renderApp();
+  }
+
+  function openRestTimerPicker(){
+    ui.showRestTimerPicker = true;
+    renderRestTimerPickerOverlay();
+  }
+  function closeRestTimerPicker(){
+    ui.showRestTimerPicker = false;
+    renderRestTimerPickerOverlay();
+  }
+
+  function adjustRestTimerDraft(deltaSeconds){
+    var v = (ui.restTimerDraftSeconds || 90) + deltaSeconds;
+    ui.restTimerDraftSeconds = Math.max(60, Math.min(300, v));
+    renderRestTimerPickerOverlay();
+  }
+
+  function renderRestTimerPickerOverlay(){
+    var overlay = document.getElementById('restTimerPickerOverlay');
+    var panel = document.getElementById('restTimerPickerPanel');
+    if (!ui.showRestTimerPicker){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var secs = ui.restTimerDraftSeconds || 90;
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Rest Timer</h3>' +
+        '<button class="pro-panel-close" data-action="close-rest-timer-picker" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' +
+        '<div class="rest-timer-picker-display">' +
+          '<button class="rest-timer-adjust-btn" data-action="rest-timer-adjust" data-delta="-15" aria-label="Decrease 15 seconds"'+(secs<=60?' disabled':'')+'>&#8722;</button>' +
+          '<span class="rest-timer-picker-time">'+fmtMMSS(secs)+'</span>' +
+          '<button class="rest-timer-adjust-btn" data-action="rest-timer-adjust" data-delta="15" aria-label="Increase 15 seconds"'+(secs>=300?' disabled':'')+'>&#43;</button>' +
+        '</div>' +
+        '<div class="rest-timer-picker-sub">1:00 \u2013 5:00</div>' +
+      '</div>' +
+      '<div class="pro-panel-footer">' +
+        '<button class="pro-print-btn" data-action="start-rest-timer">Start</button>' +
+      '</div>';
+  }
+
+  function startRestTimer(){
+    var secs = ui.restTimerDraftSeconds || 90;
+    ui.showRestTimerPicker = false;
+    renderRestTimerPickerOverlay();
+    ui.restTimer = { endsAt: Date.now() + secs * 1000, totalSeconds: secs };
+    renderRestTimerBar();
+    if (restTimerInterval) clearInterval(restTimerInterval);
+    restTimerInterval = setInterval(tickRestTimer, 1000);
+  }
+
+  // Ticks off the wall-clock endsAt timestamp rather than just counting
+  // down a stored number — stays accurate even if setInterval gets
+  // throttled while the tab is backgrounded, instead of drifting.
+  function tickRestTimer(){
+    if (!ui.restTimer){
+      clearInterval(restTimerInterval);
+      restTimerInterval = null;
+      return;
+    }
+    var remaining = Math.max(0, Math.ceil((ui.restTimer.endsAt - Date.now()) / 1000));
+    if (remaining <= 0){
+      clearInterval(restTimerInterval);
+      restTimerInterval = null;
+      ui.restTimer = null;
+      renderRestTimerBar();
+      showToast('Rest complete \u2014 back to it');
+      if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+      return;
+    }
+    renderRestTimerBar(remaining);
+  }
+
+  function skipRestTimer(){
+    if (restTimerInterval){ clearInterval(restTimerInterval); restTimerInterval = null; }
+    ui.restTimer = null;
+    renderRestTimerBar();
+  }
+
+  function renderRestTimerBar(remainingOverride){
+    var el = document.getElementById('restTimerBar');
+    var timeEl = document.getElementById('restTimerTime');
+    if (!el || !timeEl) return;
+    if (!ui.restTimer){
+      el.classList.add('hidden');
+      return;
+    }
+    el.classList.remove('hidden');
+    var remaining = remainingOverride != null ? remainingOverride : Math.max(0, Math.ceil((ui.restTimer.endsAt - Date.now()) / 1000));
+    timeEl.textContent = fmtMMSS(remaining);
   }
 
   /* =========================================================
@@ -4690,9 +4849,6 @@
                     (st.timestamp ? '<span class="set-time"> &middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
                     (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
                   '</span>' +
-                  '<span class="set-flags">' +
-                    '<button class="failure-toggle-btn'+(st.toFailure?' active':'')+'" data-action="toggle-failure" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="'+(st.toFailure?'Taken to failure \u2014 tap to unmark':'Mark this set as taken to failure')+'">&#128293;</button>' +
-                  '</span>' +
                   '<span class="set-actions">' +
                     '<button class="set-act-btn" data-action="edit-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Edit set">&#9998;</button>' +
                     '<button class="set-act-btn" data-action="delete-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Delete set">&#10005;</button>' +
@@ -4799,8 +4955,7 @@
         html += ex.sets.map(function(st){
           return fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps +
                  (st.timestamp ? ' <span class="set-time">&middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
-                 (st.isPR ? '<span class="pr-tag">PR</span>' : '') +
-                 (st.toFailure ? '<span class="failure-tag">FAILURE</span>' : '');
+                 (st.isPR ? '<span class="pr-tag">PR</span>' : '');
         }).join('<br>');
         html += '</div></div>' +
                 '<button class="hi-tip-btn'+(tipLocked ? ' locked' : '')+'" data-action="open-ex-tip" data-session="'+s.id+'" data-ex="'+ex.id+'" aria-label="Tips and target for '+esc(ex.name)+'">&#128161;</button>' +
@@ -5954,7 +6109,7 @@
       return;
     }
 
-    commitSet(ex, weightKg, reps, false);
+    commitSet(ex, weightKg, reps);
   }
 
   // Fires only on a wild, out-of-nowhere jump (5x+ the previous best for
@@ -5976,7 +6131,7 @@
     return msg.replace('{w}', fmtWeight(weightKg)).replace('{u}', unitLabel()).replace('{ex}', exName);
   }
 
-  function commitSet(ex, weightKg, reps, toFailure){
+  function commitSet(ex, weightKg, reps){
     var setId = uid();
     var prevBest = bestE1RM(ex.name, null);
     var thisE1rm = e1rm(weightKg, reps);
@@ -5986,13 +6141,12 @@
       id: setId,
       weightKg: roundNice(weightKg),
       reps: reps,
-      toFailure: !!toFailure,
       isPR: isPR,
       timestamp: new Date().toISOString()
     });
     delete ui.draftSets[ex.id];
     saveSessions();
-    logActivity('Added set ' + fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + (toFailure ? ' (to failure)' : '') + ' to "' + ex.name + '"' + (isPR ? ' \u2014 new PR' : ''), 'Log');
+    logActivity('Added set ' + fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + ' to "' + ex.name + '"' + (isPR ? ' \u2014 new PR' : ''), 'Log');
     ui.freshPRSetId = isPR ? setId : null;
     renderApp();
     ui.freshPRSetId = null;
@@ -6000,6 +6154,7 @@
       var joke = susWeightJoke(ex.name, weightKg, prevBest);
       showToast(joke || ('New PR on ' + ex.name + '!'));
     }
+    openAskRestTimer();
   }
 
   function activeAddSetTarget(){
@@ -6111,8 +6266,7 @@
       variant: 'primary',
       exId: ex.id,
       weightKg: weightKg,
-      reps: reps,
-      toFailure: false
+      reps: reps
     };
     renderApp();
   }
@@ -6175,50 +6329,6 @@
     saveSessions();
     logActivity('Deleted set ' + label + ' from "' + ex.name + '"', 'Log');
     if (ui.editingSet && ui.editingSet.setId === setId) ui.editingSet = null;
-    renderApp();
-  }
-
-  // Tap-handler for the flame icon. Marking a set as taken to failure is a
-  // real claim (and feeds the overload tip), so it gets a confirmation.
-  // Un-marking is just correcting a mis-tap, so that stays instant — no
-  // reason to ask "are you sure?" twice for one accidental tap.
-  function handleFailureTap(exId, setId){
-    var session = getActiveSession();
-    var ex = findExercise(session, exId);
-    if (!ex) return;
-    var st = ex.sets.find(function(s){ return s.id === setId; });
-    if (!st) return;
-    if (st.toFailure) toggleSetFailure(exId, setId);
-    else openFailureSetConfirm(exId, setId);
-  }
-
-  function openFailureSetConfirm(exId, setId){
-    var session = getActiveSession();
-    var ex = findExercise(session, exId);
-    if (!ex) return;
-    var st = ex.sets.find(function(s){ return s.id === setId; });
-    if (!st) return;
-    ui.confirmModal = {
-      kind: 'failure-set',
-      title: 'Failure set?',
-      message: 'Did ' + fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps + ' go to true failure \u2014 no reps left in the tank?',
-      confirmLabel: 'Yes',
-      variant: 'danger',
-      exId: exId,
-      setId: setId
-    };
-    renderApp();
-  }
-
-  // Marks/unmarks a set as taken to true failure.
-  function toggleSetFailure(exId, setId){
-    var session = getActiveSession();
-    var ex = findExercise(session, exId);
-    if (!ex) return;
-    var st = ex.sets.find(function(s){ return s.id === setId; });
-    if (!st) return;
-    st.toFailure = !st.toFailure;
-    saveSessions();
     renderApp();
   }
 
@@ -6959,8 +7069,6 @@
       else addSetGlobal();
     } else if (action === 'delete-set'){
       openDeleteSetConfirm(el.dataset.ex, el.dataset.set);
-    } else if (action === 'toggle-failure'){
-      handleFailureTap(el.dataset.ex, el.dataset.set);
     } else if (action === 'edit-set'){
       openEditSetConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'save-set-edit'){
@@ -6971,6 +7079,8 @@
       openFinishSessionConfirm();
     } else if (action === 'open-template-picker'){
       openTemplatePicker();
+    } else if (action === 'skip-rest-timer'){
+      skipRestTimer();
     } else if (action === 'toggle-muscle-map'){
       ui.showMuscleMap = !ui.showMuscleMap;
       ui.selectedMuscle = null;
@@ -7215,7 +7325,7 @@
       else if (m && m.kind === 'add-named-exercise') addExercise(m.name, m.muscle);
       else if (m && m.kind === 'start-routine') startRoutine(m.routineId);
       else if (m && m.kind === 'start-template') applyTemplate(m.templateKey);
-      else if (m && m.kind === 'failure-set') toggleSetFailure(m.exId, m.setId);
+      else if (m && m.kind === 'ask-rest-timer') openRestTimerPicker();
       else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
       else if (m && m.kind === 'clear-data') clearAllData();
       else if (m && m.kind === 'clear-brief') clearBrief();
@@ -7227,7 +7337,7 @@
         var session = getActiveSession();
         var ex = findExercise(session, m.exId);
         ui.expandedAddSet[m.exId] = false;
-        if (ex) commitSet(ex, m.weightKg, m.reps, m.toFailure);
+        if (ex) commitSet(ex, m.weightKg, m.reps);
       }
       else if (m && m.kind === 'edit-set-confirm'){
         applySetEdit(m.exId, m.setId, m.weightKg, m.reps);
@@ -7452,6 +7562,23 @@
     }
   });
 
+  var restTimerPickerOverlayEl = document.getElementById('restTimerPickerOverlay');
+  restTimerPickerOverlayEl.addEventListener('click', function(e){
+    if (e.target === restTimerPickerOverlayEl){
+      closeRestTimerPicker();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-rest-timer-picker'){
+      closeRestTimerPicker();
+    } else if (el.dataset.action === 'rest-timer-adjust'){
+      adjustRestTimerDraft(parseInt(el.dataset.delta, 10));
+    } else if (el.dataset.action === 'start-rest-timer'){
+      startRestTimer();
+    }
+  });
+
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     if (ui.confirmModal){
@@ -7477,6 +7604,8 @@
       closeAvatarPick();
     } else if (ui.showTemplatePicker){
       closeTemplatePicker();
+    } else if (ui.showRestTimerPicker){
+      closeRestTimerPicker();
     } else if (ui.showNotifications){
       closeNotifications();
     } else if (ui.showMuscleMap){
