@@ -470,6 +470,26 @@
   input[type=text].session-name-input::placeholder{color:var(--text-faint);text-transform:none;font-weight:500;}
   input[type=text].session-name-input:focus{outline:none;border-bottom-color:var(--accent);}
 
+  .session-name-row{display:flex;align-items:center;gap:10px;}
+  .session-name-row .session-name-input{flex:1 1 auto;min-width:0;}
+  .template-toggle-btn{
+    flex:0 0 auto;
+    width:38px;
+    height:38px;
+    margin-bottom:4px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:8px;
+    border:1.5px solid var(--accent-dim);
+    background:transparent;
+    color:var(--accent);
+    padding:0;
+    cursor:pointer;
+  }
+  .template-toggle-btn:active{background:var(--accent-dim);}
+  .template-toggle-btn svg{display:block;width:18px;height:18px;}
+
   .session-meta{
     display:flex;
     gap:14px;
@@ -1162,6 +1182,33 @@
   }
   .mm-toggle-btn:active{background:var(--accent);color:#1c1500;}
   .mm-toggle-btn svg{display:block;width:22px;height:22px;}
+
+  /* ---------- Template picker (Push/Pull/Leg/Upper/Lower cards) ---------- */
+  .template-card{
+    width:100%;
+    text-align:left;
+    display:block;
+    padding:14px 16px;
+    border-radius:var(--radius);
+    border:1.5px solid var(--line);
+    background:var(--panel-2);
+    color:var(--text);
+    cursor:pointer;
+    margin-bottom:10px;
+  }
+  .template-card:last-child{margin-bottom:0;}
+  .template-card:active{border-color:var(--accent);background:var(--panel-3);}
+  .template-card-name{
+    font-family:'Oswald',sans-serif;
+    font-size:15px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:var(--accent);
+    margin-bottom:4px;
+  }
+  .template-card-sub{font-size:12.5px;color:var(--text-dim);margin-bottom:2px;}
+  .template-card-count{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.04em;}
 
   /* ---------- Muscle map overlay (floating card) ---------- */
   .mm-overlay{
@@ -2173,6 +2220,9 @@
 <div class="confirm-overlay hidden" id="avatarPickOverlay">
   <div class="pro-panel" id="avatarPickPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="templatePickerOverlay">
+  <div class="pro-panel" id="templatePickerPanel"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
 
@@ -2601,6 +2651,7 @@
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
     showPricing: false,     // Pricing/upgrade modal open state
     showAvatarPick: false,  // Profile icon picker overlay open state
+    showTemplatePicker: false,  // Start-from-template overlay open state
     avatarPickDraft: null,  // staged icon selection, applied only on confirm
     billingCycle: 'monthly', // 'monthly' | 'annual' — toggle state inside the pricing modal
     startingTrial: false,   // true while the "Start Free Trial" write is in flight
@@ -3105,6 +3156,93 @@
     Glutes: ['Hip Thrust','Glute Bridge','Bulgarian Split Squat','Cable Kickback','Sumo Deadlift'],
     Calves: ['Standing Calf Raise','Seated Calf Raise','Calf Press']
   };
+
+  // Starter routine templates for the "Start from a Template" picker.
+  // Exercise names are pulled straight from MUSCLE_EXERCISES above, so
+  // they stay consistent with everything else that reads ex.muscle
+  // (muscle map, progress charts, etc). Two notes on the mapping from
+  // Xavier's spec to this app's muscle taxonomy, since there's no
+  // separate "Rear Delt" or "Hip" category here:
+  //   - "rear delt" (pull day) -> Shoulders, using Face Pull + Lateral
+  //     Raise specifically, since those are the closest rear/side-delt
+  //     movements in the existing Shoulders list.
+  //   - "hip" (leg day) -> Glutes, the closest existing category.
+  // `optional: true` exercises are still added when the template is
+  // applied (removing an exercise afterward is one tap), but are
+  // called out as optional in the confirmation message.
+  var WORKOUT_TEMPLATES = {
+    push: {
+      label: 'Push Day',
+      exercises: [
+        { name: 'Bench Press', muscle: 'Chest' },
+        { name: 'Incline Bench Press', muscle: 'Chest' },
+        { name: 'Dumbbell Press', muscle: 'Chest' },
+        { name: 'Overhead Press', muscle: 'Shoulders' },
+        { name: 'Lateral Raise', muscle: 'Shoulders' },
+        { name: 'Tricep Pushdown', muscle: 'Triceps' },
+        { name: 'Skull Crushers', muscle: 'Triceps' }
+      ]
+    },
+    pull: {
+      label: 'Pull Day',
+      exercises: [
+        { name: 'Pull-ups', muscle: 'Back' },
+        { name: 'Barbell Row', muscle: 'Back' },
+        { name: 'Seated Cable Row', muscle: 'Back' },
+        { name: 'Face Pull', muscle: 'Shoulders' },
+        { name: 'Lateral Raise', muscle: 'Shoulders' },
+        { name: 'Barbell Curl', muscle: 'Biceps' },
+        { name: 'Hammer Curl', muscle: 'Biceps' }
+      ]
+    },
+    leg: {
+      label: 'Leg Day',
+      exercises: [
+        { name: 'Back Squat', muscle: 'Quads' },
+        { name: 'Leg Press', muscle: 'Quads' },
+        { name: 'Romanian Deadlift', muscle: 'Hamstrings' },
+        { name: 'Leg Curl', muscle: 'Hamstrings' },
+        { name: 'Hip Thrust', muscle: 'Glutes' },
+        { name: 'Glute Bridge', muscle: 'Glutes' },
+        { name: 'Standing Calf Raise', muscle: 'Calves' },
+        { name: 'Hanging Leg Raise', muscle: 'Abs' }
+      ]
+    },
+    upper: {
+      label: 'Upper Day',
+      exercises: [
+        { name: 'Incline Bench Press', muscle: 'Chest' },
+        { name: 'Dumbbell Press', muscle: 'Chest' },
+        { name: 'Lat Pulldown', muscle: 'Back' },
+        { name: 'Seated Cable Row', muscle: 'Back' },
+        { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders' },
+        { name: 'Lateral Raise', muscle: 'Shoulders' },
+        { name: 'Dumbbell Curl', muscle: 'Biceps', optional: true },
+        { name: 'Close-Grip Bench Press', muscle: 'Triceps', optional: true }
+      ]
+    },
+    lower: {
+      label: 'Lower Day',
+      exercises: [
+        { name: 'Back Squat', muscle: 'Quads' },
+        { name: 'Romanian Deadlift', muscle: 'Hamstrings' },
+        { name: 'Leg Press', muscle: 'Quads' },
+        { name: 'Standing Calf Raise', muscle: 'Calves', optional: true },
+        { name: 'Cable Crunch', muscle: 'Abs' }
+      ]
+    }
+  };
+  var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'upper', 'lower'];
+
+  // "Chest 3 · Shoulders 2 · Triceps 2" style summary line for a template card.
+  function templateSummaryLine(tpl){
+    var counts = {}, order = [];
+    tpl.exercises.forEach(function(ex){
+      if (!counts[ex.muscle]){ counts[ex.muscle] = 0; order.push(ex.muscle); }
+      counts[ex.muscle]++;
+    });
+    return order.map(function(m){ return m + ' ' + counts[m]; }).join(' \u00b7 ');
+  }
 
   function muscleMapSVG(view, selected){
     var shapes = MUSCLE_SHAPES[view];
@@ -3696,6 +3834,80 @@
   }
 
   /* =========================================================
+     TEMPLATE PICKER  (Push/Pull/Leg/Upper/Lower starter routines)
+     ========================================================= */
+  function openTemplatePicker(){
+    ui.showTemplatePicker = true;
+    renderTemplatePickerOverlay();
+  }
+  function closeTemplatePicker(){
+    ui.showTemplatePicker = false;
+    renderTemplatePickerOverlay();
+  }
+
+  function renderTemplatePickerOverlay(){
+    var overlay = document.getElementById('templatePickerOverlay');
+    var panel = document.getElementById('templatePickerPanel');
+    if (!ui.showTemplatePicker){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Start from a Template</h3>' +
+        '<button class="pro-panel-close" data-action="close-template-picker" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' +
+        WORKOUT_TEMPLATE_ORDER.map(function(key){
+          var tpl = WORKOUT_TEMPLATES[key];
+          return '<button type="button" class="template-card" data-action="select-template" data-template="'+key+'">' +
+            '<div class="template-card-name">'+esc(tpl.label)+'</div>' +
+            '<div class="template-card-sub">'+esc(templateSummaryLine(tpl))+'</div>' +
+            '<div class="template-card-count">'+tpl.exercises.length+' exercises</div>' +
+          '</button>';
+        }).join('') +
+      '</div>';
+  }
+
+  // Step 2 — confirmation, reusing the same generic confirm modal every
+  // other destructive/loading action in the app already uses.
+  function openStartTemplateConfirm(templateKey){
+    var tpl = WORKOUT_TEMPLATES[templateKey];
+    if (!tpl) return;
+    ui.showTemplatePicker = false;
+    renderTemplatePickerOverlay();
+    var hasOptional = tpl.exercises.some(function(ex){ return ex.optional; });
+    ui.confirmModal = {
+      kind: 'start-template',
+      title: 'Start ' + tpl.label + '?',
+      message: 'This loads ' + tpl.exercises.length + ' exercises into this session, ready to log' +
+                (hasOptional ? ' \u2014 a couple are optional, delete any you\u2019re skipping today' : '') + '.',
+      confirmLabel: 'Start',
+      variant: 'primary',
+      templateKey: templateKey
+    };
+    renderApp();
+  }
+
+  // Step 3 — actually populate the current (already-empty) session. This
+  // fills the active session in place rather than spawning a new one like
+  // startRoutine() does, since the picker only ever shows when the active
+  // session already has zero exercises (see the trigger button in renderLog()).
+  function applyTemplate(templateKey){
+    var tpl = WORKOUT_TEMPLATES[templateKey];
+    if (!tpl) return;
+    var session = getActiveSession();
+    session.name = tpl.label;
+    session.exercises = tpl.exercises.map(function(ex){
+      return { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false };
+    });
+    saveSessions();
+    renderApp();
+    showToast('Started ' + tpl.label);
+  }
+
+  /* =========================================================
      PRICING MODAL  (Basic → Pro upgrade)
      ========================================================= */
   function openPricing(){
@@ -4168,8 +4380,19 @@
       }
     }
 
-    html += '<input type="text" class="session-name-input" placeholder="Untitled session — e.g. Push Day, Legs, Full Body" ' +
-            'value="'+esc(session.name)+'" data-role="session-name">';
+    html += '<div class="session-name-row">' +
+            '<input type="text" class="session-name-input" placeholder="Untitled session — e.g. Push Day, Legs, Full Body" ' +
+            'value="'+esc(session.name)+'" data-role="session-name">' +
+            (session.exercises.length === 0 ?
+              '<button class="template-toggle-btn" data-action="open-template-picker" title="Start from a template" aria-label="Start from a template">' +
+                '<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">' +
+                  '<rect x="3" y="4" width="18" height="3.5" rx="1"/>' +
+                  '<rect x="3" y="10.25" width="18" height="3.5" rx="1"/>' +
+                  '<rect x="3" y="16.5" width="12" height="3.5" rx="1"/>' +
+                '</svg>' +
+              '</button>'
+            : '') +
+            '</div>';
     html += '<div class="session-meta">' +
               '<span>'+fmtDate(session.date)+'</span>' +
               '<span><b>'+session.exercises.length+'</b> exercises</span>' +
@@ -6477,6 +6700,8 @@
       cancelEditSet();
     } else if (action === 'finish-session'){
       openFinishSessionConfirm();
+    } else if (action === 'open-template-picker'){
+      openTemplatePicker();
     } else if (action === 'toggle-muscle-map'){
       ui.showMuscleMap = !ui.showMuscleMap;
       ui.selectedMuscle = null;
@@ -6717,6 +6942,7 @@
       else if (m && m.kind === 'add-blank-exercise') addBlankExercise(m.muscle);
       else if (m && m.kind === 'add-named-exercise') addExercise(m.name, m.muscle);
       else if (m && m.kind === 'start-routine') startRoutine(m.routineId);
+      else if (m && m.kind === 'start-template') applyTemplate(m.templateKey);
       else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
       else if (m && m.kind === 'clear-data') clearAllData();
       else if (m && m.kind === 'clear-brief') clearBrief();
@@ -6938,6 +7164,21 @@
     }
   });
 
+  var templatePickerOverlayEl = document.getElementById('templatePickerOverlay');
+  templatePickerOverlayEl.addEventListener('click', function(e){
+    if (e.target === templatePickerOverlayEl){
+      closeTemplatePicker();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-template-picker'){
+      closeTemplatePicker();
+    } else if (el.dataset.action === 'select-template'){
+      openStartTemplateConfirm(el.dataset.template);
+    }
+  });
+
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     if (ui.confirmModal){
@@ -6961,6 +7202,8 @@
       closeExTip();
     } else if (ui.showAvatarPick){
       closeAvatarPick();
+    } else if (ui.showTemplatePicker){
+      closeTemplatePicker();
     } else if (ui.showMuscleMap){
       ui.showMuscleMap = false;
       ui.selectedMuscle = null;
