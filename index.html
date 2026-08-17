@@ -925,7 +925,7 @@
 
   .set-row{
     display:grid;
-    grid-template-columns:20px 1fr 80px;
+    grid-template-columns:20px 1fr 32px 80px;
     align-items:center;
     gap:6px;
     padding:4px 0;
@@ -948,6 +948,29 @@
   .set-row .set-detail .set-time{flex-shrink:0;white-space:nowrap;}
   .set-row .set-detail .pr-tag{flex-shrink:0;margin-left:6px;}
   .set-row .set-flags{display:flex;gap:5px;align-items:center;justify-content:flex-end;}
+  .failure-toggle-btn{
+    background:none;
+    border:1.5px solid var(--line);
+    font-size:13px;
+    line-height:1;
+    cursor:pointer;
+    width:28px;
+    height:28px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    padding:0;
+    opacity:0.35;
+    filter:grayscale(1);
+  }
+  .failure-toggle-btn:active{opacity:0.7;}
+  .failure-toggle-btn.active{
+    opacity:1;
+    filter:none;
+    border-color:var(--accent-2);
+    background:var(--accent-2-dim);
+  }
   .flame{color:var(--accent-2);font-size:12px;}
   .pr-tag{
     background:var(--accent-2-dim);
@@ -3653,6 +3676,15 @@
       target = 'Maintain ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ', aim for ' + (best.reps + 1) + ' reps';
       detail = 'Top set: ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + best.reps + '. Keep the same weight and aim for ' + (best.reps + 1) + ' reps next session \u2014 once you reach ' + REP_RANGE_MAX + ', it\u2019s time to add weight.';
     }
+    // Purely additive: only speaks up when a set was EXPLICITLY marked to
+    // failure (the flame toggle on the set row). Every set defaults to
+    // toFailure: false whether it genuinely wasn't taken to failure or the
+    // lifter just never touched the toggle — those two cases are
+    // indistinguishable, so the recommendation logic above never branches
+    // on "false." This only ever adds confidence, never second-guesses.
+    if (best.toFailure){
+      detail += ' You marked this set as taken to failure \u2014 that\u2019s genuine max effort, so trust this number.';
+    }
     return { headline: headline, target: target, detail: detail };
   }
 
@@ -4513,6 +4545,9 @@
                     '<span class="set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
                     (st.timestamp ? '<span class="set-time"> &middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
                     (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
+                  '</span>' +
+                  '<span class="set-flags">' +
+                    '<button class="failure-toggle-btn'+(st.toFailure?' active':'')+'" data-action="toggle-failure" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="'+(st.toFailure?'Taken to failure \u2014 tap to unmark':'Mark this set as taken to failure')+'">&#128293;</button>' +
                   '</span>' +
                   '<span class="set-actions">' +
                     '<button class="set-act-btn" data-action="edit-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Edit set">&#9998;</button>' +
@@ -5994,6 +6029,51 @@
     renderApp();
   }
 
+  // Tap-handler for the flame icon. Marking a set as taken to failure is a
+  // real claim (and feeds the overload tip), so it gets a confirmation.
+  // Un-marking is just correcting a mis-tap, so that stays instant — no
+  // reason to ask "are you sure?" twice for one accidental tap.
+  function handleFailureTap(exId, setId){
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex) return;
+    var st = ex.sets.find(function(s){ return s.id === setId; });
+    if (!st) return;
+    if (st.toFailure) toggleSetFailure(exId, setId);
+    else openFailureSetConfirm(exId, setId);
+  }
+
+  function openFailureSetConfirm(exId, setId){
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex) return;
+    var st = ex.sets.find(function(s){ return s.id === setId; });
+    if (!st) return;
+    ui.confirmModal = {
+      kind: 'failure-set',
+      title: 'Failure set?',
+      message: 'Did ' + fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps + ' go to true failure \u2014 no reps left in the tank?',
+      confirmLabel: 'Yes',
+      variant: 'danger',
+      exId: exId,
+      setId: setId
+    };
+    renderApp();
+  }
+
+  // Marks/unmarks a set as taken to true failure.
+  function toggleSetFailure(exId, setId){
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex) return;
+    var st = ex.sets.find(function(s){ return s.id === setId; });
+    if (!st) return;
+    st.toFailure = !st.toFailure;
+    saveSessions();
+    renderApp();
+  }
+
+
   function openEditSetConfirm(exId, setId){
     var session = getActiveSession();
     var ex = findExercise(session, exId);
@@ -6724,6 +6804,8 @@
       else addSetGlobal();
     } else if (action === 'delete-set'){
       openDeleteSetConfirm(el.dataset.ex, el.dataset.set);
+    } else if (action === 'toggle-failure'){
+      handleFailureTap(el.dataset.ex, el.dataset.set);
     } else if (action === 'edit-set'){
       openEditSetConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'save-set-edit'){
@@ -6975,6 +7057,7 @@
       else if (m && m.kind === 'add-named-exercise') addExercise(m.name, m.muscle);
       else if (m && m.kind === 'start-routine') startRoutine(m.routineId);
       else if (m && m.kind === 'start-template') applyTemplate(m.templateKey);
+      else if (m && m.kind === 'failure-set') toggleSetFailure(m.exId, m.setId);
       else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
       else if (m && m.kind === 'clear-data') clearAllData();
       else if (m && m.kind === 'clear-brief') clearBrief();
