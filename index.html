@@ -2255,21 +2255,38 @@
   }
   .confirm-btn-danger:active{opacity:0.85;}
   .confirm-btn-primary:active{opacity:0.85;}
+  .confirm-btn-info:active{opacity:0.85;}
   .confirm-btn-danger:disabled,
-  .confirm-btn-primary:disabled{
+  .confirm-btn-primary:disabled,
+  .confirm-btn-info:disabled{
     background:var(--panel-2);
     color:var(--text-faint);
     cursor:not-allowed;
     opacity:1;
   }
-  .confirm-btn-danger,.confirm-btn-primary{transition:background 0.25s ease;}
+  .confirm-btn-danger,.confirm-btn-primary,.confirm-btn-info{transition:background 0.25s ease;}
   @keyframes confirmReadyPulse{
     0%{box-shadow:0 0 0 0 rgba(255,255,255,0.45);}
     100%{box-shadow:0 0 0 12px rgba(255,255,255,0);}
   }
   .confirm-btn-danger.just-ready,
-  .confirm-btn-primary.just-ready{
+  .confirm-btn-primary.just-ready,
+  .confirm-btn-info.just-ready{
     animation:confirmReadyPulse 0.6s ease-out;
+  }
+  .confirm-btn-info{
+    flex:1;
+    min-height:44px;
+    border-radius:10px;
+    border:none;
+    background:#5ab7e8;
+    color:#0b2733;
+    font-family:'Oswald',sans-serif;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    cursor:pointer;
   }
   .confirm-btn-primary{
     flex:1;
@@ -4132,7 +4149,7 @@
       title: 'Rest timer?',
       message: 'Start a rest timer before your next set?',
       confirmLabel: 'Yes',
-      variant: 'primary'
+      variant: 'info'
     };
     renderApp();
   }
@@ -6655,7 +6672,7 @@
     }
     overlay.classList.remove('hidden');
     var m = ui.confirmModal;
-    var confirmClass = m.variant === 'primary' ? 'confirm-btn-primary' : 'confirm-btn-danger';
+    var confirmClass = m.variant === 'primary' ? 'confirm-btn-primary' : m.variant === 'info' ? 'confirm-btn-info' : 'confirm-btn-danger';
     var confirmLabel = m.confirmLabel || 'Delete';
     var counting = typeof m.countdown === 'number' && m.countdown > 0;
     panel.innerHTML =
