@@ -3329,9 +3329,14 @@
     if (!u) return '';
     if (isPaidPlanActive()){
       var planKey = u.subscription && u.subscription.plan;
-      var plan = planKey === 'annual' ? 'Annual' : planKey === 'weekly' ? 'Weekly' : 'Monthly';
       var end = toMillis(u.subscription.currentPeriodEnd);
-      return plan + ' plan — renews ' + fmtDateShort(new Date(end).toISOString());
+      var endLabel = fmtDateShort(new Date(end).toISOString());
+      // 'custom' comes from the admin Grant Pro tool (grant-pro.js) —
+      // not a real Stripe subscription, so it won't auto-renew like
+      // the other three plans do.
+      if (planKey === 'custom') return 'Pro access — until ' + endLabel;
+      var plan = planKey === 'annual' ? 'Annual' : planKey === 'weekly' ? 'Weekly' : 'Monthly';
+      return plan + ' plan — renews ' + endLabel;
     }
     if (isTrialActive()){
       return 'Free trial — ' + trialDaysLeftLabel();

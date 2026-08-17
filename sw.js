@@ -27,7 +27,7 @@ var messaging = firebase.messaging();
 messaging.onBackgroundMessage(function(payload){
   self.registration.showNotification(payload.notification.title, {
     body: payload.notification.body,
-    icon: '/apple-touch-icon.png'
+    icon: './apple-touch-icon.png'
   });
 });
 
