@@ -200,6 +200,24 @@
     box-shadow:0 8px 24px rgba(0,0,0,0.45);
     z-index:20;
   }
+  .notif-dropdown{
+    position:absolute;
+    top:calc(100% + 8px);
+    right:0;
+    width:290px;
+    max-width:calc(100vw - 32px);
+    max-height:70vh;
+    display:flex;
+    flex-direction:column;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.45);
+    z-index:20;
+    animation:notifSlideDown 0.18s ease;
+  }
+  .notif-dropdown .pro-panel-header{padding:14px 16px 4px;}
+  .notif-dropdown .pro-panel-body{padding:12px 16px 16px;}
   .account-menu-name{
     font-size:12px;
     color:var(--text-dim);
@@ -2222,6 +2240,10 @@
     100%{transform:scale(1);}
   }
   .pr-tag.fresh{animation:prpulse 0.4s ease;}
+  @keyframes notifSlideDown{
+    0%{opacity:0;transform:translateY(-8px);}
+    100%{opacity:1;transform:translateY(0);}
+  }
 
   ::selection{background:var(--accent-dim);color:var(--text);}
 
@@ -2250,6 +2272,7 @@
           </svg>
           <span class="notif-bell-dot hidden" id="notifBellDot"></span>
         </button>
+        <div class="notif-dropdown hidden" id="notifPanel"></div>
         <button class="pro-star-btn" id="proStarBtn" data-action="open-pricing" aria-label="Upgrade to Pro">PRO</button>
         <button class="account-avatar" id="accountAvatarBtn" data-action="toggle-account-menu">G</button>
         <div class="account-menu hidden" id="accountMenu">
@@ -2309,9 +2332,6 @@
 </div>
 <div class="confirm-overlay hidden" id="templatePickerOverlay">
   <div class="pro-panel" id="templatePickerPanel"></div>
-</div>
-<div class="confirm-overlay hidden" id="notifOverlay">
-  <div class="pro-panel" id="notifPanel"></div>
 </div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
@@ -2543,6 +2563,17 @@
         cb(snap.exists() ? snap.data() : null, snap.metadata);
       }, function(err){ console.error('User doc listen failed:', err); });
     },
+    // Realtime listener on a single shared /config/broadcast doc — lets
+    // Xavier type a message directly into the Firebase Console (Firestore
+    // Database -> config -> broadcast) and have it reach every open app
+    // instantly, no deploy needed. Doc shape: { message: string, active:
+    // boolean }. Read-only from the client SDK — see the Firestore rule
+    // this needs (client can never write this doc, only read it).
+    onBroadcastChange: function(cb){
+      return onSnapshot(doc(db, 'config', 'broadcast'), function(snap){
+        cb(snap.exists() ? snap.data() : null);
+      }, function(err){ console.error('Broadcast listen failed:', err); });
+    },
     // Client-side partial updates — used for things a user is allowed to
     // touch themselves (e.g. this month's Progress-tab first-use marker).
     // Security rules block this same path from writing tier/isDev/subscription.
@@ -2696,6 +2727,7 @@
     tab: 'log',
     currentAccount: null,  // null (show gate) | 'guest' | account id
     userDoc: null,         // realtime mirror of Firestore /users/{uid} — tier, trial, subscription, progressAccess
+    broadcast: null,       // realtime mirror of the shared /config/broadcast doc — { message, active }
     progressAccess: {}     // month key ('2026-08') -> { firstUseAt }. Guest source of truth; real-account fallback until userDoc loads.
   };
 
@@ -4047,6 +4079,13 @@
      ========================================================= */
   function getNotifications(){
     var list = [];
+    if (state.currentAccount !== 'guest' && state.broadcast && state.broadcast.active && state.broadcast.message){
+      list.push({
+        title: 'From Savior',
+        message: state.broadcast.message,
+        urgent: true
+      });
+    }
     if (!isDevOverride() && state.currentAccount !== 'guest' && state.userDoc && !isPaidPlanActive()){
       if (isTrialActive()){
         var daysLeft = Math.ceil(Math.max(0, toMillis(state.userDoc.trialEndDate) - Date.now()) / (24 * 60 * 60 * 1000));
@@ -4086,14 +4125,13 @@
   }
 
   function renderNotifOverlay(){
-    var overlay = document.getElementById('notifOverlay');
     var panel = document.getElementById('notifPanel');
+    if (!panel) return;
+    panel.classList.toggle('hidden', !ui.showNotifications);
     if (!ui.showNotifications){
-      overlay.classList.add('hidden');
       panel.innerHTML = '';
       return;
     }
-    overlay.classList.remove('hidden');
     var notifs = getNotifications();
     panel.innerHTML =
       '<div class="pro-panel-header"><h3>Notifications</h3>' +
@@ -5320,6 +5358,21 @@
     });
   }
 
+  var broadcastUnsub = null;
+  // Starts once per login (not per-uid — the message isn't account-
+  // specific), stopped on logout. Guests never subscribe: they have no
+  // Firebase Auth session, and the Firestore rule for this doc requires
+  // one, same as everything else guests can't reach.
+  function subscribeBroadcast(){
+    if (broadcastUnsub) return;
+    if (!window.SaviorFirebase || !window.SaviorFirebase.onBroadcastChange) return;
+    broadcastUnsub = window.SaviorFirebase.onBroadcastChange(function(data){
+      state.broadcast = data;
+      renderApp();
+    });
+  }
+
+
   // Called by the Firebase onAuthChange listener once a real login/signup
   // succeeds — not called directly by handleLogIn/handleSignUp, since
   // Firebase itself is the source of truth for "who's logged in."
@@ -5363,6 +5416,7 @@
     }).then(function(isNewAccount){
       bootAccountData();
       subscribeUserDoc(uidVal);
+      subscribeBroadcast();
       // Marks "last opened the app" for the 2-day inactivity push job
       // (a Netlify scheduled function — see send-inactivity-push.js).
       // Clearing inactivityPushSentAt here re-arms it: once this account
@@ -5404,6 +5458,8 @@
   function logOut(){
     var wasGuest = (state.currentAccount === 'guest');
     if (userDocUnsub){ userDocUnsub(); userDocUnsub = null; }
+    if (broadcastUnsub){ broadcastUnsub(); broadcastUnsub = null; }
+    state.broadcast = null;
     // Cancel any pending debounced Firestore sync (see scheduleFirestoreSync)
     // — otherwise a save queued just before logging out can still fire
     // ~800ms later and write to the account that was just logged out of.
@@ -6903,9 +6959,13 @@
       switchTabWithSlide(targetTab);
     } else if (action === 'toggle-account-menu'){
       ui.showAccountMenu = !ui.showAccountMenu;
+      if (ui.showAccountMenu) closeNotifications();
       renderApp();
     } else if (action === 'open-notifications'){
+      ui.showAccountMenu = false;
       openNotifications();
+    } else if (action === 'close-notifications'){
+      closeNotifications();
     } else if (action === 'open-avatar-pick'){
       openAvatarPick();
     } else if (action === 'log-out'){
@@ -7119,12 +7179,14 @@
     }
   });
 
-  // Close the account menu when tapping anywhere outside it.
+  // Close the account menu / notifications dropdown when tapping anywhere
+  // outside them — both anchor to the same .account-wrap in the header.
   document.addEventListener('click', function(e){
-    if (!ui.showAccountMenu) return;
+    if (!ui.showAccountMenu && !ui.showNotifications) return;
     var wrap = document.querySelector('.account-wrap');
     if (wrap && !wrap.contains(e.target)){
-      ui.showAccountMenu = false;
+      if (ui.showAccountMenu) ui.showAccountMenu = false;
+      if (ui.showNotifications) closeNotifications();
       renderApp();
     }
   });
@@ -7440,19 +7502,6 @@
       closeTemplatePicker();
     } else if (el.dataset.action === 'select-template'){
       openStartTemplateConfirm(el.dataset.template);
-    }
-  });
-
-  var notifOverlayEl = document.getElementById('notifOverlay');
-  notifOverlayEl.addEventListener('click', function(e){
-    if (e.target === notifOverlayEl){
-      closeNotifications();
-      return;
-    }
-    var el = e.target.closest('[data-action]');
-    if (!el) return;
-    if (el.dataset.action === 'close-notifications'){
-      closeNotifications();
     }
   });
 
