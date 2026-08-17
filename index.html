@@ -337,6 +337,21 @@
     gap:10px;
     margin-bottom:16px;
   }
+  .auth-forgot-link{
+    display:block;
+    width:100%;
+    text-align:right;
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-size:11.5px;
+    text-decoration:underline;
+    font-family:inherit;
+    cursor:pointer;
+    padding:0 0 12px;
+    margin-top:-4px;
+  }
+  .auth-forgot-link:active{color:var(--accent);}
   .auth-error{
     color:var(--accent-2);
     font-size:12px;
@@ -2173,7 +2188,8 @@
   import {
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
     signOut, onAuthStateChanged, deleteUser, GoogleAuthProvider, signInWithPopup,
-    reauthenticateWithCredential, EmailAuthProvider, reauthenticateWithPopup
+    reauthenticateWithCredential, EmailAuthProvider, reauthenticateWithPopup,
+    sendPasswordResetEmail
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     getFirestore, doc, setDoc, getDoc, deleteDoc, enableIndexedDbPersistence, onSnapshot, writeBatch
@@ -2243,6 +2259,9 @@
     },
     logIn: function(email, password){
       return signInWithEmailAndPassword(auth, email, password).then(function(cred){ return cred.user; });
+    },
+    resetPassword: function(email){
+      return sendPasswordResetEmail(auth, email);
     },
     signInWithGoogle: function(){
       return signInWithPopup(auth, googleProvider).then(function(cred){ return cred.user; });
@@ -5155,6 +5174,37 @@
     });
   }
 
+  function handleForgotPassword(){
+    var email = (document.getElementById('authEmail') ? document.getElementById('authEmail').value : '').trim();
+    if (!email){
+      ui.authError = 'Enter your email above first, then tap "Forgot password?"';
+      renderAuthGate();
+      return;
+    }
+    if (!isValidEmail(email)){
+      ui.authError = 'Enter a valid email address';
+      renderAuthGate();
+      return;
+    }
+    if (!window.SaviorFirebase || !window.SaviorFirebase.resetPassword){
+      ui.authError = 'Still connecting — try again in a moment';
+      renderAuthGate();
+      return;
+    }
+    ui.authError = null;
+    ui.authBusy = true;
+    renderAuthGate();
+    window.SaviorFirebase.resetPassword(email).then(function(){
+      ui.authBusy = false;
+      renderAuthGate();
+      showToast('Password reset email sent \u2014 check your inbox');
+    }).catch(function(err){
+      ui.authBusy = false;
+      ui.authError = firebaseAuthErrorMessage(err);
+      renderAuthGate();
+    });
+  }
+
   function handleGoogleSignIn(){
     if (!window.SaviorFirebase || !window.SaviorFirebase.signInWithGoogle){
       ui.authError = 'Still connecting — try again in a moment';
@@ -5192,6 +5242,8 @@
     html += '<div class="auth-field"><input type="password" id="authPassword" placeholder="Password" autocomplete="'+(mode==='signup'?'new-password':'current-password')+'"'+(busy?' disabled':'')+'></div>';
     if (mode === 'signup'){
       html += '<div class="auth-field"><input type="password" id="authConfirm" placeholder="Confirm password" autocomplete="new-password"'+(busy?' disabled':'')+'></div>';
+    } else {
+      html += '<button class="auth-forgot-link" type="button" data-action="forgot-password"'+(busy?' disabled':'')+'>Forgot password?</button>';
     }
     html += '<div class="auth-error">'+(ui.authError ? esc(ui.authError) : '')+'</div>';
     html += '<button class="auth-submit" data-action="'+(mode==='signup'?'do-signup':'do-login')+'"'+(busy?' disabled':'')+'>'+(busy ? '\u2026' : (mode==='signup'?'Create Account':'Log In'))+'</button>';
@@ -6598,6 +6650,8 @@
         document.getElementById('authEmail').value,
         document.getElementById('authPassword').value
       );
+    } else if (action === 'forgot-password'){
+      handleForgotPassword();
     } else if (action === 'do-signup'){
       handleSignUp(
         document.getElementById('authEmail').value,
