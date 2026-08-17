@@ -1291,6 +1291,22 @@
   }
   .notif-card.urgent .notif-card-title{color:var(--accent-2);}
   .notif-card-msg{font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+  .notif-card-action{
+    margin-top:10px;
+    width:100%;
+    padding:9px;
+    border-radius:8px;
+    border:none;
+    background:var(--accent);
+    color:#1c1500;
+    font-family:'Oswald',sans-serif;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  .notif-card-action:active{opacity:0.85;}
   .notif-empty{text-align:center;color:var(--text-faint);font-size:13px;padding:24px 12px;}
 
   /* ---------- Muscle map overlay (floating card) ---------- */
@@ -2283,7 +2299,6 @@
     </div>
   </header>
   <div class="trial-banner hidden" id="installBanner"></div>
-  <div class="trial-banner hidden" id="trialBanner"></div>
   <main id="view"></main>
   <div class="session-finish-bar hidden" id="sessionFinishBar">
     <button class="btn-primary" id="finishSessionBtn" data-action="finish-session" disabled>Finish Session</button>
@@ -2563,17 +2578,6 @@
         cb(snap.exists() ? snap.data() : null, snap.metadata);
       }, function(err){ console.error('User doc listen failed:', err); });
     },
-    // Realtime listener on a single shared /config/broadcast doc — lets
-    // Xavier type a message directly into the Firebase Console (Firestore
-    // Database -> config -> broadcast) and have it reach every open app
-    // instantly, no deploy needed. Doc shape: { message: string, active:
-    // boolean }. Read-only from the client SDK — see the Firestore rule
-    // this needs (client can never write this doc, only read it).
-    onBroadcastChange: function(cb){
-      return onSnapshot(doc(db, 'config', 'broadcast'), function(snap){
-        cb(snap.exists() ? snap.data() : null);
-      }, function(err){ console.error('Broadcast listen failed:', err); });
-    },
     // Client-side partial updates — used for things a user is allowed to
     // touch themselves (e.g. this month's Progress-tab first-use marker).
     // Security rules block this same path from writing tier/isDev/subscription.
@@ -2727,7 +2731,6 @@
     tab: 'log',
     currentAccount: null,  // null (show gate) | 'guest' | account id
     userDoc: null,         // realtime mirror of Firestore /users/{uid} — tier, trial, subscription, progressAccess
-    broadcast: null,       // realtime mirror of the shared /config/broadcast doc — { message, active }
     progressAccess: {}     // month key ('2026-08') -> { firstUseAt }. Guest source of truth; real-account fallback until userDoc loads.
   };
 
@@ -4079,13 +4082,6 @@
      ========================================================= */
   function getNotifications(){
     var list = [];
-    if (state.currentAccount !== 'guest' && state.broadcast && state.broadcast.active && state.broadcast.message){
-      list.push({
-        title: 'From Savior',
-        message: state.broadcast.message,
-        urgent: true
-      });
-    }
     if (!isDevOverride() && state.currentAccount !== 'guest' && state.userDoc && !isPaidPlanActive()){
       if (isTrialActive()){
         var daysLeft = Math.ceil(Math.max(0, toMillis(state.userDoc.trialEndDate) - Date.now()) / (24 * 60 * 60 * 1000));
@@ -4094,13 +4090,15 @@
           title: soon ? 'Trial ending soon' : 'Pro trial active',
           message: 'Your free trial has ' + trialDaysLeftLabel() + '.' +
                     (soon ? ' Subscribe to keep Pro features when it ends.' : ' Full Pro access is unlocked until then.'),
-          urgent: soon
+          urgent: soon,
+          actionLabel: 'Upgrade'
         });
       } else if (isTrialExpired()){
         list.push({
           title: 'Trial ended',
           message: 'Your free trial has ended and you\u2019re back on Basic. Subscribe anytime to unlock Pro again.',
-          urgent: true
+          urgent: true,
+          actionLabel: 'Subscribe'
         });
       }
     }
@@ -4144,6 +4142,7 @@
               return '<div class="notif-card'+(n.urgent ? ' urgent' : '')+'">' +
                 '<div class="notif-card-title">'+esc(n.title)+'</div>' +
                 '<div class="notif-card-msg">'+esc(n.message)+'</div>' +
+                (n.actionLabel ? '<button class="notif-card-action" data-action="open-pricing">'+esc(n.actionLabel)+'</button>' : '') +
               '</div>';
             }).join('')
         ) +
@@ -4543,41 +4542,6 @@
     html += '<div class="prc-footer">SaviorFit Logger Pro. Timestamps reflect when each set was logged.</div>';
     el.innerHTML = html;
     window.print();
-  }
-
-  function renderTrialBanner(){
-    var el = document.getElementById('trialBanner');
-    if (!el) return;
-    if (isDevOverride() || state.currentAccount === 'guest' || !state.userDoc || isPaidPlanActive()){
-      el.classList.add('hidden');
-      el.classList.remove('trial-banner-ended');
-      el.innerHTML = '';
-      return;
-    }
-    if (isTrialActive()){
-      el.classList.remove('hidden');
-      el.classList.remove('trial-banner-ended');
-      el.innerHTML =
-        '<span class="trial-banner-star">&#9733;</span>' +
-        '<span class="trial-banner-text">Pro trial \u2014 <b>'+esc(trialDaysLeftLabel())+'</b></span>' +
-        '<button class="trial-banner-cta" data-action="open-pricing">Upgrade</button>';
-      return;
-    }
-    // Trial ran its course and lapsed back to Basic — say so explicitly
-    // (with a way to subscribe right there) instead of the banner just
-    // vanishing with no explanation of why Pro features locked back up.
-    if (isTrialExpired()){
-      el.classList.remove('hidden');
-      el.classList.add('trial-banner-ended');
-      el.innerHTML =
-        '<span class="trial-banner-star">&#9733;</span>' +
-        '<span class="trial-banner-text">Your free trial has ended \u2014 <b>back to Basic</b></span>' +
-        '<button class="trial-banner-cta" data-action="open-pricing">Subscribe</button>';
-      return;
-    }
-    el.classList.add('hidden');
-    el.classList.remove('trial-banner-ended');
-    el.innerHTML = '';
   }
 
   // Shows the "install this as an app" banner — same visual pattern as
@@ -5267,7 +5231,6 @@
     if (notifBellDotEl){
       notifBellDotEl.classList.toggle('hidden', !getNotifications().some(function(n){ return n.urgent; }));
     }
-    renderTrialBanner();
     renderInstallBanner();
 
     var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
@@ -5358,20 +5321,6 @@
     });
   }
 
-  var broadcastUnsub = null;
-  // Starts once per login (not per-uid — the message isn't account-
-  // specific), stopped on logout. Guests never subscribe: they have no
-  // Firebase Auth session, and the Firestore rule for this doc requires
-  // one, same as everything else guests can't reach.
-  function subscribeBroadcast(){
-    if (broadcastUnsub) return;
-    if (!window.SaviorFirebase || !window.SaviorFirebase.onBroadcastChange) return;
-    broadcastUnsub = window.SaviorFirebase.onBroadcastChange(function(data){
-      state.broadcast = data;
-      renderApp();
-    });
-  }
-
 
   // Called by the Firebase onAuthChange listener once a real login/signup
   // succeeds — not called directly by handleLogIn/handleSignUp, since
@@ -5416,7 +5365,6 @@
     }).then(function(isNewAccount){
       bootAccountData();
       subscribeUserDoc(uidVal);
-      subscribeBroadcast();
       // Marks "last opened the app" for the 2-day inactivity push job
       // (a Netlify scheduled function — see send-inactivity-push.js).
       // Clearing inactivityPushSentAt here re-arms it: once this account
@@ -5458,8 +5406,6 @@
   function logOut(){
     var wasGuest = (state.currentAccount === 'guest');
     if (userDocUnsub){ userDocUnsub(); userDocUnsub = null; }
-    if (broadcastUnsub){ broadcastUnsub(); broadcastUnsub = null; }
-    state.broadcast = null;
     // Cancel any pending debounced Firestore sync (see scheduleFirestoreSync)
     // — otherwise a save queued just before logging out can still fire
     // ~800ms later and write to the account that was just logged out of.
@@ -7112,6 +7058,7 @@
     } else if (action === 'enable-push'){
       enablePushNotifications();
     } else if (action === 'open-pricing'){
+      closeNotifications();
       openPricing();
     }
   });
@@ -7591,12 +7538,18 @@
     });
   })();
 
-  // Keeps the trial-countdown banner's wording fresh while the app sits
-  // open (e.g. "2 days left" -> "1 day left") without needing any other
-  // interaction to trigger a re-render.
+  // Keeps the trial countdown fresh while the app sits open (e.g. "2 days
+  // left" -> "1 day left", or a trial crossing into the "ending soon"
+  // urgent window) without needing any other interaction to trigger it —
+  // updates the bell's dot, and the dropdown's contents if it's open.
   setInterval(function(){
     var appShellVisible = !document.getElementById('app').classList.contains('hidden');
-    if (appShellVisible) renderTrialBanner();
+    if (!appShellVisible) return;
+    var notifBellDotEl = document.getElementById('notifBellDot');
+    if (notifBellDotEl){
+      notifBellDotEl.classList.toggle('hidden', !getNotifications().some(function(n){ return n.urgent; }));
+    }
+    if (ui.showNotifications) renderNotifOverlay();
   }, 60000);
 
   // Enables offline use + the "Install app" prompt on Android/Chrome.
