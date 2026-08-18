@@ -2209,6 +2209,14 @@
     padding:22px 20px 20px;
     box-shadow:0 16px 48px rgba(0,0,0,0.55);
   }
+  .confirm-icon{
+    width:56px;height:56px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    margin:4px auto 18px;
+  }
+  .confirm-icon svg{display:block;width:28px;height:28px;}
+  .confirm-icon.icon-info{background:rgba(90,183,232,0.15);color:#5ab7e8;}
   .confirm-title{
     font-family:'Oswald',sans-serif;
     font-size:17px;
@@ -2217,6 +2225,7 @@
     margin-bottom:8px;
     letter-spacing:0.01em;
   }
+  .confirm-title.centered,.confirm-message.centered{text-align:center;}
   .confirm-message{
     font-size:13px;
     color:var(--text-dim);
@@ -4149,7 +4158,8 @@
       title: 'Rest timer?',
       message: 'Start a rest timer before your next set?',
       confirmLabel: 'Yes',
-      variant: 'info'
+      variant: 'info',
+      icon: 'timer'
     };
     renderApp();
   }
@@ -6666,9 +6676,20 @@
     var confirmClass = m.variant === 'primary' ? 'confirm-btn-primary' : m.variant === 'info' ? 'confirm-btn-info' : 'confirm-btn-danger';
     var confirmLabel = m.confirmLabel || 'Delete';
     var counting = typeof m.countdown === 'number' && m.countdown > 0;
+    var iconHtml = '';
+    if (m.icon === 'timer'){
+      iconHtml = '<div class="confirm-icon icon-info">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">' +
+          '<circle cx="12" cy="13" r="8"/>' +
+          '<polyline points="12 9 12 13 15 15"/>' +
+          '<line x1="9" y1="2" x2="15" y2="2"/>' +
+        '</svg>' +
+      '</div>';
+    }
     panel.innerHTML =
-      '<div class="confirm-title">' + esc(m.title) + '</div>' +
-      '<div class="confirm-message">' + esc(m.message) + '</div>' +
+      iconHtml +
+      '<div class="confirm-title'+(iconHtml ? ' centered' : '')+'">' + esc(m.title) + '</div>' +
+      '<div class="confirm-message'+(iconHtml ? ' centered' : '')+'">' + esc(m.message) + '</div>' +
       '<div class="confirm-buttons">' +
         '<button class="confirm-btn-cancel" data-action="cancel-confirm">Cancel</button>' +
         '<button class="'+confirmClass+'" id="confirmActionBtn" data-action="confirm-modal-action"'+(counting?' disabled':'')+'>'+esc(counting ? confirmLabel + ' (' + m.countdown + ')' : confirmLabel)+'</button>' +
