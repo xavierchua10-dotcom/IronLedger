@@ -4279,11 +4279,12 @@
       }
     }
     var gap = daysSinceLastWorkout();
-    if (gap !== null && gap >= 2){
+    if (gap !== null && gap >= 2 && !reminderDismissedToday()){
       list.push({
         title: 'Time for a session',
         message: 'It\u2019s been ' + gap + ' days since your last workout \u2014 ready to log one?',
-        urgent: true
+        urgent: true,
+        dismissAction: 'dismiss-reminder'
       });
     }
     return list;
@@ -4752,16 +4753,6 @@
   function renderLog(){
     var session = getActiveSession();
     var html = '';
-
-    if (session.exercises.length === 0 && !reminderDismissedToday()){
-      var gap = daysSinceLastWorkout();
-      if (gap !== null && gap >= 2){
-        html += '<div class="reminder-banner">' +
-                  '<div class="reminder-banner-text">It\u2019s been <b>' + gap + ' days</b> since your last session \u2014 ready to log one?</div>' +
-                  '<button class="reminder-banner-dismiss" data-action="dismiss-reminder" aria-label="Dismiss">&#10005;</button>' +
-                '</div>';
-      }
-    }
 
     html += '<div class="session-name-row">' +
             '<input type="text" class="session-name-input" placeholder="Untitled session — e.g. Push Day, Legs, Full Body" ' +
@@ -7172,7 +7163,7 @@
       renderApp();
     } else if (action === 'dismiss-reminder'){
       dismissReminderToday();
-      renderApp();
+      refreshNotifBell();
     } else if (action === 'install-app'){
       triggerInstallPrompt();
     } else if (action === 'dismiss-install-banner'){
