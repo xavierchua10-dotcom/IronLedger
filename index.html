@@ -163,43 +163,6 @@
 
   .topbar-right{display:flex;align-items:center;gap:10px;}
   .account-wrap{position:relative;display:flex;align-items:center;gap:8px;}
-  .account-avatar{
-    width:40px;
-    height:40px;
-    border-radius:50%;
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    color:var(--accent);
-    font-family:'Oswald',sans-serif;
-    font-size:14px;
-    font-weight:700;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .account-avatar:active{background:var(--panel-3);}
-  /* The icon inside this button gets replaced on every renderApp() call
-     (which fires constantly, from nearly any interaction anywhere in the
-     app). If a tap's touchstart lands on that icon and a re-render swaps
-     it out before touchend, iOS/Android WebKit can silently drop the
-     click because the original touch target no longer exists. Making the
-     icon pointer-events:none means a tap always resolves straight to the
-     button itself (which never gets swapped out), regardless of how
-     often its contents change mid-gesture. */
-  .account-avatar svg{pointer-events:none;display:block;}
-  .account-menu{
-    position:absolute;
-    top:calc(100% + 8px);
-    right:0;
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:10px;
-    min-width:180px;
-    box-shadow:0 8px 24px rgba(0,0,0,0.45);
-    z-index:20;
-  }
   .notif-dropdown{
     position:absolute;
     top:calc(100% + 8px);
@@ -218,15 +181,6 @@
   }
   .notif-dropdown .pro-panel-header{padding:14px 16px 4px;}
   .notif-dropdown .pro-panel-body{padding:12px 16px 16px;}
-  .account-menu-name{
-    font-size:12px;
-    color:var(--text-dim);
-    font-weight:600;
-    padding:4px 6px 8px;
-    border-bottom:1px solid var(--line);
-    margin-bottom:8px;
-    word-break:break-word;
-  }
   .account-menu-avatar-label{
     font-size:10px;
     color:var(--text-faint);
@@ -259,19 +213,6 @@
   .avatar-pick-btn:active{background:var(--panel-2);}
   .avatar-pick-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
   .avatar-pick-btn svg{pointer-events:none;display:block;}
-  .account-menu-logout{
-    width:100%;
-    background:none;
-    border:none;
-    color:var(--accent-2);
-    font-size:13px;
-    font-weight:600;
-    text-align:left;
-    padding:6px;
-    cursor:pointer;
-    border-radius:6px;
-  }
-  .account-menu-logout:active{background:var(--panel-3);}
 
   /* ---------- Auth gate ---------- */
   #authGate{
@@ -1286,16 +1227,16 @@
   .rest-timer-adjust-btn{
     width:44px;height:44px;
     border-radius:50%;
-    border:1.5px solid var(--accent-dim);
+    border:1.5px solid rgba(90,183,232,0.4);
     background:transparent;
-    color:var(--accent);
+    color:#5ab7e8;
     font-size:20px;
     line-height:1;
     cursor:pointer;
     display:flex;align-items:center;justify-content:center;
     flex-shrink:0;
   }
-  .rest-timer-adjust-btn:active{background:var(--accent-dim);}
+  .rest-timer-adjust-btn:active{background:rgba(90,183,232,0.15);}
   .rest-timer-adjust-btn:disabled{opacity:0.3;}
   .rest-timer-picker-time{
     font-family:'JetBrains Mono',monospace;
@@ -1313,6 +1254,8 @@
     letter-spacing:0.05em;
     padding-bottom:10px;
   }
+  .rest-timer-start-btn{width:100%;background:#5ab7e8;color:#0b2733;border:none;border-radius:10px;padding:12px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;}
+  .rest-timer-start-btn:active{opacity:0.85;}
 
   /* ---------- Muscle map overlay (floating card) ---------- */
   .mm-overlay{
@@ -2022,6 +1965,16 @@
   .settings-row:first-child{border-top:none;}
   .settings-row .sr-label{font-size:14px;color:var(--text);}
   .settings-row .sr-sub{font-size:11px;color:var(--text-faint);margin-top:2px;}
+  .sr-with-avatar{display:flex;align-items:center;gap:12px;min-width:0;}
+  .sr-avatar-pic{
+    width:38px;height:38px;
+    border-radius:50%;
+    background:var(--panel-2);
+    border:1.5px solid var(--accent-dim);
+    color:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
   .settings-row .sr-action,
   .settings-row button.sr-action{
     background:var(--panel-2);
@@ -2053,33 +2006,33 @@
   .settings-row .seg button.active{background:var(--accent);color:#1c1500;}
   .routine-actions{display:flex;gap:8px;}
 
-  /* ---------- Fixed finish-session bar ---------- */
-  .rest-timer-bar{
+  /* ---------- Running rest timer bar ---------- */
+  .stopwatch-bar{
     flex-shrink:0;
     display:flex;
     align-items:center;
     gap:10px;
     padding:10px 16px;
-    border-top:1px solid var(--accent-dim);
-    background:rgba(242,177,52,0.10);
+    border-top:1px solid #5ab7e8;
+    background:rgba(90,183,232,0.10);
   }
-  .rest-timer-bar.hidden{display:none;}
-  .rest-timer-label{
+  .stopwatch-bar.hidden{display:none;}
+  .stopwatch-label{
     font-family:'Oswald',sans-serif;
     font-size:12px;
     font-weight:700;
     letter-spacing:0.06em;
     text-transform:uppercase;
-    color:var(--accent);
+    color:#5ab7e8;
   }
-  .rest-timer-time{
+  .stopwatch-time{
     font-family:'JetBrains Mono',monospace;
     font-size:16px;
     font-weight:700;
     color:var(--text);
     flex:1;
   }
-  .rest-timer-skip{
+  .stopwatch-stop-btn{
     background:none;
     border:1px solid var(--line);
     color:var(--text-dim);
@@ -2091,7 +2044,7 @@
     border-radius:8px;
     cursor:pointer;
   }
-  .rest-timer-skip:active{background:var(--panel-3);}
+  .stopwatch-stop-btn:active{background:var(--panel-3);}
   .session-finish-bar{
     flex-shrink:0;
     display:flex;
@@ -2209,14 +2162,6 @@
     padding:22px 20px 20px;
     box-shadow:0 16px 48px rgba(0,0,0,0.55);
   }
-  .confirm-icon{
-    width:56px;height:56px;
-    border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    margin:4px auto 18px;
-  }
-  .confirm-icon svg{display:block;width:28px;height:28px;}
-  .confirm-icon.icon-info{background:rgba(90,183,232,0.15);color:#5ab7e8;}
   .confirm-title{
     font-family:'Oswald',sans-serif;
     font-size:17px;
@@ -2225,7 +2170,6 @@
     margin-bottom:8px;
     letter-spacing:0.01em;
   }
-  .confirm-title.centered,.confirm-message.centered{text-align:center;}
   .confirm-message{
     font-size:13px;
     color:var(--text-dim);
@@ -2357,21 +2301,17 @@
         </button>
         <div class="notif-dropdown hidden" id="notifPanel"></div>
         <button class="pro-star-btn" id="proStarBtn" data-action="open-pricing" aria-label="Upgrade to Pro">PRO</button>
-        <button class="account-avatar" id="accountAvatarBtn" data-action="toggle-account-menu">G</button>
-        <div class="account-menu hidden" id="accountMenu">
-          <div class="account-menu-name" id="accountMenuName">Guest</div>
-          <button class="account-menu-logout" data-action="log-out">Log out</button>
-        </div>
+        <button class="notif-bell-btn" id="restTimerHeaderBtn" data-action="open-rest-timer-picker" aria-label="Rest timer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 15 15"/><line x1="9" y1="2" x2="15" y2="2"/>
+          </svg>
+        </button>
       </div>
     </div>
   </header>
   <div class="trial-banner hidden" id="installBanner"></div>
   <main id="view"></main>
-  <div class="rest-timer-bar hidden" id="restTimerBar">
-    <span class="rest-timer-label">Rest</span>
-    <span class="rest-timer-time" id="restTimerTime">0:00</span>
-    <button class="rest-timer-skip" data-action="skip-rest-timer">Skip</button>
-  </div>
+  <div class="stopwatch-bar hidden" id="stopwatchBar"></div>
   <div class="session-finish-bar hidden" id="sessionFinishBar">
     <button class="btn-primary" id="finishSessionBtn" data-action="finish-session" disabled>Finish Session</button>
     <button class="add-set-global-btn" data-action="add-set-global" disabled>&#10003; Add Set</button>
@@ -4134,13 +4074,14 @@
   }
 
   /* =========================================================
-     REST TIMER
-     Two-step flow after logging a set: a yes/no confirm (reusing the
-     app's existing generic confirm modal), then — if yes — a duration
-     picker overlay (1:00–5:00, 15s steps). Once started, the countdown
-     itself lives in a small bar between the exercise list and the
-     Finish/Add Set bar, not another modal, so it never blocks logging
-     the next set while resting.
+     REST TIMER  (manual trigger, tunable duration 1:00–5:00)
+     Nothing auto-prompts this — it only ever opens when the watch icon
+     next to "Add Exercise" is tapped. From there: a duration picker
+     (15s steps, clamped 1:00–5:00) with a Start button acting as the
+     confirmation step, then a countdown running in the bar between the
+     exercise list and the Finish/Add Set bar. Ticks off a wall-clock
+     endsAt timestamp rather than a naive counter, so it stays accurate
+     even if the interval gets throttled while the tab is backgrounded.
      ========================================================= */
   var restTimerInterval = null;
 
@@ -4148,20 +4089,6 @@
     var m = Math.floor(totalSeconds / 60);
     var s = totalSeconds % 60;
     return m + ':' + (s < 10 ? '0' : '') + s;
-  }
-
-  // Called from commitSet() right after a set is logged.
-  function openAskRestTimer(){
-    if (ui.restTimer) return; // already resting — don't ask to stack another
-    ui.confirmModal = {
-      kind: 'ask-rest-timer',
-      title: 'Rest timer?',
-      message: 'Start a rest timer before your next set?',
-      confirmLabel: 'Yes',
-      variant: 'info',
-      icon: 'timer'
-    };
-    renderApp();
   }
 
   function openRestTimerPicker(){
@@ -4202,7 +4129,7 @@
         '<div class="rest-timer-picker-sub">1:00 \u2013 5:00</div>' +
       '</div>' +
       '<div class="pro-panel-footer">' +
-        '<button class="pro-print-btn" data-action="start-rest-timer">Start</button>' +
+        '<button class="rest-timer-start-btn" data-action="start-rest-timer">Start</button>' +
       '</div>';
   }
 
@@ -4216,9 +4143,6 @@
     restTimerInterval = setInterval(tickRestTimer, 1000);
   }
 
-  // Ticks off the wall-clock endsAt timestamp rather than just counting
-  // down a stored number — stays accurate even if setInterval gets
-  // throttled while the tab is backgrounded, instead of drifting.
   function tickRestTimer(){
     if (!ui.restTimer){
       clearInterval(restTimerInterval);
@@ -4245,16 +4169,19 @@
   }
 
   function renderRestTimerBar(remainingOverride){
-    var el = document.getElementById('restTimerBar');
-    var timeEl = document.getElementById('restTimerTime');
-    if (!el || !timeEl) return;
+    var el = document.getElementById('stopwatchBar');
+    if (!el) return;
     if (!ui.restTimer){
       el.classList.add('hidden');
+      el.innerHTML = '';
       return;
     }
     el.classList.remove('hidden');
     var remaining = remainingOverride != null ? remainingOverride : Math.max(0, Math.ceil((ui.restTimer.endsAt - Date.now()) / 1000));
-    timeEl.textContent = fmtMMSS(remaining);
+    el.innerHTML =
+      '<span class="stopwatch-label">Resting</span>' +
+      '<span class="stopwatch-time">'+fmtMMSS(remaining)+'</span>' +
+      '<button class="stopwatch-stop-btn" data-action="skip-rest-timer">Skip</button>';
   }
 
   /* =========================================================
@@ -5190,15 +5117,21 @@
      ========================================================= */
   function renderSettings(){
     var totalSessions = state.sessions.filter(function(s){ return s.status === 'done'; }).length;
+    var isGuest = (state.currentAccount === 'guest');
+    var chosenAvatar = isGuest ? 'guest' : (state.settings && state.settings.avatar);
+    var proTag = isDevOverride() ? ' <span class="dev-badge">DEV</span>' : (isProActive() ? ' <span class="pro-badge-mini">PRO</span>' : '');
     var html = '';
     html += '<div class="section-label">Account</div>';
     html += '<div class="settings-group">';
-    html += '<div class="settings-row"><div><div class="sr-label">'+esc(currentAccountEmail())+'</div>' +
-              '<div class="sr-sub">'+(state.currentAccount==='guest' ? 'Guest — this device only' : 'Synced to your account')+'</div></div>' +
+    html += '<div class="settings-row"><div><div class="sr-label">'+esc(currentAccountEmail())+(isGuest ? '' : proTag)+'</div>' +
+              '<div class="sr-sub">'+(isGuest ? 'Guest — this device only' : 'Synced to your account')+'</div></div>' +
               '<button class="sr-action" data-action="log-out">Log out</button></div>';
-    if (state.currentAccount !== 'guest'){
-      html += '<div class="settings-row"><div><div class="sr-label">Profile icon</div>' +
+    if (!isGuest){
+      html += '<div class="settings-row"><div class="sr-with-avatar">' +
+                '<div class="sr-avatar-pic">'+(chosenAvatar ? avatarSvg(chosenAvatar, 22) : '')+'</div>' +
+                '<div><div class="sr-label">Profile icon</div>' +
                 '<div class="sr-sub">Choose how your account appears</div></div>' +
+              '</div>' +
                 '<button class="sr-action" data-action="open-avatar-pick">Change</button></div>';
     }
     html += '</div>';
@@ -5384,16 +5317,6 @@
     var unitBtn = document.getElementById('unitToggleBtn');
     if (unitBtn) unitBtn.textContent = state.settings.unit.toUpperCase();
 
-    var uemail = currentAccountEmail();
-    var isGuest = (state.currentAccount === 'guest');
-    var avatarBtnEl = document.getElementById('accountAvatarBtn');
-    var chosenAvatar = isGuest ? 'guest' : (state.settings && state.settings.avatar);
-    avatarBtnEl.innerHTML = chosenAvatar ? avatarSvg(chosenAvatar, 20) : esc(uemail.charAt(0).toUpperCase());
-    var menuNameEl = document.getElementById('accountMenuName');
-    var proTag = isDevOverride() ? ' <span class="dev-badge">DEV</span>' : (isProActive() ? ' <span class="pro-badge-mini">PRO</span>' : '');
-    menuNameEl.innerHTML = (state.currentAccount === 'guest' ? 'Guest — this device only' : esc(uemail)) + (state.currentAccount === 'guest' ? '' : proTag);
-    document.getElementById('accountMenu').classList.toggle('hidden', !ui.showAccountMenu);
-
     var proStarBtnEl = document.getElementById('proStarBtn');
     if (proStarBtnEl){
       var proNow = isProActive();
@@ -5409,6 +5332,8 @@
     var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
     var showFinishBar = state.tab === 'log' && !!activeSession && activeSession.exercises.length > 0;
     document.getElementById('sessionFinishBar').classList.toggle('hidden', !showFinishBar);
+    document.getElementById('stopwatchBar').classList.toggle('hidden', !showFinishBar || !ui.restTimer);
+    if (showFinishBar) renderRestTimerBar();
 
     // Anyone mid-edit (typing a set, renaming an exercise, or the add-set
     // panel open) shouldn't be able to accidentally tap Finish Session —
@@ -6172,7 +6097,6 @@
       var joke = susWeightJoke(ex.name, weightKg, prevBest);
       showToast(joke || ('New PR on ' + ex.name + '!'));
     }
-    openAskRestTimer();
   }
 
   function activeAddSetTarget(){
@@ -6442,6 +6366,8 @@
     logActivity('Finished session "' + (session.name || 'Untitled session') + '"', 'Log');
     ui.editingSet = null;
     ui.expandedHistory[session.id] = true;
+    if (restTimerInterval){ clearInterval(restTimerInterval); restTimerInterval = null; }
+    ui.restTimer = null;
     state.tab = 'history';
     showToast('Session saved');
     renderApp();
@@ -6676,20 +6602,9 @@
     var confirmClass = m.variant === 'primary' ? 'confirm-btn-primary' : m.variant === 'info' ? 'confirm-btn-info' : 'confirm-btn-danger';
     var confirmLabel = m.confirmLabel || 'Delete';
     var counting = typeof m.countdown === 'number' && m.countdown > 0;
-    var iconHtml = '';
-    if (m.icon === 'timer'){
-      iconHtml = '<div class="confirm-icon icon-info">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">' +
-          '<circle cx="12" cy="13" r="8"/>' +
-          '<polyline points="12 9 12 13 15 15"/>' +
-          '<line x1="9" y1="2" x2="15" y2="2"/>' +
-        '</svg>' +
-      '</div>';
-    }
     panel.innerHTML =
-      iconHtml +
-      '<div class="confirm-title'+(iconHtml ? ' centered' : '')+'">' + esc(m.title) + '</div>' +
-      '<div class="confirm-message'+(iconHtml ? ' centered' : '')+'">' + esc(m.message) + '</div>' +
+      '<div class="confirm-title">' + esc(m.title) + '</div>' +
+      '<div class="confirm-message">' + esc(m.message) + '</div>' +
       '<div class="confirm-buttons">' +
         '<button class="confirm-btn-cancel" data-action="cancel-confirm">Cancel</button>' +
         '<button class="'+confirmClass+'" id="confirmActionBtn" data-action="confirm-modal-action"'+(counting?' disabled':'')+'>'+esc(counting ? confirmLabel + ' (' + m.countdown + ')' : confirmLabel)+'</button>' +
@@ -7042,10 +6957,6 @@
       ui.savingRoutine = false;
       ui.pendingDeleteAccount = false;
       switchTabWithSlide(targetTab);
-    } else if (action === 'toggle-account-menu'){
-      ui.showAccountMenu = !ui.showAccountMenu;
-      if (ui.showAccountMenu) closeNotifications();
-      renderApp();
     } else if (action === 'open-notifications'){
       ui.showAccountMenu = false;
       openNotifications();
@@ -7108,6 +7019,8 @@
       openFinishSessionConfirm();
     } else if (action === 'open-template-picker'){
       openTemplatePicker();
+    } else if (action === 'open-rest-timer-picker'){
+      openRestTimerPicker();
     } else if (action === 'skip-rest-timer'){
       skipRestTimer();
     } else if (action === 'toggle-muscle-map'){
@@ -7265,14 +7178,12 @@
     }
   });
 
-  // Close the account menu / notifications dropdown when tapping anywhere
-  // outside them — both anchor to the same .account-wrap in the header.
+  // Close the notifications dropdown when tapping anywhere outside it.
   document.addEventListener('click', function(e){
-    if (!ui.showAccountMenu && !ui.showNotifications) return;
+    if (!ui.showNotifications) return;
     var wrap = document.querySelector('.account-wrap');
     if (wrap && !wrap.contains(e.target)){
-      if (ui.showAccountMenu) ui.showAccountMenu = false;
-      if (ui.showNotifications) closeNotifications();
+      closeNotifications();
       renderApp();
     }
   });
@@ -7354,7 +7265,6 @@
       else if (m && m.kind === 'add-named-exercise') addExercise(m.name, m.muscle);
       else if (m && m.kind === 'start-routine') startRoutine(m.routineId);
       else if (m && m.kind === 'start-template') applyTemplate(m.templateKey);
-      else if (m && m.kind === 'ask-rest-timer') openRestTimerPicker();
       else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
       else if (m && m.kind === 'clear-data') clearAllData();
       else if (m && m.kind === 'clear-brief') clearBrief();
