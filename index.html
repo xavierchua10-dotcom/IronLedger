@@ -1151,7 +1151,25 @@
   .mm-toggle-btn:active{background:var(--accent);color:#1c1500;}
   .mm-toggle-btn svg{display:block;width:22px;height:22px;}
 
-  /* ---------- Template picker (Push/Pull/Leg/Upper/Lower cards) ---------- */
+  /* ---------- Template picker (category cards -> template list) ---------- */
+  .pro-panel-header-left{display:flex;align-items:center;gap:6px;min-width:0;}
+  .pro-panel-header-left h3{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pro-panel-back{
+    flex-shrink:0;
+    width:28px;
+    height:28px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:none;
+    background:none;
+    color:var(--text-dim);
+    font-size:22px;
+    line-height:1;
+    cursor:pointer;
+    padding:0;
+  }
+  .pro-panel-back:active{color:var(--text);}
   .template-card{
     width:100%;
     text-align:left;
@@ -1166,6 +1184,11 @@
   }
   .template-card:last-child{margin-bottom:0;}
   .template-card:active{border-color:var(--accent);background:var(--panel-3);}
+  .template-cat-card .template-card-sub{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
   .template-card-name{
     font-family:'Oswald',sans-serif;
     font-size:15px;
@@ -1199,8 +1222,8 @@
   }
   .notif-card.urgent .notif-card-title{color:var(--accent-2);}
   .notif-card-msg{font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+  .notif-card-actions{display:flex;gap:8px;margin-top:10px;}
   .notif-card-action{
-    margin-top:10px;
     width:100%;
     padding:9px;
     border-radius:8px;
@@ -1215,6 +1238,21 @@
     cursor:pointer;
   }
   .notif-card-action:active{opacity:0.85;}
+  .notif-card-dismiss{
+    width:100%;
+    padding:9px;
+    border-radius:8px;
+    border:1.5px solid var(--line);
+    background:transparent;
+    color:var(--text-dim);
+    font-family:'Oswald',sans-serif;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  .notif-card-dismiss:active{opacity:0.85;}
   .notif-empty{text-align:center;color:var(--text-faint);font-size:13px;padding:24px 12px;}
 
   /* ---------- Rest timer duration picker ---------- */
@@ -1266,7 +1304,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:24px;
+    padding:16px;
     z-index:90;
   }
   .mm-overlay.hidden{display:none;}
@@ -1276,7 +1314,7 @@
   }
   .mm-overlay-panel{
     width:100%;
-    max-width:340px;
+    max-width:420px;
     max-height:75vh;
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
@@ -1390,6 +1428,10 @@
   .mm-exercise-item{
     width:100%;
     text-align:left;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:4px;
     background:var(--panel-3);
     border:1px solid var(--line);
     color:var(--text);
@@ -1401,8 +1443,146 @@
     border-radius:8px;
     cursor:pointer;
   }
+  .mm-exercise-item-name{width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mm-exercise-item-eq{
+    flex-shrink:0;
+    background:var(--panel);
+    color:var(--text-faint);
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:3px 7px;
+    border-radius:10px;
+  }
   .mm-exercise-item:active{background:var(--panel);border-color:var(--accent-dim);}
   .mm-exercise-item-custom{color:var(--accent);border-color:var(--accent-dim);background:transparent;}
+
+  /* ---------- Exercise search overlay (full-screen, blurred backdrop) ----------
+     Positioned absolute (not fixed) so it sizes itself against #app's own
+     box — #app's height is already kept in sync with visualViewport when
+     the keyboard opens (see the visualViewport.resize listener near the
+     bottom of the script), so this overlay automatically stays within the
+     keyboard-safe area for free, no extra scroll-into-view handling needed. */
+  .ex-search-overlay{
+    position:absolute;
+    inset:0;
+    z-index:92;
+    display:flex;
+    flex-direction:column;
+    background:rgba(14,16,19,0.82);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    animation:overlayBackdropIn 0.15s ease;
+  }
+  .ex-search-overlay.hidden{display:none;}
+  .ex-search-panel{
+    display:flex;
+    flex-direction:column;
+    height:100%;
+    min-height:0;
+  }
+  .ex-search-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:18px 16px 12px;
+    flex-shrink:0;
+  }
+  .ex-search-back{
+    width:36px;
+    height:36px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    border:none;
+    background:var(--panel-3);
+    color:var(--text);
+    font-size:17px;
+    cursor:pointer;
+  }
+  .ex-search-back:active{background:var(--panel-2);}
+  .ex-search-input{
+    flex:1;
+    min-width:0;
+    background:var(--panel-2);
+    border:1.5px solid var(--accent-dim);
+    color:var(--text);
+    border-radius:12px;
+    padding:12px 14px;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:15px;
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+  }
+  .ex-search-input:focus{outline:none;border-color:var(--accent);}
+  .ex-search-hint{
+    padding:8px 20px 0;
+    color:var(--text-faint);
+    font-size:12px;
+    line-height:1.5;
+    text-align:center;
+  }
+  .ex-suggest-list{
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:4px 16px calc(20px + var(--safe-bottom, 0px));
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .ex-suggest-list.hidden{display:none;}
+  .ex-suggest-item{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    text-align:left;
+    background:var(--panel-3);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:13.5px;
+    font-family:'Inter',sans-serif;
+    font-weight:500;
+    padding:13px 14px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+  .ex-suggest-item:active{background:var(--panel);border-color:var(--accent-dim);}
+  .ex-suggest-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ex-suggest-tag{
+    flex-shrink:0;
+    background:var(--panel);
+    color:var(--text-faint);
+    font-family:'JetBrains Mono',monospace;
+    font-size:9.5px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:10px;
+  }
+  .ex-suggest-custom{
+    width:100%;
+    text-align:left;
+    background:transparent;
+    border:1.5px dashed var(--accent-dim);
+    color:var(--accent);
+    font-size:13.5px;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    padding:13px 14px;
+    border-radius:10px;
+    cursor:pointer;
+  }
+  .ex-suggest-custom:active{background:var(--accent-dim);}
 
   /* ---------- Empty state ---------- */
   .empty{
@@ -1488,6 +1668,47 @@
     letter-spacing:0.02em;
   }
   .hi-name-input:focus{outline:none;border-color:var(--accent);}
+  .ex-suggest-list{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-top:6px;
+    width:100%;
+    max-height:220px;
+    overflow-y:auto;
+  }
+  .ex-suggest-item{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    text-align:left;
+    background:var(--panel-3);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:12.5px;
+    line-height:1.3;
+    font-family:'Inter',sans-serif;
+    font-weight:500;
+    padding:10px 12px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .ex-suggest-item:active{background:var(--panel);border-color:var(--accent-dim);}
+  .ex-suggest-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ex-suggest-tag{
+    flex-shrink:0;
+    background:var(--panel);
+    color:var(--text-faint);
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:3px 7px;
+    border-radius:10px;
+  }
   .history-item-head .hi-date{
     font-family:'JetBrains Mono',monospace;
     font-size:11px;
@@ -2347,6 +2568,9 @@
   <div class="mm-overlay hidden" id="mmOverlay">
     <div class="mm-overlay-panel" id="mmOverlayPanel"></div>
   </div>
+  <div class="ex-search-overlay hidden" id="exSearchOverlay">
+    <div class="ex-search-panel" id="exSearchPanel"></div>
+  </div>
 </div>
 <div id="authGate" class="hidden"></div>
 <div class="confirm-overlay hidden" id="confirmOverlay">
@@ -2810,11 +3034,13 @@
     exTipExId: null,        // exId (within that session) the Tips/Target overlay is showing, or null
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
+    pendingSuggestMuscle: null, // muscle carried from a tapped exercise-name suggestion, applied on save (see saveExerciseName)
     tabAnimating: false,    // true while a tab-slide transition is in progress
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
     showPricing: false,     // Pricing/upgrade modal open state
     showAvatarPick: false,  // Profile icon picker overlay open state
     showTemplatePicker: false,  // Start-from-template overlay open state
+    templatePickerCategory: null, // null = showing category cards; a category id = drilled into that category's template list
     showRestTimerPicker: false, // Rest timer duration picker overlay open state
     restTimerDraftSeconds: 90,  // Duration currently being tuned in the picker, before Start is pressed
     restTimer: null,            // { endsAt, totalSeconds } while a rest timer is actively running, else null
@@ -3191,6 +3417,135 @@
     return Object.keys(set).sort(function(a,b){ return a.localeCompare(b); });
   }
 
+  // Common misspellings/shorthand of equipment words, normalized before
+  // matching so e.g. typing "dumbell" still finds every "Dumbbell ..."
+  // entry instead of silently coming up empty.
+  var EXERCISE_QUERY_ALIASES = {
+    dumbell: 'dumbbell', dumbells: 'dumbbell', dumbbells: 'dumbbell',
+    barbel: 'barbell', barbels: 'barbell', barbells: 'barbell'
+  };
+
+  // Suggestions for the exercise-name field (both the "+ Add Exercise"
+  // blank-name flow and renaming an existing exercise). Two sources,
+  // your own logged names first:
+  //  1. Names you've already logged (allExerciseNames()) — the strongest
+  //     signal for continuity, since picking one guarantees you land on
+  //     the exact same string your Progress/PR history is already keyed
+  //     on, instead of retyping a near-miss that starts a new line.
+  //  2. EXERCISE_LIBRARY_FLAT — the built-in equipment-tagged library,
+  //     for exercises you haven't logged yet (or want a consistent
+  //     canonical name for from the very first time).
+  // If a logged name happens to match a library entry (case-insensitive),
+  // its muscle/equipment tag rides along even though it came from your
+  // history, so the dropdown stays visually consistent either way.
+  //
+  // Matching is word-order-independent: the query is split into words,
+  // and a name matches as long as every one of those words appears
+  // *somewhere* in it — not necessarily in the order typed. So "bench
+  // press dumbbell" and "dumbbell bench press" both find "Dumbbell Bench
+  // Press", instead of only a query that happens to match the name's
+  // exact word order.
+  var EXERCISE_SUGGEST_LIMIT = 8;
+  function exerciseQueryTokens(query){
+    return (query || '').trim().toLowerCase().split(/\s+/).filter(Boolean).map(function(t){
+      return EXERCISE_QUERY_ALIASES[t] || t;
+    });
+  }
+  function exerciseSuggestions(query){
+    var tokens = exerciseQueryTokens(query);
+    if (!tokens.length) return [];
+    var matchesAllTokens = function(nameLower){
+      return tokens.every(function(t){ return nameLower.indexOf(t) !== -1; });
+    };
+    var libraryByName = {};
+    EXERCISE_LIBRARY_FLAT.forEach(function(item){ libraryByName[item.name.toLowerCase()] = item; });
+
+    var seen = {};
+    var results = [];
+    allExerciseNames().forEach(function(name){
+      if (results.length >= EXERCISE_SUGGEST_LIMIT) return;
+      var key = name.toLowerCase();
+      if (seen[key] || !matchesAllTokens(key)) return;
+      seen[key] = true;
+      var libMatch = libraryByName[key];
+      results.push({
+        name: name,
+        muscle: libMatch ? libMatch.muscle : null,
+        equipment: libMatch ? libMatch.equipment : null
+      });
+    });
+    EXERCISE_LIBRARY_FLAT.forEach(function(item){
+      if (results.length >= EXERCISE_SUGGEST_LIMIT) return;
+      var key = item.name.toLowerCase();
+      if (seen[key] || !matchesAllTokens(key)) return;
+      seen[key] = true;
+      results.push({ name: item.name, muscle: item.muscle, equipment: item.equipment });
+    });
+    return results;
+  }
+
+  // Live-repopulates the results list in the full-screen exercise-search
+  // overlay as the user types — called from the #app 'input' listener, not
+  // a full renderApp(), so the input never loses focus/cursor position
+  // mid-type. The overlay's own flex layout (input pinned at top, this
+  // list filling the rest of #app's already keyboard-aware height) keeps
+  // results within the visible area without needing any scroll-into-view
+  // logic here.
+  function renderExerciseSuggestions(query){
+    var el = document.getElementById('exSuggestList');
+    if (!el) return;
+    var trimmed = (query || '').trim();
+    var matches = exerciseSuggestions(query);
+    var exactMatch = matches.some(function(m){ return m.name.toLowerCase() === trimmed.toLowerCase(); });
+
+    if (!trimmed){
+      el.classList.remove('hidden');
+      el.innerHTML = '<div class="ex-search-hint">Type any word from the exercise name \u2014 order doesn\u2019t matter.</div>';
+      return;
+    }
+
+    var html = '';
+    // Pinned at the top whenever what's typed isn't already an exact match
+    // below — lets a genuinely custom name still be added in one tap,
+    // the same way the old inline "+ Custom name" option worked.
+    if (!exactMatch){
+      html += '<button type="button" class="ex-suggest-custom" data-action="pick-ex-custom" data-name="'+esc(trimmed)+'">Use \u201c'+esc(trimmed)+'\u201d</button>';
+    }
+    html += matches.map(function(m){
+      return '<button type="button" class="ex-suggest-item" data-action="pick-ex-suggestion" data-name="'+esc(m.name)+'" data-muscle="'+esc(m.muscle || '')+'">' +
+        '<span class="ex-suggest-name">'+esc(m.name)+'</span>' +
+        (m.equipment ? '<span class="ex-suggest-tag">'+esc(m.equipment)+'</span>' : '') +
+      '</button>';
+    }).join('');
+
+    el.classList.remove('hidden');
+    el.innerHTML = html;
+  }
+
+  // Opens/closes/renders the full-screen "search for an exercise" overlay
+  // that replaces the old inline name field + small dropdown. Driven by
+  // the same ui.editingExerciseName that used to gate the inline editing
+  // row, so every existing entry point (add-blank-exercise, rename) keeps
+  // working unchanged — only the presentation layer changed.
+  function renderExerciseSearchOverlay(){
+    var overlay = document.getElementById('exSearchOverlay');
+    var panel = document.getElementById('exSearchPanel');
+    var session = getActiveSession();
+    var ex = ui.editingExerciseName && session ? findExercise(session, ui.editingExerciseName) : null;
+    if (!ui.editingExerciseName || !ex){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    panel.innerHTML =
+      '<div class="ex-search-head">' +
+        '<button class="ex-search-back" data-action="cancel-exercise-name" aria-label="Close">&#8592;</button>' +
+        '<input type="text" class="ex-search-input" id="exNameInput" maxlength="60" value="'+esc(ex.name)+'" placeholder="Search exercises\u2026" autocomplete="off">' +
+      '</div>' +
+      '<div class="ex-suggest-list hidden" id="exSuggestList"></div>';
+  }
+
   function e1rm(weightKg, reps){
     reps = Math.max(1, reps);
     if (reps === 1) return weightKg;
@@ -3309,30 +3664,157 @@
     ]
   };
 
-  var MUSCLE_EXERCISES = {
-    Chest: ['Bench Press','Incline Bench Press','Dumbbell Press','Push-ups','Chest Fly','Dips'],
-    Back: ['Pull-ups','Lat Pulldown','Barbell Row','Seated Cable Row','Deadlift','T-Bar Row'],
-    Shoulders: ['Overhead Press','Dumbbell Shoulder Press','Lateral Raise','Front Raise','Arnold Press','Face Pull'],
-    Traps: ['Barbell Shrug','Dumbbell Shrug','Upright Row',"Farmer's Carry"],
-    Biceps: ['Barbell Curl','Dumbbell Curl','Hammer Curl','Preacher Curl','Cable Curl','Concentration Curl'],
-    Triceps: ['Tricep Pushdown','Skull Crushers','Close-Grip Bench Press','Overhead Extension','Dips','Kickbacks'],
-    Forearms: ['Wrist Curl','Reverse Wrist Curl',"Farmer's Carry",'Dead Hang'],
-    Abs: ['Crunches','Plank','Hanging Leg Raise','Cable Crunch','Russian Twist','Ab Wheel Rollout'],
-    Quads: ['Back Squat','Front Squat','Leg Press','Lunges','Leg Extension','Bulgarian Split Squat'],
-    Hamstrings: ['Romanian Deadlift','Leg Curl','Good Morning','Stiff-Leg Deadlift','Nordic Curl'],
-    Glutes: ['Hip Thrust','Glute Bridge','Bulgarian Split Squat','Cable Kickback','Sumo Deadlift'],
-    Calves: ['Standing Calf Raise','Seated Calf Raise','Calf Press']
+  // Equipment tag is only added to a name when the SAME movement genuinely
+  // exists across more than one equipment in real gyms (Barbell Bench Press
+  // vs Dumbbell Bench Press vs Machine Bench Press) — that's the whole
+  // point: picking "Dumbbell Bench Press" from the list (instead of typing
+  // something slightly different next time) is what keeps Progress/PRs
+  // tracking one continuous line instead of splitting across near-duplicate
+  // names. Movements with only one realistic equipment (Push-ups, Face
+  // Pull, Leg Press) keep their plain traditional name — a "(Bodyweight)"
+  // tag on Push-ups wouldn't disambiguate anything, just add noise.
+  var EXERCISE_LIBRARY = {
+    Chest: [
+      { name: 'Barbell Bench Press', equipment: 'Barbell' },
+      { name: 'Dumbbell Bench Press', equipment: 'Dumbbell' },
+      { name: 'Machine Bench Press', equipment: 'Machine' },
+      { name: 'Barbell Incline Bench Press', equipment: 'Barbell' },
+      { name: 'Dumbbell Incline Bench Press', equipment: 'Dumbbell' },
+      { name: 'Dumbbell Chest Fly', equipment: 'Dumbbell' },
+      { name: 'Cable Chest Fly', equipment: 'Cable' },
+      { name: 'Machine Chest Fly', equipment: 'Machine' },
+      { name: 'Push-ups', equipment: 'Bodyweight' },
+      { name: 'Dips', equipment: 'Bodyweight' }
+    ],
+    Back: [
+      { name: 'Pull-ups', equipment: 'Bodyweight' },
+      { name: 'Lat Pulldown', equipment: 'Cable' },
+      { name: 'Barbell Row', equipment: 'Barbell' },
+      { name: 'Dumbbell Row', equipment: 'Dumbbell' },
+      { name: 'Machine Row', equipment: 'Machine' },
+      { name: 'Seated Cable Row', equipment: 'Cable' },
+      { name: 'T-Bar Row', equipment: 'Barbell' },
+      { name: 'Deadlift', equipment: 'Barbell' }
+    ],
+    Shoulders: [
+      { name: 'Barbell Shoulder Press', equipment: 'Barbell' },
+      { name: 'Dumbbell Shoulder Press', equipment: 'Dumbbell' },
+      { name: 'Machine Shoulder Press', equipment: 'Machine' },
+      { name: 'Dumbbell Lateral Raise', equipment: 'Dumbbell' },
+      { name: 'Cable Lateral Raise', equipment: 'Cable' },
+      { name: 'Machine Lateral Raise', equipment: 'Machine' },
+      { name: 'Dumbbell Front Raise', equipment: 'Dumbbell' },
+      { name: 'Dumbbell Rear Delt Fly', equipment: 'Dumbbell' },
+      { name: 'Cable Rear Delt Fly', equipment: 'Cable' },
+      { name: 'Arnold Press', equipment: 'Dumbbell' },
+      { name: 'Face Pull', equipment: 'Cable' }
+    ],
+    Traps: [
+      { name: 'Barbell Shrug', equipment: 'Barbell' },
+      { name: 'Dumbbell Shrug', equipment: 'Dumbbell' },
+      { name: 'Barbell Upright Row', equipment: 'Barbell' },
+      { name: 'Dumbbell Upright Row', equipment: 'Dumbbell' },
+      { name: "Farmer's Carry", equipment: 'Dumbbell' }
+    ],
+    Biceps: [
+      { name: 'Barbell Curl', equipment: 'Barbell' },
+      { name: 'Dumbbell Curl', equipment: 'Dumbbell' },
+      { name: 'Cable Curl', equipment: 'Cable' },
+      { name: 'Dumbbell Hammer Curl', equipment: 'Dumbbell' },
+      { name: 'Cable Hammer Curl', equipment: 'Cable' },
+      { name: 'Barbell Preacher Curl', equipment: 'Barbell' },
+      { name: 'Dumbbell Preacher Curl', equipment: 'Dumbbell' },
+      { name: 'Concentration Curl', equipment: 'Dumbbell' }
+    ],
+    Triceps: [
+      { name: 'Tricep Pushdown', equipment: 'Cable' },
+      { name: 'Barbell Skull Crushers', equipment: 'Barbell' },
+      { name: 'Dumbbell Skull Crushers', equipment: 'Dumbbell' },
+      { name: 'Close-Grip Bench Press', equipment: 'Barbell' },
+      { name: 'Dumbbell Overhead Extension', equipment: 'Dumbbell' },
+      { name: 'Cable Overhead Extension', equipment: 'Cable' },
+      { name: 'Dumbbell Tricep Kickback', equipment: 'Dumbbell' },
+      { name: 'Cable Tricep Kickback', equipment: 'Cable' },
+      { name: 'Dips', equipment: 'Bodyweight' }
+    ],
+    Forearms: [
+      { name: 'Barbell Wrist Curl', equipment: 'Barbell' },
+      { name: 'Dumbbell Wrist Curl', equipment: 'Dumbbell' },
+      { name: 'Reverse Wrist Curl', equipment: 'Barbell' },
+      { name: "Farmer's Carry", equipment: 'Dumbbell' },
+      { name: 'Dead Hang', equipment: 'Bodyweight' }
+    ],
+    Abs: [
+      { name: 'Crunches', equipment: 'Bodyweight' },
+      { name: 'Plank', equipment: 'Bodyweight' },
+      { name: 'Hanging Leg Raise', equipment: 'Bodyweight' },
+      { name: 'Cable Crunch', equipment: 'Cable' },
+      { name: 'Russian Twist', equipment: 'Bodyweight' },
+      { name: 'Ab Wheel Rollout', equipment: 'Bodyweight' }
+    ],
+    Quads: [
+      { name: 'Back Squat', equipment: 'Barbell' },
+      { name: 'Front Squat', equipment: 'Barbell' },
+      { name: 'Dumbbell Goblet Squat', equipment: 'Dumbbell' },
+      { name: 'Leg Press', equipment: 'Machine' },
+      { name: 'Barbell Lunges', equipment: 'Barbell' },
+      { name: 'Dumbbell Lunges', equipment: 'Dumbbell' },
+      { name: 'Bodyweight Lunges', equipment: 'Bodyweight' },
+      { name: 'Leg Extension', equipment: 'Machine' },
+      { name: 'Dumbbell Bulgarian Split Squat', equipment: 'Dumbbell' },
+      { name: 'Bodyweight Bulgarian Split Squat', equipment: 'Bodyweight' }
+    ],
+    Hamstrings: [
+      { name: 'Barbell Romanian Deadlift', equipment: 'Barbell' },
+      { name: 'Dumbbell Romanian Deadlift', equipment: 'Dumbbell' },
+      { name: 'Seated Leg Curl', equipment: 'Machine' },
+      { name: 'Lying Leg Curl', equipment: 'Machine' },
+      { name: 'Good Morning', equipment: 'Barbell' },
+      { name: 'Stiff-Leg Deadlift', equipment: 'Barbell' },
+      { name: 'Nordic Curl', equipment: 'Bodyweight' }
+    ],
+    Glutes: [
+      { name: 'Barbell Hip Thrust', equipment: 'Barbell' },
+      { name: 'Machine Hip Thrust', equipment: 'Machine' },
+      { name: 'Cable Hip Thrust', equipment: 'Cable' },
+      { name: 'Glute Bridge', equipment: 'Bodyweight' },
+      { name: 'Dumbbell Bulgarian Split Squat', equipment: 'Dumbbell' },
+      { name: 'Bodyweight Bulgarian Split Squat', equipment: 'Bodyweight' },
+      { name: 'Cable Glute Kickback', equipment: 'Cable' },
+      { name: 'Sumo Deadlift', equipment: 'Barbell' }
+    ],
+    Calves: [
+      { name: 'Machine Standing Calf Raise', equipment: 'Machine' },
+      { name: 'Dumbbell Standing Calf Raise', equipment: 'Dumbbell' },
+      { name: 'Seated Calf Raise', equipment: 'Machine' },
+      { name: 'Calf Press', equipment: 'Machine' }
+    ]
   };
 
+  // Flattened once at load — { name, muscle, equipment } — so the
+  // autocomplete doesn't have to re-walk EXERCISE_LIBRARY on every
+  // keystroke. See exerciseSuggestions() below.
+  var EXERCISE_LIBRARY_FLAT = (function(){
+    var flat = [];
+    Object.keys(EXERCISE_LIBRARY).forEach(function(muscle){
+      EXERCISE_LIBRARY[muscle].forEach(function(item){
+        flat.push({ name: item.name, muscle: muscle, equipment: item.equipment });
+      });
+    });
+    return flat;
+  })();
+
   // Starter routine templates for the "Start from a Template" picker.
-  // Exercise names are pulled straight from MUSCLE_EXERCISES above, so
-  // they stay consistent with everything else that reads ex.muscle
-  // (muscle map, progress charts, etc). Two notes on the mapping from
-  // Xavier's spec to this app's muscle taxonomy, since there's no
-  // separate "Rear Delt" or "Hip" category here:
-  //   - "rear delt" (pull day) -> Shoulders, using Face Pull + Lateral
-  //     Raise specifically, since those are the closest rear/side-delt
-  //     movements in the existing Shoulders list.
+  // Exercise names are pulled straight from EXERCISE_LIBRARY above, so
+  // they stay consistent with everything else that reads ex.name/ex.muscle
+  // (muscle map, autocomplete, progress charts, etc) — starting a template
+  // and later re-logging the same lift via a suggestion tap land on the
+  // exact same string, keeping Progress as one continuous line. Two notes
+  // on the mapping from Xavier's spec to this app's muscle taxonomy, since
+  // there's no separate "Rear Delt" or "Hip" category here:
+  //   - "rear delt" (pull day) -> Shoulders, using Face Pull + Dumbbell
+  //     Lateral Raise specifically, since those are the closest rear/side-
+  //     delt movements in the existing Shoulders list.
   //   - "hip" (leg day) -> Glutes, the closest existing category.
   // `optional: true` exercises are still added when the template is
   // applied (removing an exercise afterward is one tap), but are
@@ -3340,88 +3822,105 @@
   var WORKOUT_TEMPLATES = {
     push: {
       label: 'Push Day',
+      category: 'ppl',
       exercises: [
-        { name: 'Bench Press', muscle: 'Chest' },
-        { name: 'Incline Bench Press', muscle: 'Chest' },
-        { name: 'Dumbbell Press', muscle: 'Chest' },
-        { name: 'Overhead Press', muscle: 'Shoulders' },
-        { name: 'Lateral Raise', muscle: 'Shoulders' },
+        { name: 'Barbell Bench Press', muscle: 'Chest' },
+        { name: 'Barbell Incline Bench Press', muscle: 'Chest' },
+        { name: 'Dumbbell Bench Press', muscle: 'Chest' },
+        { name: 'Barbell Shoulder Press', muscle: 'Shoulders' },
+        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders' },
         { name: 'Tricep Pushdown', muscle: 'Triceps' },
-        { name: 'Skull Crushers', muscle: 'Triceps' }
+        { name: 'Barbell Skull Crushers', muscle: 'Triceps' }
       ]
     },
     pull: {
       label: 'Pull Day',
+      category: 'ppl',
       exercises: [
         { name: 'Pull-ups', muscle: 'Back' },
         { name: 'Barbell Row', muscle: 'Back' },
         { name: 'Seated Cable Row', muscle: 'Back' },
         { name: 'Face Pull', muscle: 'Shoulders' },
-        { name: 'Lateral Raise', muscle: 'Shoulders' },
+        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders' },
         { name: 'Barbell Curl', muscle: 'Biceps' },
-        { name: 'Hammer Curl', muscle: 'Biceps' }
+        { name: 'Dumbbell Hammer Curl', muscle: 'Biceps' }
       ]
     },
     leg: {
       label: 'Leg Day',
+      category: 'ppl',
       exercises: [
         { name: 'Back Squat', muscle: 'Quads' },
         { name: 'Leg Press', muscle: 'Quads' },
-        { name: 'Romanian Deadlift', muscle: 'Hamstrings' },
-        { name: 'Leg Curl', muscle: 'Hamstrings' },
-        { name: 'Hip Thrust', muscle: 'Glutes' },
+        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings' },
+        { name: 'Seated Leg Curl', muscle: 'Hamstrings' },
+        { name: 'Barbell Hip Thrust', muscle: 'Glutes' },
         { name: 'Glute Bridge', muscle: 'Glutes' },
-        { name: 'Standing Calf Raise', muscle: 'Calves' },
+        { name: 'Machine Standing Calf Raise', muscle: 'Calves' },
         { name: 'Hanging Leg Raise', muscle: 'Abs' }
       ]
     },
     upper: {
       label: 'Upper Day',
+      category: 'upperLower',
       exercises: [
-        { name: 'Incline Bench Press', muscle: 'Chest' },
-        { name: 'Dumbbell Press', muscle: 'Chest' },
+        { name: 'Barbell Incline Bench Press', muscle: 'Chest' },
+        { name: 'Dumbbell Bench Press', muscle: 'Chest' },
         { name: 'Lat Pulldown', muscle: 'Back' },
         { name: 'Seated Cable Row', muscle: 'Back' },
         { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders' },
-        { name: 'Lateral Raise', muscle: 'Shoulders' },
+        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders' },
         { name: 'Dumbbell Curl', muscle: 'Biceps', optional: true },
         { name: 'Close-Grip Bench Press', muscle: 'Triceps', optional: true }
       ]
     },
     lower: {
       label: 'Lower Day',
+      category: 'upperLower',
       exercises: [
         { name: 'Back Squat', muscle: 'Quads' },
-        { name: 'Romanian Deadlift', muscle: 'Hamstrings' },
+        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings' },
         { name: 'Leg Press', muscle: 'Quads' },
-        { name: 'Standing Calf Raise', muscle: 'Calves', optional: true },
+        { name: 'Machine Standing Calf Raise', muscle: 'Calves', optional: true },
         { name: 'Cable Crunch', muscle: 'Abs' }
       ]
     },
     fullBodyA: {
       label: 'Full Body A',
+      category: 'fullBody',
       exercises: [
         { name: 'Back Squat', muscle: 'Quads' },
-        { name: 'Bench Press', muscle: 'Chest' },
+        { name: 'Barbell Bench Press', muscle: 'Chest' },
         { name: 'Barbell Row', muscle: 'Back' },
-        { name: 'Overhead Press', muscle: 'Shoulders' },
-        { name: 'Romanian Deadlift', muscle: 'Hamstrings' },
+        { name: 'Barbell Shoulder Press', muscle: 'Shoulders' },
+        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings' },
         { name: 'Hanging Leg Raise', muscle: 'Abs' }
       ]
     },
     fullBodyB: {
       label: 'Full Body B',
+      category: 'fullBody',
       exercises: [
         { name: 'Leg Press', muscle: 'Quads' },
-        { name: 'Incline Bench Press', muscle: 'Chest' },
+        { name: 'Barbell Incline Bench Press', muscle: 'Chest' },
         { name: 'Pull-ups', muscle: 'Back' },
         { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders' },
-        { name: 'Leg Curl', muscle: 'Hamstrings' },
+        { name: 'Seated Leg Curl', muscle: 'Hamstrings' },
         { name: 'Cable Crunch', muscle: 'Abs' }
       ]
     }
   };
   var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'upper', 'lower', 'fullBodyA', 'fullBodyB'];
+  // Groups the flat template list into labeled sections for the picker —
+  // order here is the display order (PPL split first, then upper/lower,
+  // then full body). Each entry's `keys` is filtered against
+  // WORKOUT_TEMPLATES at render time, so a category with a key that gets
+  // removed later just quietly drops that card instead of breaking.
+  var WORKOUT_TEMPLATE_CATEGORIES = [
+    { id: 'ppl', label: 'Push / Pull / Legs', keys: ['push', 'pull', 'leg'] },
+    { id: 'upperLower', label: 'Upper / Lower', keys: ['upper', 'lower'] },
+    { id: 'fullBody', label: 'Full Body', keys: ['fullBodyA', 'fullBodyB'] }
+  ];
 
   // "Chest 3 · Shoulders 2 · Triceps 2" style summary line for a template card.
   function templateSummaryLine(tpl){
@@ -3469,11 +3968,14 @@
   }
 
   function renderMuscleExerciseList(muscle){
-    var opts = MUSCLE_EXERCISES[muscle] || [];
+    var opts = EXERCISE_LIBRARY[muscle] || [];
     var html = '<div class="mm-selected-label">'+esc(muscle)+'</div>';
     html += '<div class="mm-exercise-list">';
-    opts.forEach(function(name){
-      html += '<button class="mm-exercise-item" data-action="mm-add-exercise" data-name="'+esc(name)+'" data-muscle="'+esc(muscle)+'">'+esc(name)+'</button>';
+    opts.forEach(function(item){
+      html += '<button class="mm-exercise-item" data-action="mm-add-exercise" data-name="'+esc(item.name)+'" data-muscle="'+esc(muscle)+'">' +
+                '<span class="mm-exercise-item-name">'+esc(item.name)+'</span>' +
+                '<span class="mm-exercise-item-eq">'+esc(item.equipment)+'</span>' +
+              '</button>';
     });
     html += '<button class="mm-exercise-item mm-exercise-item-custom" data-action="mm-custom" data-muscle="'+esc(muscle)+'">+ Custom name</button>';
     html += '</div>';
@@ -4023,15 +4525,34 @@
   }
 
   /* =========================================================
-     TEMPLATE PICKER  (Push/Pull/Leg/Upper/Lower starter routines)
+     TEMPLATE PICKER  (category cards -> drill into a category's
+     templates). Two steps so this scales as more templates get added
+     later — the top level only ever shows 3-ish category cards no
+     matter how many templates end up inside each one.
      ========================================================= */
   function openTemplatePicker(){
     ui.showTemplatePicker = true;
+    ui.templatePickerCategory = null;
     renderTemplatePickerOverlay();
   }
   function closeTemplatePicker(){
     ui.showTemplatePicker = false;
+    ui.templatePickerCategory = null;
     renderTemplatePickerOverlay();
+  }
+  function openTemplateCategory(categoryId){
+    ui.templatePickerCategory = categoryId;
+    renderTemplatePickerOverlay();
+  }
+  function backToTemplateCategories(){
+    ui.templatePickerCategory = null;
+    renderTemplatePickerOverlay();
+  }
+
+  // Templates that actually exist for a category, in WORKOUT_TEMPLATE_CATEGORIES'
+  // declared order — a key that gets removed later just quietly drops out.
+  function templatesInCategory(cat){
+    return cat.keys.filter(function(k){ return WORKOUT_TEMPLATES[k]; });
   }
 
   function renderTemplatePickerOverlay(){
@@ -4043,12 +4564,44 @@
       return;
     }
     overlay.classList.remove('hidden');
+
+    var cat = ui.templatePickerCategory
+      ? WORKOUT_TEMPLATE_CATEGORIES.find(function(c){ return c.id === ui.templatePickerCategory; })
+      : null;
+
+    if (!cat){
+      // Step 1 — pick a category.
+      panel.innerHTML =
+        '<div class="pro-panel-header"><h3>Start from a Template</h3>' +
+          '<button class="pro-panel-close" data-action="close-template-picker" aria-label="Close">&#10005;</button>' +
+        '</div>' +
+        '<div class="pro-panel-body">' +
+          WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
+            var keys = templatesInCategory(c);
+            if (!keys.length) return '';
+            var names = keys.map(function(k){ return WORKOUT_TEMPLATES[k].label; }).join(' \u00b7 ');
+            return '<button type="button" class="template-card template-cat-card" data-action="select-template-category" data-category="'+c.id+'">' +
+              '<div class="template-card-name">'+esc(c.label)+'</div>' +
+              '<div class="template-card-sub">'+esc(names)+'</div>' +
+              '<div class="template-card-count">'+keys.length+' template'+(keys.length===1?'':'s')+'</div>' +
+            '</button>';
+          }).join('') +
+        '</div>';
+      return;
+    }
+
+    // Step 2 — templates within the chosen category.
+    var keys = templatesInCategory(cat);
     panel.innerHTML =
-      '<div class="pro-panel-header"><h3>Start from a Template</h3>' +
+      '<div class="pro-panel-header">' +
+        '<div class="pro-panel-header-left">' +
+          '<button class="pro-panel-back" data-action="template-picker-back" aria-label="Back to categories">&#8249;</button>' +
+          '<h3>'+esc(cat.label)+'</h3>' +
+        '</div>' +
         '<button class="pro-panel-close" data-action="close-template-picker" aria-label="Close">&#10005;</button>' +
       '</div>' +
       '<div class="pro-panel-body">' +
-        WORKOUT_TEMPLATE_ORDER.map(function(key){
+        keys.map(function(key){
           var tpl = WORKOUT_TEMPLATES[key];
           return '<button type="button" class="template-card" data-action="select-template" data-template="'+key+'">' +
             '<div class="template-card-name">'+esc(tpl.label)+'</div>' +
@@ -4337,7 +4890,10 @@
               return '<div class="notif-card'+(n.urgent ? ' urgent' : '')+'">' +
                 '<div class="notif-card-title">'+esc(n.title)+'</div>' +
                 '<div class="notif-card-msg">'+esc(n.message)+'</div>' +
-                (n.actionLabel ? '<button class="notif-card-action" data-action="open-pricing">'+esc(n.actionLabel)+'</button>' : '') +
+                '<div class="notif-card-actions">' +
+                  (n.actionLabel ? '<button class="notif-card-action" data-action="open-pricing">'+esc(n.actionLabel)+'</button>' : '') +
+                  (n.dismissAction ? '<button class="notif-card-dismiss" data-action="'+esc(n.dismissAction)+'">Dismiss</button>' : '') +
+                '</div>' +
               '</div>';
             }).join('')
         ) +
@@ -4835,29 +5391,16 @@
   function renderExerciseCard(session, ex){
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
-    var isEditingName = ui.editingExerciseName === ex.id;
     var html = '<div class="exercise-card" data-ex="'+ex.id+'">';
-    if (isEditingName){
-      html += '<div class="exercise-head exercise-head-editing">' +
-                '<div class="hi-rename-row">' +
-                  '<input type="text" class="hi-name-input" id="exNameInput" maxlength="60" value="'+esc(ex.name)+'" placeholder="Exercise name">' +
-                  '<div class="edit-btn-group">' +
-                    '<button class="save-edit-btn" data-action="save-exercise-name" data-ex="'+ex.id+'" aria-label="Save name">&#10003;</button>' +
-                    '<button class="cancel-edit-btn" data-action="cancel-exercise-name" aria-label="Cancel">&#10005;</button>' +
-                  '</div>' +
-                '</div>' +
-              '</div>';
-    } else {
-      html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
-              (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
-              (ex.sets.length > 0 ? '<span class="volume-badge">VOL '+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</span>' : '') +
-              '</div>' +
-              '<div class="exercise-head-actions">' +
-                '<button class="icon-btn" data-action="edit-exercise-name" data-ex="'+ex.id+'" aria-label="Rename exercise">&#9998;</button>' +
-                '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
-                '<button class="icon-btn" data-action="delete-exercise" data-ex="'+ex.id+'" aria-label="Delete exercise">&#10005;</button>' +
-              '</div></div>';
-    }
+    html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
+            (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
+            (ex.sets.length > 0 ? '<span class="volume-badge">VOL '+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</span>' : '') +
+            '</div>' +
+            '<div class="exercise-head-actions">' +
+              '<button class="icon-btn" data-action="edit-exercise-name" data-ex="'+ex.id+'" aria-label="Rename exercise">&#9998;</button>' +
+              '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
+              '<button class="icon-btn" data-action="delete-exercise" data-ex="'+ex.id+'" aria-label="Delete exercise">&#10005;</button>' +
+            '</div></div>';
 
     var editingSetId = (ui.editingSet && ui.editingSet.exId === ex.id) ? ui.editingSet.setId : null;
     var editingSetObj = null;
@@ -5427,6 +5970,7 @@
     finishBtnEl.classList.toggle('ready', canFinish);
 
     renderMuscleMapOverlay();
+    renderExerciseSearchOverlay();
     renderConfirmModal();
     renderRoutineNamePanel();
     renderDeleteAccountPasswordPanel();
@@ -5989,25 +6533,6 @@
     renderApp();
   }
 
-  function openSaveNewExerciseNameConfirm(exId){
-    var input = document.getElementById('exNameInput');
-    var name = input ? input.value.trim() : '';
-    if (!name){
-      showToast('Exercise name can\u2019t be empty');
-      return;
-    }
-    ui.confirmModal = {
-      kind: 'save-new-exercise-name-confirm',
-      title: 'Add \u201c' + name + '\u201d?',
-      message: 'Adds this exercise to today\u2019s session.',
-      confirmLabel: 'Add',
-      variant: 'primary',
-      exId: exId,
-      name: name
-    };
-    renderApp();
-  }
-
   function addBlankExercise(muscle){
     var session = getActiveSession();
     var newEx = { id: uid(), name: '', muscle: muscle || null, sets: [], done: false };
@@ -6042,6 +6567,7 @@
 
   function editExerciseName(exId, autoFocus){
     ui.editingExerciseName = exId;
+    ui.pendingSuggestMuscle = null;
     renderApp();
     if (autoFocus === false) return;
     // Focus synchronously, in the same tick as the user's tap — mobile
@@ -6050,12 +6576,21 @@
     // within the originating gesture. Wrapping this in setTimeout, even
     // a few ms, breaks that trust and the keyboard flashes then closes.
     var input = document.getElementById('exNameInput');
-    if (input){ input.focus(); input.select(); }
+    if (input){
+      input.focus();
+      input.select();
+      // Renaming an existing exercise starts with its current name already
+      // filled in — show matching suggestions right away instead of making
+      // them type a character first (a brand-new blank exercise has
+      // nothing to match yet, so this is a no-op there).
+      renderExerciseSuggestions(input.value);
+    }
   }
 
   function cancelExerciseNameEdit(){
     discardPendingNewExercise();
     ui.editingExerciseName = null;
+    ui.pendingSuggestMuscle = null;
     renderApp();
   }
 
@@ -6077,6 +6612,11 @@
     var oldName = ex.name;
     var wasNew = ui.newExerciseId === exId;
     ex.name = name;
+    // Only applies if the name being saved came from tapping a library
+    // suggestion (see 'pick-ex-suggestion') — free-typed names never touch
+    // ex.muscle, same as before this feature existed.
+    if (ui.pendingSuggestMuscle) ex.muscle = ui.pendingSuggestMuscle;
+    ui.pendingSuggestMuscle = null;
     saveSessions();
     if (oldName.trim().toLowerCase() !== name.trim().toLowerCase()){
       recomputeExercisePRs(oldName);
@@ -7130,11 +7670,14 @@
       renderApp();
     } else if (action === 'edit-exercise-name'){
       openRenameExerciseConfirm(el.dataset.ex);
-    } else if (action === 'save-exercise-name'){
-      if (ui.newExerciseId === el.dataset.ex) openSaveNewExerciseNameConfirm(el.dataset.ex);
-      else saveExerciseName(el.dataset.ex);
     } else if (action === 'cancel-exercise-name'){
       cancelExerciseNameEdit();
+    } else if (action === 'pick-ex-suggestion'){
+      ui.pendingSuggestMuscle = el.dataset.muscle || null;
+      saveExerciseName(ui.editingExerciseName, el.dataset.name);
+    } else if (action === 'pick-ex-custom'){
+      ui.pendingSuggestMuscle = null;
+      saveExerciseName(ui.editingExerciseName, el.dataset.name);
     } else if (action === 'edit-history-name'){
       openRenameSessionConfirm(el.dataset.session);
     } else if (action === 'save-history-name'){
@@ -7217,6 +7760,10 @@
       ui.historySearch = t.value;
       filterHistoryList(t.value);
     }
+    if (t.id === 'exNameInput'){
+      ui.pendingSuggestMuscle = null;
+      renderExerciseSuggestions(t.value);
+    }
   });
 
   document.getElementById('app').addEventListener('focusin', function(e){
@@ -7247,8 +7794,7 @@
         saveHistoryName(ui.editingHistoryName);
       } else if (e.target.id === 'exNameInput'){
         e.preventDefault();
-        if (ui.newExerciseId === ui.editingExerciseName) openSaveNewExerciseNameConfirm(ui.editingExerciseName);
-        else saveExerciseName(ui.editingExerciseName);
+        saveExerciseName(ui.editingExerciseName);
       }
     } else if (e.key === 'Escape' && e.target.id === 'hiNameInput'){
       e.preventDefault();
@@ -7375,9 +7921,6 @@
       }
       else if (m && m.kind === 'rename-session-confirm'){
         editHistoryName(m.sessionId);
-      }
-      else if (m && m.kind === 'save-new-exercise-name-confirm'){
-        saveExerciseName(m.exId, m.name);
       }
       else if (m && m.kind === 'open-add-set-confirm'){
         openAddSetPanel(m.exId);
@@ -7577,6 +8120,10 @@
     if (!el) return;
     if (el.dataset.action === 'close-template-picker'){
       closeTemplatePicker();
+    } else if (el.dataset.action === 'select-template-category'){
+      openTemplateCategory(el.dataset.category);
+    } else if (el.dataset.action === 'template-picker-back'){
+      backToTemplateCategories();
     } else if (el.dataset.action === 'select-template'){
       openStartTemplateConfirm(el.dataset.template);
     }
@@ -7719,6 +8266,15 @@
     var appShellEl = document.getElementById('app');
     var syncAppHeight = function(){
       appShellEl.style.height = window.visualViewport.height + 'px';
+      // The shell resizing doesn't by itself guarantee whatever's being
+      // typed into is still inside the now-shorter visible area — a field
+      // low on the page can end up sitting right at (or past) the new
+      // bottom edge. 'nearest' is a no-op if it's already visible, so this
+      // only moves things when the keyboard actually pushed it out of view.
+      var active = document.activeElement;
+      if (active && active.tagName === 'INPUT' && appShellEl.contains(active)){
+        active.scrollIntoView({ block: 'nearest' });
+      }
     };
     window.visualViewport.addEventListener('resize', syncAppHeight);
     syncAppHeight();
