@@ -1474,7 +1474,7 @@
     background:rgba(14,16,19,0.82);
     backdrop-filter:blur(16px);
     -webkit-backdrop-filter:blur(16px);
-    animation:overlayBackdropIn 0.15s ease;
+    animation:exSearchBackdropIn 0.22s ease;
   }
   .ex-search-overlay.hidden{display:none;}
   .ex-search-panel{
@@ -1482,6 +1482,7 @@
     flex-direction:column;
     height:100%;
     min-height:0;
+    animation:exSearchPanelIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .ex-search-head{
     display:flex;
@@ -1520,13 +1521,6 @@
     letter-spacing:0.02em;
   }
   .ex-search-input:focus{outline:none;border-color:var(--accent);}
-  .ex-search-hint{
-    padding:8px 20px 0;
-    color:var(--text-faint);
-    font-size:12px;
-    line-height:1.5;
-    text-align:center;
-  }
   .ex-suggest-list{
     flex:1;
     min-height:0;
@@ -2512,6 +2506,14 @@
     0%{opacity:0;transform:scale(0.95) translateY(8px);}
     100%{opacity:1;transform:scale(1) translateY(0);}
   }
+  @keyframes exSearchBackdropIn{
+    0%{opacity:0;}
+    100%{opacity:1;}
+  }
+  @keyframes exSearchPanelIn{
+    0%{opacity:0;transform:translateY(28px);}
+    100%{opacity:1;transform:translateY(0);}
+  }
 
   ::selection{background:var(--accent-dim);color:var(--text);}
 
@@ -3444,8 +3446,9 @@
   // *somewhere* in it — not necessarily in the order typed. So "bench
   // press dumbbell" and "dumbbell bench press" both find "Dumbbell Bench
   // Press", instead of only a query that happens to match the name's
-  // exact word order.
-  var EXERCISE_SUGGEST_LIMIT = 8;
+  // exact word order. No result cap — the results list is a full-screen
+  // scrollable overlay now, not a small dropdown, so there's no need to
+  // truncate matches the way a compact inline list would have required.
   function exerciseQueryTokens(query){
     return (query || '').trim().toLowerCase().split(/\s+/).filter(Boolean).map(function(t){
       return EXERCISE_QUERY_ALIASES[t] || t;
@@ -3463,7 +3466,6 @@
     var seen = {};
     var results = [];
     allExerciseNames().forEach(function(name){
-      if (results.length >= EXERCISE_SUGGEST_LIMIT) return;
       var key = name.toLowerCase();
       if (seen[key] || !matchesAllTokens(key)) return;
       seen[key] = true;
@@ -3475,13 +3477,31 @@
       });
     });
     EXERCISE_LIBRARY_FLAT.forEach(function(item){
-      if (results.length >= EXERCISE_SUGGEST_LIMIT) return;
       var key = item.name.toLowerCase();
       if (seen[key] || !matchesAllTokens(key)) return;
       seen[key] = true;
       results.push({ name: item.name, muscle: item.muscle, equipment: item.equipment });
     });
     return results;
+  }
+
+  function exerciseSuggestItemHtml(name, muscle, equipment){
+    return '<button type="button" class="ex-suggest-item" data-action="pick-ex-suggestion" data-name="'+esc(name)+'" data-muscle="'+esc(muscle || '')+'">' +
+      '<span class="ex-suggest-name">'+esc(name)+'</span>' +
+      (equipment ? '<span class="ex-suggest-tag">'+esc(equipment)+'</span>' : '') +
+    '</button>';
+  }
+
+  // The full built-in library, browsable by muscle group — shown when the
+  // search field is still empty, so there's always something to scroll
+  // through and tap rather than a blank screen waiting for input.
+  function exerciseLibraryBrowseHtml(){
+    return Object.keys(EXERCISE_LIBRARY).map(function(muscle){
+      return '<div class="section-label">'+esc(muscle)+'</div>' +
+        EXERCISE_LIBRARY[muscle].map(function(item){
+          return exerciseSuggestItemHtml(item.name, muscle, item.equipment);
+        }).join('');
+    }).join('');
   }
 
   // Live-repopulates the results list in the full-screen exercise-search
@@ -3495,14 +3515,15 @@
     var el = document.getElementById('exSuggestList');
     if (!el) return;
     var trimmed = (query || '').trim();
-    var matches = exerciseSuggestions(query);
-    var exactMatch = matches.some(function(m){ return m.name.toLowerCase() === trimmed.toLowerCase(); });
 
     if (!trimmed){
       el.classList.remove('hidden');
-      el.innerHTML = '<div class="ex-search-hint">Type any word from the exercise name \u2014 order doesn\u2019t matter.</div>';
+      el.innerHTML = exerciseLibraryBrowseHtml();
       return;
     }
+
+    var matches = exerciseSuggestions(query);
+    var exactMatch = matches.some(function(m){ return m.name.toLowerCase() === trimmed.toLowerCase(); });
 
     var html = '';
     // Pinned at the top whenever what's typed isn't already an exact match
@@ -3512,10 +3533,7 @@
       html += '<button type="button" class="ex-suggest-custom" data-action="pick-ex-custom" data-name="'+esc(trimmed)+'">Use \u201c'+esc(trimmed)+'\u201d</button>';
     }
     html += matches.map(function(m){
-      return '<button type="button" class="ex-suggest-item" data-action="pick-ex-suggestion" data-name="'+esc(m.name)+'" data-muscle="'+esc(m.muscle || '')+'">' +
-        '<span class="ex-suggest-name">'+esc(m.name)+'</span>' +
-        (m.equipment ? '<span class="ex-suggest-tag">'+esc(m.equipment)+'</span>' : '') +
-      '</button>';
+      return exerciseSuggestItemHtml(m.name, m.muscle, m.equipment);
     }).join('');
 
     el.classList.remove('hidden');
