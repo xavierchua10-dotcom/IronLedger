@@ -1270,6 +1270,10 @@
     z-index:90;
   }
   .mm-overlay.hidden{display:none;}
+  .mm-overlay:not(.hidden){animation:overlayBackdropIn 0.15s ease;}
+  .mm-overlay:not(.hidden) .mm-overlay-panel{
+    animation:overlayPanelIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
   .mm-overlay-panel{
     width:100%;
     max-width:340px;
@@ -2156,6 +2160,11 @@
      opened on top of. */
   #confirmOverlay{ z-index:150; }
   .confirm-overlay.hidden{display:none;}
+  .confirm-overlay:not(.hidden){animation:overlayBackdropIn 0.15s ease;}
+  .confirm-overlay:not(.hidden) .confirm-panel,
+  .confirm-overlay:not(.hidden) .pro-panel{
+    animation:overlayPanelIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
   .confirm-panel{
     width:100%;
     max-width:340px;
@@ -2273,6 +2282,14 @@
   @keyframes notifSlideDown{
     0%{opacity:0;transform:translateY(-8px);}
     100%{opacity:1;transform:translateY(0);}
+  }
+  @keyframes overlayBackdropIn{
+    0%{opacity:0;}
+    100%{opacity:1;}
+  }
+  @keyframes overlayPanelIn{
+    0%{opacity:0;transform:scale(0.95) translateY(8px);}
+    100%{opacity:1;transform:scale(1) translateY(0);}
   }
 
   ::selection{background:var(--accent-dim);color:var(--text);}
