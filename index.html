@@ -2687,19 +2687,20 @@
   // here only, never in the Firebase script.
   window.SaviorConfig = { devEmail: DEV_OVERRIDE_EMAIL, trialDays: TRIAL_DAYS };
   var PROGRESS_FREE_DAYS_PER_MONTH = 3;
-  var PRICE_WEEKLY = 1.99;
+  var PRICE_QUARTERLY = 24.99;
   var PRICE_MONTHLY = 9.99;
   var PRICE_ANNUAL = 79.99;
   // ---- PASTE YOUR STRIPE PAYMENT LINKS HERE ----
-  // Stripe Dashboard → Payment Links → create one for Weekly ($1.99/wk),
-  // one for Monthly ($9.99/mo), and one for Annual ($79.99/yr).
+  // Stripe Dashboard → Payment Links → create one for Quarterly ($24.99,
+  // billed every 3 months), one for Monthly ($9.99/mo), and one for
+  // Annual ($79.99/yr).
   // client_reference_id is appended automatically so the checkout can
   // be tied back to the Firebase uid.
   // IMPORTANT: actually granting Pro after a successful payment must
   // happen server-side — a Stripe webhook + a Cloud Function (Admin SDK)
   // that writes subscription.currentPeriodEnd on /users/{uid}. Client
   // code can never be trusted to grant itself Pro (see security rules).
-  var STRIPE_LINK_WEEKLY = 'https://buy.stripe.com/eVqbJ32V740baNp6Fc4wM07';
+  var STRIPE_LINK_QUARTERLY = 'https://buy.stripe.com/bJe6oJfHTbsD2gT0gO4wM08';
   var STRIPE_LINK_MONTHLY = 'https://buy.stripe.com/cNi4gBanz54ff3FaVs4wM05';
   var STRIPE_LINK_ANNUAL = 'https://buy.stripe.com/7sY3cx3Zb54f1cPd3A4wM06';
   // The same Netlify site the Stripe webhook lives on, one function
@@ -3644,7 +3645,7 @@
       // not a real Stripe subscription, so it won't auto-renew like
       // the other three plans do.
       if (planKey === 'custom') return 'Pro access — until ' + endLabel;
-      var plan = planKey === 'annual' ? 'Annual' : planKey === 'weekly' ? 'Weekly' : 'Monthly';
+      var plan = planKey === 'annual' ? 'Annual' : planKey === 'quarterly' ? 'Quarterly' : 'Monthly';
       return plan + ' plan — renews ' + endLabel;
     }
     if (isTrialActive()){
@@ -4287,6 +4288,18 @@
     renderNotifOverlay();
   }
 
+  // Updates the bell's dot, and the open dropdown's contents if it's
+  // currently open. Called anywhere something that could change what
+  // getNotifications() returns happens outside the normal renderApp()
+  // cycle (a dismiss action, install-prompt availability changing, etc).
+  function refreshNotifBell(){
+    var notifBellDotEl = document.getElementById('notifBellDot');
+    if (notifBellDotEl){
+      notifBellDotEl.classList.toggle('hidden', !getNotifications().some(function(n){ return n.urgent; }));
+    }
+    if (ui.showNotifications) renderNotifOverlay();
+  }
+
   function renderNotifOverlay(){
     var panel = document.getElementById('notifPanel');
     if (!panel) return;
@@ -4356,7 +4369,7 @@
       showToast('Create a free account first \u2014 Guest data can\u2019t hold a subscription');
       return;
     }
-    var link = plan === 'annual' ? STRIPE_LINK_ANNUAL : (plan === 'weekly' ? STRIPE_LINK_WEEKLY : STRIPE_LINK_MONTHLY);
+    var link = plan === 'annual' ? STRIPE_LINK_ANNUAL : (plan === 'quarterly' ? STRIPE_LINK_QUARTERLY : STRIPE_LINK_MONTHLY);
     if (!link){
       showToast('Payments aren\u2019t connected yet \u2014 check back soon');
       return;
@@ -4577,7 +4590,7 @@
       return;
     }
 
-    var cycle = (ui.billingCycle === 'annual' || ui.billingCycle === 'weekly') ? ui.billingCycle : 'monthly';
+    var cycle = (ui.billingCycle === 'annual' || ui.billingCycle === 'quarterly') ? ui.billingCycle : 'monthly';
     var showTrialOffer = trialAvailable();
     panel.innerHTML =
       '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Go Pro</h3>' +
@@ -4607,15 +4620,15 @@
             '<div class="trial-offer-divider">or subscribe now</div>'
           : '') +
         '<div class="billing-toggle '+cycle+'" role="tablist">' +
-          '<button class="'+(cycle==='weekly'?'active':'')+'" data-action="set-billing-cycle" data-cycle="weekly">Weekly</button>' +
+          '<button class="'+(cycle==='quarterly'?'active':'')+'" data-action="set-billing-cycle" data-cycle="quarterly">Quarterly<span class="bt-save">-17%</span></button>' +
           '<button class="'+(cycle==='monthly'?'active':'')+'" data-action="set-billing-cycle" data-cycle="monthly">Monthly</button>' +
           '<button class="'+(cycle==='annual'?'active':'')+'" data-action="set-billing-cycle" data-cycle="annual">Annual<span class="bt-save">-33%</span></button>' +
         '</div>' +
-        (cycle === 'weekly'
+        (cycle === 'quarterly'
           ? '<div class="price-card">' +
-              '<div class="price-card-amount">$'+PRICE_WEEKLY.toFixed(2)+'<span>/week</span></div>' +
-              '<div class="price-card-sub">Cancel anytime</div>' +
-              '<button class="price-cta-btn" data-action="start-checkout" data-plan="weekly">Start Weekly \u2014 $'+PRICE_WEEKLY.toFixed(2)+'/wk</button>' +
+              '<div class="price-card-amount">$'+PRICE_QUARTERLY.toFixed(2)+'<span>/quarter</span></div>' +
+              '<div class="price-card-sub">$'+(PRICE_QUARTERLY/3).toFixed(2)+'/mo billed quarterly</div>' +
+              '<button class="price-cta-btn" data-action="start-checkout" data-plan="quarterly">Start Quarterly \u2014 $'+PRICE_QUARTERLY.toFixed(2)+'/qtr</button>' +
             '</div>'
           : cycle === 'monthly'
           ? '<div class="price-card">' +
@@ -7464,11 +7477,11 @@
       promptGuestSignUp();
     } else if (el.dataset.action === 'set-billing-cycle'){
       var c = el.dataset.cycle;
-      ui.billingCycle = (c === 'annual' || c === 'weekly') ? c : 'monthly';
+      ui.billingCycle = (c === 'annual' || c === 'quarterly') ? c : 'monthly';
       renderPricingPanel();
     } else if (el.dataset.action === 'start-checkout'){
       var p = el.dataset.plan;
-      startCheckout((p === 'annual' || p === 'weekly') ? p : 'monthly');
+      startCheckout((p === 'annual' || p === 'quarterly') ? p : 'monthly');
     } else if (el.dataset.action === 'request-start-trial'){
       ui.confirmingTrial = true;
       renderPricingPanel();
