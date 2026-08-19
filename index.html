@@ -3543,6 +3543,21 @@
   // the same ui.editingExerciseName that used to gate the inline editing
   // row, so every existing entry point (add-blank-exercise, rename) keeps
   // working unchanged — only the presentation layer changed.
+  //
+  // The overlay's height is set explicitly in JS (syncExSearchOverlayHeight,
+  // called below and again on every visualViewport resize) rather than left
+  // to CSS's position:absolute/inset:0 alone — some in-app/WebView browsers
+  // don't reliably cascade that through a fixed-position ancestor, which
+  // was silently shrinking the results list down to roughly its own
+  // content height instead of filling the screen. Measuring #app's actual
+  // rendered height in JS and applying it as a literal pixel value sidesteps
+  // that entirely.
+  function syncExSearchOverlayHeight(){
+    var overlay = document.getElementById('exSearchOverlay');
+    var appEl = document.getElementById('app');
+    if (!overlay || !appEl) return;
+    overlay.style.height = appEl.getBoundingClientRect().height + 'px';
+  }
   function renderExerciseSearchOverlay(){
     var overlay = document.getElementById('exSearchOverlay');
     var panel = document.getElementById('exSearchPanel');
@@ -3554,6 +3569,7 @@
       return;
     }
     overlay.classList.remove('hidden');
+    syncExSearchOverlayHeight();
     panel.innerHTML =
       '<div class="ex-search-head">' +
         '<button class="ex-search-back" data-action="cancel-exercise-name" aria-label="Close">&#8592;</button>' +
@@ -8291,6 +8307,7 @@
       if (active && active.tagName === 'INPUT' && appShellEl.contains(active)){
         active.scrollIntoView({ block: 'nearest' });
       }
+      syncExSearchOverlayHeight();
     };
     window.visualViewport.addEventListener('resize', syncAppHeight);
     syncAppHeight();
