@@ -488,6 +488,34 @@
   .exercise-card .set-detail .set-time{color:#dfe2e6;}
   .exercise-card .eh-title h3{color:#e4e6ea;}
   .exercise-card .exercise-head-actions .icon-btn{background:rgba(10,12,16,0.4);}
+  /* User-selectable card background, set via Settings > Card Style. JS sets
+     data-card-bg on <body> (see renderApp) to match state.settings.cardBg;
+     these rules override the default exercise-card-bg.jpg above per choice.
+     "default" needs no rule here since it's what the base rule already
+     shows. "none" strips the photo back to a flat panel for anyone who'd
+     rather skip it entirely. Each image ships as a separate file uploaded
+     alongside this index.html, same as the base one — none are baked in. */
+  body[data-card-bg="chest"] .exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('chest-bg.jpg');
+  }
+  body[data-card-bg="back"] .exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('back-bg.jpg');
+  }
+  body[data-card-bg="shoulder"] .exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('shoulder-bg.jpg');
+  }
+  body[data-card-bg="arms"] .exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('arms-bg.jpg');
+  }
+  body[data-card-bg="legs"] .exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('legs-bg.jpg');
+  }
+  body[data-card-bg="abs"] .exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('abs-bg.jpg');
+  }
+  body[data-card-bg="none"] .exercise-card{
+    background-image:none;
+  }
   .exercise-head{
     display:flex;
     align-items:center;
@@ -2419,6 +2447,64 @@
   }
   .settings-row .seg button.active{background:var(--accent);color:#1c1500;}
   .routine-actions{display:flex;gap:8px;}
+  /* Card-background swatch picker (Settings > Card Style). Each swatch
+     previews its actual photo as a small thumbnail so the choice is
+     visual, not just a label. */
+  .card-bg-picker{
+    display:flex;
+    flex-wrap:wrap;
+    gap:9px;
+    padding:4px 0 14px;
+  }
+  .card-bg-swatch{
+    position:relative;
+    width:62px;
+    height:62px;
+    flex-shrink:0;
+    border-radius:10px;
+    border:2px solid var(--line);
+    background-color:var(--panel-2);
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    cursor:pointer;
+    display:flex;
+    align-items:flex-end;
+    padding:0;
+    overflow:hidden;
+  }
+  .card-bg-swatch.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(242,177,52,0.3);}
+  .card-bg-swatch[data-bg="chest"]{background-image:url('chest-bg.jpg');}
+  .card-bg-swatch[data-bg="back"]{background-image:url('back-bg.jpg');}
+  .card-bg-swatch[data-bg="shoulder"]{background-image:url('shoulder-bg.jpg');}
+  .card-bg-swatch[data-bg="arms"]{background-image:url('arms-bg.jpg');}
+  .card-bg-swatch[data-bg="legs"]{background-image:url('legs-bg.jpg');}
+  .card-bg-swatch[data-bg="abs"]{background-image:url('abs-bg.jpg');}
+  .card-bg-swatch[data-bg="default"]{background-image:url('exercise-card-bg.jpg');}
+  .card-bg-swatch-label{
+    width:100%;
+    font-size:8px;
+    font-weight:700;
+    letter-spacing:0.02em;
+    text-transform:uppercase;
+    color:#fff;
+    background:rgba(0,0,0,0.6);
+    padding:3px 4px;
+    text-align:center;
+    line-height:1.2;
+  }
+  .card-bg-swatch[data-bg="none"]{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .card-bg-swatch[data-bg="none"] .card-bg-swatch-label{
+    width:auto;
+    background:none;
+    color:var(--text-faint);
+    font-size:9px;
+  }
+  .card-bg-swatch.active[data-bg="none"] .card-bg-swatch-label{color:var(--accent);}
 
   /* ---------- Running rest timer bar ---------- */
   .stopwatch-bar{
@@ -4152,6 +4238,20 @@
   // from EXERCISE_LIBRARY_FLAT) so the chip order stays stable regardless
   // of which equipment happens to appear first in the library data.
   var EQUIPMENT_FILTER_OPTIONS = ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'Bodyweight'];
+
+  // Choices for Settings > Card Style. "id" matches both the data-bg swatch
+  // attribute and the body[data-card-bg] CSS selector — keep them in sync
+  // if options are ever added or renamed.
+  var CARD_BG_OPTIONS = [
+    { id: 'default', label: 'Default' },
+    { id: 'chest', label: 'Rack' },
+    { id: 'back', label: 'Cable' },
+    { id: 'shoulder', label: 'Machine' },
+    { id: 'arms', label: 'Dumbbells' },
+    { id: 'legs', label: 'Barbell' },
+    { id: 'abs', label: 'Bench' },
+    { id: 'none', label: 'Off' }
+  ];
 
   // Starter routine templates for the "Start from a Template" picker.
   // Exercise names are pulled straight from EXERCISE_LIBRARY above, so
@@ -6248,6 +6348,20 @@
               '</div></div>';
     html += '</div>';
 
+    html += '<div class="section-label">Card Style</div>';
+    html += '<div class="settings-group">';
+    html += '<div class="settings-row"><div><div class="sr-label">Exercise card background</div>' +
+              '<div class="sr-sub">Applies consistently to every exercise card in Log</div></div></div>';
+    html += '<div class="card-bg-picker">';
+    var chosenCardBg = (state.settings && state.settings.cardBg) || 'default';
+    CARD_BG_OPTIONS.forEach(function(opt){
+      html += '<button type="button" class="card-bg-swatch'+(chosenCardBg===opt.id?' active':'')+'" data-action="set-card-bg" data-bg="'+opt.id+'" aria-label="'+esc(opt.label)+'">' +
+        '<span class="card-bg-swatch-label">'+esc(opt.label)+'</span>' +
+      '</button>';
+    });
+    html += '</div>';
+    html += '</div>';
+
     html += '<div class="section-label">Routines</div>';
     if (state.routines.length === 0){
       html += '<div class="settings-group"><div class="settings-row"><div><div class="sr-label">No saved routines yet</div><div class="sr-sub">Save a session\u2019s exercise list from the Log tab to reuse it</div></div></div></div>';
@@ -6390,6 +6504,8 @@
 
     var unitBtn = document.getElementById('unitToggleBtn');
     if (unitBtn) unitBtn.textContent = state.settings.unit.toUpperCase();
+
+    document.body.dataset.cardBg = (state.settings && state.settings.cardBg) || 'default';
 
     var proStarBtnEl = document.getElementById('proStarBtn');
     if (proStarBtnEl){
@@ -8194,6 +8310,10 @@
       openExTip(el.dataset.session, el.dataset.ex);
     } else if (action === 'set-unit'){
       state.settings.unit = el.dataset.unit;
+      saveSettings();
+      renderApp();
+    } else if (action === 'set-card-bg'){
+      state.settings.cardBg = el.dataset.bg;
       saveSettings();
       renderApp();
     } else if (action === 'save-routine'){
