@@ -1191,12 +1191,38 @@
     margin-bottom:10px;
   }
   .template-card:last-child{margin-bottom:0;}
-  .template-card:active{border-color:var(--accent);background:var(--panel-3);}
+  .template-card:not(.template-cat-card):active{border-color:var(--accent);background:var(--panel-3);}
   .template-divider{
     height:1px;
     background:var(--line);
     margin:0 2px 14px;
   }
+  /* Category cards (step 1 of the template picker) get a photo background
+     per category, via a fixed relative filename — NOT baked into this
+     file as base64. The actual jpg files (ppl-bg.jpg, upper-lower-bg.jpg,
+     full-body-bg.jpg) ship as separate assets uploaded alongside this
+     index.html, in the same folder, so the relative url() below resolves.
+     The gradient darkens the photo so the label/description/count stay
+     readable regardless of what's busy in the underlying image. */
+  .template-cat-card{
+    position:relative;
+    min-height:110px;
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+  }
+  .template-cat-card:active{border-color:var(--accent);filter:brightness(1.12);}
+  .template-cat-card[data-category="ppl"]{
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('ppl-bg.jpg');
+  }
+  .template-cat-card[data-category="upperLower"]{
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('upper-lower-bg.jpg');
+  }
+  .template-cat-card[data-category="fullBody"]{
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('full-body-bg.jpg');
+  }
+  .template-cat-card .template-card-sub{color:#d7dae0;}
+  .template-cat-card .template-card-count{color:#aab0b8;}
   .template-card-name{
     font-family:'Oswald',sans-serif;
     font-size:15px;
@@ -4223,9 +4249,9 @@
   // a key that gets removed later just quietly drops that card instead of
   // breaking.
   var WORKOUT_TEMPLATE_CATEGORIES = [
-    { id: 'ppl', label: 'Push / Pull / Legs', description: 'Chest/shoulders/triceps, back/biceps, and legs trained on separate days.', keys: ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB'] },
-    { id: 'upperLower', label: 'Upper / Lower', description: 'Whole upper body one day, whole lower body the next.', keys: ['upper', 'lower', 'upperB', 'lowerB'] },
-    { id: 'fullBody', label: 'Full Body', description: 'Every major muscle group trained in a single session.', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] }
+    { id: 'ppl', label: 'Push / Pull / Legs', description: 'The classic 3-day split.', keys: ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB'] },
+    { id: 'upperLower', label: 'Upper / Lower', description: 'Balanced, efficient, repeatable.', keys: ['upper', 'lower', 'upperB', 'lowerB'] },
+    { id: 'fullBody', label: 'Full Body', description: 'Everything, every session.', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] }
   ];
 
   // Pulls the trailing variant letter off a template label ('Push Day A' ->
