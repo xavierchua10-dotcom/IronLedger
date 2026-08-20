@@ -427,7 +427,7 @@
     padding:4px 0 10px;
     margin-bottom:4px;
   }
-  input[type=text].session-name-input::placeholder{color:var(--text-faint);text-transform:none;font-weight:500;}
+  input[type=text].session-name-input::placeholder{color:#9aa0a8;text-transform:none;font-weight:500;}
   input[type=text].session-name-input:focus{outline:none;border-bottom-color:var(--accent);}
 
   .session-name-row{display:flex;align-items:center;gap:10px;}
@@ -453,7 +453,7 @@
   .session-meta{
     display:flex;
     gap:14px;
-    color:var(--text-dim);
+    color:#c7ccd3;
     font-size:12px;
     font-family:'JetBrains Mono',monospace;
     margin-bottom:18px;
@@ -463,7 +463,7 @@
   /* ---------- Exercise card ---------- */
   .exercise-card{
     background-color:var(--panel);
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.72), rgba(10,12,16,0.92)), url('exercise-card-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.9), rgba(8,9,12,0.97)), url('exercise-card-bg.jpg');
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -488,6 +488,37 @@
   }
   .exercise-card .eh-title h3{color:#e4e6ea;}
   .exercise-card .exercise-head-actions .icon-btn{background:rgba(10,12,16,0.4);}
+  /* Per-muscle-group backgrounds — overrides the base exercise-card-bg.jpg
+     above whenever the card's data-muscle attribute matches. Traps rides
+     with Shoulders and Biceps/Triceps/Forearms all ride with Arms, since
+     those are typically trained together and only 5 photos were supplied.
+     Quads/Hamstrings/Glutes/Calves all share the Legs photo. Abs and any
+     custom exercise with no muscle set fall through to the generic
+     exercise-card-bg.jpg above. Same darkening treatment as the base rule.
+     Each image (chest-bg.jpg, back-bg.jpg, shoulder-bg.jpg, arms-bg.jpg,
+     legs-bg.jpg) ships as a separate file uploaded alongside this
+     index.html, not baked in. */
+  .exercise-card[data-muscle="Chest"]{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.9), rgba(8,9,12,0.97)), url('chest-bg.jpg');
+  }
+  .exercise-card[data-muscle="Back"]{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.9), rgba(8,9,12,0.97)), url('back-bg.jpg');
+  }
+  .exercise-card[data-muscle="Shoulders"],
+  .exercise-card[data-muscle="Traps"]{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.9), rgba(8,9,12,0.97)), url('shoulder-bg.jpg');
+  }
+  .exercise-card[data-muscle="Biceps"],
+  .exercise-card[data-muscle="Triceps"],
+  .exercise-card[data-muscle="Forearms"]{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.9), rgba(8,9,12,0.97)), url('arms-bg.jpg');
+  }
+  .exercise-card[data-muscle="Quads"],
+  .exercise-card[data-muscle="Hamstrings"],
+  .exercise-card[data-muscle="Glutes"],
+  .exercise-card[data-muscle="Calves"]{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.9), rgba(8,9,12,0.97)), url('legs-bg.jpg');
+  }
   .exercise-head{
     display:flex;
     align-items:center;
@@ -5820,7 +5851,7 @@
   function renderExerciseCard(session, ex){
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
-    var html = '<div class="exercise-card'+(ex.id===ui.justAddedExId?' just-added':'')+'" data-ex="'+ex.id+'">';
+    var html = '<div class="exercise-card'+(ex.id===ui.justAddedExId?' just-added':'')+'" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
     html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
             (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
             (ex.sets.length > 0 ? '<span class="volume-badge">VOL '+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</span>' : '') +
@@ -5897,7 +5928,7 @@
     if (setCount > 0){
       summary += ' &middot; ' + Math.round(toDisplay(exerciseVolume(ex))).toLocaleString() + ' ' + unitLabel().toUpperCase();
     }
-    var html = '<div class="exercise-card collapsed" data-ex="'+ex.id+'">';
+    var html = '<div class="exercise-card collapsed" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
     html += '<div class="exercise-head-collapsed" data-action="toggle-exercise-done" data-ex="'+ex.id+'">' +
               '<div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
               (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') + '</div>' +
