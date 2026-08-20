@@ -1290,6 +1290,18 @@
   .notif-empty{text-align:center;color:var(--text-faint);font-size:13px;padding:24px 12px;}
 
   /* ---------- Rest timer duration picker ---------- */
+  /* Scoped to the panel's own id (not the shared .pro-panel class, which
+     every other overlay — templates, notifications, pricing, etc — also
+     uses) so only this one picker gets the photo background. The actual
+     image (rest-timer-bg.jpg) ships as a separate file uploaded alongside
+     this index.html, not baked in here. */
+  #restTimerPickerPanel{
+    background-color:var(--panel-2);
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.6), rgba(10,12,16,0.88)), url('rest-timer-bg.jpg');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+  }
   .rest-timer-picker-display{
     display:flex;
     align-items:center;
@@ -1322,7 +1334,7 @@
   .rest-timer-picker-sub{
     text-align:center;
     font-size:11px;
-    color:var(--text-faint);
+    color:#c7ccd3;
     text-transform:uppercase;
     letter-spacing:0.05em;
     padding-bottom:10px;
@@ -2119,6 +2131,25 @@
   }
 
   /* ---------- Pricing modal ---------- */
+  /* Scoped to .pricing-panel (the Go Pro modal's own class, distinct from
+     the shared .pro-panel every other overlay also uses) so only this
+     modal gets the photo background. The image (go-pro-bg.jpg) ships as
+     a separate file uploaded alongside this index.html, not baked in. A
+     few text bits that sit directly on the panel (not on their own solid
+     card) get brightened here too, so they stay readable over the photo —
+     everything else (price cards, billing toggle, trial card) already
+     has its own solid/tinted background and needs no change. */
+  .pricing-panel{
+    background-color:var(--panel-2);
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.62), rgba(10,12,16,0.9)), url('go-pro-bg.jpg');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+  }
+  .pricing-panel .paywall-features li{color:#d7dae0;}
+  .pricing-panel .trial-offer-divider{color:#c7ccd3;}
+  .pricing-panel .paywall-note{color:#c7ccd3;}
+  .pricing-panel .paywall-sub{color:#d7dae0;}
   .pricing-body{padding:6px 20px 22px;overflow-y:auto;overflow-x:hidden;flex:1;-webkit-overflow-scrolling:touch;}
   .billing-toggle{
     display:flex;align-items:center;justify-content:center;
