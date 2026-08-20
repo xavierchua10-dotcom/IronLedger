@@ -488,40 +488,6 @@
   }
   .exercise-card .eh-title h3{color:#e4e6ea;}
   .exercise-card .exercise-head-actions .icon-btn{background:rgba(10,12,16,0.4);}
-  /* Per-muscle-group backgrounds — overrides the base exercise-card-bg.jpg
-     above whenever the card's data-muscle attribute matches. Traps rides
-     with Shoulders and Biceps/Triceps/Forearms all ride with Arms, since
-     those are typically trained together and only 5 photos were supplied.
-     Quads/Hamstrings/Glutes/Calves all share the Legs photo. Any custom
-     exercise with no muscle set falls through to the generic
-     exercise-card-bg.jpg above. Same darkening treatment as the base rule.
-     Each image (chest-bg.jpg, back-bg.jpg, shoulder-bg.jpg, arms-bg.jpg,
-     legs-bg.jpg, abs-bg.jpg) ships as a separate file uploaded alongside
-     this index.html, not baked in. */
-  .exercise-card[data-muscle="Chest"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('chest-bg.jpg');
-  }
-  .exercise-card[data-muscle="Back"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('back-bg.jpg');
-  }
-  .exercise-card[data-muscle="Shoulders"],
-  .exercise-card[data-muscle="Traps"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('shoulder-bg.jpg');
-  }
-  .exercise-card[data-muscle="Biceps"],
-  .exercise-card[data-muscle="Triceps"],
-  .exercise-card[data-muscle="Forearms"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('arms-bg.jpg');
-  }
-  .exercise-card[data-muscle="Quads"],
-  .exercise-card[data-muscle="Hamstrings"],
-  .exercise-card[data-muscle="Glutes"],
-  .exercise-card[data-muscle="Calves"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('legs-bg.jpg');
-  }
-  .exercise-card[data-muscle="Abs"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('abs-bg.jpg');
-  }
   .exercise-head{
     display:flex;
     align-items:center;
@@ -1662,11 +1628,7 @@
     justify-content:space-between;
     gap:10px;
     text-align:left;
-    background-color:var(--panel-3);
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('exercise-card-bg.jpg');
-    background-size:cover;
-    background-position:center;
-    background-repeat:no-repeat;
+    background:var(--panel-3);
     border:1px solid var(--line);
     color:var(--text);
     font-size:13.5px;
@@ -1676,37 +1638,7 @@
     border-radius:10px;
     cursor:pointer;
   }
-  /* Same per-muscle photo mapping as the Log tab's exercise cards, reusing
-     the exact same image files — this list is even denser/faster-scrolling
-     (100+ rows), so it gets the same already-tuned darkening treatment
-     rather than starting brighter. Anything with no muscle match (a
-     typed custom name) falls through to the base exercise-card-bg.jpg
-     above. */
-  .ex-suggest-item[data-muscle="Chest"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('chest-bg.jpg');
-  }
-  .ex-suggest-item[data-muscle="Back"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('back-bg.jpg');
-  }
-  .ex-suggest-item[data-muscle="Shoulders"],
-  .ex-suggest-item[data-muscle="Traps"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('shoulder-bg.jpg');
-  }
-  .ex-suggest-item[data-muscle="Biceps"],
-  .ex-suggest-item[data-muscle="Triceps"],
-  .ex-suggest-item[data-muscle="Forearms"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('arms-bg.jpg');
-  }
-  .ex-suggest-item[data-muscle="Quads"],
-  .ex-suggest-item[data-muscle="Hamstrings"],
-  .ex-suggest-item[data-muscle="Glutes"],
-  .ex-suggest-item[data-muscle="Calves"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('legs-bg.jpg');
-  }
-  .ex-suggest-item[data-muscle="Abs"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('abs-bg.jpg');
-  }
-  .ex-suggest-item:active{border-color:var(--accent-dim);filter:brightness(1.15);}
+  .ex-suggest-item:active{background:var(--panel);border-color:var(--accent-dim);}
   .ex-suggest-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ex-suggest-tag{
     flex-shrink:0;
