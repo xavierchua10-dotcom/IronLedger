@@ -1594,6 +1594,99 @@
   }
   .ex-suggest-custom:active{background:var(--accent-dim);}
 
+  /* ---------- Exercise-search filter (muscle group / equipment) ---------- */
+  .ex-search-filter{
+    width:36px;
+    height:36px;
+    flex-shrink:0;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    border:none;
+    background:var(--panel-3);
+    color:var(--text);
+    cursor:pointer;
+    padding:0;
+  }
+  .ex-search-filter svg{display:block;}
+  .ex-search-filter:active{background:var(--panel-2);transform:scale(0.94);}
+  .ex-search-filter.active{background:var(--accent-dim);color:var(--accent);}
+  .ex-filter-dot{
+    position:absolute;
+    top:4px;
+    right:4px;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--accent);
+    border:1.5px solid var(--panel-3);
+  }
+  .ex-filter-panel{
+    flex-shrink:0;
+    padding:0 16px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    animation:exSearchBackdropIn 0.18s ease;
+  }
+  .ex-filter-panel.hidden{display:none;}
+  .ex-filter-row-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-top:4px;
+  }
+  .ex-filter-row-head:first-child{margin-top:0;}
+  .ex-filter-row-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+  }
+  .ex-filter-clear{
+    background:none;
+    border:none;
+    color:var(--accent);
+    font-family:'Inter',sans-serif;
+    font-size:11.5px;
+    font-weight:600;
+    cursor:pointer;
+    padding:2px 0;
+  }
+  .ex-filter-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+  }
+  .ex-filter-chip{
+    background:var(--panel-3);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    padding:7px 12px;
+    border-radius:20px;
+    cursor:pointer;
+  }
+  .ex-filter-chip.active{
+    background:var(--accent-dim);
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+  .ex-filter-chip:active{transform:scale(0.96);}
+  .ex-filter-empty{
+    padding:34px 10px;
+    text-align:center;
+    color:var(--text-faint);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+  }
+
   /* ---------- Empty state ---------- */
   .empty{
     text-align:center;
@@ -3014,6 +3107,8 @@
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     justAddedExId: null,        // exId that should play the "just added" glow pulse once (see flashExerciseAdded)
     pendingSuggestMuscle: null, // muscle carried from a tapped exercise-name suggestion, applied on save (see saveExerciseName)
+    exFilterPanelOpen: false,   // whether the muscle/equipment filter panel is expanded in the exercise-search overlay
+    exSearchFilters: { muscles: [], equipment: [] }, // active filter selections in the exercise-search overlay
     tabAnimating: false,    // true while a tab-slide transition is in progress
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
     showPricing: false,     // Pricing/upgrade modal open state
@@ -3431,6 +3526,29 @@
       return EXERCISE_QUERY_ALIASES[t] || t;
     });
   }
+  // Whether the exercise-search filter panel currently has any muscle
+  // group or equipment selected — drives the filter icon's active/badge
+  // state and whether a "Clear" link is shown in the panel.
+  function exFilterActive(){
+    var f = ui.exSearchFilters;
+    return !!(f && (f.muscles.length || f.equipment.length));
+  }
+
+  // Gate used by both the typed-search results (exerciseSuggestions) and
+  // the empty-query browse-by-muscle list (exerciseLibraryBrowseHtml) so
+  // filtering behaves identically either way. An empty muscles/equipment
+  // selection means "no filter on that axis" (everything passes). Entries
+  // with no known muscle/equipment (a custom logged name with no library
+  // match) are excluded once a filter on that axis is active, since there's
+  // no metadata to confirm they'd match.
+  function passesExFilters(muscle, equipment){
+    var f = ui.exSearchFilters;
+    if (!f) return true;
+    if (f.muscles.length && (!muscle || f.muscles.indexOf(muscle) === -1)) return false;
+    if (f.equipment.length && (!equipment || f.equipment.indexOf(equipment) === -1)) return false;
+    return true;
+  }
+
   function exerciseSuggestions(query){
     var tokens = exerciseQueryTokens(query);
     if (!tokens.length) return [];
@@ -3445,17 +3563,17 @@
     allExerciseNames().forEach(function(name){
       var key = name.toLowerCase();
       if (seen[key] || !matchesAllTokens(key)) return;
-      seen[key] = true;
       var libMatch = libraryByName[key];
-      results.push({
-        name: name,
-        muscle: libMatch ? libMatch.muscle : null,
-        equipment: libMatch ? libMatch.equipment : null
-      });
+      var muscle = libMatch ? libMatch.muscle : null;
+      var equipment = libMatch ? libMatch.equipment : null;
+      if (!passesExFilters(muscle, equipment)) return;
+      seen[key] = true;
+      results.push({ name: name, muscle: muscle, equipment: equipment });
     });
     EXERCISE_LIBRARY_FLAT.forEach(function(item){
       var key = item.name.toLowerCase();
       if (seen[key] || !matchesAllTokens(key)) return;
+      if (!passesExFilters(item.muscle, item.equipment)) return;
       seen[key] = true;
       results.push({ name: item.name, muscle: item.muscle, equipment: item.equipment });
     });
@@ -3473,12 +3591,88 @@
   // search field is still empty, so there's always something to scroll
   // through and tap rather than a blank screen waiting for input.
   function exerciseLibraryBrowseHtml(){
-    return Object.keys(EXERCISE_LIBRARY).map(function(muscle){
+    var f = ui.exSearchFilters;
+    var muscles = Object.keys(EXERCISE_LIBRARY);
+    if (f && f.muscles.length){
+      muscles = muscles.filter(function(m){ return f.muscles.indexOf(m) !== -1; });
+    }
+    var html = muscles.map(function(muscle){
+      var items = EXERCISE_LIBRARY[muscle];
+      if (f && f.equipment.length){
+        items = items.filter(function(item){ return f.equipment.indexOf(item.equipment) !== -1; });
+      }
+      if (!items.length) return '';
       return '<div class="section-label">'+esc(muscle)+'</div>' +
-        EXERCISE_LIBRARY[muscle].map(function(item){
+        items.map(function(item){
           return exerciseSuggestItemHtml(item.name, muscle, item.equipment);
         }).join('');
     }).join('');
+    if (!html && f && (f.muscles.length || f.equipment.length)){
+      return '<div class="ex-filter-empty">No exercises match these filters.</div>';
+    }
+    return html;
+  }
+
+  // Chip + panel markup for the muscle-group / equipment filter shown
+  // under the exercise-search header. Rebuilt on open, on every chip tap,
+  // and on Clear — but always via renderExFilterPanel()'s targeted DOM
+  // update (see below), never a full renderApp(), so the adjacent search
+  // input's live typed value is never disturbed.
+  function exFilterChipHtml(kind, value, active){
+    return '<button type="button" class="ex-filter-chip'+(active ? ' active' : '')+'" data-action="toggle-ex-filter" data-kind="'+kind+'" data-value="'+esc(value)+'">'+esc(value)+'</button>';
+  }
+  function exFilterPanelHtml(){
+    var f = ui.exSearchFilters;
+    var muscles = Object.keys(EXERCISE_LIBRARY);
+    return '<div class="ex-filter-row-head">' +
+        '<span class="ex-filter-row-label">Muscle</span>' +
+        (exFilterActive() ? '<button type="button" class="ex-filter-clear" data-action="clear-ex-filters">Clear filters</button>' : '') +
+      '</div>' +
+      '<div class="ex-filter-chips">' + muscles.map(function(m){
+        return exFilterChipHtml('muscle', m, f.muscles.indexOf(m) !== -1);
+      }).join('') + '</div>' +
+      '<div class="ex-filter-row-head"><span class="ex-filter-row-label">Equipment</span></div>' +
+      '<div class="ex-filter-chips">' + EQUIPMENT_FILTER_OPTIONS.map(function(eq){
+        return exFilterChipHtml('equipment', eq, f.equipment.indexOf(eq) !== -1);
+      }).join('') + '</div>';
+  }
+
+  // Targeted refresh for the filter panel + filter icon button only —
+  // deliberately mirrors renderExerciseSuggestions() in NOT calling a full
+  // renderApp(), because renderExerciseSearchOverlay() rebuilds the whole
+  // panel (including #exNameInput's value, from ex.name) and would wipe
+  // out whatever the user has typed but not yet saved.
+  function renderExFilterPanel(){
+    var panelEl = document.getElementById('exFilterPanel');
+    if (panelEl){
+      panelEl.classList.toggle('hidden', !ui.exFilterPanelOpen);
+      panelEl.innerHTML = exFilterPanelHtml();
+    }
+    var btn = document.getElementById('exFilterToggleBtn');
+    if (btn){
+      btn.classList.toggle('active', ui.exFilterPanelOpen || exFilterActive());
+      var dot = btn.querySelector('.ex-filter-dot');
+      if (exFilterActive() && !dot){
+        btn.insertAdjacentHTML('beforeend', '<span class="ex-filter-dot"></span>');
+      } else if (!exFilterActive() && dot){
+        dot.remove();
+      }
+    }
+  }
+  function toggleExFilter(kind, value){
+    var f = ui.exSearchFilters;
+    var list = kind === 'muscle' ? f.muscles : f.equipment;
+    var idx = list.indexOf(value);
+    if (idx === -1) list.push(value); else list.splice(idx, 1);
+    renderExFilterPanel();
+    var input = document.getElementById('exNameInput');
+    renderExerciseSuggestions(input ? input.value : '');
+  }
+  function clearExFilters(){
+    ui.exSearchFilters = { muscles: [], equipment: [] };
+    renderExFilterPanel();
+    var input = document.getElementById('exNameInput');
+    renderExerciseSuggestions(input ? input.value : '');
   }
 
   // Live-repopulates the results list in the full-screen exercise-search
@@ -3552,7 +3746,12 @@
           '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>' +
         '</button>' +
         '<input type="text" class="ex-search-input" id="exNameInput" maxlength="60" value="'+esc(ex.name)+'" placeholder="Search exercises\u2026" autocomplete="off">' +
+        '<button class="ex-search-filter'+(ui.exFilterPanelOpen || exFilterActive() ? ' active' : '')+'" id="exFilterToggleBtn" data-action="toggle-ex-filter-panel" aria-label="Filter exercises">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 4 21 4 14 12.5 14 19 10 21 10 12.5 3 4"></polygon></svg>' +
+          (exFilterActive() ? '<span class="ex-filter-dot"></span>' : '') +
+        '</button>' +
       '</div>' +
+      '<div class="ex-filter-panel'+(ui.exFilterPanelOpen ? '' : ' hidden')+'" id="exFilterPanel">' + exFilterPanelHtml() + '</div>' +
       '<div class="ex-suggest-list hidden" id="exSuggestList"></div>';
   }
 
@@ -3813,6 +4012,12 @@
     });
     return flat;
   })();
+
+  // Equipment chip options for the exercise-search filter panel, in the
+  // order they're shown. Kept as an explicit list (rather than derived
+  // from EXERCISE_LIBRARY_FLAT) so the chip order stays stable regardless
+  // of which equipment happens to appear first in the library data.
+  var EQUIPMENT_FILTER_OPTIONS = ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'Bodyweight'];
 
   // Starter routine templates for the "Start from a Template" picker.
   // Exercise names are pulled straight from EXERCISE_LIBRARY above, so
@@ -6618,6 +6823,8 @@
   function editExerciseName(exId, autoFocus){
     ui.editingExerciseName = exId;
     ui.pendingSuggestMuscle = null;
+    ui.exFilterPanelOpen = false;
+    ui.exSearchFilters = { muscles: [], equipment: [] };
     renderApp();
     if (autoFocus === false) return;
     // Focus synchronously, in the same tick as the user's tap — mobile
@@ -7728,6 +7935,13 @@
       openExerciseNamePickConfirm(ui.editingExerciseName, el.dataset.name, el.dataset.muscle || null);
     } else if (action === 'pick-ex-custom'){
       openExerciseNamePickConfirm(ui.editingExerciseName, el.dataset.name, null);
+    } else if (action === 'toggle-ex-filter-panel'){
+      ui.exFilterPanelOpen = !ui.exFilterPanelOpen;
+      renderExFilterPanel();
+    } else if (action === 'toggle-ex-filter'){
+      toggleExFilter(el.dataset.kind, el.dataset.value);
+    } else if (action === 'clear-ex-filters'){
+      clearExFilters();
     } else if (action === 'edit-history-name'){
       openRenameSessionConfirm(el.dataset.session);
     } else if (action === 'save-history-name'){
