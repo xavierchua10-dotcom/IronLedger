@@ -485,46 +485,6 @@
     color:var(--text);
   }
   .exercise-card.collapsed{padding:0;}
-  /* ---------- Input focus mode ----------
-     While a set's weight/reps fields are open (adding or editing), blur
-     everything else so the active card reads like a spotlighted panel.
-     Toggled on #app by the hasOpenInput check in the main render loop;
-     clears itself the moment the panel closes since it's driven by a
-     plain class + CSS transition, not a one-shot animation. */
-  #app.input-focus-mode .topbar,
-  #app.input-focus-mode .trial-banner,
-  #app.input-focus-mode .session-name-row,
-  #app.input-focus-mode .session-meta,
-  #app.input-focus-mode .section-label,
-  #app.input-focus-mode .exercise-actions-row,
-  #app.input-focus-mode .warmup-reminder,
-  #app.input-focus-mode .save-routine-btn,
-  #app.input-focus-mode .exercise-card:not(.add-set-active),
-  #app.input-focus-mode .stopwatch-bar,
-  #app.input-focus-mode .session-finish-bar,
-  #app.input-focus-mode .tabbar{
-    filter:blur(5px);
-    opacity:0.45;
-    pointer-events:none;
-    transition:filter 0.25s ease, opacity 0.25s ease;
-  }
-  #app:not(.input-focus-mode) .topbar,
-  #app:not(.input-focus-mode) .trial-banner,
-  #app:not(.input-focus-mode) .session-name-row,
-  #app:not(.input-focus-mode) .session-meta,
-  #app:not(.input-focus-mode) .section-label,
-  #app:not(.input-focus-mode) .exercise-actions-row,
-  #app:not(.input-focus-mode) .warmup-reminder,
-  #app:not(.input-focus-mode) .save-routine-btn,
-  #app:not(.input-focus-mode) .exercise-card,
-  #app:not(.input-focus-mode) .stopwatch-bar,
-  #app:not(.input-focus-mode) .session-finish-bar,
-  #app:not(.input-focus-mode) .tabbar{
-    transition:filter 0.25s ease, opacity 0.25s ease;
-  }
-  #app.input-focus-mode .exercise-card.add-set-active{
-    box-shadow:0 10px 34px rgba(0,0,0,0.55);
-  }
   .exercise-card.just-added{
     animation:exerciseAddedGlow 900ms ease-out;
   }
@@ -5422,6 +5382,13 @@
           '</button>' +
         '</div>';
 
+    // While a set's kg/reps fields are open (or a set/name is being edited),
+    // hide "pick by muscle group", "Add Exercise", and "Save as Routine" so
+    // they don't sit in the way of the keyboard. They reappear once the set
+    // is confirmed (or the edit is cancelled).
+    var isMidSetEntry = !!ui.editingSet || !!ui.editingExerciseName ||
+      Object.keys(ui.expandedAddSet).some(function(k){ return ui.expandedAddSet[k]; });
+
     if (session.exercises.length === 0){
       html += addExerciseRow;
       html += '<div class="warmup-reminder">Take a few minutes to <b>warm up</b> before you go heavy \u2014 some light reps and a bit of mobility now saves you an injury later.</div>';
@@ -5429,10 +5396,10 @@
       session.exercises.forEach(function(ex){
         html += renderExerciseCard(session, ex);
       });
-      html += addExerciseRow;
+      if (!isMidSetEntry) html += addExerciseRow;
     }
 
-    if (session.exercises.length > 0){
+    if (session.exercises.length > 0 && !isMidSetEntry){
       html += '<button class="btn-block save-routine-btn" data-action="save-routine">Save as Routine</button>';
     }
 
@@ -5442,8 +5409,7 @@
   function renderExerciseCard(session, ex){
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
-    var isInputActive = !!ui.expandedAddSet[ex.id] || (ui.editingSet && ui.editingSet.exId === ex.id);
-    var html = '<div class="exercise-card'+(ex.id===ui.justAddedExId?' just-added':'')+(isInputActive?' add-set-active':'')+'" data-ex="'+ex.id+'">';
+    var html = '<div class="exercise-card'+(ex.id===ui.justAddedExId?' just-added':'')+'" data-ex="'+ex.id+'">';
     html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
             (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
             (ex.sets.length > 0 ? '<span class="volume-badge">VOL '+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</span>' : '') +
@@ -6014,13 +5980,6 @@
     // Anyone mid-edit (typing a set, renaming an exercise, or the add-set
     // panel open) shouldn't be able to accidentally tap Finish Session —
     // it sits right above the keyboard in those moments.
-    // Blurs everything except the exercise card currently receiving
-    // weight/reps input (see .input-focus-mode CSS) — a soft spotlight
-    // while typing that clears the instant the panel closes.
-    var hasOpenInput = !!ui.editingSet ||
-      Object.keys(ui.expandedAddSet).some(function(k){ return ui.expandedAddSet[k]; });
-    document.getElementById('app').classList.toggle('input-focus-mode', hasOpenInput);
-
     var isMidEdit = !!ui.editingSet || !!ui.editingExerciseName ||
       Object.keys(ui.expandedAddSet).some(function(k){ return ui.expandedAddSet[k]; });
     var canFinish = !!activeSession && sessionSetCount(activeSession) > 0 && !isMidEdit;
