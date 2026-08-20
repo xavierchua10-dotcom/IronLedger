@@ -1314,21 +1314,23 @@
   }
   .mm-overlay-panel{
     width:100%;
-    max-width:420px;
-    max-height:75vh;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
+    max-width:460px;
+    height:min(85vh, 780px);
+    display:flex;
+    flex-direction:column;
     background:var(--panel-2);
     border:2px solid var(--accent-dim);
-    border-radius:16px;
-    padding:12px 16px 14px;
+    border-radius:20px;
+    padding:14px 16px 14px;
     box-shadow:0 16px 48px rgba(0,0,0,0.5);
+    overflow:hidden;
   }
   .mm-overlay-head{
     display:flex;
     align-items:center;
     justify-content:space-between;
-    margin-bottom:8px;
+    margin-bottom:10px;
+    flex-shrink:0;
   }
   .mm-overlay-head h2{
     font-family:'Oswald',sans-serif;
@@ -1342,17 +1344,24 @@
   .mm-overlay-head .icon-btn{width:34px;height:34px;background:var(--panel-3);flex-shrink:0;}
   .mm-columns{
     display:flex;
-    gap:12px;
-    align-items:flex-start;
+    flex-direction:column;
+    flex:1;
+    min-height:0;
   }
   .mm-diagram-col{
     flex:0 0 auto;
-    width:128px;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
   }
   .mm-list-col{
     flex:1;
     min-width:0;
-    max-height:236px;
+    min-height:0;
+    margin-top:10px;
+    padding-top:12px;
+    border-top:1px solid var(--line);
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
   }
@@ -1388,7 +1397,7 @@
   .mm-svg-wrap svg{
     display:block;
     width:100%;
-    max-width:128px;
+    max-width:190px;
     height:auto;
     filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4));
   }
@@ -1443,7 +1452,7 @@
     border-radius:8px;
     cursor:pointer;
   }
-  .mm-exercise-item-name{width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mm-exercise-item-name{width:100%;white-space:normal;word-break:break-word;}
   .mm-exercise-item-eq{
     flex-shrink:0;
     background:var(--panel);
@@ -3982,8 +3991,9 @@
       panel.innerHTML = '';
       return;
     }
-    // Diagram sits fixed in the left column; the right column shows either
-    // a hint or the exercise list for whatever's currently selected.
+    // Diagram sits stacked at the top; below it the list shows either
+    // a hint or the exercise list for whatever's currently selected,
+    // filling and scrolling within the remaining panel height.
     var html = '<div class="mm-overlay-head"><h2>Pick by Muscle Group</h2>' +
                  '<button class="icon-btn" data-action="toggle-muscle-map" aria-label="Close">&#10005;</button></div>';
     html += '<div class="mm-columns">';
