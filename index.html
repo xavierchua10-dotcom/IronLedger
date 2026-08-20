@@ -1466,7 +1466,7 @@
      bottom of the script), so this overlay automatically stays within the
      keyboard-safe area for free, no extra scroll-into-view handling needed. */
   .ex-search-overlay{
-    position:absolute;
+    position:fixed;
     inset:0;
     z-index:92;
     background:rgba(14,16,19,0.82);
@@ -3544,19 +3544,17 @@
   // row, so every existing entry point (add-blank-exercise, rename) keeps
   // working unchanged — only the presentation layer changed.
   //
-  // The overlay's height is set explicitly in JS (syncExSearchOverlayHeight,
-  // called below and again on every visualViewport resize) rather than left
-  // to CSS's position:absolute/inset:0 alone — some in-app/WebView browsers
-  // don't reliably cascade that through a fixed-position ancestor, which
-  // was silently shrinking the results list down to roughly its own
-  // content height instead of filling the screen. Measuring #app's actual
-  // rendered height in JS and applying it as a literal pixel value sidesteps
-  // that entirely.
+  // position:fixed;inset:0 (matching the muscle-map overlay, which already
+  // renders correctly full-screen) handles the base sizing. On top of that,
+  // the height is also set explicitly in JS (called below and again on every
+  // visualViewport resize) using the same value #app syncs its own height
+  // to — this keeps the overlay keyboard-safe without depending on #app's
+  // own height having already resolved first.
   function syncExSearchOverlayHeight(){
     var overlay = document.getElementById('exSearchOverlay');
-    var appEl = document.getElementById('app');
-    if (!overlay || !appEl) return;
-    overlay.style.height = appEl.getBoundingClientRect().height + 'px';
+    if (!overlay) return;
+    var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    overlay.style.height = h + 'px';
   }
   function renderExerciseSearchOverlay(){
     var overlay = document.getElementById('exSearchOverlay');
