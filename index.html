@@ -1418,13 +1418,25 @@
     height:min(85vh, 780px);
     display:flex;
     flex-direction:column;
-    background:var(--panel-2);
+    background-color:var(--panel-2);
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('muscle-picker-bg.jpg');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
     border:2px solid var(--accent-dim);
     border-radius:20px;
     padding:14px 16px 14px;
     box-shadow:0 16px 48px rgba(0,0,0,0.5);
     overflow:hidden;
   }
+  /* Scoped to this panel's own id (unique to the muscle-group picker, not
+     the shared .pro-panel other overlays use). The image
+     (muscle-picker-bg.jpg) ships as a separate file uploaded alongside
+     this index.html, not baked in. Everything else in here (view tabs,
+     exercise-list items, the equipment tag) already sits on its own solid
+     pill background and needs no change — only the empty-state hint text
+     sits directly on the photo. */
+  #mmOverlayPanel .mm-list-empty{color:#c7ccd3;}
   .mm-overlay-head{
     display:flex;
     align-items:center;
