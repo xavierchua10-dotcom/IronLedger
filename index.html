@@ -5382,13 +5382,6 @@
           '</button>' +
         '</div>';
 
-    // While a set's kg/reps fields are open (or a set/name is being edited),
-    // hide "pick by muscle group", "Add Exercise", and "Save as Routine" so
-    // they don't sit in the way of the keyboard. They reappear once the set
-    // is confirmed (or the edit is cancelled).
-    var isMidSetEntry = !!ui.editingSet || !!ui.editingExerciseName ||
-      Object.keys(ui.expandedAddSet).some(function(k){ return ui.expandedAddSet[k]; });
-
     if (session.exercises.length === 0){
       html += addExerciseRow;
       html += '<div class="warmup-reminder">Take a few minutes to <b>warm up</b> before you go heavy \u2014 some light reps and a bit of mobility now saves you an injury later.</div>';
@@ -5396,10 +5389,10 @@
       session.exercises.forEach(function(ex){
         html += renderExerciseCard(session, ex);
       });
-      if (!isMidSetEntry) html += addExerciseRow;
+      html += addExerciseRow;
     }
 
-    if (session.exercises.length > 0 && !isMidSetEntry){
+    if (session.exercises.length > 0){
       html += '<button class="btn-block save-routine-btn" data-action="save-routine">Save as Routine</button>';
     }
 
