@@ -485,6 +485,14 @@
     color:var(--text);
   }
   .exercise-card.collapsed{padding:0;}
+  .exercise-card.just-added{
+    animation:exerciseAddedGlow 900ms ease-out;
+  }
+  @keyframes exerciseAddedGlow{
+    0%{box-shadow:0 0 0 0 rgba(242,177,52,0);border-color:var(--line);}
+    12%{box-shadow:0 0 22px 3px rgba(242,177,52,0.6);border-color:var(--accent);}
+    100%{box-shadow:0 0 0 0 rgba(242,177,52,0);border-color:var(--line);}
+  }
   .exercise-head-collapsed{
     display:flex;
     align-items:center;
@@ -3004,6 +3012,7 @@
     exTipExId: null,        // exId (within that session) the Tips/Target overlay is showing, or null
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
+    justAddedExId: null,        // exId that should play the "just added" glow pulse once (see flashExerciseAdded)
     pendingSuggestMuscle: null, // muscle carried from a tapped exercise-name suggestion, applied on save (see saveExerciseName)
     tabAnimating: false,    // true while a tab-slide transition is in progress
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
@@ -5393,7 +5402,7 @@
   function renderExerciseCard(session, ex){
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
-    var html = '<div class="exercise-card" data-ex="'+ex.id+'">';
+    var html = '<div class="exercise-card'+(ex.id===ui.justAddedExId?' just-added':'')+'" data-ex="'+ex.id+'">';
     html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
             (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
             (ex.sets.length > 0 ? '<span class="volume-badge">VOL '+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</span>' : '') +
@@ -6456,6 +6465,19 @@
     commitAddExercise(name, muscle || null);
   }
 
+  // Plays the "just added" glow pulse on an exercise card once. Follows
+  // the same pattern as freshPRSetId: set the flag, render (so the fresh
+  // DOM node picks up the animation class), then immediately clear the
+  // flag so the class is absent on every subsequent render and the
+  // animation never replays.
+  function flashExerciseAdded(exId){
+    ui.justAddedExId = exId;
+    renderApp();
+    ui.justAddedExId = null;
+    var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   function commitAddExercise(name, muscle){
     var session = getActiveSession();
     var newExId = uid();
@@ -6464,10 +6486,8 @@
     ui.showMuscleMap = false;
     ui.selectedMuscle = null;
     ui.pendingMuscle = null;
-    renderApp();
     if (muscle) showToast('Added ' + name);
-    var newCard = document.querySelector('.exercise-card[data-ex="'+newExId+'"]');
-    if (newCard) newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    flashExerciseAdded(newExId);
   }
 
   function deleteExercise(exId){
@@ -6503,6 +6523,34 @@
       message: '\u201c' + name + '\u201d will be added to this session.',
       confirmLabel: 'Add',
       variant: 'primary',
+      name: name,
+      muscle: muscle || null
+    };
+    renderApp();
+  }
+
+  // Confirmation step for the exercise-search screen: fires whenever a
+  // suggestion is tapped, the custom-name pill is tapped, or Enter is
+  // pressed in the name field. Mirrors openAddNamedExerciseConfirm's
+  // wording for a brand-new exercise, but shows an old-name -> new-name
+  // rename prompt when the search screen was opened to rename an
+  // existing exercise instead.
+  function openExerciseNamePickConfirm(exId, name, muscle){
+    name = String(name || '').trim();
+    if (!name){ showToast('Exercise name can\u2019t be empty'); return; }
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex) return;
+    var isNew = ui.newExerciseId === exId;
+    ui.confirmModal = {
+      kind: 'pick-exercise-name',
+      title: isNew ? 'Add this exercise?' : 'Rename exercise?',
+      message: isNew ?
+        '\u201c' + name + '\u201d will be added to this session.' :
+        'Rename \u201c' + ex.name + '\u201d to \u201c' + name + '\u201d?',
+      confirmLabel: isNew ? 'Add' : 'Rename',
+      variant: 'primary',
+      exId: exId,
       name: name,
       muscle: muscle || null
     };
@@ -6631,7 +6679,9 @@
     }
     ui.newExerciseId = null;
     ui.editingExerciseName = null;
+    ui.justAddedExId = wasNew ? exId : null;
     renderApp();
+    ui.justAddedExId = null;
     showToast(wasNew ? 'Exercise added' : 'Exercise renamed');
   }
 
@@ -7675,11 +7725,9 @@
     } else if (action === 'cancel-exercise-name'){
       cancelExerciseNameEdit();
     } else if (action === 'pick-ex-suggestion'){
-      ui.pendingSuggestMuscle = el.dataset.muscle || null;
-      saveExerciseName(ui.editingExerciseName, el.dataset.name);
+      openExerciseNamePickConfirm(ui.editingExerciseName, el.dataset.name, el.dataset.muscle || null);
     } else if (action === 'pick-ex-custom'){
-      ui.pendingSuggestMuscle = null;
-      saveExerciseName(ui.editingExerciseName, el.dataset.name);
+      openExerciseNamePickConfirm(ui.editingExerciseName, el.dataset.name, null);
     } else if (action === 'edit-history-name'){
       openRenameSessionConfirm(el.dataset.session);
     } else if (action === 'save-history-name'){
@@ -7796,7 +7844,7 @@
         saveHistoryName(ui.editingHistoryName);
       } else if (e.target.id === 'exNameInput'){
         e.preventDefault();
-        saveExerciseName(ui.editingExerciseName);
+        openExerciseNamePickConfirm(ui.editingExerciseName, e.target.value, null);
       }
     } else if (e.key === 'Escape' && e.target.id === 'hiNameInput'){
       e.preventDefault();
@@ -7892,6 +7940,10 @@
       else if (m && m.kind === 'finish-session') finishSession();
       else if (m && m.kind === 'add-blank-exercise') addBlankExercise(m.muscle);
       else if (m && m.kind === 'add-named-exercise') addExercise(m.name, m.muscle);
+      else if (m && m.kind === 'pick-exercise-name'){
+        ui.pendingSuggestMuscle = m.muscle || null;
+        saveExerciseName(m.exId, m.name);
+      }
       else if (m && m.kind === 'start-routine') startRoutine(m.routineId);
       else if (m && m.kind === 'start-template') applyTemplate(m.templateKey);
       else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
