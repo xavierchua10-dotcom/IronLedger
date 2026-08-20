@@ -2233,7 +2233,11 @@
     margin-bottom:16px;
   }
   .chart-wrap{
-    background:var(--panel);
+    background-color:var(--panel);
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.85)), url('est-1rm-bg.jpg');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
     border:1px solid var(--line);
     border-radius:var(--radius);
     padding:14px;
@@ -2245,11 +2249,11 @@
     margin-bottom:8px;
     font-family:'JetBrains Mono',monospace;
   }
-  .chart-stats .cs-block .cs-label{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.05em;}
+  .chart-stats .cs-block .cs-label{font-size:10px;color:#c7ccd3;text-transform:uppercase;letter-spacing:0.05em;}
   .chart-stats .cs-block .cs-val{font-size:16px;color:var(--accent);font-weight:700;}
   .chart-empty-note{
     text-align:center;
-    color:var(--text-faint);
+    color:#c7ccd3;
     font-size:12px;
     padding:22px 10px;
   }
