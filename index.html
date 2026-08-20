@@ -1500,10 +1500,11 @@
     border:none;
     background:var(--panel-3);
     color:var(--text);
-    font-size:17px;
     cursor:pointer;
+    padding:0;
   }
-  .ex-search-back:active{background:var(--panel-2);}
+  .ex-search-back svg{display:block;}
+  .ex-search-back:active{background:var(--panel-2);transform:scale(0.94);}
   .ex-search-input{
     flex:1;
     min-width:0;
@@ -3528,7 +3529,9 @@
     syncExSearchOverlayHeight();
     panel.innerHTML =
       '<div class="ex-search-head">' +
-        '<button class="ex-search-back" data-action="cancel-exercise-name" aria-label="Close">&#8592;</button>' +
+        '<button class="ex-search-back" data-action="cancel-exercise-name" aria-label="Close">' +
+          '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>' +
+        '</button>' +
         '<input type="text" class="ex-search-input" id="exNameInput" maxlength="60" value="'+esc(ex.name)+'" placeholder="Search exercises\u2026" autocomplete="off">' +
       '</div>' +
       '<div class="ex-suggest-list hidden" id="exSuggestList"></div>';
