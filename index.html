@@ -1192,10 +1192,10 @@
   }
   .template-card:last-child{margin-bottom:0;}
   .template-card:active{border-color:var(--accent);background:var(--panel-3);}
-  .template-cat-card .template-card-sub{
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
+  .template-divider{
+    height:1px;
+    background:var(--line);
+    margin:0 2px 14px;
   }
   .template-card-name{
     font-family:'Oswald',sans-serif;
@@ -4213,17 +4213,30 @@
       ]
     }
   };
-  var WORKOUT_TEMPLATE_ORDER = ['push', 'pushB', 'pull', 'pullB', 'leg', 'legB', 'upper', 'upperB', 'lower', 'lowerB', 'fullBodyA', 'fullBodyB', 'fullBodyC'];
+  var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB', 'upper', 'lower', 'upperB', 'lowerB', 'fullBodyA', 'fullBodyB', 'fullBodyC'];
   // Groups the flat template list into labeled sections for the picker —
   // order here is the display order (PPL split first, then upper/lower,
-  // then full body). Each entry's `keys` is filtered against
-  // WORKOUT_TEMPLATES at render time, so a category with a key that gets
-  // removed later just quietly drops that card instead of breaking.
+  // then full body). Within a category, all "A" days are grouped first,
+  // then all "B" days, so a full A-cycle (Push A / Pull A / Leg A) is
+  // browsable together before the B-cycle starts. Each entry's `keys` is
+  // filtered against WORKOUT_TEMPLATES at render time, so a category with
+  // a key that gets removed later just quietly drops that card instead of
+  // breaking.
   var WORKOUT_TEMPLATE_CATEGORIES = [
-    { id: 'ppl', label: 'Push / Pull / Legs', keys: ['push', 'pushB', 'pull', 'pullB', 'leg', 'legB'] },
-    { id: 'upperLower', label: 'Upper / Lower', keys: ['upper', 'upperB', 'lower', 'lowerB'] },
-    { id: 'fullBody', label: 'Full Body', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] }
+    { id: 'ppl', label: 'Push / Pull / Legs', description: 'Chest/shoulders/triceps, back/biceps, and legs trained on separate days.', keys: ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB'] },
+    { id: 'upperLower', label: 'Upper / Lower', description: 'Whole upper body one day, whole lower body the next.', keys: ['upper', 'lower', 'upperB', 'lowerB'] },
+    { id: 'fullBody', label: 'Full Body', description: 'Every major muscle group trained in a single session.', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] }
   ];
+
+  // Pulls the trailing variant letter off a template label ('Push Day A' ->
+  // 'A', 'Full Body C' -> 'C') so the picker can drop a divider line
+  // wherever the variant changes within a category's list (A-block, then
+  // B-block, etc) — see the "template-divider" insertion in
+  // renderTemplatePickerOverlay's step 2 below.
+  function templateVariantLetter(label){
+    var m = /\s([A-Z])$/.exec(label);
+    return m ? m[1] : null;
+  }
 
   // "Chest 3 · Shoulders 2 · Triceps 2" style summary line for a template card.
   function templateSummaryLine(tpl){
@@ -4883,10 +4896,9 @@
           WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
             var keys = templatesInCategory(c);
             if (!keys.length) return '';
-            var names = keys.map(function(k){ return WORKOUT_TEMPLATES[k].label; }).join(' \u00b7 ');
             return '<button type="button" class="template-card template-cat-card" data-action="select-template-category" data-category="'+c.id+'">' +
               '<div class="template-card-name">'+esc(c.label)+'</div>' +
-              '<div class="template-card-sub">'+esc(names)+'</div>' +
+              '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
               '<div class="template-card-count">'+keys.length+' template'+(keys.length===1?'':'s')+'</div>' +
             '</button>';
           }).join('') +
@@ -4905,9 +4917,18 @@
         '<button class="pro-panel-close" data-action="close-template-picker" aria-label="Close">&#10005;</button>' +
       '</div>' +
       '<div class="pro-panel-body">' +
-        keys.map(function(key){
+        keys.map(function(key, i){
           var tpl = WORKOUT_TEMPLATES[key];
-          return '<button type="button" class="template-card" data-action="select-template" data-template="'+key+'">' +
+          var prevTpl = i > 0 ? WORKOUT_TEMPLATES[keys[i - 1]] : null;
+          var divider = '';
+          if (prevTpl){
+            var prevLetter = templateVariantLetter(prevTpl.label);
+            var curLetter = templateVariantLetter(tpl.label);
+            if (prevLetter && curLetter && prevLetter !== curLetter){
+              divider = '<div class="template-divider"></div>';
+            }
+          }
+          return divider + '<button type="button" class="template-card" data-action="select-template" data-template="'+key+'">' +
             '<div class="template-card-name">'+esc(tpl.label)+'</div>' +
             '<div class="template-card-sub">'+esc(templateSummaryLine(tpl))+'</div>' +
             '<div class="template-card-count">'+tpl.exercises.length+' exercises</div>' +
