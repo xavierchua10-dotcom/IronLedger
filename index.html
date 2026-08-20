@@ -4047,7 +4047,7 @@
   // called out as optional in the confirmation message.
   var WORKOUT_TEMPLATES = {
     push: {
-      label: 'Push Day',
+      label: 'Push Day A',
       category: 'ppl',
       exercises: [
         { name: 'Barbell Bench Press', muscle: 'Chest' },
@@ -4059,8 +4059,21 @@
         { name: 'Barbell Skull Crushers', muscle: 'Triceps' }
       ]
     },
+    pushB: {
+      label: 'Push Day B',
+      category: 'ppl',
+      exercises: [
+        { name: 'Machine Bench Press', muscle: 'Chest' },
+        { name: 'Dumbbell Incline Bench Press', muscle: 'Chest' },
+        { name: 'Cable Chest Fly (Centered)', muscle: 'Chest' },
+        { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders' },
+        { name: 'Cable Lateral Raise', muscle: 'Shoulders' },
+        { name: 'Cable Overhead Extension', muscle: 'Triceps' },
+        { name: 'Dumbbell Skull Crushers', muscle: 'Triceps' }
+      ]
+    },
     pull: {
-      label: 'Pull Day',
+      label: 'Pull Day A',
       category: 'ppl',
       exercises: [
         { name: 'Pull-ups', muscle: 'Back' },
@@ -4072,8 +4085,21 @@
         { name: 'Dumbbell Hammer Curl', muscle: 'Biceps' }
       ]
     },
+    pullB: {
+      label: 'Pull Day B',
+      category: 'ppl',
+      exercises: [
+        { name: 'Lat Pulldown', muscle: 'Back' },
+        { name: 'Undergrip Barbell Row', muscle: 'Back' },
+        { name: 'Dumbbell Row', muscle: 'Back' },
+        { name: 'Cable Rear Delt Fly', muscle: 'Shoulders' },
+        { name: 'Dumbbell Rear Delt Fly', muscle: 'Shoulders' },
+        { name: 'Cable Curl', muscle: 'Biceps' },
+        { name: 'Dumbbell Preacher Curl', muscle: 'Biceps' }
+      ]
+    },
     leg: {
-      label: 'Leg Day',
+      label: 'Leg Day A',
       category: 'ppl',
       exercises: [
         { name: 'Back Squat', muscle: 'Quads' },
@@ -4086,8 +4112,22 @@
         { name: 'Hanging Leg Raise', muscle: 'Abs' }
       ]
     },
+    legB: {
+      label: 'Leg Day B',
+      category: 'ppl',
+      exercises: [
+        { name: 'Front Squat', muscle: 'Quads' },
+        { name: 'Leg Extension', muscle: 'Quads' },
+        { name: 'Dumbbell Romanian Deadlift', muscle: 'Hamstrings' },
+        { name: 'Lying Leg Curl', muscle: 'Hamstrings' },
+        { name: 'Machine Hip Thrust', muscle: 'Glutes' },
+        { name: 'Cable Glute Kickback', muscle: 'Glutes' },
+        { name: 'Barbell Standing Calf Raise', muscle: 'Calves' },
+        { name: 'Cable Crunch', muscle: 'Abs' }
+      ]
+    },
     upper: {
-      label: 'Upper Day',
+      label: 'Upper Day A',
       category: 'upperLower',
       exercises: [
         { name: 'Barbell Incline Bench Press', muscle: 'Chest' },
@@ -4100,8 +4140,22 @@
         { name: 'Close-Grip Bench Press', muscle: 'Triceps', optional: true }
       ]
     },
+    upperB: {
+      label: 'Upper Day B',
+      category: 'upperLower',
+      exercises: [
+        { name: 'Machine Bench Press', muscle: 'Chest' },
+        { name: 'Dumbbell Incline Bench Press', muscle: 'Chest' },
+        { name: 'Undergrip Lat Pulldown', muscle: 'Back' },
+        { name: 'T-Bar Row', muscle: 'Back' },
+        { name: 'Barbell Shoulder Press', muscle: 'Shoulders' },
+        { name: 'Cable Lateral Raise', muscle: 'Shoulders' },
+        { name: 'Dumbbell Hammer Curl', muscle: 'Biceps', optional: true },
+        { name: 'Tricep Rope Pushdown', muscle: 'Triceps', optional: true }
+      ]
+    },
     lower: {
-      label: 'Lower Day',
+      label: 'Lower Day A',
       category: 'upperLower',
       exercises: [
         { name: 'Back Squat', muscle: 'Quads' },
@@ -4109,6 +4163,17 @@
         { name: 'Leg Press', muscle: 'Quads' },
         { name: 'Machine Standing Calf Raise', muscle: 'Calves', optional: true },
         { name: 'Cable Crunch', muscle: 'Abs' }
+      ]
+    },
+    lowerB: {
+      label: 'Lower Day B',
+      category: 'upperLower',
+      exercises: [
+        { name: 'Front Squat', muscle: 'Quads' },
+        { name: 'Lying Leg Curl', muscle: 'Hamstrings' },
+        { name: 'Dumbbell Goblet Squat', muscle: 'Quads' },
+        { name: 'Dumbbell Standing Calf Raise', muscle: 'Calves', optional: true },
+        { name: 'Ab Wheel Rollout', muscle: 'Abs' }
       ]
     },
     fullBodyA: {
@@ -4134,18 +4199,30 @@
         { name: 'Seated Leg Curl', muscle: 'Hamstrings' },
         { name: 'Cable Crunch', muscle: 'Abs' }
       ]
+    },
+    fullBodyC: {
+      label: 'Full Body C',
+      category: 'fullBody',
+      exercises: [
+        { name: 'Dumbbell Goblet Squat', muscle: 'Quads' },
+        { name: 'Dumbbell Bench Press', muscle: 'Chest' },
+        { name: 'Dumbbell Row', muscle: 'Back' },
+        { name: 'Arnold Press', muscle: 'Shoulders' },
+        { name: 'Dumbbell Romanian Deadlift', muscle: 'Hamstrings' },
+        { name: 'Ab Wheel Rollout', muscle: 'Abs' }
+      ]
     }
   };
-  var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'upper', 'lower', 'fullBodyA', 'fullBodyB'];
+  var WORKOUT_TEMPLATE_ORDER = ['push', 'pushB', 'pull', 'pullB', 'leg', 'legB', 'upper', 'upperB', 'lower', 'lowerB', 'fullBodyA', 'fullBodyB', 'fullBodyC'];
   // Groups the flat template list into labeled sections for the picker —
   // order here is the display order (PPL split first, then upper/lower,
   // then full body). Each entry's `keys` is filtered against
   // WORKOUT_TEMPLATES at render time, so a category with a key that gets
   // removed later just quietly drops that card instead of breaking.
   var WORKOUT_TEMPLATE_CATEGORIES = [
-    { id: 'ppl', label: 'Push / Pull / Legs', keys: ['push', 'pull', 'leg'] },
-    { id: 'upperLower', label: 'Upper / Lower', keys: ['upper', 'lower'] },
-    { id: 'fullBody', label: 'Full Body', keys: ['fullBodyA', 'fullBodyB'] }
+    { id: 'ppl', label: 'Push / Pull / Legs', keys: ['push', 'pushB', 'pull', 'pullB', 'leg', 'legB'] },
+    { id: 'upperLower', label: 'Upper / Lower', keys: ['upper', 'upperB', 'lower', 'lowerB'] },
+    { id: 'fullBody', label: 'Full Body', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] }
   ];
 
   // "Chest 3 · Shoulders 2 · Triceps 2" style summary line for a template card.
