@@ -462,12 +462,32 @@
 
   /* ---------- Exercise card ---------- */
   .exercise-card{
-    background:var(--panel);
+    background-color:var(--panel);
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.72), rgba(10,12,16,0.92)), url('exercise-card-bg.jpg');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
     border:1px solid var(--line);
     border-radius:var(--radius);
     padding:14px 14px 12px;
     margin-bottom:14px;
   }
+  /* This card repeats once per exercise (dense text: set rows, timestamps,
+     icon buttons), so it needs a heavier darkening gradient than the
+     single-block cards elsewhere, plus these targeted brightness bumps for
+     the bits that have no background of their own. The image
+     (exercise-card-bg.jpg) ships as a separate file uploaded alongside
+     this index.html, not baked in. */
+  .exercise-card .set-idx,
+  .exercise-card .set-detail .set-time,
+  .exercise-card .set-detail .x,
+  .exercise-card .set-act-btn,
+  .exercise-card .exercise-collapsed-meta .chevron,
+  .exercise-card .icon-btn{
+    color:#c7ccd3;
+  }
+  .exercise-card .eh-title h3{color:#e4e6ea;}
+  .exercise-card .exercise-head-actions .icon-btn{background:rgba(10,12,16,0.4);}
   .exercise-head{
     display:flex;
     align-items:center;
