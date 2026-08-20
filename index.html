@@ -1466,7 +1466,7 @@
      bottom of the script), so this overlay automatically stays within the
      keyboard-safe area for free, no extra scroll-into-view handling needed. */
   .ex-search-overlay{
-    position:fixed;
+    position:absolute;
     inset:0;
     z-index:92;
     background:rgba(14,16,19,0.82);
@@ -3550,12 +3550,11 @@
   // visualViewport resize) using the same value #app syncs its own height
   // to — this keeps the overlay keyboard-safe without depending on #app's
   // own height having already resolved first.
-  function syncExSearchOverlayHeight(){
-    var overlay = document.getElementById('exSearchOverlay');
-    if (!overlay) return;
-    var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    overlay.style.height = h + 'px';
-  }
+  // No-op now that .ex-search-overlay is position:absolute inside #app
+  // (see its CSS comment) — it inherits #app's own synced height via
+  // inset:0 automatically, so it never needs its own explicit height.
+  // Left in place (and still called) so nothing else needs to change.
+  function syncExSearchOverlayHeight(){}
   function renderExerciseSearchOverlay(){
     var overlay = document.getElementById('exSearchOverlay');
     var panel = document.getElementById('exSearchPanel');
