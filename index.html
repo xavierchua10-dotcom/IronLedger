@@ -2024,7 +2024,8 @@
     cursor:pointer;
     padding:6px 0;
   }
-  .hi-actions{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;}
+  .hi-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;}
+  .hi-menu-btn{border:1px solid var(--line);}
   .hi-print,.hi-edit,.hi-repeat{
     background:none;
     border:1px solid var(--line);
@@ -5474,14 +5475,26 @@
         { label: 'Rename', action: 'edit-exercise-name' },
         { label: 'Delete', action: 'delete-exercise', danger: true }
       ];
+    } else if (m.type === 'session'){
+      items = [
+        { label: 'Edit', action: 'edit-session' },
+        { label: 'Repeat', action: 'repeat-session' },
+        { label: 'Delete session', action: 'delete-session', danger: true }
+      ];
     } else {
       items = [
         { label: 'Edit set', action: 'edit-set' },
         { label: 'Delete set', action: 'delete-set', danger: true }
       ];
     }
+    // "session" menu items use data-session (what delete-session/edit-session/
+    // repeat-session all read); exercise/set items use data-ex(+data-set) as
+    // before — m.exId doubles as "the session id" when type is 'session'.
+    var idAttrs = m.type === 'session'
+      ? 'data-session="'+m.exId+'"'
+      : 'data-ex="'+m.exId+'"'+(m.setId ? ' data-set="'+m.setId+'"' : '');
     menu.innerHTML = items.map(function(it){
-      return '<button type="button" class="row-action-item'+(it.danger ? ' danger' : '')+'" data-action="'+it.action+'" data-ex="'+m.exId+'"'+(m.setId ? ' data-set="'+m.setId+'"' : '')+'>'+esc(it.label)+'</button>';
+      return '<button type="button" class="row-action-item'+(it.danger ? ' danger' : '')+'" data-action="'+it.action+'" '+idAttrs+'>'+esc(it.label)+'</button>';
     }).join('');
     menu.classList.remove('hidden');
     if (anchorEl){
@@ -6165,9 +6178,7 @@
                 '</div>';
       });
       html += '<div class="hi-actions">' +
-                '<button class="hi-delete" data-action="delete-session" data-session="'+s.id+'">Delete session</button>' +
-                '<button class="hi-repeat" data-action="repeat-session" data-session="'+s.id+'">Repeat</button>' +
-                '<button class="hi-edit" data-action="edit-session" data-session="'+s.id+'">Edit</button>' +
+                '<button class="icon-btn hi-menu-btn" data-action="open-session-menu" data-session="'+s.id+'" aria-label="Session options">&#8942;</button>' +
                 '<button class="hi-print" data-action="open-print-menu" data-session="'+s.id+'">Print</button>' +
               '</div>';
       html += '</div>';
@@ -7677,7 +7688,11 @@
   function finishSession(){
     var session = getActiveSession();
     session.status = 'done';
-    session.finishedAt = new Date().toISOString();
+    // Only stamp finishedAt the first time a session is finished. If this
+    // session was reopened via "Edit" (History > ⋮ > Edit) and is being
+    // finished again, it already has a finishedAt from the first time —
+    // that original time should stick, not get overwritten with now.
+    if (!session.finishedAt) session.finishedAt = new Date().toISOString();
     saveSessions();
     logActivity('Finished session "' + (session.name || 'Untitled session') + '"', 'Log');
     ui.editingSet = null;
@@ -8266,7 +8281,7 @@
     // open it — this covers both "tapped a menu item" (Rename/Delete/Edit
     // set/Delete set all still run via their own branch below) and "tapped
     // away entirely while it was open".
-    if (ui.openRowMenu && action !== 'open-exercise-menu' && action !== 'open-set-menu'){
+    if (ui.openRowMenu && action !== 'open-exercise-menu' && action !== 'open-set-menu' && action !== 'open-session-menu'){
       closeRowActionMenu();
     }
 
@@ -8281,6 +8296,12 @@
         closeRowActionMenu();
       } else {
         openRowActionMenu('set', el.dataset.ex, el.dataset.set, el);
+      }
+    } else if (action === 'open-session-menu'){
+      if (ui.openRowMenu && ui.openRowMenu.type === 'session' && ui.openRowMenu.exId === el.dataset.session){
+        closeRowActionMenu();
+      } else {
+        openRowActionMenu('session', el.dataset.session, null, el);
       }
     } else if (action === 'set-tab'){
       var targetTab = el.dataset.tab;
@@ -8604,7 +8625,7 @@
   document.addEventListener('click', function(e){
     if (!ui.openRowMenu) return;
     var menu = document.getElementById('rowActionMenu');
-    if (menu && !menu.contains(e.target) && !e.target.closest('[data-action="open-exercise-menu"]') && !e.target.closest('[data-action="open-set-menu"]')){
+    if (menu && !menu.contains(e.target) && !e.target.closest('[data-action="open-exercise-menu"]') && !e.target.closest('[data-action="open-set-menu"]') && !e.target.closest('[data-action="open-session-menu"]')){
       closeRowActionMenu();
     }
   });
