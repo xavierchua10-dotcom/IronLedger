@@ -2575,18 +2575,27 @@
   }
   .settings-row .seg button.active{background:var(--accent);color:#1c1500;}
   /* ---------- Bodyweight picker overlay ---------- */
-  .bodyweight-picker-sub{
+  .bw-picker-intro{
     font-size:12.5px;
     color:var(--text-dim);
     line-height:1.5;
-    margin-bottom:20px;
+    margin-bottom:22px;
+  }
+  .bw-picker-section-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    margin-bottom:10px;
   }
   .bodyweight-picker-display{
     display:flex;
     align-items:baseline;
     justify-content:center;
     gap:8px;
-    padding-bottom:6px;
+    padding-bottom:16px;
   }
   .bodyweight-picker-input{
     width:140px;
@@ -5683,7 +5692,7 @@
     ui.bodyweightDraft = state.settings.bodyweightKg ? String(roundNice(toDisplay(state.settings.bodyweightKg))) : '';
     ui.goalDraft = (state.settings && state.settings.goal) || 'hypertrophy';
     ui.showBodyweightPicker = true;
-    renderBodyweightPickerOverlay(true);
+    renderBodyweightPickerOverlay();
   }
   function closeBodyweightPicker(){
     ui.showBodyweightPicker = false;
@@ -5704,7 +5713,7 @@
     saveBodyweight(input ? input.value : ui.bodyweightDraft); // saves settings + re-renders
     closeBodyweightPicker();
   }
-  function renderBodyweightPickerOverlay(shouldFocus){
+  function renderBodyweightPickerOverlay(){
     var overlay = document.getElementById('bodyweightPickerOverlay');
     var panel = document.getElementById('bodyweightPickerPanel');
     if (!ui.showBodyweightPicker){
@@ -5719,10 +5728,14 @@
         '<button class="pro-panel-close" data-action="close-bodyweight-picker" aria-label="Close">&#10005;</button>' +
       '</div>' +
       '<div class="pro-panel-body">' +
+        '<div class="bw-picker-intro">Powers real load tracking for bodyweight exercises and shapes how Pro Tips suggests your next set.</div>' +
+        '<div class="bw-picker-section-label">Your Bodyweight</div>' +
         '<div class="bodyweight-picker-display">' +
           '<input type="number" inputmode="decimal" step="0.1" min="0" id="bodyweightDraftInput" class="bodyweight-picker-input" placeholder="\u2014" value="'+esc(ui.bodyweightDraft || '')+'">' +
           '<span class="bodyweight-picker-unit">'+unitLabel().toUpperCase()+'</span>' +
         '</div>' +
+        '<div class="template-divider"></div>' +
+        '<div class="bw-picker-section-label">Training Goal</div>' +
         '<div class="goal-picker">' +
           GOAL_OPTIONS.map(function(g){
             var range = GOAL_REP_RANGES[g.id];
@@ -5737,10 +5750,6 @@
       '<div class="pro-panel-footer">' +
         '<button class="btn-primary" data-action="confirm-bodyweight">Confirm</button>' +
       '</div>';
-    if (shouldFocus){
-      var freshInput = document.getElementById('bodyweightDraftInput');
-      if (freshInput) freshInput.focus();
-    }
   }
 
   // Browsers block audio from ever starting unless it's tied to a real
