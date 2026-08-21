@@ -5982,7 +5982,6 @@
               '<span><b>'+sessionSetCount(session)+'</b> sets</span>' +
               '<div class="session-meta-actions">' +
                 '<button class="unit-toggle" id="unitToggleBtn" data-action="toggle-unit">'+state.settings.unit.toUpperCase()+'</button>' +
-                '<button class="help-trigger-btn" data-action="open-help" aria-label="Help">?</button>' +
                 (session.exercises.length > 0 ? '<button class="reset-log-btn" data-action="reset-log" aria-label="Reset log">&#8635;</button>' : '') +
               '</div>' +
             '</div>';
@@ -6399,6 +6398,8 @@
     html += '<div class="settings-group">';
     html += '<div class="settings-row"><div><div class="sr-label">Brief</div><div class="sr-sub">Every add, edit, and rename \u2014 what changed and when</div></div>' +
               '<button class="sr-action" data-action="open-brief">View</button></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Help</div><div class="sr-sub">How the muscle picker, filters, and other features work</div></div>' +
+              '<button class="sr-action" data-action="open-help">View</button></div>';
     html += '</div>';
 
     html += '<div class="section-label">Plan</div>';
