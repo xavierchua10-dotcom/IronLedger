@@ -2081,6 +2081,7 @@
   #exTipPanel .ex-tip-panel-empty{color:#c7ccd3;}
   #exTipPanel .prc-tip{background:#2b2620;}
   #exTipPanel .prc-tip{color:#d7dae0;}
+  #exTipPanel .prc-tip-badge{background:#332a16;border-color:var(--accent-dim);}
   #exTipPanel .pro-panel-close{color:#c7ccd3;}
   .hi-delete{
     margin-top:0;
@@ -2255,6 +2256,16 @@
   .pro-panel-body .prc-tip{margin-top:8px;padding:9px 10px;background:rgba(242,177,52,0.08);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;font-size:11.5px;color:var(--text-dim);line-height:1.5;}
   .pro-panel-body .prc-tip b{color:var(--text);}
   .pro-panel-body .prc-tip-target{margin-top:5px;font-weight:700;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:0.03em;}
+  .pro-panel-body .prc-tip-badge{
+    margin-top:8px;
+    padding:9px 10px;
+    background:rgba(242,177,52,0.14);
+    border:1px solid var(--accent-dim);
+    border-radius:8px;
+    font-size:11.5px;
+    font-weight:700;
+    color:var(--accent);
+  }
 
   /* ---------- Pro paywall ---------- */
   .paywall-body{padding:6px 20px 22px;text-align:center;}
@@ -2590,6 +2601,38 @@
     color:var(--text-faint);
     letter-spacing:0.03em;
   }
+  .goal-picker{
+    display:flex;
+    gap:8px;
+    padding:0 0 14px;
+  }
+  .goal-chip{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 6px;
+    cursor:pointer;
+  }
+  .goal-chip.active{background:var(--accent-dim);border-color:var(--accent);}
+  .goal-chip-label{
+    font-family:'Oswald',sans-serif;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--text);
+    letter-spacing:0.02em;
+  }
+  .goal-chip.active .goal-chip-label{color:var(--accent);}
+  .goal-chip-range{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--text-faint);
+  }
+  .goal-chip.active .goal-chip-range{color:var(--accent);}
   .routine-actions{display:flex;gap:8px;}
   /* Card-background swatch picker (Settings > Card Style). Each swatch
      previews its actual photo as a small thumbnail so the choice is
@@ -5091,10 +5134,19 @@
   // increments if the working muscle here is really the shoulder/triceps.
   // Big compound-friendly groups just use the normal weight-scaled step.
   var SMALL_MUSCLE_GROUPS = ['Shoulders', 'Biceps', 'Triceps', 'Calves', 'Forearms', 'Traps', 'Abs'];
+  // Training goal also scales the step, on top of the muscle-group cap
+  // above: Strength work is low-rep/near-max-effort, where standard
+  // programming pushes load more aggressively session to session, so it
+  // gets a bigger jump. Endurance is about building rep capacity more than
+  // loading up, so jumps stay conservative — reps should usually climb
+  // before weight does. Hypertrophy (the app's original, unscaled
+  // behavior) sits in between at 1x.
+  var GOAL_STEP_MULT = { strength: 1.5, hypertrophy: 1.0, endurance: 0.5 };
   function stepKgFor(weightKg, muscle){
     var base = weightKg >= 60 ? 2.5 : (weightKg >= 20 ? 1.25 : 0.5);
     if (muscle && SMALL_MUSCLE_GROUPS.indexOf(muscle) !== -1) base = Math.min(base, 1.25);
-    return base;
+    var goal = (state.settings && state.settings.goal) || 'hypertrophy';
+    return roundNice(base * (GOAL_STEP_MULT[goal] || 1.0));
   }
 
   // A bigger jump for sets that badly overshoot the rep range (>15) — at
@@ -5120,9 +5172,9 @@
   // physically absurd."
   var JUMP_EST_REP_CAP = 20;
   var MAX_JUMP_PCT = 0.20;
-  function loadScaledJumpKg(weightKg, reps, muscle){
+  function loadScaledJumpKg(weightKg, reps, muscle, repMin){
     var e1 = e1rm(weightKg, Math.min(reps, JUMP_EST_REP_CAP));
-    var raw = e1 / (1 + REP_RANGE_MIN / 30);
+    var raw = e1 / (1 + repMin / 30);
     var stepKg = stepKgFor(weightKg, muscle);
     var snapped = Math.round(raw / stepKg) * stepKg;
     var capped = Math.min(snapped, weightKg * (1 + MAX_JUMP_PCT));
@@ -5131,27 +5183,41 @@
     return roundNice(Math.max(capped, smallIncrementKg(weightKg, muscle)));
   }
 
-  // Progressive-overload heuristic per exercise, fixed to an 8-12 rep
-  // hypertrophy range (double progression):
+  // Progressive-overload heuristic per exercise, rep-range target driven
+  // by the person's training goal (Settings > Bodyweight & Goal — defaults
+  // to Hypertrophy's 8-12 if never set, matching this app's original fixed
+  // behavior exactly for anyone who leaves it alone):
   //  - below your recent best     -> match it before pushing further
-  //  - top set >15 reps           -> way too light, load-scaled bigger jump
-  //  - top set 12-15 reps         -> top of the range, add weight next time
-  //  - top set 8-11 reps          -> in range, chase one more rep at same weight
-  //  - top set <8 reps            -> under range, hold weight and build to 8
-  //                                   (only drop weight if it's genuinely too heavy)
+  //  - top set past the range's overshoot line -> way too light, load-scaled bigger jump
+  //  - top set at/past the top of the range     -> at the top, add weight next time
+  //  - top set inside the range                 -> chase one more rep at same weight
+  //  - top set below the range                  -> under range, hold weight and build up
+  //                                                 (only drop weight if it's genuinely too heavy)
   // Every weight/e1RM figure below runs through effectiveLoadKg first, so
   // bodyweight exercises (push-ups, dips, pull-ups) factor in your
   // bodyweight from Settings rather than just the added weight — and the
   // suggested targets get converted back to "added weight" terms (via
   // bwOffset) before display, since that's what you'd actually type into
   // the +KG field, not the total.
-  var REP_RANGE_MIN = 8;
-  var REP_RANGE_MAX = 12;
-  var REP_RANGE_OVERSHOOT = 15;
-  var REP_RANGE_EXTREME = 25; // past this, flag that the jump is capped rather than silently trusting an increasingly unreliable e1RM extrapolation
+  var GOAL_REP_RANGES = {
+    strength: { min: 1, max: 5, overshoot: 8, extreme: 15, label: 'strength' },
+    hypertrophy: { min: 8, max: 12, overshoot: 15, extreme: 25, label: 'hypertrophy' },
+    endurance: { min: 15, max: 20, overshoot: 25, extreme: 40, label: 'endurance' }
+  };
+  var GOAL_OPTIONS = [
+    { id: 'strength', label: 'Strength' },
+    { id: 'hypertrophy', label: 'Hypertrophy' },
+    { id: 'endurance', label: 'Endurance' }
+  ];
+  function currentRepRange(){
+    var goal = (state.settings && state.settings.goal) || 'hypertrophy';
+    return GOAL_REP_RANGES[goal] || GOAL_REP_RANGES.hypertrophy;
+  }
   function overloadTipForExercise(ex){
     var sets = ex.sets;
     if (!sets || !sets.length) return null;
+    var range = currentRepRange();
+    var repMin = range.min, repMax = range.max, repOvershoot = range.overshoot, repExtreme = range.extreme, goalLabel = range.label;
     var bwOffset = effectiveLoadKg(ex.name, 0);
     var best = sets[0];
     sets.forEach(function(st){
@@ -5166,27 +5232,36 @@
       headline = 'Match your recent best';
       target = 'Maintain ' + describeLoad(ex.name, best.weightKg) + ' until you match your recent best';
       detail = 'Top set here was ' + describeLoad(ex.name, best.weightKg) + ' \u00d7 ' + best.reps + ', below your recent best on ' + ex.name + '. Aim to match that number before chasing a new PR.';
-    } else if (best.reps > REP_RANGE_OVERSHOOT){
-      var bigAddedKg = roundNice(loadScaledJumpKg(bestEffKg, best.reps, ex.muscle) - bwOffset);
+    } else if (best.reps > repOvershoot){
+      var bigAddedKg = roundNice(loadScaledJumpKg(bestEffKg, best.reps, ex.muscle, repMin) - bwOffset);
       headline = 'Weight is too light \u2014 jump up';
-      target = 'Target: ' + describeLoad(ex.name, bigAddedKg) + ' next session, aim to land in ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' reps';
-      detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 well past the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range, so this weight is too light. Based on that effort, jump up to about ' + describeLoad(ex.name, bigAddedKg) + ' next session \u2014 scaled to your current strength \u2014 and aim to land back in the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' range.' +
-        (best.reps > REP_RANGE_EXTREME ? ' That\u2019s a lot of reps for one set \u2014 the jump above is capped to stay realistic rather than trust the math past the point it means anything, so double check the numbers if that rep count wasn\u2019t intentional.' : '');
-    } else if (best.reps >= REP_RANGE_MAX){
+      target = 'Target: ' + describeLoad(ex.name, bigAddedKg) + ' next session, aim to land in ' + repMin + '\u2013' + repMax + ' reps';
+      detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 well past the ' + repMin + '\u2013' + repMax + ' ' + goalLabel + ' range, so this weight is too light. Based on that effort, jump up to about ' + describeLoad(ex.name, bigAddedKg) + ' next session \u2014 scaled to your current strength \u2014 and aim to land back in the ' + repMin + '\u2013' + repMax + ' range.' +
+        (best.reps > repExtreme ? ' That\u2019s a lot of reps for one set \u2014 the jump above is capped to stay realistic rather than trust the math past the point it means anything, so double check the numbers if that rep count wasn\u2019t intentional.' : '');
+    } else if (best.reps >= repMax){
       var nextAddedKg = roundNice(smallIncrementKg(bestEffKg, ex.muscle) - bwOffset);
       headline = 'Add weight next time';
-      target = 'Target: ' + describeLoad(ex.name, nextAddedKg) + ' next session, aim for ' + REP_RANGE_MIN + ' reps';
-      detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 the top of the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range. Bump the weight to about ' + describeLoad(ex.name, nextAddedKg) + ' next session and reset toward ' + REP_RANGE_MIN + ' reps.';
-    } else if (best.reps < REP_RANGE_MIN){
-      headline = 'Work back up to ' + REP_RANGE_MIN + ' reps';
-      target = 'Same weight, ' + describeLoad(ex.name, best.weightKg) + ', aim for ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' reps';
-      detail = 'Top set was ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 below the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range. Keep the same weight next session and aim to reach at least ' + REP_RANGE_MIN + ' reps. If it still feels too heavy to get there, drop the weight slightly and build back up within ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + '.';
+      target = 'Target: ' + describeLoad(ex.name, nextAddedKg) + ' next session, aim for ' + repMin + ' reps';
+      detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 the top of the ' + repMin + '\u2013' + repMax + ' ' + goalLabel + ' range. Bump the weight to about ' + describeLoad(ex.name, nextAddedKg) + ' next session and reset toward ' + repMin + ' reps.';
+    } else if (best.reps < repMin){
+      headline = 'Work back up to ' + repMin + ' reps';
+      target = 'Same weight, ' + describeLoad(ex.name, best.weightKg) + ', aim for ' + repMin + '\u2013' + repMax + ' reps';
+      detail = 'Top set was ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 below the ' + repMin + '\u2013' + repMax + ' ' + goalLabel + ' range. Keep the same weight next session and aim to reach at least ' + repMin + ' reps. If it still feels too heavy to get there, drop the weight slightly and build back up within ' + repMin + '\u2013' + repMax + '.';
     } else {
       headline = 'Add a rep next time';
       target = 'Maintain ' + describeLoad(ex.name, best.weightKg) + ', aim for ' + (best.reps + 1) + ' reps';
-      detail = 'Top set: ' + describeLoad(ex.name, best.weightKg) + ' \u00d7 ' + best.reps + '. Keep the same weight and aim for ' + (best.reps + 1) + ' reps next session \u2014 once you reach ' + REP_RANGE_MAX + ', it\u2019s time to add weight.';
+      detail = 'Top set: ' + describeLoad(ex.name, best.weightKg) + ' \u00d7 ' + best.reps + '. Keep the same weight and aim for ' + (best.reps + 1) + ' reps next session \u2014 once you reach ' + repMax + ', it\u2019s time to add weight.';
     }
-    return { headline: headline, target: target, detail: detail };
+    // Shows up here rather than as a toast — a persistent, revisitable
+    // "you've earned this" line every time this muscle's tips are opened,
+    // instead of a one-shot popup you could easily miss or that interrupts
+    // the flow of actually logging your workout.
+    var badge = null;
+    if (ex.muscle && state.settings && state.settings.strengthBadges && state.settings.strengthBadges[ex.muscle]){
+      var badgeRatio = STRENGTH_BADGE_RATIO[ex.muscle];
+      if (badgeRatio) badge = 'Strong AF \u2014 your ' + ex.muscle + ' has crossed ' + roundNice(badgeRatio) + '\u00d7 bodyweight';
+    }
+    return { headline: headline, target: target, detail: detail, badge: badge };
   }
 
   // Shared HTML for the Pro receipt's content — stats row, then one card
@@ -5205,7 +5280,8 @@
     if (compact){
       return '<div class="prc-tip compact"><b>'+esc(tip.headline)+':</b> '+esc(tip.target || tip.detail)+'</div>';
     }
-    return '<div class="prc-tip"><b>'+esc(tip.headline)+':</b> '+esc(tip.detail)+
+    return (tip.badge ? '<div class="prc-tip-badge">\ud83c\udfc6 '+esc(tip.badge)+'</div>' : '') +
+           '<div class="prc-tip"><b>'+esc(tip.headline)+':</b> '+esc(tip.detail)+
            (tip.target ? '<div class="prc-tip-target">'+esc(tip.target)+'</div>' : '') +
            '</div>';
   }
@@ -6785,6 +6861,19 @@
     html += '<div class="settings-row"><div><div class="sr-label">Bodyweight</div>' +
               '<div class="sr-sub">'+(state.settings.bodyweightKg ? 'Currently ' + fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set \u2014 powers real load and PR tracking for push-ups, dips, and pull-ups') + '</div></div>' +
               '<button class="sr-action" data-action="open-bodyweight-picker">'+(state.settings.bodyweightKg ? 'Edit' : 'Set')+'</button></div>';
+    html += '<div class="settings-row goal-row"><div><div class="sr-label">Training Goal</div>' +
+              '<div class="sr-sub">Sets the rep range and how big the suggested load jumps are in Pro Tips</div></div></div>';
+    html += '<div class="goal-picker">';
+    var currentGoal = (state.settings && state.settings.goal) || 'hypertrophy';
+    GOAL_OPTIONS.forEach(function(g){
+      var range = GOAL_REP_RANGES[g.id];
+      var rangeLabel = g.id === 'endurance' ? (range.min + '+ reps') : (range.min + '\u2013' + range.max + ' reps');
+      html += '<button type="button" class="goal-chip'+(currentGoal===g.id?' active':'')+'" data-action="set-goal" data-goal="'+g.id+'">' +
+                '<span class="goal-chip-label">'+esc(g.label)+'</span>' +
+                '<span class="goal-chip-range">'+esc(rangeLabel)+'</span>' +
+              '</button>';
+    });
+    html += '</div>';
     html += '</div>';
 
     html += '<div class="section-label">Card Style</div>';
@@ -7760,17 +7849,14 @@
     saveSessions();
     logActivity('Added set ' + fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + ' to "' + ex.name + '"' + (isPR ? ' \u2014 new PR' : ''), 'Log');
     ui.freshPRSetId = isPR ? setId : null;
-    // Checked before the render so a freshly-earned badge is already
-    // persisted by the time anything re-reads settings this cycle.
-    var badgeMsg = checkStrengthBadge(ex, weightKg);
+    // Silently tracks/persists whether this muscle's strength badge was
+    // just earned — no toast for it anymore, it shows up in the Tips/
+    // Target overlay instead (see renderTipHtml) whenever that muscle's
+    // exercises are viewed there.
+    checkStrengthBadge(ex, weightKg);
     renderApp();
     ui.freshPRSetId = null;
-    if (badgeMsg){
-      // Rarer and more special than a routine PR — takes priority on the
-      // (single-slot) toast if both happen on the same set, rather than
-      // trying to queue two toasts back to back.
-      showToast(badgeMsg);
-    } else if (isPR){
+    if (isPR){
       var joke = susWeightJoke(ex.name, weightKg, prevBest);
       showToast(joke || ('New PR on ' + ex.name + '!'));
     }
@@ -8035,9 +8121,9 @@
     saveSessions();
     logActivity('Edited set on "' + ex.name + '": ' + oldLabel + ' \u2192 ' + newLabel, 'Log');
     ui.editingSet = null;
-    var badgeMsg = checkStrengthBadge(ex, weightKg);
+    checkStrengthBadge(ex, weightKg);
     renderApp();
-    showToast(badgeMsg || 'Set updated');
+    showToast('Set updated');
   }
 
   function finishSession(){
@@ -8888,6 +8974,10 @@
       renderApp();
     } else if (action === 'open-bodyweight-picker'){
       openBodyweightPicker();
+    } else if (action === 'set-goal'){
+      state.settings.goal = el.dataset.goal;
+      saveSettings();
+      renderApp();
     } else if (action === 'save-routine'){
       openSaveRoutine();
     } else if (action === 'start-routine'){
