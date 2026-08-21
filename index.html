@@ -8128,15 +8128,22 @@
     var left = Math.min(Math.max(12, rect.left), window.innerWidth - 12 - bubbleWidth);
     bubble.style.left = left + 'px';
 
+    // Always computed as a `top` value (never `bottom`) specifically so it
+    // can be clamped in one place — a safety net on top of the
+    // scrollIntoView call in renderTourStep, in case a target's rect is
+    // ever off-screen for some other reason (e.g. a very short viewport).
+    // estBubbleHeight is a rough guess since the bubble isn't laid out at
+    // measurement time; the clamp only needs to be in the right ballpark
+    // to keep it fully on-screen, not pixel-exact.
+    var estBubbleHeight = 170;
     var spaceBelow = window.innerHeight - rect.bottom;
     var spaceAbove = rect.top;
-    if (spaceBelow >= 150 || spaceBelow >= spaceAbove){
-      bubble.style.top = (rect.bottom + 14) + 'px';
-      bubble.style.bottom = 'auto';
-    } else {
-      bubble.style.bottom = (window.innerHeight - rect.top + 14) + 'px';
-      bubble.style.top = 'auto';
-    }
+    var top = (spaceBelow >= 150 || spaceBelow >= spaceAbove)
+      ? rect.bottom + 14
+      : rect.top - estBubbleHeight - 14;
+    top = Math.max(12, Math.min(top, window.innerHeight - estBubbleHeight - 12));
+    bubble.style.top = top + 'px';
+    bubble.style.bottom = 'auto';
   }
   function renderTourStep(){
     var backdrop = document.getElementById('tourBackdrop');
@@ -8172,9 +8179,20 @@
         '</div>' +
       '</div>';
     // Deferred a frame so a just-triggered tab switch has finished
-    // painting before we measure the target's position.
+    // painting before we touch the target. If the target sits further
+    // down a scrollable tab (Card Style, for instance, is well below the
+    // fold on Settings), its rect would otherwise come back way outside
+    // the viewport and the top/bottom math below would push the bubble
+    // off-screen entirely — so scroll it into view first, then wait one
+    // more frame for that scroll to actually land before measuring.
     requestAnimationFrame(function(){
-      positionTourBubble(findTourTarget(step));
+      var targetEl = findTourTarget(step);
+      if (targetEl && targetEl.id !== 'view'){
+        targetEl.scrollIntoView({ block: 'center', behavior: 'instant' });
+      }
+      requestAnimationFrame(function(){
+        positionTourBubble(findTourTarget(step));
+      });
     });
   }
   window.addEventListener('resize', function(){
