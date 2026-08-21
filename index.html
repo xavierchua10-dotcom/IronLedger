@@ -2556,28 +2556,36 @@
     font-family:'JetBrains Mono',monospace;
   }
   .settings-row .seg button.active{background:var(--accent);color:#1c1500;}
-  .bodyweight-input-wrap{
-    display:flex;
-    align-items:center;
-    gap:6px;
-    flex-shrink:0;
+  /* ---------- Bodyweight picker overlay ---------- */
+  .bodyweight-picker-sub{
+    font-size:12.5px;
+    color:var(--text-dim);
+    line-height:1.5;
+    margin-bottom:20px;
   }
-  .bodyweight-input{
-    width:64px;
-    background:var(--panel-2);
-    border:1px solid var(--line);
+  .bodyweight-picker-display{
+    display:flex;
+    align-items:baseline;
+    justify-content:center;
+    gap:8px;
+    padding-bottom:6px;
+  }
+  .bodyweight-picker-input{
+    width:140px;
+    background:none;
+    border:none;
+    border-bottom:2px solid var(--line);
     color:var(--text);
+    font-family:'Oswald',sans-serif;
+    font-size:36px;
+    font-weight:700;
+    text-align:center;
+    padding:4px 0 8px;
+  }
+  .bodyweight-picker-input:focus{outline:none;border-bottom-color:var(--accent);}
+  .bodyweight-picker-unit{
     font-family:'JetBrains Mono',monospace;
     font-size:14px;
-    font-weight:700;
-    text-align:right;
-    padding:8px 8px;
-    border-radius:8px;
-  }
-  .bodyweight-input:focus{outline:none;border-color:var(--accent);}
-  .bodyweight-input-unit{
-    font-family:'JetBrains Mono',monospace;
-    font-size:11px;
     font-weight:700;
     color:var(--text-faint);
     letter-spacing:0.03em;
@@ -3029,6 +3037,9 @@
 <div class="confirm-overlay hidden" id="restTimerPickerOverlay">
   <div class="pro-panel" id="restTimerPickerPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="bodyweightPickerOverlay">
+  <div class="pro-panel" id="bodyweightPickerPanel"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
 
@@ -3465,6 +3476,8 @@
     templatePickerCategory: null, // null = showing category cards; a category id = drilled into that category's template list
     showRestTimerPicker: false, // Rest timer duration picker overlay open state
     restTimerDraftSeconds: 90,  // Duration currently being tuned in the picker, before Start is pressed
+    showBodyweightPicker: false, // Bodyweight edit overlay open state
+    bodyweightDraft: '',         // Draft value in the bodyweight overlay's input, before Confirm is pressed
     restTimer: null,            // { endsAt, totalSeconds } while a rest timer is actively running, else null
     showNotifications: false,  // Notification bell overlay open state
     openRowMenu: null,         // { type: 'exercise'|'set', exId, setId } for the shared "⋮" popover, or null when closed
@@ -3694,6 +3707,34 @@
   // compare against yet. Stored value is always kg regardless of the
   // user's display unit.
   var MAX_LOGGABLE_WEIGHT_KG = 500;
+  // Muscle-group-specific ceilings, used instead of the flat cap above
+  // whenever the exercise has a known muscle. A flat 500kg cap is way too
+  // loose for a bicep curl (world-record strict curls top out ~110kg) and,
+  // for a couple of high-leverage movements, arguably too tight (leg press
+  // and hip thrust can legitimately load past 500kg on machine leverage).
+  // Ceilings below are set generously above real raw/equipped world-record
+  // territory for the heaviest common exercise in that muscle group, so a
+  // genuinely strong lifter is never blocked — this is a typo catcher, not
+  // a strength judgment. Any exercise whose muscle isn't in this table (or
+  // has no muscle set at all, e.g. some custom entries) falls back to the
+  // flat cap above.
+  var MUSCLE_MAX_LOAD_KG = {
+    Quads: 700,      // leg press's machine leverage holds far more than a squat
+    Glutes: 500,      // hip thrust has huge leverage; records exceed 400kg
+    Back: 500,      // deadlift lives here; raw record is ~501kg
+    Traps: 350,      // shrugs can get deadlift-adjacent heavy
+    Calves: 400,      // short-range, high-leverage machine movements
+    Hamstrings: 350,      // RDL can get heavy; leg curl machines can't
+    Chest: 350,      // raw bench record ~230kg, generous buffer above
+    Shoulders: 250,      // OHP record ~217kg; lateral raises nowhere close
+    Triceps: 180,      // pushdowns/skull crushers, nothing near bench numbers
+    Abs: 120,      // weighted crunches/ab wheel with a plate, at most
+    Biceps: 130,      // strict curl records max out ~110kg
+    Forearms: 80        // wrist curls, grip work — always light
+  };
+  function maxLoggableWeightKg(muscle){
+    return (muscle && MUSCLE_MAX_LOAD_KG[muscle]) || MAX_LOGGABLE_WEIGHT_KG;
+  }
   // Once an exercise HAS history, the cap tightens to a multiple of your
   // own best on that exact exercise name — adapts automatically whether
   // it's bench, leg press, or something custom-named, no muscle tagging
@@ -3723,11 +3764,14 @@
 
   // Returns an error message to show in a toast, or null if the entry is
   // fine to log. exerciseName is optional — omitting it just falls back
-  // to the flat sanity cap. Bodyweight exercises (push-ups, dips,
-  // pull-ups) allow exactly 0 here, since 0 added weight is a completely
-  // valid, common entry for them — everything else still requires a
-  // positive number.
-  function weightRepsError(weightKg, reps, exerciseName){
+  // to the flat sanity cap. muscle is optional too — when known, it's used
+  // for a tighter, muscle-appropriate cap instead of the flat one (see
+  // MUSCLE_MAX_LOAD_KG above), but only on an exercise's first-ever entry;
+  // once there's real history, the cap always tightens to your own best
+  // instead. Bodyweight exercises (push-ups, dips, pull-ups) allow exactly
+  // 0 here, since 0 added weight is a completely valid, common entry for
+  // them — everything else still requires a positive number.
+  function weightRepsError(weightKg, reps, exerciseName, muscle){
     var isBW = exerciseName && isBodyweightExercise(exerciseName);
     if (weightKg === null || (isBW ? weightKg < 0 : weightKg <= 0) || isNaN(reps) || reps <= 0) return 'Enter a weight and reps first';
     if (reps > MAX_LOGGABLE_REPS) return 'That\u2019s over ' + MAX_LOGGABLE_REPS + ' reps \u2014 double check the number';
@@ -3735,8 +3779,9 @@
     if (priorBest > 0){
       var cap = priorBest * HISTORY_CAP_MULTIPLIER;
       if (weightKg > cap) return 'That\u2019s way past your best here (' + fmtWeight(priorBest) + ' ' + unitLabel() + ') \u2014 double check the number';
-    } else if (weightKg > MAX_LOGGABLE_WEIGHT_KG){
-      return 'That\u2019s over ' + fmtWeight(MAX_LOGGABLE_WEIGHT_KG) + ' ' + unitLabel() + ' \u2014 double check the number';
+    } else {
+      var flatCap = maxLoggableWeightKg(muscle);
+      if (weightKg > flatCap) return 'That\u2019s over ' + fmtWeight(flatCap) + ' ' + unitLabel() + ' \u2014 double check the number';
     }
     return null;
   }
@@ -5481,6 +5526,52 @@
       '</div>';
   }
 
+  // Bodyweight edit overlay — same shell/pattern as the Rest Timer picker
+  // above. Opens with the current bodyweight (converted to the person's
+  // display unit) pre-filled as a draft; nothing is saved until Confirm,
+  // so backing out (X, tapping the backdrop, Escape) leaves the stored
+  // value untouched.
+  function openBodyweightPicker(){
+    ui.bodyweightDraft = state.settings.bodyweightKg ? String(roundNice(toDisplay(state.settings.bodyweightKg))) : '';
+    ui.showBodyweightPicker = true;
+    renderBodyweightPickerOverlay();
+  }
+  function closeBodyweightPicker(){
+    ui.showBodyweightPicker = false;
+    renderBodyweightPickerOverlay();
+  }
+  function confirmBodyweightPicker(){
+    var input = document.getElementById('bodyweightDraftInput');
+    saveBodyweight(input ? input.value : ui.bodyweightDraft);
+    closeBodyweightPicker();
+  }
+  function renderBodyweightPickerOverlay(){
+    var overlay = document.getElementById('bodyweightPickerOverlay');
+    var panel = document.getElementById('bodyweightPickerPanel');
+    if (!ui.showBodyweightPicker){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Bodyweight</h3>' +
+        '<button class="pro-panel-close" data-action="close-bodyweight-picker" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' +
+        '<div class="bodyweight-picker-sub">Powers real load and PR tracking for bodyweight exercises like push-ups, dips, and pull-ups.</div>' +
+        '<div class="bodyweight-picker-display">' +
+          '<input type="number" inputmode="decimal" step="0.1" min="0" id="bodyweightDraftInput" class="bodyweight-picker-input" placeholder="\u2014" value="'+esc(ui.bodyweightDraft || '')+'">' +
+          '<span class="bodyweight-picker-unit">'+unitLabel().toUpperCase()+'</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="pro-panel-footer">' +
+        '<button class="btn-primary" data-action="confirm-bodyweight">Confirm</button>' +
+      '</div>';
+    var freshInput = document.getElementById('bodyweightDraftInput');
+    if (freshInput) freshInput.focus();
+  }
+
   // Browsers block audio from ever starting unless it's tied to a real
   // tap — and the timer's completion fires on its own from a background
   // interval, not a tap. So the AudioContext gets created/unlocked here,
@@ -6628,11 +6719,8 @@
                 '<button data-action="set-unit" data-unit="lb" class="'+(state.settings.unit==='lb'?'active':'')+'">LB</button>' +
               '</div></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Bodyweight</div>' +
-              '<div class="sr-sub">Optional \u2014 lets push-ups, dips, and pull-ups track real load and PRs instead of always reading 0</div></div>' +
-              '<div class="bodyweight-input-wrap">' +
-                '<input type="number" inputmode="decimal" id="bodyweightInput" class="bodyweight-input" placeholder="\u2014" step="0.1" min="0" value="'+(state.settings.bodyweightKg ? roundNice(toDisplay(state.settings.bodyweightKg)) : '')+'">' +
-                '<span class="bodyweight-input-unit">'+unitLabel().toUpperCase()+'</span>' +
-              '</div></div>';
+              '<div class="sr-sub">'+(state.settings.bodyweightKg ? 'Currently ' + fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set \u2014 powers real load and PR tracking for push-ups, dips, and pull-ups') + '</div></div>' +
+              '<button class="sr-action" data-action="open-bodyweight-picker">'+(state.settings.bodyweightKg ? 'Edit' : 'Set')+'</button></div>';
     html += '</div>';
 
     html += '<div class="section-label">Card Style</div>';
@@ -7563,7 +7651,7 @@
     var weightKg = toStoredKg(weightInput.value);
     var reps = parseInt(repsInput.value, 10);
 
-    var err = weightRepsError(weightKg, reps, ex.name);
+    var err = weightRepsError(weightKg, reps, ex.name, ex.muscle);
     if (err){
       showToast(err);
       return;
@@ -7747,7 +7835,7 @@
     }
     var weightKg = toStoredKg(target.weightInput.value);
     var reps = parseInt(target.repsInput.value, 10);
-    var err = weightRepsError(weightKg, reps, ex.name);
+    var err = weightRepsError(weightKg, reps, ex.name, ex.muscle);
     if (err){
       showToast(err);
       return;
@@ -7773,7 +7861,7 @@
 
     var weightKg = toStoredKg(weightInput.value);
     var reps = parseInt(repsInput.value, 10);
-    var err = weightRepsError(weightKg, reps, ex.name);
+    var err = weightRepsError(weightKg, reps, ex.name, ex.muscle);
     if (err){
       showToast(err);
       return;
@@ -7840,7 +7928,7 @@
 
     var weightKg = toStoredKg(weightInput.value);
     var reps = parseInt(repsInput.value, 10);
-    var err = weightRepsError(weightKg, reps, ex.name);
+    var err = weightRepsError(weightKg, reps, ex.name, ex.muscle);
     if (err){
       showToast(err);
       return;
@@ -8725,6 +8813,8 @@
       state.settings.cardBg = el.dataset.bg;
       saveSettings();
       renderApp();
+    } else if (action === 'open-bodyweight-picker'){
+      openBodyweightPicker();
     } else if (action === 'save-routine'){
       openSaveRoutine();
     } else if (action === 'start-routine'){
@@ -8813,9 +8903,6 @@
       ui.progressExercise = t.value;
       renderApp();
     }
-    if (t.id === 'bodyweightInput'){
-      saveBodyweight(t.value);
-    }
   });
 
   document.getElementById('app').addEventListener('keydown', function(e){
@@ -8831,9 +8918,6 @@
       } else if (e.target.id === 'exNameInput'){
         e.preventDefault();
         openExerciseNamePickConfirm(ui.editingExerciseName, e.target.value, null);
-      } else if (e.target.id === 'bodyweightInput'){
-        e.preventDefault();
-        e.target.blur();
       }
     } else if (e.key === 'Escape' && e.target.id === 'hiNameInput'){
       e.preventDefault();
@@ -9266,6 +9350,31 @@
     }
   });
 
+  var bodyweightPickerOverlayEl = document.getElementById('bodyweightPickerOverlay');
+  bodyweightPickerOverlayEl.addEventListener('click', function(e){
+    if (e.target === bodyweightPickerOverlayEl){
+      closeBodyweightPicker();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-bodyweight-picker'){
+      closeBodyweightPicker();
+    } else if (el.dataset.action === 'confirm-bodyweight'){
+      confirmBodyweightPicker();
+    }
+  });
+  bodyweightPickerOverlayEl.addEventListener('keydown', function(e){
+    if (e.target.id !== 'bodyweightDraftInput') return;
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      confirmBodyweightPicker();
+    } else if (e.key === 'Escape'){
+      e.preventDefault();
+      closeBodyweightPicker();
+    }
+  });
+
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     if (ui.confirmModal){
@@ -9293,6 +9402,8 @@
       closeTemplatePicker();
     } else if (ui.showRestTimerPicker){
       closeRestTimerPicker();
+    } else if (ui.showBodyweightPicker){
+      closeBodyweightPicker();
     } else if (ui.showNotifications){
       closeNotifications();
     } else if (ui.showMuscleMap){
