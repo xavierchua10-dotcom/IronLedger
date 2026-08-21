@@ -3521,6 +3521,7 @@
     restTimerDraftSeconds: 90,  // Duration currently being tuned in the picker, before Start is pressed
     showBodyweightPicker: false, // Bodyweight edit overlay open state
     bodyweightDraft: '',         // Draft value in the bodyweight overlay's input, before Confirm is pressed
+    goalDraft: 'hypertrophy',    // Draft goal selected in the same overlay, before Confirm is pressed
     restTimer: null,            // { endsAt, totalSeconds } while a rest timer is actively running, else null
     showNotifications: false,  // Notification bell overlay open state
     openRowMenu: null,         // { type: 'exercise'|'set', exId, setId } for the shared "⋮" popover, or null when closed
@@ -5666,26 +5667,37 @@
       '</div>';
   }
 
-  // Bodyweight edit overlay — same shell/pattern as the Rest Timer picker
-  // above. Opens with the current bodyweight (converted to the person's
-  // display unit) pre-filled as a draft; nothing is saved until Confirm,
-  // so backing out (X, tapping the backdrop, Escape) leaves the stored
-  // value untouched.
+  // Bodyweight & Goal overlay — same shell/pattern as the Rest Timer
+  // picker above. Both fields are drafts until Confirm; backing out (X,
+  // backdrop, Escape) leaves the stored values untouched. Combined into
+  // one panel since Pro Tips uses both together — one confirm instead of
+  // two separate edits.
   function openBodyweightPicker(){
     ui.bodyweightDraft = state.settings.bodyweightKg ? String(roundNice(toDisplay(state.settings.bodyweightKg))) : '';
+    ui.goalDraft = (state.settings && state.settings.goal) || 'hypertrophy';
     ui.showBodyweightPicker = true;
-    renderBodyweightPickerOverlay();
+    renderBodyweightPickerOverlay(true);
   }
   function closeBodyweightPicker(){
     ui.showBodyweightPicker = false;
     renderBodyweightPickerOverlay();
   }
+  function setGoalDraft(goal){
+    // Capture whatever's currently typed in the bodyweight field first —
+    // otherwise the re-render below (which rebuilds from ui.bodyweightDraft)
+    // would wipe out an in-progress number the moment a goal chip is tapped.
+    var input = document.getElementById('bodyweightDraftInput');
+    if (input) ui.bodyweightDraft = input.value;
+    ui.goalDraft = goal;
+    renderBodyweightPickerOverlay();
+  }
   function confirmBodyweightPicker(){
     var input = document.getElementById('bodyweightDraftInput');
-    saveBodyweight(input ? input.value : ui.bodyweightDraft);
+    state.settings.goal = ui.goalDraft || 'hypertrophy';
+    saveBodyweight(input ? input.value : ui.bodyweightDraft); // saves settings + re-renders
     closeBodyweightPicker();
   }
-  function renderBodyweightPickerOverlay(){
+  function renderBodyweightPickerOverlay(shouldFocus){
     var overlay = document.getElementById('bodyweightPickerOverlay');
     var panel = document.getElementById('bodyweightPickerPanel');
     if (!ui.showBodyweightPicker){
@@ -5694,22 +5706,34 @@
       return;
     }
     overlay.classList.remove('hidden');
+    var goalDraft = ui.goalDraft || 'hypertrophy';
     panel.innerHTML =
-      '<div class="pro-panel-header"><h3>Bodyweight</h3>' +
+      '<div class="pro-panel-header"><h3>Bodyweight &amp; Goal</h3>' +
         '<button class="pro-panel-close" data-action="close-bodyweight-picker" aria-label="Close">&#10005;</button>' +
       '</div>' +
       '<div class="pro-panel-body">' +
-        '<div class="bodyweight-picker-sub">Powers real load and PR tracking for bodyweight exercises like push-ups, dips, and pull-ups.</div>' +
         '<div class="bodyweight-picker-display">' +
           '<input type="number" inputmode="decimal" step="0.1" min="0" id="bodyweightDraftInput" class="bodyweight-picker-input" placeholder="\u2014" value="'+esc(ui.bodyweightDraft || '')+'">' +
           '<span class="bodyweight-picker-unit">'+unitLabel().toUpperCase()+'</span>' +
+        '</div>' +
+        '<div class="goal-picker">' +
+          GOAL_OPTIONS.map(function(g){
+            var range = GOAL_REP_RANGES[g.id];
+            var rangeLabel = (g.id === 'endurance' ? (range.min + '+') : (range.min + '\u2013' + range.max)) + ' reps';
+            return '<button type="button" class="goal-chip'+(goalDraft===g.id?' active':'')+'" data-action="set-goal-draft" data-goal="'+g.id+'">' +
+              '<span class="goal-chip-label">'+esc(g.label)+'</span>' +
+              '<span class="goal-chip-range">'+esc(rangeLabel)+'</span>' +
+            '</button>';
+          }).join('') +
         '</div>' +
       '</div>' +
       '<div class="pro-panel-footer">' +
         '<button class="btn-primary" data-action="confirm-bodyweight">Confirm</button>' +
       '</div>';
-    var freshInput = document.getElementById('bodyweightDraftInput');
-    if (freshInput) freshInput.focus();
+    if (shouldFocus){
+      var freshInput = document.getElementById('bodyweightDraftInput');
+      if (freshInput) freshInput.focus();
+    }
   }
 
   // Browsers block audio from ever starting unless it's tied to a real
@@ -6858,22 +6882,9 @@
                 '<button data-action="set-unit" data-unit="kg" class="'+(state.settings.unit==='kg'?'active':'')+'">KG</button>' +
                 '<button data-action="set-unit" data-unit="lb" class="'+(state.settings.unit==='lb'?'active':'')+'">LB</button>' +
               '</div></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Bodyweight</div>' +
-              '<div class="sr-sub">'+(state.settings.bodyweightKg ? 'Currently ' + fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set \u2014 powers real load and PR tracking for push-ups, dips, and pull-ups') + '</div></div>' +
+    html += '<div class="settings-row"><div><div class="sr-label">Bodyweight &amp; Goal</div>' +
+              '<div class="sr-sub">'+(state.settings.bodyweightKg ? fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set') + ' \u00b7 ' + esc((GOAL_OPTIONS.filter(function(g){ return g.id === ((state.settings && state.settings.goal) || 'hypertrophy'); })[0] || GOAL_OPTIONS[1]).label) + '</div></div>' +
               '<button class="sr-action" data-action="open-bodyweight-picker">'+(state.settings.bodyweightKg ? 'Edit' : 'Set')+'</button></div>';
-    html += '<div class="settings-row goal-row"><div><div class="sr-label">Training Goal</div>' +
-              '<div class="sr-sub">Sets the rep range and how big the suggested load jumps are in Pro Tips</div></div></div>';
-    html += '<div class="goal-picker">';
-    var currentGoal = (state.settings && state.settings.goal) || 'hypertrophy';
-    GOAL_OPTIONS.forEach(function(g){
-      var range = GOAL_REP_RANGES[g.id];
-      var rangeLabel = g.id === 'endurance' ? (range.min + '+ reps') : (range.min + '\u2013' + range.max + ' reps');
-      html += '<button type="button" class="goal-chip'+(currentGoal===g.id?' active':'')+'" data-action="set-goal" data-goal="'+g.id+'">' +
-                '<span class="goal-chip-label">'+esc(g.label)+'</span>' +
-                '<span class="goal-chip-range">'+esc(rangeLabel)+'</span>' +
-              '</button>';
-    });
-    html += '</div>';
     html += '</div>';
 
     html += '<div class="section-label">Card Style</div>';
@@ -8974,10 +8985,6 @@
       renderApp();
     } else if (action === 'open-bodyweight-picker'){
       openBodyweightPicker();
-    } else if (action === 'set-goal'){
-      state.settings.goal = el.dataset.goal;
-      saveSettings();
-      renderApp();
     } else if (action === 'save-routine'){
       openSaveRoutine();
     } else if (action === 'start-routine'){
@@ -9525,6 +9532,8 @@
       closeBodyweightPicker();
     } else if (el.dataset.action === 'confirm-bodyweight'){
       confirmBodyweightPicker();
+    } else if (el.dataset.action === 'set-goal-draft'){
+      setGoalDraft(el.dataset.goal);
     }
   });
   bodyweightPickerOverlayEl.addEventListener('keydown', function(e){
