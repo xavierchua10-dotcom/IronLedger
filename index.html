@@ -8548,6 +8548,19 @@
     }
   });
 
+  // The popover is position:fixed (viewport-anchored), but the actual
+  // scrolling happens inside #view, not the page itself — so without this,
+  // scrolling the list leaves the menu floating over whatever content
+  // scrolled into its old spot instead of following its button. Simplest
+  // fix, and standard behavior for transient menus like this: just close
+  // it on scroll rather than trying to track and reposition it live.
+  var viewScrollEl = document.getElementById('view');
+  if (viewScrollEl){
+    viewScrollEl.addEventListener('scroll', function(){
+      if (ui.openRowMenu) closeRowActionMenu();
+    }, { passive: true });
+  }
+
   var authGateEl = document.getElementById('authGate');
   authGateEl.addEventListener('click', function(e){
     var el = e.target.closest('[data-action]');
