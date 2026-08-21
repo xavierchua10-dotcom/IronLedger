@@ -215,6 +215,75 @@
   }
   .row-action-item:active{background:var(--panel-3);}
   .row-action-item.danger{color:var(--accent-2);}
+
+  /* ---------- Guided tour ---------- */
+  /* #tourBackdrop: full-screen, catches every tap while the tour is open
+     so a stray touch can't hit real controls underneath — it does not
+     itself draw the dimming (see .tour-spotlight below for that).
+     #tourSpotlight: a small ring positioned exactly over the current
+     target; its oversized box-shadow is what actually paints the dimmed
+     backdrop-with-a-cutout illusion. pointer-events:none since clicks
+     should fall through to the backdrop, not the ring.
+     #tourBubble: the floating text card with the step's title/copy and
+     Back/Next controls, repositioned above or below the target depending
+     on available space (see positionTourBubble). */
+  .tour-backdrop{
+    position:fixed;
+    inset:0;
+    z-index:210;
+    background:transparent;
+  }
+  .tour-backdrop.hidden{display:none;}
+  .tour-spotlight{
+    position:fixed;
+    z-index:211;
+    border-radius:12px;
+    border:2px solid var(--accent);
+    box-shadow:0 0 0 9999px rgba(6,7,9,0.82);
+    pointer-events:none;
+    transition:top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
+  }
+  .tour-spotlight.hidden{display:none;}
+  .tour-bubble{
+    position:fixed;
+    z-index:212;
+    max-width:300px;
+    background:var(--panel-2);
+    border:1px solid var(--accent-dim);
+    border-radius:14px;
+    padding:16px;
+    box-shadow:0 12px 32px rgba(0,0,0,0.5);
+  }
+  .tour-bubble.hidden{display:none;}
+  .tour-bubble.tour-bubble-centered{
+    top:50% !important;
+    left:50% !important;
+    bottom:auto !important;
+    transform:translate(-50%, -50%);
+    width:min(300px, calc(100vw - 48px)) !important;
+  }
+  .tour-bubble-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;}
+  .tour-bubble-title{font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;color:var(--accent);}
+  .tour-bubble-close{background:none;border:none;color:var(--text-faint);font-size:14px;cursor:pointer;padding:0;line-height:1;flex-shrink:0;}
+  .tour-bubble-text{font-size:13px;color:var(--text);line-height:1.55;margin-bottom:14px;}
+  .tour-bubble-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .tour-bubble-progress{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);}
+  .tour-bubble-actions{display:flex;gap:8px;}
+  .tour-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    padding:7px 14px;
+    border-radius:8px;
+    font-family:'Oswald',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    cursor:pointer;
+  }
+  .tour-btn:active{background:var(--panel-3);}
+  .tour-btn.primary{background:var(--accent);color:#1c1500;border-color:var(--accent);}
+  .tour-btn.primary:active{opacity:0.9;background:var(--accent);}
   .account-menu-avatar-label{
     font-size:10px;
     color:var(--text-faint);
@@ -2907,9 +2976,9 @@
 <div class="confirm-overlay hidden" id="deletePasswordOverlay">
   <div class="confirm-panel" id="deletePasswordPanel"></div>
 </div>
-<div class="confirm-overlay hidden" id="helpOverlay">
-  <div class="help-panel" id="helpPanel"></div>
-</div>
+<div class="tour-backdrop hidden" id="tourBackdrop"></div>
+<div class="tour-spotlight hidden" id="tourSpotlight"></div>
+<div class="tour-bubble hidden" id="tourBubble"></div>
 <div class="confirm-overlay hidden" id="briefOverlay">
   <div class="brief-panel" id="briefPanel"></div>
 </div>
@@ -3347,8 +3416,7 @@
     activeExId: null,      // exercise whose weight/reps inputs were last focused — used by the global Add Set button
     draftSets: {},          // exId -> { weight, reps } — unsaved input, kept across collapse/expand or tab switches
     expandedAddSet: {},     // exId -> true when that exercise's add-set panel (kg/reps fields) is open
-    showHelp: false,
-    helpLog: [],            // [{ q, a }, ...] — topics tapped so far in this Help session
+    tourStep: null,         // index into TOUR_STEPS while the guided tour is running, or null when closed
     showBrief: false,       // Brief (activity log) overlay open state
     showProReceipt: false,  // Pro PDF receipt overlay open state (preview or paywall)
     proReceiptSessionId: null,  // sessionId the Pro receipt overlay is showing, or null
@@ -6409,8 +6477,8 @@
     html += '<div class="settings-group">';
     html += '<div class="settings-row"><div><div class="sr-label">Brief</div><div class="sr-sub">Every add, edit, and rename \u2014 what changed and when</div></div>' +
               '<button class="sr-action" data-action="open-brief">View</button></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Help</div><div class="sr-sub">How the muscle picker, filters, and other features work</div></div>' +
-              '<button class="sr-action" data-action="open-help">View</button></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Guided tour</div><div class="sr-sub">A quick walkthrough of the app\u2019s main features</div></div>' +
+              '<button class="sr-action" data-action="start-tour">Start</button></div>';
     html += '</div>';
 
     html += '<div class="section-label">Plan</div>';
@@ -6637,7 +6705,7 @@
     renderConfirmModal();
     renderRoutineNamePanel();
     renderDeleteAccountPasswordPanel();
-    renderHelpOverlay();
+    if (ui.tourStep !== null) renderTourStep();
     renderBriefOverlay();
     renderAvatarPickOverlay();
     var addSetGlobalBtnEl = document.querySelector('.add-set-global-btn');
@@ -7985,64 +8053,134 @@
   }
 
   /* =========================================================
-     HELP — fixed, pre-written Q&A. Not AI, no API calls, free.
-     Tapping a topic just appends its canned answer to the chat log.
+     GUIDED TOUR — replaces the old Q&A-chat Help panel with a
+     step-by-step walkthrough that spotlights real UI elements and
+     explains them in a speech-bubble, switching tabs as needed.
+     Steps that target something which may not exist yet for a
+     brand-new account (a history entry, a progress chart, etc) fall
+     back to a stable container element (see `fallback`) so the tour
+     never breaks for someone with an empty account — exactly the
+     person who most needs it.
      ========================================================= */
-  var HELP_TOPICS = [
-    { q: 'How do I log a set?', a: 'Tap "+ Add Set" under any exercise, enter your weight and reps, then tap the checkmark. You\u2019ll get a quick confirmation before it\u2019s saved.' },
-    { q: 'How do I edit or delete a set?', a: 'Tap the pencil icon next to a set to edit it, or the \u2715 to delete it. Edits also need a quick confirmation before saving.' },
-    { q: 'What does PR mean?', a: 'PR = Personal Record. It shows up when a set beats your best estimated 1-rep max for that exercise, based on your logged history.' },
-    { q: 'How does "Pick by muscle group" work?', a: 'Tap it to browse exercises grouped by muscle (chest, back, legs, etc.) instead of typing a name from scratch.' },
-    { q: 'What does "Save as Routine" do?', a: 'It saves your current session\u2019s exercise list as a reusable template, so a new session can start with the same exercises pre-loaded.' },
-    { q: 'How do I switch kg/lb?', a: 'Tap the KG/LB button top right. It converts the display instantly \u2014 your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.' },
-    { q: 'Does my data sync across devices?', a: 'Only with a real account, not Guest. Guest mode stays on this device only. Sign in with the same email on another device to bring your history over.' },
-    { q: 'What does the reset icon do?', a: 'It clears every exercise and set from today\u2019s session only \u2014 the session stays, just empty. History and other sessions are never touched.' },
-    { q: 'Where can I see past workouts?', a: 'The History tab shows every finished session, with total volume and sets for each.' },
-    { q: 'What\u2019s in the Progress tab?', a: 'Trends over time \u2014 volume, PRs, and estimated 1-rep max per exercise.' }
+  var TOUR_STEPS = [
+    { tab: 'log', selector: '[data-action="add-blank-exercise"]', title: 'Add an exercise', text: 'Tap here to add an exercise \u2014 search by name, or browse the full library grouped by muscle.' },
+    { tab: 'log', selector: '.mm-toggle-btn', title: 'Browse by muscle', text: 'Prefer to browse? This opens a body diagram \u2014 tap a muscle group to see matching exercises.' },
+    { tab: 'log', selector: '#restTimerHeaderBtn', title: 'Rest timer', text: 'Start a rest timer between sets. It keeps counting down even if you switch tabs.' },
+    { tab: 'log', selector: '#notifBellBtn', title: 'Notifications', text: 'Trial status, reminders, and other updates show up here.' },
+    { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Tap the \u22ee on any session to edit, repeat, or delete it.' },
+    { tab: 'progress', selector: '.progress-select', fallback: '#view', title: 'Progress', text: 'Track your estimated 1-rep max and trend over time for any exercise you\u2019ve logged.' },
+    { tab: 'settings', selector: '.card-bg-picker', fallback: '#view', title: 'Card style', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
+    { tab: 'settings', selector: '.settings-row .seg', fallback: '#view', title: 'Units', text: 'Switch between kg and lb any time. Your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.' }
   ];
 
-  function openHelp(){
-    ui.showHelp = true;
-    renderHelpOverlay();
+  function startTour(){
+    ui.tourStep = 0;
+    renderTourStep();
   }
-  function closeHelp(){
-    ui.showHelp = false;
-    renderHelpOverlay();
+  function endTour(){
+    ui.tourStep = null;
+    renderTourStep();
   }
-  function askHelpTopic(idx){
-    var topic = HELP_TOPICS[idx];
-    if (!topic) return;
-    ui.helpLog.push(topic);
-    renderHelpOverlay();
+  function tourNext(){
+    if (ui.tourStep === null) return;
+    if (ui.tourStep >= TOUR_STEPS.length - 1){ endTour(); return; }
+    ui.tourStep++;
+    renderTourStep();
   }
-  function renderHelpOverlay(){
-    var overlay = document.getElementById('helpOverlay');
-    var panel = document.getElementById('helpPanel');
-    if (!ui.showHelp){
-      overlay.classList.add('hidden');
-      panel.innerHTML = '';
+  function tourBack(){
+    if (ui.tourStep === null || ui.tourStep === 0) return;
+    ui.tourStep--;
+    renderTourStep();
+  }
+  function findTourTarget(step){
+    var el = document.querySelector(step.selector);
+    if (el) return el;
+    return step.fallback ? document.querySelector(step.fallback) : null;
+  }
+  // Positions the small "ring" element exactly over the target so its
+  // oversized box-shadow (0 0 0 9999px) reads as a dimmed backdrop with a
+  // cutout — a single element, no SVG mask needed. A separate full-screen
+  // #tourBackdrop (transparent, pointer-events:auto) sits behind it to
+  // catch taps so the tour can't be knocked off course by accidentally
+  // hitting real controls underneath; the ring itself is pointer-events:none
+  // so it's purely visual. If there's no target at all, the ring hides and
+  // the bubble just centers on screen.
+  function positionTourBubble(targetEl){
+    var ring = document.getElementById('tourSpotlight');
+    var bubble = document.getElementById('tourBubble');
+    if (!targetEl){
+      ring.classList.add('hidden');
+      bubble.classList.add('tour-bubble-centered');
+      bubble.style.top = ''; bubble.style.left = ''; bubble.style.bottom = '';
       return;
     }
-    overlay.classList.remove('hidden');
-    var chatHtml = '';
-    if (ui.helpLog.length === 0){
-      chatHtml += '<div class="help-bubble help-bubble-answer">Hey! Tap a question below and I\u2019ll walk you through it.</div>';
+    bubble.classList.remove('tour-bubble-centered');
+    var rect = targetEl.getBoundingClientRect();
+    var pad = 6;
+    ring.classList.remove('hidden');
+    ring.style.top = (rect.top - pad) + 'px';
+    ring.style.left = (rect.left - pad) + 'px';
+    ring.style.width = (rect.width + pad * 2) + 'px';
+    ring.style.height = (rect.height + pad * 2) + 'px';
+
+    var bubbleWidth = Math.min(300, window.innerWidth - 24);
+    bubble.style.width = bubbleWidth + 'px';
+    var left = Math.min(Math.max(12, rect.left), window.innerWidth - 12 - bubbleWidth);
+    bubble.style.left = left + 'px';
+
+    var spaceBelow = window.innerHeight - rect.bottom;
+    var spaceAbove = rect.top;
+    if (spaceBelow >= 150 || spaceBelow >= spaceAbove){
+      bubble.style.top = (rect.bottom + 14) + 'px';
+      bubble.style.bottom = 'auto';
     } else {
-      ui.helpLog.forEach(function(item){
-        chatHtml += '<div class="help-bubble help-bubble-user">'+esc(item.q)+'</div>';
-        chatHtml += '<div class="help-bubble help-bubble-answer">'+esc(item.a)+'</div>';
-      });
+      bubble.style.bottom = (window.innerHeight - rect.top + 14) + 'px';
+      bubble.style.top = 'auto';
     }
-    var topicsHtml = HELP_TOPICS.map(function(t, i){
-      return '<button class="help-topic-chip" data-action="ask-help-topic" data-idx="'+i+'">'+esc(t.q)+'</button>';
-    }).join('');
-    panel.innerHTML =
-      '<div class="help-header"><h3>Help</h3><button class="help-close-btn" data-action="close-help" aria-label="Close">&#10005;</button></div>' +
-      '<div class="help-chat-area" id="helpChatArea">' + chatHtml + '</div>' +
-      '<div class="help-topics">' + topicsHtml + '</div>';
-    var area = document.getElementById('helpChatArea');
-    if (area) area.scrollTop = area.scrollHeight;
   }
+  function renderTourStep(){
+    var backdrop = document.getElementById('tourBackdrop');
+    var ring = document.getElementById('tourSpotlight');
+    var bubble = document.getElementById('tourBubble');
+    if (!backdrop || !ring || !bubble) return;
+    if (ui.tourStep === null){
+      backdrop.classList.add('hidden');
+      ring.classList.add('hidden');
+      bubble.classList.add('hidden');
+      bubble.innerHTML = '';
+      return;
+    }
+    var step = TOUR_STEPS[ui.tourStep];
+    var needsTabSwitch = state.tab !== step.tab;
+    if (needsTabSwitch){
+      state.tab = step.tab;
+      renderApp();
+    }
+    backdrop.classList.remove('hidden');
+    bubble.classList.remove('hidden');
+    bubble.innerHTML =
+      '<div class="tour-bubble-head">' +
+        '<div class="tour-bubble-title">'+esc(step.title)+'</div>' +
+        '<button type="button" class="tour-bubble-close" data-action="tour-skip" aria-label="End tour">&#10005;</button>' +
+      '</div>' +
+      '<div class="tour-bubble-text">'+esc(step.text)+'</div>' +
+      '<div class="tour-bubble-footer">' +
+        '<span class="tour-bubble-progress">'+(ui.tourStep + 1)+' / '+TOUR_STEPS.length+'</span>' +
+        '<div class="tour-bubble-actions">' +
+          (ui.tourStep > 0 ? '<button type="button" class="tour-btn" data-action="tour-back">Back</button>' : '') +
+          '<button type="button" class="tour-btn primary" data-action="tour-next">'+(ui.tourStep === TOUR_STEPS.length - 1 ? 'Done' : 'Next')+'</button>' +
+        '</div>' +
+      '</div>';
+    // Deferred a frame so a just-triggered tab switch has finished
+    // painting before we measure the target's position.
+    requestAnimationFrame(function(){
+      positionTourBubble(findTourTarget(step));
+    });
+  }
+  window.addEventListener('resize', function(){
+    if (ui.tourStep === null) return;
+    positionTourBubble(findTourTarget(TOUR_STEPS[ui.tourStep]));
+  });
 
   /* =========================================================
      BRIEF — activity log overlay. Entries are recorded by
@@ -8472,8 +8610,14 @@
     } else if (action === 'dismiss-install-banner'){
       dismissInstallBannerPermanently();
       renderInstallBanner();
-    } else if (action === 'open-help'){
-      openHelp();
+    } else if (action === 'start-tour'){
+      startTour();
+    } else if (action === 'tour-next'){
+      tourNext();
+    } else if (action === 'tour-back'){
+      tourBack();
+    } else if (action === 'tour-skip'){
+      endTour();
     } else if (action === 'open-brief'){
       openBrief();
     } else if (action === 'enable-push'){
@@ -8799,17 +8943,11 @@
     }
   });
 
-  var helpOverlayEl = document.getElementById('helpOverlay');
-  helpOverlayEl.addEventListener('click', function(e){
-    if (e.target === helpOverlayEl){
-      closeHelp();
-      return;
-    }
-    var el = e.target.closest('[data-action]');
-    if (!el) return;
-    if (el.dataset.action === 'close-help') closeHelp();
-    else if (el.dataset.action === 'ask-help-topic') askHelpTopic(parseInt(el.dataset.idx, 10));
-  });
+  // Tapping the dimmed backdrop during the tour does nothing (by design —
+  // see positionTourBubble's comment on why stray taps are blocked rather
+  // than passed through), so no listener is needed here beyond what the
+  // bubble's own Back/Next/Skip buttons already handle via the main
+  // delegated click handler above.
 
   var briefOverlayEl = document.getElementById('briefOverlay');
   briefOverlayEl.addEventListener('click', function(e){
@@ -8987,8 +9125,8 @@
       cancelSaveRoutine();
     } else if (ui.confirmingDeleteAccountPassword){
       if (!ui.deleteAccountPasswordBusy) cancelDeleteAccountPasswordConfirm();
-    } else if (ui.showHelp){
-      closeHelp();
+    } else if (ui.tourStep !== null){
+      endTour();
     } else if (ui.showBrief){
       closeBrief();
     } else if (ui.showProReceipt){
