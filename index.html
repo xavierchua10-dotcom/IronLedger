@@ -2556,6 +2556,32 @@
     font-family:'JetBrains Mono',monospace;
   }
   .settings-row .seg button.active{background:var(--accent);color:#1c1500;}
+  .bodyweight-input-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-shrink:0;
+  }
+  .bodyweight-input{
+    width:64px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+    font-weight:700;
+    text-align:right;
+    padding:8px 8px;
+    border-radius:8px;
+  }
+  .bodyweight-input:focus{outline:none;border-color:var(--accent);}
+  .bodyweight-input-unit{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    color:var(--text-faint);
+    letter-spacing:0.03em;
+  }
   .routine-actions{display:flex;gap:8px;}
   /* Card-background swatch picker (Settings > Card Style). Each swatch
      previews its actual photo as a small thumbnail so the choice is
@@ -3697,9 +3723,13 @@
 
   // Returns an error message to show in a toast, or null if the entry is
   // fine to log. exerciseName is optional — omitting it just falls back
-  // to the flat sanity cap.
+  // to the flat sanity cap. Bodyweight exercises (push-ups, dips,
+  // pull-ups) allow exactly 0 here, since 0 added weight is a completely
+  // valid, common entry for them — everything else still requires a
+  // positive number.
   function weightRepsError(weightKg, reps, exerciseName){
-    if (weightKg === null || weightKg <= 0 || isNaN(reps) || reps <= 0) return 'Enter a weight and reps first';
+    var isBW = exerciseName && isBodyweightExercise(exerciseName);
+    if (weightKg === null || (isBW ? weightKg < 0 : weightKg <= 0) || isNaN(reps) || reps <= 0) return 'Enter a weight and reps first';
     if (reps > MAX_LOGGABLE_REPS) return 'That\u2019s over ' + MAX_LOGGABLE_REPS + ' reps \u2014 double check the number';
     var priorBest = exerciseName ? bestLoggedWeightKg(exerciseName) : 0;
     if (priorBest > 0){
@@ -3793,11 +3823,33 @@
     entries.sort(function(a,b){ return new Date(a.date) - new Date(b.date); });
     var best = 0;
     entries.forEach(function(e){
-      var val = e1rm(e.set.weightKg, e.set.reps);
+      var val = e1rm(effectiveLoadKg(exerciseName, e.set.weightKg), e.set.reps);
       var isPR = val > best + 0.001;
       e.set.isPR = isPR;
       if (isPR) best = val;
     });
+  }
+
+  // Bodyweight changes what "effective load" means for every bodyweight
+  // exercise ever logged, not just new ones — so setting or clearing it
+  // recomputes PR flags across full history for every such exercise name,
+  // not just going forward. displayVal is whatever's in the Settings
+  // input, in the person's current display unit; toStoredKg converts it
+  // to kg for storage, matching every other weight value in the app.
+  function saveBodyweight(displayVal){
+    var trimmed = String(displayVal == null ? '' : displayVal).trim();
+    var kg = trimmed === '' ? null : toStoredKg(trimmed);
+    if (kg !== null){
+      if (isNaN(kg) || kg <= 0) kg = null;
+      else kg = Math.max(20, Math.min(400, roundNice(kg))); // sane human range; guards against a fat-fingered value silently wrecking every calculation
+    }
+    state.settings.bodyweightKg = kg;
+    saveSettings();
+    allExerciseNames().forEach(function(name){
+      if (isBodyweightExercise(name)) recomputeExercisePRs(name);
+    });
+    saveSessions();
+    renderApp();
   }
 
   function findExercise(session, exId){
@@ -4078,6 +4130,43 @@
       '<div class="ex-suggest-list hidden" id="exSuggestList"></div>';
   }
 
+  // Bodyweight-aware effective load. Exercises tagged "Bodyweight"
+  // equipment (push-ups, dips, pull-ups, etc) are logged with just the
+  // *added* weight — 0 if none, and the input's own label makes that
+  // explicit (see the "+KG"/"+LB" unit shown next to it for these). For
+  // every load-based calculation below (e1RM, PR detection, volume,
+  // Progress charts, overload tips) the real load being moved is
+  // bodyweight + whatever was added, so that's what gets read here rather
+  // than the raw logged number. Falls back to the raw weight unchanged
+  // whenever bodyweight isn't set or the exercise isn't a bodyweight one,
+  // so nothing changes for anyone who leaves it blank.
+  function isBodyweightExercise(name){
+    if (!name) return false;
+    var key = name.trim().toLowerCase();
+    return EXERCISE_LIBRARY_FLAT.some(function(item){
+      return item.equipment === 'Bodyweight' && item.name.toLowerCase() === key;
+    });
+  }
+  function effectiveLoadKg(name, loggedKg){
+    var bw = state.settings && state.settings.bodyweightKg;
+    if (bw && bw > 0 && isBodyweightExercise(name)) return loggedKg + bw;
+    return loggedKg;
+  }
+  // Human-readable version for tip/detail text — for a bodyweight exercise
+  // with a bodyweight set, spells out the total so the math is legible
+  // ("82.5 kg (bodyweight + 2.5 kg)") instead of silently using a bigger
+  // number than what's on screen with no explanation.
+  function describeLoad(name, loggedKg){
+    var bw = state.settings && state.settings.bodyweightKg;
+    if (bw && bw > 0 && isBodyweightExercise(name)){
+      var eff = loggedKg + bw;
+      return loggedKg > 0
+        ? fmtWeight(eff) + ' ' + unitLabel() + ' (bodyweight + ' + fmtWeight(loggedKg) + ' ' + unitLabel() + ')'
+        : fmtWeight(eff) + ' ' + unitLabel() + ' (bodyweight)';
+    }
+    return fmtWeight(loggedKg) + ' ' + unitLabel();
+  }
+
   function e1rm(weightKg, reps){
     reps = Math.max(1, reps);
     if (reps === 1) return weightKg;
@@ -4093,7 +4182,7 @@
         if (ex.name.trim().toLowerCase() !== name) return;
         ex.sets.forEach(function(st){
           if (st.id === excludeSetId) return;
-          var val = e1rm(st.weightKg, st.reps);
+          var val = e1rm(effectiveLoadKg(ex.name, st.weightKg), st.reps);
           if (val > best) best = val;
         });
       });
@@ -4104,13 +4193,13 @@
   function sessionVolume(session){
     var total = 0;
     session.exercises.forEach(function(ex){
-      ex.sets.forEach(function(st){ total += st.weightKg * st.reps; });
+      ex.sets.forEach(function(st){ total += effectiveLoadKg(ex.name, st.weightKg) * st.reps; });
     });
     return total;
   }
   function exerciseVolume(ex){
     var total = 0;
-    ex.sets.forEach(function(st){ total += st.weightKg * st.reps; });
+    ex.sets.forEach(function(st){ total += effectiveLoadKg(ex.name, st.weightKg) * st.reps; });
     return total;
   }
   function sessionSetCount(session){
@@ -4891,7 +4980,7 @@
         if (ex.name.trim().toLowerCase() !== name) return;
         ex.sets.forEach(function(st){
           if (excludeSetIds.indexOf(st.id) !== -1) return;
-          var val = e1rm(st.weightKg, st.reps);
+          var val = e1rm(effectiveLoadKg(ex.name, st.weightKg), st.reps);
           if (val > best) best = val;
         });
       });
@@ -4901,9 +4990,21 @@
 
   // A small, sane next-session weight bump — not exact science, just a
   // reasonable plate-friendly increment scaled to the current load.
-  function smallIncrementKg(weightKg){
-    var stepKg = weightKg >= 60 ? 2.5 : (weightKg >= 20 ? 1.25 : 0.5);
+  function smallIncrementKg(weightKg, muscle){
+    var stepKg = stepKgFor(weightKg, muscle);
     return roundNice(weightKg + stepKg);
+  }
+  // Smaller, more joint-sensitive muscle groups (isolation-heavy, prone to
+  // technique breakdown before real strength gain) get progression capped
+  // to a smaller step even when the raw number would suggest a bigger
+  // jump — a heavy weighted push-up total shouldn't jump by chest-press
+  // increments if the working muscle here is really the shoulder/triceps.
+  // Big compound-friendly groups just use the normal weight-scaled step.
+  var SMALL_MUSCLE_GROUPS = ['Shoulders', 'Biceps', 'Triceps', 'Calves', 'Forearms', 'Traps', 'Abs'];
+  function stepKgFor(weightKg, muscle){
+    var base = weightKg >= 60 ? 2.5 : (weightKg >= 20 ? 1.25 : 0.5);
+    if (muscle && SMALL_MUSCLE_GROUPS.indexOf(muscle) !== -1) base = Math.min(base, 1.25);
+    return base;
   }
 
   // A bigger jump for sets that badly overshoot the rep range (>15) — at
@@ -4911,15 +5012,16 @@
   // isn't enough. Scaled by load (not a flat number): we use the same
   // e1RM math as the rest of the app to back-solve a weight that should
   // land the lifter back around the bottom of the 8-12 range, then snap
-  // it to a plate-friendly step sized to the current load.
-  function loadScaledJumpKg(weightKg, reps){
+  // it to a plate-friendly step sized to the current load (and capped
+  // smaller for joint-sensitive muscle groups — see stepKgFor above).
+  function loadScaledJumpKg(weightKg, reps, muscle){
     var e1 = e1rm(weightKg, reps);
     var raw = e1 / (1 + REP_RANGE_MIN / 30);
-    var stepKg = weightKg >= 60 ? 2.5 : (weightKg >= 20 ? 1.25 : 0.5);
+    var stepKg = stepKgFor(weightKg, muscle);
     var snapped = Math.round(raw / stepKg) * stepKg;
     // never suggest less than the normal small bump, even if the math
     // undershoots for some edge-case rep/weight combo
-    return roundNice(Math.max(snapped, smallIncrementKg(weightKg)));
+    return roundNice(Math.max(snapped, smallIncrementKg(weightKg, muscle)));
   }
 
   // Progressive-overload heuristic per exercise, fixed to an 8-12 rep
@@ -4930,42 +5032,50 @@
   //  - top set 8-11 reps          -> in range, chase one more rep at same weight
   //  - top set <8 reps            -> under range, hold weight and build to 8
   //                                   (only drop weight if it's genuinely too heavy)
+  // Every weight/e1RM figure below runs through effectiveLoadKg first, so
+  // bodyweight exercises (push-ups, dips, pull-ups) factor in your
+  // bodyweight from Settings rather than just the added weight — and the
+  // suggested targets get converted back to "added weight" terms (via
+  // bwOffset) before display, since that's what you'd actually type into
+  // the +KG field, not the total.
   var REP_RANGE_MIN = 8;
   var REP_RANGE_MAX = 12;
   var REP_RANGE_OVERSHOOT = 15;
   function overloadTipForExercise(ex){
     var sets = ex.sets;
     if (!sets || !sets.length) return null;
+    var bwOffset = effectiveLoadKg(ex.name, 0);
     var best = sets[0];
     sets.forEach(function(st){
-      if (e1rm(st.weightKg, st.reps) > e1rm(best.weightKg, best.reps)) best = st;
+      if (e1rm(effectiveLoadKg(ex.name, st.weightKg), st.reps) > e1rm(effectiveLoadKg(ex.name, best.weightKg), best.reps)) best = st;
     });
+    var bestEffKg = effectiveLoadKg(ex.name, best.weightKg);
     var setIds = sets.map(function(st){ return st.id; });
     var prior = priorBestE1RM(ex.name, setIds);
-    var thisE1 = e1rm(best.weightKg, best.reps);
+    var thisE1 = e1rm(bestEffKg, best.reps);
     var headline, detail, target;
     if (prior > 0 && thisE1 < prior - 0.001){
       headline = 'Match your recent best';
-      target = 'Maintain ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' until you match your recent best';
-      detail = 'Top set here was ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + best.reps + ', below your recent best on ' + ex.name + '. Aim to match that number before chasing a new PR.';
+      target = 'Maintain ' + describeLoad(ex.name, best.weightKg) + ' until you match your recent best';
+      detail = 'Top set here was ' + describeLoad(ex.name, best.weightKg) + ' \u00d7 ' + best.reps + ', below your recent best on ' + ex.name + '. Aim to match that number before chasing a new PR.';
     } else if (best.reps > REP_RANGE_OVERSHOOT){
-      var bigKg = loadScaledJumpKg(best.weightKg, best.reps);
+      var bigAddedKg = roundNice(loadScaledJumpKg(bestEffKg, best.reps, ex.muscle) - bwOffset);
       headline = 'Weight is too light \u2014 jump up';
-      target = 'Target: ' + fmtWeight(bigKg) + ' ' + unitLabel() + ' next session, aim to land in ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' reps';
-      detail = 'You hit ' + best.reps + ' reps at ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u2014 well past the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range, so this weight is too light. Based on that effort, jump up to about ' + fmtWeight(bigKg) + ' ' + unitLabel() + ' next session \u2014 scaled to your current strength \u2014 and aim to land back in the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' range.';
+      target = 'Target: ' + describeLoad(ex.name, bigAddedKg) + ' next session, aim to land in ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' reps';
+      detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 well past the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range, so this weight is too light. Based on that effort, jump up to about ' + describeLoad(ex.name, bigAddedKg) + ' next session \u2014 scaled to your current strength \u2014 and aim to land back in the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' range.';
     } else if (best.reps >= REP_RANGE_MAX){
-      var nextKg = smallIncrementKg(best.weightKg);
+      var nextAddedKg = roundNice(smallIncrementKg(bestEffKg, ex.muscle) - bwOffset);
       headline = 'Add weight next time';
-      target = 'Target: ' + fmtWeight(nextKg) + ' ' + unitLabel() + ' next session, aim for ' + REP_RANGE_MIN + ' reps';
-      detail = 'You hit ' + best.reps + ' reps at ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u2014 the top of the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range. Bump the weight to about ' + fmtWeight(nextKg) + ' ' + unitLabel() + ' next session and reset toward ' + REP_RANGE_MIN + ' reps.';
+      target = 'Target: ' + describeLoad(ex.name, nextAddedKg) + ' next session, aim for ' + REP_RANGE_MIN + ' reps';
+      detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 the top of the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range. Bump the weight to about ' + describeLoad(ex.name, nextAddedKg) + ' next session and reset toward ' + REP_RANGE_MIN + ' reps.';
     } else if (best.reps < REP_RANGE_MIN){
       headline = 'Work back up to ' + REP_RANGE_MIN + ' reps';
-      target = 'Same weight, ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ', aim for ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' reps';
-      detail = 'Top set was ' + best.reps + ' reps at ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u2014 below the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range. Keep the same weight next session and aim to reach at least ' + REP_RANGE_MIN + ' reps. If it still feels too heavy to get there, drop the weight slightly and build back up within ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + '.';
+      target = 'Same weight, ' + describeLoad(ex.name, best.weightKg) + ', aim for ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' reps';
+      detail = 'Top set was ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 below the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range. Keep the same weight next session and aim to reach at least ' + REP_RANGE_MIN + ' reps. If it still feels too heavy to get there, drop the weight slightly and build back up within ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + '.';
     } else {
       headline = 'Add a rep next time';
-      target = 'Maintain ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ', aim for ' + (best.reps + 1) + ' reps';
-      detail = 'Top set: ' + fmtWeight(best.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + best.reps + '. Keep the same weight and aim for ' + (best.reps + 1) + ' reps next session \u2014 once you reach ' + REP_RANGE_MAX + ', it\u2019s time to add weight.';
+      target = 'Maintain ' + describeLoad(ex.name, best.weightKg) + ', aim for ' + (best.reps + 1) + ' reps';
+      detail = 'Top set: ' + describeLoad(ex.name, best.weightKg) + ' \u00d7 ' + best.reps + '. Keep the same weight and aim for ' + (best.reps + 1) + ' reps next session \u2014 once you reach ' + REP_RANGE_MAX + ', it\u2019s time to add weight.';
     }
     return { headline: headline, target: target, detail: detail };
   }
@@ -6158,9 +6268,15 @@
         var draft = ui.draftSets[ex.id];
         var draftWeightKg = draft && draft.weight != null ? toStoredKg(draft.weight) : null;
         var draftReps = draft && draft.reps != null ? parseInt(draft.reps, 10) : NaN;
-        var rowReady = draftWeightKg !== null && draftWeightKg > 0 && !isNaN(draftReps) && draftReps > 0;
+        // Bodyweight exercises (push-ups, dips, pull-ups) log *added*
+        // weight, and 0 added weight is completely valid there — this used
+        // to require a positive number to enable the checkmark at all,
+        // which meant a plain bodyweight set literally couldn't be logged
+        // without typing some arbitrary nonzero placeholder number.
+        var isBW = isBodyweightExercise(ex.name);
+        var rowReady = draftWeightKg !== null && (isBW ? draftWeightKg >= 0 : draftWeightKg > 0) && !isNaN(draftReps) && draftReps > 0;
         html += '<div class="add-set-row">' +
-                  '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="set-weight-input" data-ex="'+ex.id+'" value="'+(draft && draft.weight != null ? esc(draft.weight) : '')+'">' +
+                  '<input type="number" inputmode="decimal" step="0.5" placeholder="'+(isBW ? '+' + unitLabel() : unitLabel())+'" class="set-weight-input" data-ex="'+ex.id+'" value="'+(draft && draft.weight != null ? esc(draft.weight) : '')+'">' +
                   '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="set-reps-input" data-ex="'+ex.id+'" value="'+(draft && draft.reps != null ? esc(draft.reps) : '')+'">' +
                   '<div class="add-set-btn-group">' +
                     '<button class="add-set-btn" data-action="add-set-row" data-ex="'+ex.id+'" aria-label="Add set"'+(rowReady?'':' disabled')+'>&#10003;</button>' +
@@ -6394,10 +6510,10 @@
         if (ex.name.trim().toLowerCase() !== name.trim().toLowerCase()) return;
         if (ex.sets.length === 0) return;
         var bestSet = ex.sets.reduce(function(a,b){
-          return e1rm(b.weightKg,b.reps) > e1rm(a.weightKg,a.reps) ? b : a;
+          return e1rm(effectiveLoadKg(ex.name,b.weightKg),b.reps) > e1rm(effectiveLoadKg(ex.name,a.weightKg),a.reps) ? b : a;
         }, ex.sets[0]);
-        var topKg = Math.max.apply(null, ex.sets.map(function(st){ return st.weightKg; }));
-        pts.push({ date: s.date, e1rm: e1rm(bestSet.weightKg, bestSet.reps), topKg: topKg });
+        var topKg = Math.max.apply(null, ex.sets.map(function(st){ return effectiveLoadKg(ex.name, st.weightKg); }));
+        pts.push({ date: s.date, e1rm: e1rm(effectiveLoadKg(ex.name, bestSet.weightKg), bestSet.reps), topKg: topKg });
       });
     });
     return pts;
@@ -6510,6 +6626,12 @@
               '<div class="seg">' +
                 '<button data-action="set-unit" data-unit="kg" class="'+(state.settings.unit==='kg'?'active':'')+'">KG</button>' +
                 '<button data-action="set-unit" data-unit="lb" class="'+(state.settings.unit==='lb'?'active':'')+'">LB</button>' +
+              '</div></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Bodyweight</div>' +
+              '<div class="sr-sub">Optional \u2014 lets push-ups, dips, and pull-ups track real load and PRs instead of always reading 0</div></div>' +
+              '<div class="bodyweight-input-wrap">' +
+                '<input type="number" inputmode="decimal" id="bodyweightInput" class="bodyweight-input" placeholder="\u2014" step="0.1" min="0" value="'+(state.settings.bodyweightKg ? roundNice(toDisplay(state.settings.bodyweightKg)) : '')+'">' +
+                '<span class="bodyweight-input-unit">'+unitLabel().toUpperCase()+'</span>' +
               '</div></div>';
     html += '</div>';
 
@@ -7472,7 +7594,7 @@
   function commitSet(ex, weightKg, reps){
     var setId = uid();
     var prevBest = bestE1RM(ex.name, null);
-    var thisE1rm = e1rm(weightKg, reps);
+    var thisE1rm = e1rm(effectiveLoadKg(ex.name, weightKg), reps);
     var isPR = thisE1rm > prevBest + 0.001;
 
     ex.sets.push({
@@ -7518,7 +7640,8 @@
     if (target){
       var weightKg = toStoredKg(target.weightInput.value);
       var reps = parseInt(target.repsInput.value, 10);
-      ready = weightKg !== null && weightKg > 0 && !isNaN(reps) && reps > 0;
+      var isBW = isBodyweightExercise(target.ex.name);
+      ready = weightKg !== null && (isBW ? weightKg >= 0 : weightKg > 0) && !isNaN(reps) && reps > 0;
     }
     btn.disabled = !ready;
     btn.innerHTML = ui.editingSet ? '&#10003; Apply Changes' : '&#10003; Add Set';
@@ -7535,7 +7658,10 @@
     if (!btn || !weightInput || !repsInput) return;
     var weightKg = toStoredKg(weightInput.value);
     var reps = parseInt(repsInput.value, 10);
-    btn.disabled = !(weightKg !== null && weightKg > 0 && !isNaN(reps) && reps > 0);
+    var session = getActiveSession();
+    var ex = session && findExercise(session, exId);
+    var isBW = ex && isBodyweightExercise(ex.name);
+    btn.disabled = !(weightKg !== null && (isBW ? weightKg >= 0 : weightKg > 0) && !isNaN(reps) && reps > 0);
   }
 
   function openAddSetPanelConfirm(exId){
@@ -8687,6 +8813,9 @@
       ui.progressExercise = t.value;
       renderApp();
     }
+    if (t.id === 'bodyweightInput'){
+      saveBodyweight(t.value);
+    }
   });
 
   document.getElementById('app').addEventListener('keydown', function(e){
@@ -8702,6 +8831,9 @@
       } else if (e.target.id === 'exNameInput'){
         e.preventDefault();
         openExerciseNamePickConfirm(ui.editingExerciseName, e.target.value, null);
+      } else if (e.target.id === 'bodyweightInput'){
+        e.preventDefault();
+        e.target.blur();
       }
     } else if (e.key === 'Escape' && e.target.id === 'hiNameInput'){
       e.preventDefault();
