@@ -8528,16 +8528,19 @@
     }
   });
 
-  // Hide the tab bar and Finish Session bar while any text input is
-  // focused (weight, reps, exercise rename, session name, etc). On a
-  // phone the on-screen keyboard already eats most of the screen, so
-  // keeping this chrome visible right above it just wastes the little
-  // space that's left — it all comes back the moment nothing is focused.
-  // The top header is deliberately left alone (see convo) — it's not in
-  // the cramped zone next to the keyboard, and hiding it would block
-  // quick access to the rest timer/notifications mid-type. Uses its own
-  // class (not .hidden) so it doesn't fight with the render-driven
-  // show/hide logic tied to session state.
+  // Hide the tab bar and Finish Session bar while the on-screen keyboard
+  // is actually covering the screen — not just "an input is focused".
+  // Those aren't the same thing on mobile: a field can stay focused after
+  // the keyboard's been dismissed (tapped away, back-gesture, etc), and
+  // tying this to focus alone left the tab bar gone with nothing actually
+  // covering it. window.visualViewport reports the real visible height,
+  // which shrinks when the keyboard opens and recovers when it closes,
+  // regardless of focus — so that's what actually drives this now. The
+  // top header is deliberately left alone (see convo) — it's not in the
+  // cramped zone next to the keyboard, and hiding it would block quick
+  // access to the rest timer/notifications mid-type. Uses its own class
+  // (not .hidden) so it doesn't fight with the render-driven show/hide
+  // logic tied to session state.
   var KB_HIDE_TARGETS = ['sessionFinishBar'];
   var KB_HIDE_TARGET_SELECTORS = ['.tabbar'];
   function setKbHide(on){
@@ -8550,24 +8553,38 @@
       if (el) el.classList.toggle('kb-hide', on);
     });
   }
-  document.addEventListener('focusin', function(e){
-    if (e.target.matches && e.target.matches('input, textarea')){
-      setKbHide(true);
-    }
-  });
-  document.addEventListener('focusout', function(e){
-    if (e.target.matches && e.target.matches('input, textarea')){
-      // Deferred so focus moving straight from one input to another (e.g.
-      // tabbing from the kg field to reps) doesn't flash everything back
-      // in between the blur and the next focus.
-      setTimeout(function(){
-        var active = document.activeElement;
-        if (!active || !(active.matches && active.matches('input, textarea'))){
-          setKbHide(false);
-        }
-      }, 60);
-    }
-  });
+  if (window.visualViewport){
+    var updateKbHideFromViewport = function(){
+      var active = document.activeElement;
+      var inputFocused = !!(active && active.matches && active.matches('input, textarea'));
+      // Threshold well above normal browser-chrome fluctuation (the URL
+      // bar collapsing/expanding is usually ~50-60px) but comfortably
+      // below any real keyboard's height (~250px+), so this reliably
+      // means "keyboard is open" rather than just "page scrolled".
+      var shrink = window.innerHeight - window.visualViewport.height;
+      setKbHide(inputFocused && shrink > 150);
+    };
+    window.visualViewport.addEventListener('resize', updateKbHideFromViewport);
+    document.addEventListener('focusout', function(e){
+      if (e.target.matches && e.target.matches('input, textarea')){
+        setTimeout(updateKbHideFromViewport, 60);
+      }
+    });
+  } else {
+    // Fallback for browsers without visualViewport support: back to the
+    // focus-only heuristic, which is imperfect but better than nothing.
+    document.addEventListener('focusin', function(e){
+      if (e.target.matches && e.target.matches('input, textarea')) setKbHide(true);
+    });
+    document.addEventListener('focusout', function(e){
+      if (e.target.matches && e.target.matches('input, textarea')){
+        setTimeout(function(){
+          var active = document.activeElement;
+          if (!active || !(active.matches && active.matches('input, textarea'))) setKbHide(false);
+        }, 60);
+      }
+    });
+  }
 
   // Close the notifications dropdown when tapping anywhere outside it.
   document.addEventListener('click', function(e){
