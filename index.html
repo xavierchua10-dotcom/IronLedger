@@ -2522,12 +2522,19 @@
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:14px 0;
+    padding:16px 0;
     border-top:1px solid var(--line);
   }
   .settings-row:first-child{border-top:none;}
-  .settings-row .sr-label{font-size:14px;color:var(--text);}
-  .settings-row .sr-sub{font-size:11px;color:var(--text-faint);margin-top:2px;}
+  .settings-row .sr-label{font-size:14px;color:var(--text);font-weight:600;}
+  .settings-row .sr-sub{font-size:11.5px;color:var(--text-faint);margin-top:4px;line-height:1.4;}
+  .settings-row .sr-value{
+    font-size:12px;
+    font-weight:700;
+    color:var(--accent);
+    letter-spacing:0.02em;
+    margin-top:7px;
+  }
   .sr-with-avatar{display:flex;align-items:center;gap:12px;min-width:0;}
   .sr-avatar-pic{
     width:38px;height:38px;
@@ -6883,7 +6890,8 @@
                 '<button data-action="set-unit" data-unit="lb" class="'+(state.settings.unit==='lb'?'active':'')+'">LB</button>' +
               '</div></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Bodyweight &amp; Goal</div>' +
-              '<div class="sr-sub">'+(state.settings.bodyweightKg ? fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set') + ' \u00b7 ' + esc((GOAL_OPTIONS.filter(function(g){ return g.id === ((state.settings && state.settings.goal) || 'hypertrophy'); })[0] || GOAL_OPTIONS[1]).label) + '</div></div>' +
+              '<div class="sr-sub">Powers real load, PRs, and progression tips in Pro Tips</div>' +
+              '<div class="sr-value">'+(state.settings.bodyweightKg ? fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set') + ' \u00b7 ' + esc((GOAL_OPTIONS.filter(function(g){ return g.id === ((state.settings && state.settings.goal) || 'hypertrophy'); })[0] || GOAL_OPTIONS[1]).label) + '</div></div>' +
               '<button class="sr-action" data-action="open-bodyweight-picker">'+(state.settings.bodyweightKg ? 'Edit' : 'Set')+'</button></div>';
     html += '</div>';
 
