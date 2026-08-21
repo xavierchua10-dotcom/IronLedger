@@ -4212,6 +4212,51 @@
     return fmtWeight(loggedKg) + ' ' + unitLabel();
   }
 
+  // One-time "you're strong" badge per muscle group, scaled to bodyweight
+  // rather than a flat number — same reasoning as everywhere else
+  // bodyweight gets used in this app: 90kg means something very different
+  // for a 60kg lifter than a 120kg lifter, so the celebration should scale
+  // with the person, not a fixed number. Ratios below are a rough "that's
+  // genuinely strong" bar per muscle group (roughly advanced-tier on
+  // common strength-standard charts for the heaviest typical lift in that
+  // category) — approximate on purpose, since a muscle group can span very
+  // different movements with very different leverage (Back covers both
+  // rows and deadlifts, for instance), same caveat as MUSCLE_MAX_LOAD_KG
+  // above. Forearms and Abs are excluded — bodyweight ratio isn't a
+  // meaningful way to grade either. Requires a bodyweight to be set in
+  // Settings; silently does nothing without one, same as the rest of the
+  // bodyweight-aware features.
+  var STRENGTH_BADGE_RATIO = {
+    Glutes: 2.0,
+    Back: 1.5,
+    Quads: 1.5,
+    Traps: 1.5,
+    Calves: 1.5,
+    Chest: 1.25,
+    Hamstrings: 1.25,
+    Shoulders: 0.75,
+    Triceps: 0.6,
+    Biceps: 0.5
+  };
+  // Checks whether this set just crossed that muscle's bar for the first
+  // time ever; if so, marks it shown (persisted, never re-fires) and
+  // returns a toast message. Returns null otherwise — no bodyweight set,
+  // muscle not in the table, already earned, or just not heavy enough yet.
+  function checkStrengthBadge(ex, weightKg){
+    var bw = state.settings && state.settings.bodyweightKg;
+    if (!bw || bw <= 0) return null;
+    var muscle = ex.muscle;
+    var ratio = muscle && STRENGTH_BADGE_RATIO[muscle];
+    if (!ratio) return null;
+    if (!state.settings.strengthBadges) state.settings.strengthBadges = {};
+    if (state.settings.strengthBadges[muscle]) return null;
+    var eff = effectiveLoadKg(ex.name, weightKg);
+    if (eff / bw < ratio) return null;
+    state.settings.strengthBadges[muscle] = true;
+    saveSettings();
+    return 'That\u2019s strong AF \u2014 ' + muscle + ' just crossed ' + roundNice(ratio) + '\u00d7 your bodyweight on ' + ex.name + ' \ud83d\udcaa';
+  }
+
   function e1rm(weightKg, reps){
     reps = Math.max(1, reps);
     if (reps === 1) return weightKg;
@@ -5059,14 +5104,31 @@
   // land the lifter back around the bottom of the 8-12 range, then snap
   // it to a plate-friendly step sized to the current load (and capped
   // smaller for joint-sensitive muscle groups — see stepKgFor above).
+  //
+  // Two safety nets on top of that raw math, because e1RM formulas
+  // (Epley-style, same one the rest of the app uses) get increasingly
+  // unreliable the further out they're extrapolated — by 40-50+ reps the
+  // "estimated 1RM" balloons into physically impossible territory. 200kg
+  // x 50 reps, for instance, projects to a 533kg e1RM with the raw
+  // formula, which without a cap would suggest jumping to ~420kg next
+  // session — nobody has ever bench pressed that, raw or equipped. So:
+  // (1) the reps fed into the e1RM estimate are capped at
+  // JUMP_EST_REP_CAP, tempering the runaway extrapolation, and (2) the
+  // final suggested jump is hard-capped at MAX_JUMP_PCT above the current
+  // weight no matter what the math says — so the suggestion always stays
+  // in "big but plausible" territory instead of "technically math but
+  // physically absurd."
+  var JUMP_EST_REP_CAP = 20;
+  var MAX_JUMP_PCT = 0.20;
   function loadScaledJumpKg(weightKg, reps, muscle){
-    var e1 = e1rm(weightKg, reps);
+    var e1 = e1rm(weightKg, Math.min(reps, JUMP_EST_REP_CAP));
     var raw = e1 / (1 + REP_RANGE_MIN / 30);
     var stepKg = stepKgFor(weightKg, muscle);
     var snapped = Math.round(raw / stepKg) * stepKg;
+    var capped = Math.min(snapped, weightKg * (1 + MAX_JUMP_PCT));
     // never suggest less than the normal small bump, even if the math
     // undershoots for some edge-case rep/weight combo
-    return roundNice(Math.max(snapped, smallIncrementKg(weightKg, muscle)));
+    return roundNice(Math.max(capped, smallIncrementKg(weightKg, muscle)));
   }
 
   // Progressive-overload heuristic per exercise, fixed to an 8-12 rep
@@ -5086,6 +5148,7 @@
   var REP_RANGE_MIN = 8;
   var REP_RANGE_MAX = 12;
   var REP_RANGE_OVERSHOOT = 15;
+  var REP_RANGE_EXTREME = 25; // past this, flag that the jump is capped rather than silently trusting an increasingly unreliable e1RM extrapolation
   function overloadTipForExercise(ex){
     var sets = ex.sets;
     if (!sets || !sets.length) return null;
@@ -5107,7 +5170,8 @@
       var bigAddedKg = roundNice(loadScaledJumpKg(bestEffKg, best.reps, ex.muscle) - bwOffset);
       headline = 'Weight is too light \u2014 jump up';
       target = 'Target: ' + describeLoad(ex.name, bigAddedKg) + ' next session, aim to land in ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' reps';
-      detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 well past the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range, so this weight is too light. Based on that effort, jump up to about ' + describeLoad(ex.name, bigAddedKg) + ' next session \u2014 scaled to your current strength \u2014 and aim to land back in the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' range.';
+      detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 well past the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' hypertrophy range, so this weight is too light. Based on that effort, jump up to about ' + describeLoad(ex.name, bigAddedKg) + ' next session \u2014 scaled to your current strength \u2014 and aim to land back in the ' + REP_RANGE_MIN + '\u2013' + REP_RANGE_MAX + ' range.' +
+        (best.reps > REP_RANGE_EXTREME ? ' That\u2019s a lot of reps for one set \u2014 the jump above is capped to stay realistic rather than trust the math past the point it means anything, so double check the numbers if that rep count wasn\u2019t intentional.' : '');
     } else if (best.reps >= REP_RANGE_MAX){
       var nextAddedKg = roundNice(smallIncrementKg(bestEffKg, ex.muscle) - bwOffset);
       headline = 'Add weight next time';
@@ -7696,9 +7760,17 @@
     saveSessions();
     logActivity('Added set ' + fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + ' to "' + ex.name + '"' + (isPR ? ' \u2014 new PR' : ''), 'Log');
     ui.freshPRSetId = isPR ? setId : null;
+    // Checked before the render so a freshly-earned badge is already
+    // persisted by the time anything re-reads settings this cycle.
+    var badgeMsg = checkStrengthBadge(ex, weightKg);
     renderApp();
     ui.freshPRSetId = null;
-    if (isPR){
+    if (badgeMsg){
+      // Rarer and more special than a routine PR — takes priority on the
+      // (single-slot) toast if both happen on the same set, rather than
+      // trying to queue two toasts back to back.
+      showToast(badgeMsg);
+    } else if (isPR){
       var joke = susWeightJoke(ex.name, weightKg, prevBest);
       showToast(joke || ('New PR on ' + ex.name + '!'));
     }
@@ -7963,8 +8035,9 @@
     saveSessions();
     logActivity('Edited set on "' + ex.name + '": ' + oldLabel + ' \u2192 ' + newLabel, 'Log');
     ui.editingSet = null;
+    var badgeMsg = checkStrengthBadge(ex, weightKg);
     renderApp();
-    showToast('Set updated');
+    showToast(badgeMsg || 'Set updated');
   }
 
   function finishSession(){
