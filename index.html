@@ -488,6 +488,10 @@
   .exercise-card .set-detail .set-time{color:#dfe2e6;}
   .exercise-card .eh-title h3{color:#e4e6ea;}
   .exercise-card .exercise-head-actions .icon-btn{background:rgba(10,12,16,0.4);}
+  .exercise-card .set-act-btn{
+    border:1px solid var(--line);
+    background:rgba(10,12,16,0.4);
+  }
   /* User-selectable card background, set via Settings > Card Style. JS sets
      data-card-bg on <body> (see renderApp) to match state.settings.cardBg;
      these rules override the default exercise-card-bg.jpg above per choice.
@@ -926,6 +930,9 @@
   }
   .exercise-head-actions .icon-btn{
     border:1px solid var(--line);
+    width:36px;
+    height:36px;
+    font-size:14px;
   }
 
   .exercise-volume{
