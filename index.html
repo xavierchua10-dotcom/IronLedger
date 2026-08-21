@@ -2595,6 +2595,7 @@
     background:var(--panel);
   }
   .session-finish-bar.hidden{display:none;}
+  .session-finish-bar.kb-hide{display:none;}
   .session-finish-bar .btn-primary{
     flex:0 1 50%;
     margin-top:0;
@@ -8523,6 +8524,33 @@
     } else if (e.key === 'Escape' && e.target.id === 'exNameInput'){
       e.preventDefault();
       cancelExerciseNameEdit();
+    }
+  });
+
+  // Hide the Finish Session bar while any text input is focused (weight,
+  // reps, exercise rename, session name, etc). On a phone the on-screen
+  // keyboard already eats most of the screen, so keeping this bar visible
+  // just wastes the little space that's left — it comes back the moment
+  // nothing is focused. Uses its own class (not .hidden) so it doesn't
+  // fight with the render-driven show/hide logic tied to session state.
+  document.addEventListener('focusin', function(e){
+    if (e.target.matches && e.target.matches('input, textarea')){
+      var bar = document.getElementById('sessionFinishBar');
+      if (bar) bar.classList.add('kb-hide');
+    }
+  });
+  document.addEventListener('focusout', function(e){
+    if (e.target.matches && e.target.matches('input, textarea')){
+      // Deferred so focus moving straight from one input to another (e.g.
+      // tabbing from the kg field to reps) doesn't flash the bar back in
+      // between the blur and the next focus.
+      setTimeout(function(){
+        var active = document.activeElement;
+        if (!active || !(active.matches && active.matches('input, textarea'))){
+          var bar = document.getElementById('sessionFinishBar');
+          if (bar) bar.classList.remove('kb-hide');
+        }
+      }, 60);
     }
   });
 
