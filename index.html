@@ -542,6 +542,19 @@
     margin:22px 0 8px;
   }
   .section-label:first-child{margin-top:0;}
+  .danger-zone-toggle{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .danger-zone-toggle .dz-chevron{
+    font-size:10px;
+    color:var(--text-faint);
+    transition:transform 0.15s ease;
+  }
+  .danger-zone-toggle.open .dz-chevron{transform:rotate(180deg);}
   .history-old-toggle{
     cursor:pointer;
     display:flex;
@@ -3640,6 +3653,7 @@
     showChangePassword: false,  // Change-password overlay open state
     changePasswordBusy: false,  // true while reauth + updatePassword is in flight
     changePasswordError: null,  // Inline error shown in the overlay, or null
+    dangerZoneOpen: false,      // Collapsed by default in Settings so a stray tap can't land on Erase/Delete
     restTimer: null,            // { endsAt, totalSeconds } while a rest timer is actively running, else null
     showNotifications: false,  // Notification bell overlay open state
     openRowMenu: null,         // { type: 'exercise'|'set', exId, setId } for the shared "⋮" popover, or null when closed
@@ -7317,14 +7331,19 @@
     html += '</div>';
     html += '<div class="settings-version">SaviorFit Logger v'+APP_VERSION+'</div>';
 
-    html += '<div class="section-label">Danger zone</div>';
-    html += '<button class="btn-danger" data-action="clear-data">Erase all data</button>';
-    if (state.currentAccount !== 'guest'){
-      html += '<div class="settings-group" style="margin-top:10px;">' +
-                '<div class="settings-row"><div><div class="sr-label">Delete account</div>' +
-                '<div class="sr-sub">Permanently erases this account and its log</div></div>' +
-                '<button class="sr-action sr-action-danger" data-action="delete-account">Delete</button></div>' +
-              '</div>';
+    var dzOpen = !!ui.dangerZoneOpen;
+    html += '<div class="section-label danger-zone-toggle'+(dzOpen?' open':'')+'" data-action="toggle-danger-zone">' +
+              '<span>Danger zone</span><span class="dz-chevron">&#9660;</span>' +
+            '</div>';
+    if (dzOpen){
+      html += '<button class="btn-danger" data-action="clear-data">Erase all data</button>';
+      if (state.currentAccount !== 'guest'){
+        html += '<div class="settings-group" style="margin-top:10px;">' +
+                  '<div class="settings-row"><div><div class="sr-label">Delete account</div>' +
+                  '<div class="sr-sub">Permanently erases this account and its log</div></div>' +
+                  '<button class="sr-action sr-action-danger" data-action="delete-account">Delete</button></div>' +
+                '</div>';
+      }
     }
 
     html += '<input type="file" id="importFile" accept="application/json" style="display:none;">';
@@ -9377,6 +9396,9 @@
       state.settings.cornerStyle = el.dataset.style;
       saveSettings();
       applyCornerStyle(state.settings.cornerStyle);
+      renderApp();
+    } else if (action === 'toggle-danger-zone'){
+      ui.dangerZoneOpen = !ui.dangerZoneOpen;
       renderApp();
     } else if (action === 'set-rest-timer-default'){
       state.settings.restTimerDefaultSeconds = parseInt(el.dataset.seconds, 10) || 90;
