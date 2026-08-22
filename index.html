@@ -1282,6 +1282,26 @@
     letter-spacing:0.01em;
   }
   .warmup-reminder b{color:var(--text-dim);font-weight:600;}
+  .onboarding-tip{
+    text-align:center;
+    padding:14px 28px 0;
+    color:var(--text-faint);
+    font-size:12.5px;
+    line-height:1.7;
+    letter-spacing:0.01em;
+  }
+  .onboarding-tip-link{
+    background:none;
+    border:none;
+    padding:0;
+    margin:0;
+    font:inherit;
+    color:var(--accent);
+    text-decoration:underline;
+    text-underline-offset:2px;
+    cursor:pointer;
+  }
+  .onboarding-tip-link:active{color:var(--accent-dim);}
   .btn-primary{
     width:100%;
     padding:15px;
@@ -6494,6 +6514,7 @@
     if (session.exercises.length === 0){
       html += addExerciseRow;
       html += '<div class="warmup-reminder">Take a few minutes to <b>warm up</b> before you go heavy \u2014 some light reps and a bit of mobility now saves you an injury later.</div>';
+      html += '<div class="onboarding-tip">Thanks for using SaviorFit Logger. For accurate tracking, set your bodyweight and training goals in <button class="onboarding-tip-link" data-action="set-tab" data-tab="settings">Settings</button> before logging your first exercise.</div>';
     } else {
       session.exercises.forEach(function(ex){
         html += renderExerciseCard(session, ex);
