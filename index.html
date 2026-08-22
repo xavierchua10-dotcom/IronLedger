@@ -4127,7 +4127,24 @@
   // entry instead of silently coming up empty.
   var EXERCISE_QUERY_ALIASES = {
     dumbell: 'dumbbell', dumbells: 'dumbbell', dumbbells: 'dumbbell',
-    barbel: 'barbell', barbels: 'barbell', barbells: 'barbell'
+    barbel: 'barbell', barbels: 'barbell', barbells: 'barbell',
+    // Common gym shorthand \u2014 maps to a word that actually appears in the
+    // matching library entries (e.g. 'ohp' -> 'shoulder' surfaces Barbell/
+    // Dumbbell/Machine Shoulder Press, since "overhead press" itself isn't
+    // in any name).
+    ohp: 'shoulder', rdl: 'romanian', db: 'dumbbell', bb: 'barbell',
+    dl: 'deadlift', sldl: 'stiff-leg', sdl: 'sumo', bss: 'bulgarian',
+    cgbp: 'close',
+    // Alternate spellings people commonly type for hyphenated/single-word
+    // library names.
+    flys: 'fly', flyes: 'fly', pushups: 'push-ups', pullups: 'pull-ups',
+    // Plain English plurals \u2014 every library name is singular ("Bicep
+    // Curl", "Barbell Row"), so without this the completely natural
+    // "curls"/"rows"/"presses" would silently return nothing.
+    curls: 'curl', presses: 'press', rows: 'row', raises: 'raise',
+    extensions: 'extension', lunges: 'lunge', squats: 'squat',
+    shrugs: 'shrug', kickbacks: 'kickback', pushdowns: 'pushdown',
+    thrusts: 'thrust', twists: 'twist'
   };
 
   // Suggestions for the exercise-name field (both the "+ Add Exercise"
