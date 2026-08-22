@@ -3643,6 +3643,27 @@
     progressAccess: {}     // month key ('2026-08') -> { firstUseAt }. Guest source of truth; real-account fallback until userDoc loads.
   };
 
+  // Handles the two home-screen app shortcuts declared in manifest.json
+  // (long-press the installed icon on Android). Log is already the
+  // default landing tab regardless, so ?action=new-session doesn't need
+  // to change anything — this exists mainly for ?view=history, and to
+  // make the "Start Workout" intent explicit and robust rather than
+  // relying on default behavior staying the same forever. Runs once at
+  // boot, then strips the query string via replaceState so a later
+  // in-app tab switch or page refresh isn't permanently pinned to
+  // whatever shortcut was tapped at launch.
+  (function handleShortcutLaunch(){
+    var params = new URLSearchParams(window.location.search);
+    var view = params.get('view');
+    var action = params.get('action');
+    if (view === 'history') state.tab = 'history';
+    else if (action === 'new-session') state.tab = 'log';
+    if (view || action){
+      var cleanUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState(null, '', cleanUrl);
+    }
+  })();
+
   var ui = {
     expandedHistory: {},   // sessionId -> bool
     showOldHistory: false, // whether the collapsed "Older" History group is expanded
