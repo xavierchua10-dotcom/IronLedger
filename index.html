@@ -7524,6 +7524,11 @@
     var finishBtnEl = document.getElementById('finishSessionBtn');
     finishBtnEl.disabled = !canFinish;
     finishBtnEl.classList.toggle('ready', canFinish);
+    // finishedAt is only ever set the first time a session finishes (see
+    // finishSession) and is deliberately preserved after that — so its
+    // presence here means we're re-finishing a session reopened via
+    // History > \u22ee > Edit, not starting fresh.
+    finishBtnEl.textContent = (activeSession && activeSession.finishedAt) ? 'Apply Changes' : 'Finish Session';
 
     renderMuscleMapOverlay();
     renderExerciseSearchOverlay();
@@ -8782,7 +8787,15 @@
   }
 
   function openFinishSessionConfirm(){
-    ui.confirmModal = {
+    var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
+    var isReeditingPast = !!(activeSession && activeSession.finishedAt);
+    ui.confirmModal = isReeditingPast ? {
+      kind: 'finish-session',
+      title: 'Apply these changes?',
+      message: 'This saves your edits back to this session in History.',
+      confirmLabel: 'Apply',
+      variant: 'primary'
+    } : {
       kind: 'finish-session',
       title: 'Finish this session?',
       message: 'You won\u2019t be able to add more exercises or sets to it afterward — make sure you\u2019re actually done.',
