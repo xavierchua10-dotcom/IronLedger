@@ -27,7 +27,7 @@ var messaging = firebase.messaging();
 messaging.onBackgroundMessage(function(payload){
   self.registration.showNotification(payload.notification.title, {
     body: payload.notification.body,
-    icon: './apple-touch-icon.png'
+    icon: './icons/apple-touch-icon.png'
   });
 });
 
@@ -36,8 +36,8 @@ var CORE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', function(event){
@@ -80,3 +80,4 @@ self.addEventListener('fetch', function(event){
     })
   );
 });
+
