@@ -392,6 +392,31 @@
     font-size:16px;
   }
   .auth-field input:focus{outline:none;border-color:var(--accent);}
+  /* Password show/hide toggle — wraps any password input (auth screen,
+     change password, delete account confirm) regardless of which base
+     input style it uses; padding-right just needs to clear the button. */
+  .password-field-wrap{position:relative;}
+  .password-field-wrap input{padding-right:38px !important;box-sizing:border-box;}
+  .password-toggle-btn{
+    position:absolute;
+    right:2px;
+    top:50%;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    padding:8px;
+    margin:0;
+    cursor:pointer;
+    color:var(--text-faint);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .password-toggle-btn:active{color:var(--text-dim);}
+  .password-toggle-btn svg{width:18px;height:18px;display:block;}
+  .password-toggle-btn .pw-eye-hide{display:none;}
+  .password-toggle-btn.is-visible .pw-eye-show{display:none;}
+  .password-toggle-btn.is-visible .pw-eye-hide{display:block;}
   .auth-avatar-label{
     font-size:11px;
     color:var(--text-dim);
@@ -2680,6 +2705,7 @@
   }
   .goal-chip.active .goal-chip-range{color:var(--accent);}
   .routine-actions{display:flex;gap:8px;}
+  .settings-version{text-align:center;color:var(--text-faint);font-size:11px;padding:16px 0 4px;letter-spacing:0.02em;}
   /* Accent color theme picker (Settings > Accent Color). Solid color
      circles rather than photo swatches like Card Style — the active
      ring is always --text (not --accent), since --accent equals the
@@ -3473,6 +3499,11 @@
      ========================================================= */
   var DEV_OVERRIDE_EMAIL = 'xavierchua10@gmail.com';
   var TRIAL_DAYS = 14;
+  // Bump manually on meaningful releases — shown at the bottom of
+  // Settings so a bug report or support email can be matched to the
+  // build that produced it, without needing to ask "what version are
+  // you on?" every time.
+  var APP_VERSION = '1.0.0';
   // This classic script runs synchronously as the parser reaches it —
   // before the deferred `type="module"` Firebase script below ever
   // executes (module scripts always defer to after parsing, regardless
@@ -5033,6 +5064,34 @@
     });
   }
 
+  // Builds a password <input> with a show/hide eye button, used by every
+  // password field in the app (login, signup, change password, delete
+  // account). One shared toggle-password-visibility click listener
+  // (wired near the other document-level listeners) handles all of them
+  // regardless of which screen or overlay they're rendered into.
+  // className defaults to 'hi-name-input'; pass '' for the auth screen,
+  // where the bare <input> relies on the .auth-field input CSS selector
+  // instead of a class on the input itself.
+  function passwordFieldHtml(id, placeholder, autocomplete, disabled, extraStyle, className){
+    var cls = (className === undefined) ? 'hi-name-input' : className;
+    return '<div class="password-field-wrap">' +
+        '<input type="password" id="'+id+'"'+(cls?(' class="'+cls+'"'):'')+' placeholder="'+esc(placeholder)+'" autocomplete="'+autocomplete+'"'+(extraStyle?(' style="'+extraStyle+'"'):'')+(disabled?' disabled':'')+'>' +
+        '<button type="button" class="password-toggle-btn" data-action="toggle-password-visibility" data-target="'+id+'" aria-label="Show password" tabindex="-1">' +
+          '<svg class="pw-eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>' +
+          '<svg class="pw-eye-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.15 9.15 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>' +
+        '</button>' +
+      '</div>';
+  }
+  function togglePasswordVisibility(btn){
+    var id = btn.dataset.target;
+    var input = document.getElementById(id);
+    if (!input) return;
+    var showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.classList.toggle('is-visible', !showing);
+    btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+  }
+
   function fmtDate(iso){
     var d = new Date(iso);
     var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -5945,9 +6004,9 @@
         '<button class="pro-panel-close" data-action="close-change-password" aria-label="Close"'+(busy?' disabled':'')+'>&#10005;</button>' +
       '</div>' +
       '<div class="pro-panel-body">' +
-        '<input type="password" id="changePwCurrentInput" class="hi-name-input" placeholder="Current password" autocomplete="current-password" style="width:100%;box-sizing:border-box;margin:4px 0 10px;"'+(busy?' disabled':'')+'>' +
-        '<input type="password" id="changePwNewInput" class="hi-name-input" placeholder="New password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:0 0 10px;"'+(busy?' disabled':'')+'>' +
-        '<input type="password" id="changePwConfirmInput" class="hi-name-input" placeholder="Confirm new password" autocomplete="new-password" style="width:100%;box-sizing:border-box;margin:0 0 6px;"'+(busy?' disabled':'')+'>' +
+        passwordFieldHtml('changePwCurrentInput', 'Current password', 'current-password', busy, 'width:100%;box-sizing:border-box;margin:4px 0 10px;') +
+        passwordFieldHtml('changePwNewInput', 'New password', 'new-password', busy, 'width:100%;box-sizing:border-box;margin:0 0 10px;') +
+        passwordFieldHtml('changePwConfirmInput', 'Confirm new password', 'new-password', busy, 'width:100%;box-sizing:border-box;margin:0 0 6px;') +
         (ui.changePasswordError ? '<div style="color:var(--accent-2);font-size:12px;margin:0 0 4px;">'+esc(ui.changePasswordError)+'</div>' : '') +
       '</div>' +
       '<div class="pro-panel-footer">' +
@@ -7194,7 +7253,12 @@
               '<a class="sr-action" href="https://instagram.com/im.savior_" target="_blank" rel="noopener">Open</a></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Email</div><div class="sr-sub">xavierchua10@gmail.com</div></div>' +
               '<a class="sr-action" href="mailto:xavierchua10@gmail.com">Email</a></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Terms of Service</div></div>' +
+              '<a class="sr-action" href="terms.html" target="_blank" rel="noopener">View</a></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Privacy Policy</div></div>' +
+              '<a class="sr-action" href="privacy.html" target="_blank" rel="noopener">View</a></div>';
     html += '</div>';
+    html += '<div class="settings-version">SaviorFit Logger v'+APP_VERSION+'</div>';
 
     html += '<div class="section-label">Danger zone</div>';
     html += '<button class="btn-danger" data-action="clear-data">Erase all data</button>';
@@ -7620,7 +7684,7 @@
       html += '<div class="confirm-message">This account signs in with Google \u2014 confirm through the Google popup to finish deleting it. Wrong account or canceled popup and nothing gets deleted.</div>';
     } else {
       html += '<div class="confirm-message">Enter your password to permanently delete this account. Get it wrong and nothing gets deleted \u2014 you\u2019ll just land back here.</div>' +
-              '<input type="password" id="deletePasswordInput" class="hi-name-input" placeholder="Password" autocomplete="current-password" style="width:100%;box-sizing:border-box;margin:4px 0 6px;"'+(busy?' disabled':'')+'>';
+              passwordFieldHtml('deletePasswordInput', 'Password', 'current-password', busy, 'width:100%;box-sizing:border-box;margin:4px 0 6px;');
       if (ui.deleteAccountPasswordError){
         html += '<div style="color:var(--accent-2);font-size:12px;margin:0 0 8px;">'+esc(ui.deleteAccountPasswordError)+'</div>';
       }
@@ -7768,9 +7832,9 @@
               '<button class="'+(mode==='signup'?'active':'')+'" data-action="auth-mode" data-mode="signup"'+(busy?' disabled':'')+'>Sign Up</button>' +
             '</div>';
     html += '<div class="auth-field"><input type="email" id="authEmail" placeholder="Email" autocomplete="email" autocapitalize="none" value="'+esc(ui.authDraft.email || '')+'"'+(busy?' disabled':'')+'></div>';
-    html += '<div class="auth-field"><input type="password" id="authPassword" placeholder="Password" autocomplete="'+(mode==='signup'?'new-password':'current-password')+'"'+(busy?' disabled':'')+'></div>';
+    html += '<div class="auth-field">'+passwordFieldHtml('authPassword', 'Password', (mode==='signup'?'new-password':'current-password'), busy, '', '')+'</div>';
     if (mode === 'signup'){
-      html += '<div class="auth-field"><input type="password" id="authConfirm" placeholder="Confirm password" autocomplete="new-password"'+(busy?' disabled':'')+'></div>';
+      html += '<div class="auth-field">'+passwordFieldHtml('authConfirm', 'Confirm password', 'new-password', busy, '', '')+'</div>';
     } else {
       html += '<button class="auth-forgot-link" type="button" data-action="forgot-password"'+(busy?' disabled':'')+'>Forgot password?</button>';
     }
@@ -9847,6 +9911,17 @@
       e.preventDefault();
       if (!ui.changePasswordBusy) closeChangePasswordPanel();
     }
+  });
+
+  // Single delegated listener for every password show/hide button in the
+  // app (auth screen, change password, delete account) — safe to keep
+  // separate from each overlay's own click handler since nothing here
+  // calls stopPropagation, so this still fires no matter which overlay
+  // or screen the button lives in.
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-action="toggle-password-visibility"]');
+    if (!btn) return;
+    togglePasswordVisibility(btn);
   });
 
   document.addEventListener('keydown', function(e){
