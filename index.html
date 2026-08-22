@@ -1507,8 +1507,8 @@
     width:46px;height:46px;
     border-radius:50%;
     border:none;
-    background:#5ab7e8;
-    color:#0b2733;
+    background:var(--accent);
+    color:#1c1500;
     font-size:22px;
     font-weight:700;
     line-height:1;
@@ -1517,7 +1517,7 @@
     flex-shrink:0;
     box-shadow:0 2px 8px rgba(0,0,0,0.4);
   }
-  .rest-timer-adjust-btn:active{background:#4aa3d4;transform:scale(0.94);}
+  .rest-timer-adjust-btn:active{background:var(--accent-dim);transform:scale(0.94);}
   .rest-timer-adjust-btn:disabled{opacity:0.35;}
   .rest-timer-picker-time{
     font-family:'JetBrains Mono',monospace;
@@ -1535,7 +1535,7 @@
     letter-spacing:0.05em;
     padding-bottom:10px;
   }
-  .rest-timer-start-btn{width:100%;background:#5ab7e8;color:#0b2733;border:none;border-radius:var(--radius-md);padding:17px;font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;}
+  .rest-timer-start-btn{width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:var(--radius-md);padding:17px;font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;}
   .rest-timer-start-btn:active{opacity:0.9;transform:scale(0.98);}
   .rest-timer-start-btn:active{opacity:0.85;}
 
@@ -2332,7 +2332,7 @@
   }
   .notif-bell-btn:active{background:var(--panel-3);}
   .notif-bell-btn svg{display:block;width:17px;height:17px;}
-  #restTimerHeaderBtn{background:#5ab7e8;border-color:#5ab7e8;color:#0b2733;}
+  #restTimerHeaderBtn{background:var(--accent);border-color:var(--accent);color:#1c1500;}
   #restTimerHeaderBtn:active{opacity:0.85;}
   .notif-bell-dot{
     position:absolute;top:5px;right:6px;
@@ -2768,8 +2768,8 @@
     align-items:center;
     gap:10px;
     padding:10px 16px;
-    border-top:1px solid #5ab7e8;
-    background:rgba(90,183,232,0.10);
+    border-top:1px solid var(--accent);
+    background:rgba(var(--accent-rgb),0.10);
   }
   .stopwatch-bar.hidden{display:none;}
   .stopwatch-label{
@@ -2778,7 +2778,7 @@
     font-weight:700;
     letter-spacing:0.06em;
     text-transform:uppercase;
-    color:#5ab7e8;
+    color:var(--accent);
   }
   .stopwatch-time{
     font-family:'JetBrains Mono',monospace;
@@ -2823,8 +2823,8 @@
     padding:11px;
     border:none;
     border-radius:var(--radius-sm);
-    background:#5ab7e8;
-    color:#0b2733;
+    background:var(--accent);
+    color:#1c1500;
     font-weight:700;
     font-size:13px;
     cursor:pointer;
