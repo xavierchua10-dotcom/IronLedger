@@ -2423,11 +2423,13 @@
     text-transform:uppercase;cursor:pointer;flex-shrink:0;font-family:'Oswald',sans-serif;
   }
   .editing-past-banner{
-    display:flex;align-items:center;gap:8px;padding:10px 14px;
-    background:rgba(var(--accent-rgb),0.10);border:1px solid var(--accent-dim);
-    border-radius:var(--radius-sm);margin-bottom:14px;
+    flex-shrink:0;
+    display:flex;align-items:center;gap:8px;padding:10px 16px;
+    border-top:1px solid var(--accent-dim);
+    background:rgba(var(--accent-rgb),0.10);
     font-size:12px;color:var(--text-dim);line-height:1.4;
   }
+  .editing-past-banner.hidden{display:none;}
   .editing-past-banner-icon{color:var(--accent);font-size:14px;flex-shrink:0;}
   .editing-past-banner-text b{color:var(--text);}
 
@@ -2872,6 +2874,7 @@
   }
   .session-finish-bar.hidden{display:none;}
   .session-finish-bar.kb-hide{display:none;}
+  .editing-past-banner.kb-hide{display:none;}
   .tabbar.kb-hide{display:none;}
   .session-finish-bar .btn-primary{
     flex:0 1 50%;
@@ -3158,6 +3161,7 @@
   <div class="trial-banner hidden" id="installBanner"></div>
   <main id="view"></main>
   <div class="stopwatch-bar hidden" id="stopwatchBar"></div>
+  <div class="editing-past-banner hidden" id="editingPastBanner"></div>
   <div class="session-finish-bar hidden" id="sessionFinishBar">
     <button class="btn-primary" id="finishSessionBtn" data-action="finish-session" disabled>Finish Session</button>
     <button class="add-set-global-btn" data-action="add-set-global" disabled>&#10003; Add Set</button>
@@ -6783,18 +6787,6 @@
     var session = getActiveSession();
     var html = '';
 
-    // Sticks around for the whole editing session (not a one-off toast)
-    // since it's easy to forget you're mid-edit on an old session once
-    // you're a few taps deep adding/adjusting sets. finishedAt is the same
-    // signal the Apply Changes button uses \u2014 see openFinishSessionConfirm.
-    if (session.finishedAt){
-      html += '<div class="editing-past-banner">' +
-                '<span class="editing-past-banner-icon">&#9998;</span>' +
-                '<span class="editing-past-banner-text">Editing <b>'+esc(session.name || 'Untitled session')+'</b> \u2014 ' +
-                'from '+fmtDate(session.finishedAt)+'. Changes apply when you tap Apply Changes below.</span>' +
-              '</div>';
-    }
-
     html += '<div class="session-name-row">' +
             '<input type="text" class="session-name-input" placeholder="Untitled session — e.g. Push Day, Legs, Full Body" ' +
             'value="'+esc(session.name)+'" data-role="session-name">' +
@@ -7548,7 +7540,21 @@
     // finishSession) and is deliberately preserved after that — so its
     // presence here means we're re-finishing a session reopened via
     // History > \u22ee > Edit, not starting fresh.
-    finishBtnEl.textContent = (activeSession && activeSession.finishedAt) ? 'Apply Changes' : 'Finish Session';
+    var isEditingPast = !!(activeSession && activeSession.finishedAt);
+    finishBtnEl.textContent = isEditingPast ? 'Apply Changes' : 'Finish Session';
+
+    // Lives in the fixed bottom stack right above the button itself (see
+    // shell HTML), not the scrollable content above it — so it can't
+    // scroll out of view and stays paired with the action it explains,
+    // however far down the exercise list you scroll.
+    var editingBannerEl = document.getElementById('editingPastBanner');
+    editingBannerEl.classList.toggle('hidden', !(showFinishBar && isEditingPast));
+    if (showFinishBar && isEditingPast){
+      editingBannerEl.innerHTML =
+        '<span class="editing-past-banner-icon">&#9998;</span>' +
+        '<span class="editing-past-banner-text">Editing <b>'+esc(activeSession.name || 'Untitled session')+'</b> \u2014 ' +
+        'from '+fmtDate(activeSession.finishedAt)+'</span>';
+    }
 
     renderMuscleMapOverlay();
     renderExerciseSearchOverlay();
@@ -9648,7 +9654,7 @@
   // access to the rest timer/notifications mid-type. Uses its own class
   // (not .hidden) so it doesn't fight with the render-driven show/hide
   // logic tied to session state.
-  var KB_HIDE_TARGETS = ['sessionFinishBar'];
+  var KB_HIDE_TARGETS = ['sessionFinishBar', 'editingPastBanner'];
   var KB_HIDE_TARGET_SELECTORS = ['.tabbar'];
   function setKbHide(on){
     KB_HIDE_TARGETS.forEach(function(id){
