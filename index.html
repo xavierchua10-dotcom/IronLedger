@@ -2422,6 +2422,14 @@
     padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:0.03em;
     text-transform:uppercase;cursor:pointer;flex-shrink:0;font-family:'Oswald',sans-serif;
   }
+  .editing-past-banner{
+    display:flex;align-items:center;gap:8px;padding:10px 14px;
+    background:rgba(var(--accent-rgb),0.10);border:1px solid var(--accent-dim);
+    border-radius:var(--radius-sm);margin-bottom:14px;
+    font-size:12px;color:var(--text-dim);line-height:1.4;
+  }
+  .editing-past-banner-icon{color:var(--accent);font-size:14px;flex-shrink:0;}
+  .editing-past-banner-text b{color:var(--text);}
 
   /* ---------- Pricing modal ---------- */
   /* Scoped to .pricing-panel (the Go Pro modal's own class, distinct from
@@ -6774,6 +6782,18 @@
   function renderLog(){
     var session = getActiveSession();
     var html = '';
+
+    // Sticks around for the whole editing session (not a one-off toast)
+    // since it's easy to forget you're mid-edit on an old session once
+    // you're a few taps deep adding/adjusting sets. finishedAt is the same
+    // signal the Apply Changes button uses \u2014 see openFinishSessionConfirm.
+    if (session.finishedAt){
+      html += '<div class="editing-past-banner">' +
+                '<span class="editing-past-banner-icon">&#9998;</span>' +
+                '<span class="editing-past-banner-text">Editing <b>'+esc(session.name || 'Untitled session')+'</b> \u2014 ' +
+                'from '+fmtDate(session.finishedAt)+'. Changes apply when you tap Apply Changes below.</span>' +
+              '</div>';
+    }
 
     html += '<div class="session-name-row">' +
             '<input type="text" class="session-name-input" placeholder="Untitled session — e.g. Push Day, Legs, Full Body" ' +
