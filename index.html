@@ -4138,6 +4138,7 @@
     // Alternate spellings people commonly type for hyphenated/single-word
     // library names.
     flys: 'fly', flyes: 'fly', pushups: 'push-ups', pullups: 'pull-ups',
+    ezbar: 'ez-bar',
     // Plain English plurals \u2014 every library name is singular ("Bicep
     // Curl", "Barbell Row"), so without this the completely natural
     // "curls"/"rows"/"presses" would silently return nothing.
@@ -4671,8 +4672,11 @@
       { name: 'Cable Curl', equipment: 'Cable' },
       { name: 'Dumbbell Hammer Curl', equipment: 'Dumbbell' },
       { name: 'Cable Hammer Curl', equipment: 'Cable' },
+      { name: 'EZ-Bar Curl', equipment: 'EZ-Bar' },
+      { name: 'Straight Bar Curl', equipment: 'EZ-Bar' },
       { name: 'Barbell Preacher Curl', equipment: 'Barbell' },
       { name: 'Dumbbell Preacher Curl', equipment: 'Dumbbell' },
+      { name: 'EZ-Bar Preacher Curl', equipment: 'EZ-Bar' },
       { name: 'Concentration Curl', equipment: 'Dumbbell' }
     ],
     Triceps: [
@@ -4680,6 +4684,7 @@
       { name: 'Tricep Rope Pushdown', equipment: 'Cable' },
       { name: 'Barbell Skull Crushers', equipment: 'Barbell' },
       { name: 'Dumbbell Skull Crushers', equipment: 'Dumbbell' },
+      { name: 'EZ-Bar Skull Crushers', equipment: 'EZ-Bar' },
       { name: 'Close-Grip Bench Press', equipment: 'Barbell' },
       { name: 'Dumbbell Overhead Extension', equipment: 'Dumbbell' },
       { name: 'Cable Overhead Extension', equipment: 'Cable' },
@@ -4759,7 +4764,7 @@
   // order they're shown. Kept as an explicit list (rather than derived
   // from EXERCISE_LIBRARY_FLAT) so the chip order stays stable regardless
   // of which equipment happens to appear first in the library data.
-  var EQUIPMENT_FILTER_OPTIONS = ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'Bodyweight'];
+  var EQUIPMENT_FILTER_OPTIONS = ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'EZ-Bar', 'Bodyweight'];
 
   // Choices for Settings > Card Style. "id" matches both the data-bg swatch
   // attribute and the body[data-card-bg] CSS selector — keep them in sync
