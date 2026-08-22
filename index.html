@@ -534,8 +534,11 @@
     letter-spacing:0.02em;
     padding:4px 0 10px;
     margin-bottom:4px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
   }
-  input[type=text].session-name-input::placeholder{color:#9aa0a8;text-transform:none;font-weight:500;}
+  input[type=text].session-name-input::placeholder{color:#9aa0a8;text-transform:none;font-weight:500;font-size:13px;letter-spacing:normal;}
   input[type=text].session-name-input:focus{outline:none;border-bottom-color:var(--accent);}
 
   .session-name-row{display:flex;align-items:center;gap:10px;}
