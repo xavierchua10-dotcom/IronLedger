@@ -7006,43 +7006,35 @@
               '<div class="sr-sub">Powers real load, PRs, and progression tips in Pro Tips</div>' +
               '<div class="sr-value">'+(state.settings.bodyweightKg ? fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set') + ' \u00b7 ' + esc((GOAL_OPTIONS.filter(function(g){ return g.id === ((state.settings && state.settings.goal) || 'hypertrophy'); })[0] || GOAL_OPTIONS[1]).label) + '</div></div>' +
               '<button class="sr-action" data-action="open-bodyweight-picker">'+(state.settings.bodyweightKg ? 'Edit' : 'Set')+'</button></div>';
-    html += '</div>';
-
-    html += '<div class="section-label">Accent Color</div>';
-    html += '<div class="settings-group">';
-    html += '<div class="settings-row"><div><div class="sr-label">Theme</div><div class="sr-sub">Changes the accent color throughout the app</div></div></div>';
-    html += '<div class="accent-theme-picker">';
-    var chosenAccentTheme = (state.settings && state.settings.accentTheme) || 'gold';
-    ACCENT_THEME_OPTIONS.forEach(function(t){
-      html += '<button type="button" class="accent-theme-swatch'+(chosenAccentTheme===t.id?' active':'')+'" data-action="set-accent-theme" data-theme="'+t.id+'" style="background:'+t.accent+'" aria-label="'+esc(t.label)+'"></button>';
-    });
-    html += '</div>';
-    html += '</div>';
-
-    html += '<div class="section-label">Rest Timer</div>';
-    html += '<div class="settings-group">';
     var restDefaultSecs = (state.settings && state.settings.restTimerDefaultSeconds) || 90;
-    html += '<div class="settings-row"><div><div class="sr-label">Default duration</div><div class="sr-sub">Starting time each time you open the rest timer</div></div></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Rest timer duration</div><div class="sr-sub">Starting time each time you open the rest timer</div></div></div>';
     html += '<div class="rest-preset-row">';
     [60,90,120,150,180].forEach(function(s){
       html += '<button type="button" class="rest-preset-chip'+(restDefaultSecs===s?' active':'')+'" data-action="set-rest-timer-default" data-seconds="'+s+'">'+fmtMMSS(s)+'</button>';
     });
     html += '</div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Sound</div><div class="sr-sub">Chime when rest ends</div></div>' +
+    html += '<div class="settings-row"><div><div class="sr-label">Rest timer sound</div><div class="sr-sub">Chime when rest ends</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-rest-timer-sound" data-val="on" class="'+(state.settings.restTimerSound !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-timer-sound" data-val="off" class="'+(state.settings.restTimerSound === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Vibrate</div><div class="sr-sub">Vibration pulse when rest ends</div></div>' +
+    html += '<div class="settings-row"><div><div class="sr-label">Rest timer vibrate</div><div class="sr-sub">Vibration pulse when rest ends</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="on" class="'+(state.settings.restTimerVibrate !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="off" class="'+(state.settings.restTimerVibrate === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
     html += '</div>';
 
-    html += '<div class="section-label">Card Style</div>';
+    html += '<div class="section-label">Appearance</div>';
     html += '<div class="settings-group">';
-    html += '<div class="settings-row"><div><div class="sr-label">Exercise card background</div>' +
+    html += '<div class="settings-row"><div><div class="sr-label">Accent color</div><div class="sr-sub">Changes the accent color throughout the app</div></div></div>';
+    html += '<div class="accent-theme-picker">';
+    var chosenAccentTheme = (state.settings && state.settings.accentTheme) || 'gold';
+    ACCENT_THEME_OPTIONS.forEach(function(t){
+      html += '<button type="button" class="accent-theme-swatch'+(chosenAccentTheme===t.id?' active':'')+'" data-action="set-accent-theme" data-theme="'+t.id+'" style="background:'+t.accent+'" aria-label="'+esc(t.label)+'"></button>';
+    });
+    html += '</div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Card background</div>' +
               '<div class="sr-sub">Applies consistently to every exercise card in Log</div></div></div>';
     html += '<div class="card-bg-picker">';
     var chosenCardBg = (state.settings && state.settings.cardBg) || 'default';
