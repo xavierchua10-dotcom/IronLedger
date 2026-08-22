@@ -59,6 +59,11 @@
     --radius-lg:14px;
     --radius-xl:20px;
     --radius-pill:999px;
+    --density-card-pad:14px 14px 12px;
+    --density-card-gap:20px;
+    --density-head-gap:10px;
+    --density-row-pad:4px 0;
+    --density-addrow-gap:10px;
     --safe-bottom:env(safe-area-inset-bottom, 0px);
   }
   *{
@@ -606,8 +611,8 @@
     background-repeat:no-repeat;
     border:1px solid var(--line);
     border-radius:var(--radius);
-    padding:14px 14px 12px;
-    margin-bottom:20px;
+    padding:var(--density-card-pad);
+    margin-bottom:var(--density-card-gap);
   }
   /* This card repeats once per exercise (dense text: set rows, timestamps,
      icon buttons), so it needs a heavier darkening gradient than the
@@ -661,7 +666,7 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
-    margin-bottom:10px;
+    margin-bottom:var(--density-head-gap);
   }
   .exercise-head-actions{display:flex;gap:2px;flex-shrink:0;}
   .exercise-head h3{
@@ -1095,7 +1100,7 @@
     grid-template-columns:20px 1fr 44px;
     align-items:center;
     gap:6px;
-    padding:4px 0;
+    padding:var(--density-row-pad);
     border-top:1px solid rgba(255,255,255,0.09);
     font-family:'JetBrains Mono',monospace;
     font-size:13px;
@@ -1158,8 +1163,8 @@
     grid-template-columns:1fr 1fr auto;
     gap:8px;
     align-items:center;
-    margin-top:10px;
-    padding-top:10px;
+    margin-top:var(--density-addrow-gap);
+    padding-top:var(--density-addrow-gap);
     border-top:1px dashed var(--line);
   }
   .add-set-row.editing-row{
@@ -4741,6 +4746,46 @@
     root.setProperty('--accent-rgb', hexToRgbString(theme.accent));
   }
 
+  // Corner style (Settings > Appearance). Reuses the existing --radius-*
+  // tokens rather than introducing new ones — "sharp" just zeroes every
+  // one of them out, "rounded" restores the original values.
+  var CORNER_RADIUS_DEFAULTS = { '--radius-xs':'6px','--radius-sm':'8px','--radius':'10px','--radius-md':'12px','--radius-lg':'14px','--radius-xl':'20px','--radius-pill':'999px' };
+  function applyCornerStyle(styleId){
+    var root = document.documentElement.style;
+    var sharp = styleId === 'sharp';
+    Object.keys(CORNER_RADIUS_DEFAULTS).forEach(function(varName){
+      root.setProperty(varName, sharp ? '0px' : CORNER_RADIUS_DEFAULTS[varName]);
+    });
+  }
+
+  // Density (Settings > Appearance). Scoped deliberately to just the
+  // exercise-card list — the actual "how many sets fit on screen"
+  // elements — rather than retrofitting every padding value in the
+  // stylesheet the way the (reverted) text-scale feature touched every
+  // font-size. Smaller, safer surface, same visible payoff for the one
+  // screen density actually matters on.
+  var DENSITY_DEFAULTS = {
+    '--density-card-pad': '14px 14px 12px',
+    '--density-card-gap': '20px',
+    '--density-head-gap': '10px',
+    '--density-row-pad': '4px 0',
+    '--density-addrow-gap': '10px'
+  };
+  var DENSITY_COMPACT = {
+    '--density-card-pad': '10px 10px 8px',
+    '--density-card-gap': '12px',
+    '--density-head-gap': '6px',
+    '--density-row-pad': '2px 0',
+    '--density-addrow-gap': '6px'
+  };
+  function applyDensity(densityId){
+    var root = document.documentElement.style;
+    var vals = densityId === 'compact' ? DENSITY_COMPACT : DENSITY_DEFAULTS;
+    Object.keys(vals).forEach(function(varName){
+      root.setProperty(varName, vals[varName]);
+    });
+  }
+
   var CARD_BG_OPTIONS = [
     { id: 'default', label: 'Default' },
     { id: 'chest', label: 'Rack' },
@@ -7214,6 +7259,18 @@
       '</button>';
     });
     html += '</div>';
+    var chosenDensity = (state.settings && state.settings.density) || 'comfortable';
+    html += '<div class="settings-row"><div><div class="sr-label">Density</div><div class="sr-sub">Fit more sets per screen in Log</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="set-density" data-density="comfortable" class="'+(chosenDensity==='comfortable'?'active':'')+'">Comfortable</button>' +
+                '<button data-action="set-density" data-density="compact" class="'+(chosenDensity==='compact'?'active':'')+'">Compact</button>' +
+              '</div></div>';
+    var chosenCornerStyle = (state.settings && state.settings.cornerStyle) || 'rounded';
+    html += '<div class="settings-row"><div><div class="sr-label">Corners</div><div class="sr-sub">Rounded or sharp edges throughout the app</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="set-corner-style" data-style="rounded" class="'+(chosenCornerStyle==='rounded'?'active':'')+'">Rounded</button>' +
+                '<button data-action="set-corner-style" data-style="sharp" class="'+(chosenCornerStyle==='sharp'?'active':'')+'">Sharp</button>' +
+              '</div></div>';
     html += '</div>';
 
     html += '<div class="section-label">Routines</div>';
@@ -7430,6 +7487,8 @@
     state.routines = loadRoutines();
     state.settings = loadSettings();
     applyAccentTheme(state.settings.accentTheme || 'gold');
+    applyCornerStyle(state.settings.cornerStyle || 'rounded');
+    applyDensity(state.settings.density || 'comfortable');
     state.activityLog = loadActivityLog();
     state.progressAccess = loadProgressAccessLocal();
     purgeStaleActivity();
@@ -9308,6 +9367,16 @@
       state.settings.accentTheme = el.dataset.theme;
       saveSettings();
       applyAccentTheme(state.settings.accentTheme);
+      renderApp();
+    } else if (action === 'set-density'){
+      state.settings.density = el.dataset.density;
+      saveSettings();
+      applyDensity(state.settings.density);
+      renderApp();
+    } else if (action === 'set-corner-style'){
+      state.settings.cornerStyle = el.dataset.style;
+      saveSettings();
+      applyCornerStyle(state.settings.cornerStyle);
       renderApp();
     } else if (action === 'set-rest-timer-default'){
       state.settings.restTimerDefaultSeconds = parseInt(el.dataset.seconds, 10) || 90;
