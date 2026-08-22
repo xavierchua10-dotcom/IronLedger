@@ -2043,12 +2043,6 @@
     white-space:nowrap;
   }
   .hi-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
-  .hi-rename-btn{
-    width:26px;
-    height:26px;
-    font-size:12px;
-    flex-shrink:0;
-  }
   .history-item-head-editing{cursor:default;}
   .hi-rename-row{
     display:flex;
@@ -2177,8 +2171,13 @@
     cursor:pointer;
     padding:6px 0;
   }
-  .hi-actions{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;}
-  .hi-menu-btn{border:1px solid var(--line);}
+  .hi-actions{display:flex;justify-content:flex-end;align-items:center;margin-top:12px;gap:8px;}
+  .hi-menu-btn{
+    border:1px solid var(--line);
+    width:28px;
+    height:28px;
+    font-size:16px;
+  }
   .hi-print,.hi-edit,.hi-repeat{
     background:none;
     border:1px solid var(--line);
@@ -6276,6 +6275,7 @@
       ];
     } else if (m.type === 'session'){
       items = [
+        { label: 'Rename', action: 'edit-history-name' },
         { label: 'Edit', action: 'edit-session' },
         { label: 'Repeat', action: 'repeat-session' },
         { label: 'Delete session', action: 'delete-session', danger: true }
@@ -6959,7 +6959,7 @@
                   durationBarHTML(s) +
                 '</div>' +
                 '<div class="hi-right">' +
-                  '<button class="set-act-btn hi-rename-btn" data-action="edit-history-name" data-session="'+s.id+'" aria-label="Rename session">&#9998;</button>' +
+                  '<button class="icon-btn hi-menu-btn" data-action="open-session-menu" data-session="'+s.id+'" aria-label="Session options">&#8942;</button>' +
                   '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol</div>' +
                 '</div>' +
               '</div>';
@@ -6984,7 +6984,6 @@
                 '</div>';
       });
       html += '<div class="hi-actions">' +
-                '<button class="icon-btn hi-menu-btn" data-action="open-session-menu" data-session="'+s.id+'" aria-label="Session options">&#8942;</button>' +
                 '<button class="hi-print" data-action="open-print-menu" data-session="'+s.id+'">Print</button>' +
               '</div>';
       html += '</div>';
