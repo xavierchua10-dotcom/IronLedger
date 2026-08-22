@@ -1939,6 +1939,22 @@
     margin-top:4px;
   }
   .ex-filter-row-head:first-child{margin-top:0;}
+  .eq-guide-btn{
+    width:20px;height:20px;
+    border-radius:50%;
+    border:1px solid var(--accent-dim);
+    background:none;
+    color:var(--accent);
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;font-weight:700;
+    line-height:1;
+    padding:0;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    margin-left:auto;
+  }
+  .eq-guide-btn:active{background:var(--accent-dim);}
+  .eq-guide-panel img{width:100%;display:block;border-radius:var(--radius-sm);}
   .ex-filter-row-label{
     font-family:'JetBrains Mono',monospace;
     font-size:10px;
@@ -3192,6 +3208,9 @@
 <div class="confirm-overlay hidden" id="changePasswordOverlay">
   <div class="pro-panel" id="changePasswordPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="equipmentGuideOverlay">
+  <div class="pro-panel eq-guide-panel" id="equipmentGuidePanel"></div>
+</div>
 <div class="confirm-overlay hidden" id="briefOverlay">
   <div class="brief-panel" id="briefPanel"></div>
 </div>
@@ -3674,6 +3693,7 @@
     showChangePassword: false,  // Change-password overlay open state
     changePasswordBusy: false,  // true while reauth + updatePassword is in flight
     changePasswordError: null,  // Inline error shown in the overlay, or null
+    showEquipmentGuide: false,  // Equipment guide overlay (visual reference for Barbell/EZ-Bar/etc) open state
     dangerZoneOpen: false,      // Collapsed by default in Settings so a stray tap can't land on Erase/Delete
     restTimer: null,            // { endsAt, totalSeconds } while a rest timer is actively running, else null
     showNotifications: false,  // Notification bell overlay open state
@@ -4280,7 +4300,9 @@
       '<div class="ex-filter-chips">' + muscles.map(function(m){
         return exFilterChipHtml('muscle', m, f.muscles.indexOf(m) !== -1);
       }).join('') + '</div>' +
-      '<div class="ex-filter-row-head"><span class="ex-filter-row-label">Equipment</span></div>' +
+      '<div class="ex-filter-row-head"><span class="ex-filter-row-label">Equipment</span>' +
+        '<button type="button" class="eq-guide-btn" data-action="open-equipment-guide" aria-label="What does each equipment type look like?">?</button>' +
+      '</div>' +
       '<div class="ex-filter-chips">' + EQUIPMENT_FILTER_OPTIONS.map(function(eq){
         return exFilterChipHtml('equipment', eq, f.equipment.indexOf(eq) !== -1);
       }).join('') + '</div>';
@@ -6124,6 +6146,36 @@
       var inp = document.getElementById('changePwCurrentInput');
       if (inp) inp.focus();
     }, 30);
+  }
+
+  // Equipment guide overlay \u2014 a visual reference (Dumbbell/Barbell/
+  // Straight Bar/EZ-Bar/Cable side by side) opened from the "?" button
+  // next to the Equipment filter row, for anyone unsure which bar is
+  // which when picking a filter.
+  function openEquipmentGuide(){
+    ui.showEquipmentGuide = true;
+    renderEquipmentGuidePanel();
+  }
+  function closeEquipmentGuide(){
+    ui.showEquipmentGuide = false;
+    renderEquipmentGuidePanel();
+  }
+  function renderEquipmentGuidePanel(){
+    var overlay = document.getElementById('equipmentGuideOverlay');
+    var panel = document.getElementById('equipmentGuidePanel');
+    if (!ui.showEquipmentGuide){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Equipment Guide</h3>' +
+        '<button class="pro-panel-close" data-action="close-equipment-guide" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' +
+        '<img src="images/equipment-guide.jpg" alt="Dumbbell, Barbell, Straight Bar, EZ Bar, and Cable equipment reference" loading="lazy">' +
+      '</div>';
   }
 
   // Browsers block audio from ever starting unless it's tied to a real
@@ -9550,6 +9602,8 @@
       openBodyweightPicker();
     } else if (action === 'open-change-password'){
       openChangePasswordPanel();
+    } else if (action === 'open-equipment-guide'){
+      openEquipmentGuide();
     } else if (action === 'save-routine'){
       openSaveRoutine();
     } else if (action === 'start-routine'){
@@ -10138,6 +10192,13 @@
     }
   });
 
+  var equipmentGuideOverlayEl = document.getElementById('equipmentGuideOverlay');
+  equipmentGuideOverlayEl.addEventListener('click', function(e){
+    if (e.target === equipmentGuideOverlayEl || e.target.closest('[data-action="close-equipment-guide"]')){
+      closeEquipmentGuide();
+    }
+  });
+
   // Single delegated listener for every password show/hide button in the
   // app (auth screen, change password, delete account) — safe to keep
   // separate from each overlay's own click handler since nothing here
@@ -10180,6 +10241,8 @@
       closeBodyweightPicker();
     } else if (ui.showChangePassword){
       if (!ui.changePasswordBusy) closeChangePasswordPanel();
+    } else if (ui.showEquipmentGuide){
+      closeEquipmentGuide();
     } else if (ui.showNotifications){
       closeNotifications();
     } else if (ui.showMuscleMap){
