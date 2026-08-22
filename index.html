@@ -11,22 +11,22 @@
   og:url and og:image both need to be the REAL, final web address —
   link previews (WhatsApp, iMessage, Twitter, etc.) fetch og:image
   from the internet, so it only works once it's actually hosted there.
-  Upload og-image.png to the same folder as this file, then point
-  og:image at it, e.g. https://yourusername.github.io/saviorfit-logger/og-image.png
+  Upload icons/og-image.png to the same folder as this file, then point
+  og:image at it, e.g. https://yourusername.github.io/saviorfit-logger/icons/og-image.png
 -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://xavierchua10-dotcom.github.io/IronLedger/">
 <meta property="og:title" content="SaviorFit Logger — Workout Log">
 <meta property="og:description" content="Log your lifts, any style, any split. A free workout tracker by Savior.">
-<meta property="og:image" content="https://xavierchua10-dotcom.github.io/IronLedger/og-image.png">
+<meta property="og:image" content="https://xavierchua10-dotcom.github.io/IronLedger/icons/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="SaviorFit Logger — Workout Log">
 <meta name="twitter:description" content="Log your lifts, any style, any split. A free workout tracker by Savior.">
-<meta name="twitter:image" content="https://xavierchua10-dotcom.github.io/IronLedger/og-image.png">
-<link rel="icon" href="favicon.ico">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="twitter:image" content="https://xavierchua10-dotcom.github.io/IronLedger/icons/og-image.png">
+<link rel="icon" href="icons/favicon.ico">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -74,7 +74,7 @@
   body{
     background:
       linear-gradient(rgba(10,11,14,0.80), rgba(10,11,14,0.86)),
-      url('hero-background.jpg') center / cover no-repeat fixed;
+      url('images/hero-background.jpg') center / cover no-repeat fixed;
     color:var(--text);
     font-family:'Inter',system-ui,sans-serif;
     -webkit-font-smoothing:antialiased;
@@ -565,7 +565,7 @@
   /* ---------- Exercise card ---------- */
   .exercise-card{
     background-color:var(--panel);
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('exercise-card-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/exercise-card-bg.jpg');
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -578,7 +578,7 @@
      icon buttons), so it needs a heavier darkening gradient than the
      single-block cards elsewhere, plus these targeted brightness bumps for
      the bits that have no background of their own. The image
-     (exercise-card-bg.jpg) ships as a separate file uploaded alongside
+     (images/exercise-card-bg.jpg) ships as a separate file uploaded alongside
      this index.html, not baked in. */
   .exercise-card .set-idx,
   .exercise-card .set-detail .x,
@@ -596,28 +596,28 @@
   }
   /* User-selectable card background, set via Settings > Card Style. JS sets
      data-card-bg on <body> (see renderApp) to match state.settings.cardBg;
-     these rules override the default exercise-card-bg.jpg above per choice.
+     these rules override the default images/exercise-card-bg.jpg above per choice.
      "default" needs no rule here since it's what the base rule already
      shows. "none" strips the photo back to a flat panel for anyone who'd
      rather skip it entirely. Each image ships as a separate file uploaded
      alongside this index.html, same as the base one — none are baked in. */
   body[data-card-bg="chest"] .exercise-card{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('chest-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/chest-bg.jpg');
   }
   body[data-card-bg="back"] .exercise-card{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('back-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/back-bg.jpg');
   }
   body[data-card-bg="shoulder"] .exercise-card{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('shoulder-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/shoulder-bg.jpg');
   }
   body[data-card-bg="arms"] .exercise-card{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('arms-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/arms-bg.jpg');
   }
   body[data-card-bg="legs"] .exercise-card{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('legs-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/legs-bg.jpg');
   }
   body[data-card-bg="abs"] .exercise-card{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('abs-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/abs-bg.jpg');
   }
   body[data-card-bg="none"] .exercise-card{
     background-image:none;
@@ -1363,8 +1363,8 @@
   }
   /* Category cards (step 1 of the template picker) get a photo background
      per category, via a fixed relative filename — NOT baked into this
-     file as base64. The actual jpg files (ppl-bg.jpg, upper-lower-bg.jpg,
-     full-body-bg.jpg) ship as separate assets uploaded alongside this
+     file as base64. The actual jpg files (images/ppl-bg.jpg, images/upper-lower-bg.jpg,
+     images/full-body-bg.jpg) ship as separate assets uploaded alongside this
      index.html, in the same folder, so the relative url() below resolves.
      The gradient darkens the photo so the label/description/count stay
      readable regardless of what's busy in the underlying image. */
@@ -1377,13 +1377,13 @@
   }
   .template-cat-card:active{border-color:var(--accent);filter:brightness(1.12);}
   .template-cat-card[data-category="ppl"]{
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('ppl-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('images/ppl-bg.jpg');
   }
   .template-cat-card[data-category="upperLower"]{
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('upper-lower-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('images/upper-lower-bg.jpg');
   }
   .template-cat-card[data-category="fullBody"]{
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('full-body-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('images/full-body-bg.jpg');
   }
   .template-cat-card .template-card-sub{color:#d7dae0;}
   .template-cat-card .template-card-count{color:#aab0b8;}
@@ -1457,11 +1457,11 @@
   /* Scoped to the panel's own id (not the shared .pro-panel class, which
      every other overlay — templates, notifications, pricing, etc — also
      uses) so only this one picker gets the photo background. The actual
-     image (rest-timer-bg.jpg) ships as a separate file uploaded alongside
+     image (images/rest-timer-bg.jpg) ships as a separate file uploaded alongside
      this index.html, not baked in here. */
   #restTimerPickerPanel{
     background-color:var(--panel-2);
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.6), rgba(10,12,16,0.88)), url('rest-timer-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.6), rgba(10,12,16,0.88)), url('images/rest-timer-bg.jpg');
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -1532,7 +1532,7 @@
     display:flex;
     flex-direction:column;
     background-color:var(--panel-2);
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('muscle-picker-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('images/muscle-picker-bg.jpg');
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -1544,7 +1544,7 @@
   }
   /* Scoped to this panel's own id (unique to the muscle-group picker, not
      the shared .pro-panel other overlays use). The image
-     (muscle-picker-bg.jpg) ships as a separate file uploaded alongside
+     (images/muscle-picker-bg.jpg) ships as a separate file uploaded alongside
      this index.html, not baked in. Everything else in here (view tabs,
      exercise-list items, the equipment tag) already sits on its own solid
      pill background and needs no change — only the empty-state hint text
@@ -2064,7 +2064,7 @@
   .ex-tip-panel-empty{font-size:12.5px;color:var(--text-faint);line-height:1.5;padding:4px 0;}
   /* Scoped to the panel's own id (not the shared .pro-panel class other
      overlays also use) so only the Tips/Target popup gets the photo
-     background. The image (tips-target-bg.jpg) ships as a separate file
+     background. The image (images/tips-target-bg.jpg) ships as a separate file
      uploaded alongside this index.html, not baked in. The tip callout box
      (.prc-tip) is switched from its usual translucent accent tint to a
      solid dark card here specifically, since it's the main thing the
@@ -2072,7 +2072,7 @@
      text brightened enough to hold up against the photo. */
   #exTipPanel{
     background-color:var(--panel-2);
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.6), rgba(10,12,16,0.88)), url('tips-target-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.6), rgba(10,12,16,0.88)), url('images/tips-target-bg.jpg');
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -2344,7 +2344,7 @@
   /* ---------- Pricing modal ---------- */
   /* Scoped to .pricing-panel (the Go Pro modal's own class, distinct from
      the shared .pro-panel every other overlay also uses) so only this
-     modal gets the photo background. The image (go-pro-bg.jpg) ships as
+     modal gets the photo background. The image (images/go-pro-bg.jpg) ships as
      a separate file uploaded alongside this index.html, not baked in. A
      few text bits that sit directly on the panel (not on their own solid
      card) get brightened here too, so they stay readable over the photo —
@@ -2352,7 +2352,7 @@
      has its own solid/tinted background and needs no change. */
   .pricing-panel{
     background-color:var(--panel-2);
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.62), rgba(10,12,16,0.9)), url('go-pro-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.62), rgba(10,12,16,0.9)), url('images/go-pro-bg.jpg');
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -2476,7 +2476,7 @@
   }
   .chart-wrap{
     background-color:var(--panel);
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.85)), url('est-1rm-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.85)), url('images/est-1rm-bg.jpg');
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -2677,13 +2677,13 @@
     overflow:hidden;
   }
   .card-bg-swatch.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(242,177,52,0.3);}
-  .card-bg-swatch[data-bg="chest"]{background-image:url('chest-bg.jpg');}
-  .card-bg-swatch[data-bg="back"]{background-image:url('back-bg.jpg');}
-  .card-bg-swatch[data-bg="shoulder"]{background-image:url('shoulder-bg.jpg');}
-  .card-bg-swatch[data-bg="arms"]{background-image:url('arms-bg.jpg');}
-  .card-bg-swatch[data-bg="legs"]{background-image:url('legs-bg.jpg');}
-  .card-bg-swatch[data-bg="abs"]{background-image:url('abs-bg.jpg');}
-  .card-bg-swatch[data-bg="default"]{background-image:url('exercise-card-bg.jpg');}
+  .card-bg-swatch[data-bg="chest"]{background-image:url('images/chest-bg.jpg');}
+  .card-bg-swatch[data-bg="back"]{background-image:url('images/back-bg.jpg');}
+  .card-bg-swatch[data-bg="shoulder"]{background-image:url('images/shoulder-bg.jpg');}
+  .card-bg-swatch[data-bg="arms"]{background-image:url('images/arms-bg.jpg');}
+  .card-bg-swatch[data-bg="legs"]{background-image:url('images/legs-bg.jpg');}
+  .card-bg-swatch[data-bg="abs"]{background-image:url('images/abs-bg.jpg');}
+  .card-bg-swatch[data-bg="default"]{background-image:url('images/exercise-card-bg.jpg');}
   .card-bg-swatch-label{
     width:100%;
     font-size:8px;
