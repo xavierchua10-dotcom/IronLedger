@@ -6148,6 +6148,15 @@
     restTimerInterval = setInterval(tickRestTimer, 1000);
   }
 
+  // Auto mode (Settings > Preferences > Rest timer start) skips the picker
+  // entirely and starts straight from the saved default duration. Only
+  // called when no timer is already running (see commitSet) — logging a
+  // set mid-rest shouldn't reset an already-counting-down timer.
+  function autoStartRestTimer(){
+    ui.restTimerDraftSeconds = (state.settings && state.settings.restTimerDefaultSeconds) || 90;
+    startRestTimer();
+  }
+
   function tickRestTimer(){
     if (!ui.restTimer){
       clearInterval(restTimerInterval);
@@ -7271,6 +7280,12 @@
               '<div class="sr-sub">Powers real load, PRs, and progression tips in Pro Tips</div>' +
               '<div class="sr-value">'+(state.settings.bodyweightKg ? fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set') + ' \u00b7 ' + esc((GOAL_OPTIONS.filter(function(g){ return g.id === ((state.settings && state.settings.goal) || 'hypertrophy'); })[0] || GOAL_OPTIONS[1]).label) + '</div></div>' +
               '<button class="sr-action" data-action="open-bodyweight-picker">'+(state.settings.bodyweightKg ? 'Edit' : 'Set')+'</button></div>';
+    var restAutoStart = !!state.settings.restTimerAutoStart;
+    html += '<div class="settings-row"><div><div class="sr-label">Rest timer start</div><div class="sr-sub">Auto starts the moment you log a set</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="set-rest-timer-mode" data-mode="manual" class="'+(!restAutoStart ? 'active' : '')+'">Manual</button>' +
+                '<button data-action="set-rest-timer-mode" data-mode="auto" class="'+(restAutoStart ? 'active' : '')+'">Auto</button>' +
+              '</div></div>';
     var restDefaultSecs = (state.settings && state.settings.restTimerDefaultSeconds) || 90;
     html += '<div class="settings-row"><div><div class="sr-label">Rest timer duration</div><div class="sr-sub">Starting time each time you open the rest timer</div></div></div>';
     html += '<div class="rest-preset-row">';
@@ -7287,6 +7302,11 @@
               '<div class="seg">' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="on" class="'+(state.settings.restTimerVibrate !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="off" class="'+(state.settings.restTimerVibrate === false ? 'active' : '')+'">OFF</button>' +
+              '</div></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Haptic feedback</div><div class="sr-sub">Short vibration when you log a set, hit a PR, or finish a session</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="toggle-haptic-feedback" data-val="on" class="'+(state.settings.hapticFeedback !== false ? 'active' : '')+'">ON</button>' +
+                '<button data-action="toggle-haptic-feedback" data-val="off" class="'+(state.settings.hapticFeedback === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
     html += '</div>';
 
@@ -8302,9 +8322,15 @@
     checkStrengthBadge(ex, weightKg);
     renderApp();
     ui.freshPRSetId = null;
+    if (state.settings.hapticFeedback !== false && navigator.vibrate){
+      navigator.vibrate(isPR ? [15, 30, 15] : 10);
+    }
     if (isPR){
       var joke = susWeightJoke(ex.name, weightKg, prevBest);
       showToast(joke || ('New PR on ' + ex.name + '!'));
+    }
+    if (state.settings.restTimerAutoStart && !ui.restTimer){
+      autoStartRestTimer();
     }
   }
 
@@ -8588,6 +8614,7 @@
     ui.restTimer = null;
     state.tab = 'history';
     showToast('Session saved');
+    if (state.settings.hapticFeedback !== false && navigator.vibrate) navigator.vibrate([15, 30, 15]);
     renderApp();
   }
 
@@ -9441,6 +9468,14 @@
       renderApp();
     } else if (action === 'set-rest-timer-default'){
       state.settings.restTimerDefaultSeconds = parseInt(el.dataset.seconds, 10) || 90;
+      saveSettings();
+      renderApp();
+    } else if (action === 'set-rest-timer-mode'){
+      state.settings.restTimerAutoStart = (el.dataset.mode === 'auto');
+      saveSettings();
+      renderApp();
+    } else if (action === 'toggle-haptic-feedback'){
+      state.settings.hapticFeedback = (el.dataset.val === 'on');
       saveSettings();
       renderApp();
     } else if (action === 'toggle-rest-timer-sound'){
