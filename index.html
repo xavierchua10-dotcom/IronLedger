@@ -526,6 +526,8 @@
     display:flex;
     width:200%;
     pointer-events:none;
+    will-change:transform;
+    backface-visibility:hidden;
   }
   .view-slide-pane{
     width:50%;
@@ -7542,11 +7544,11 @@
     if (dir === 1){
       track.appendChild(oldPane);
       track.appendChild(newPane);
-      track.style.transform = 'translateX(0%)';
+      track.style.transform = 'translateX(0%) translateZ(0)';
     } else {
       track.appendChild(newPane);
       track.appendChild(oldPane);
-      track.style.transform = 'translateX(-100%)';
+      track.style.transform = 'translateX(-100%) translateZ(0)';
     }
 
     viewEl.innerHTML = '';
@@ -7556,7 +7558,7 @@
     void track.offsetWidth; // force reflow so the transition below actually animates
 
     track.style.transition = 'transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1)';
-    track.style.transform = dir === 1 ? 'translateX(-100%)' : 'translateX(0%)';
+    track.style.transform = (dir === 1 ? 'translateX(-100%)' : 'translateX(0%)') + ' translateZ(0)';
 
     var finished = false;
     var cleanup = function(){
@@ -7564,6 +7566,8 @@
       finished = true;
       ui.tabAnimating = false;
       renderApp(); // re-render for real: reattaches any tab-specific listeners (e.g. Settings' import input)
+      var freshView = document.getElementById('view');
+      if (freshView) freshView.scrollTop = 0;
     };
     track.addEventListener('transitionend', cleanup);
     setTimeout(cleanup, 400); // fallback in case transitionend doesn't fire
