@@ -251,7 +251,7 @@
     z-index:211;
     border-radius:var(--radius-md);
     border:2px solid var(--accent);
-    box-shadow:0 0 0 9999px rgba(6,7,9,0.82);
+    box-shadow:0 0 0 9999px rgba(6,7,9,0.68);
     pointer-events:none;
     transition:top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
   }
@@ -8852,6 +8852,8 @@
     { tab: 'log', selector: '#notifBellBtn', title: 'Notifications', text: 'Trial status, reminders, and other updates show up here.' },
     { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Tap the \u22ee on any session to edit, repeat, or delete it.' },
     { tab: 'progress', selector: '.progress-select', fallback: '#view', title: 'Progress', text: 'Track your estimated 1-rep max and trend over time for any exercise you\u2019ve logged.' },
+    { tab: 'settings', selector: '[data-action="open-bodyweight-picker"]', fallback: '#view', title: 'Bodyweight & goal', text: 'Set these once \u2014 they power real load tracking on bodyweight exercises and shape how Pro Tips suggests your next set.' },
+    { tab: 'settings', selector: '.accent-theme-picker', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
     { tab: 'settings', selector: '.card-bg-picker', fallback: '#view', title: 'Card style', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
     { tab: 'settings', selector: '.settings-row .seg', fallback: '#view', title: 'Units', text: 'Switch between kg and lb any time. Your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.' }
   ];
