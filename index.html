@@ -49,6 +49,7 @@
     --mm-body-line:#8b93a3;
     --accent:#f2b134;
     --accent-dim:#7a6224;
+    --accent-rgb:242,177,52;
     --accent-2:#c1443c;
     --accent-2-dim:#4a2321;
     --radius-xs:6px;
@@ -652,9 +653,9 @@
     animation:exerciseAddedGlow 900ms ease-out;
   }
   @keyframes exerciseAddedGlow{
-    0%{box-shadow:0 0 0 0 rgba(242,177,52,0);border-color:var(--line);}
-    12%{box-shadow:0 0 22px 3px rgba(242,177,52,0.6);border-color:var(--accent);}
-    100%{box-shadow:0 0 0 0 rgba(242,177,52,0);border-color:var(--line);}
+    0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0);border-color:var(--line);}
+    12%{box-shadow:0 0 22px 3px rgba(var(--accent-rgb),0.6);border-color:var(--accent);}
+    100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0);border-color:var(--line);}
   }
   .exercise-head-collapsed{
     display:flex;
@@ -1016,7 +1017,7 @@
     gap:10px;
     padding:10px 18px;
     border-top:1px solid var(--line);
-    background:rgba(242,177,52,0.06);
+    background:rgba(var(--accent-rgb),0.06);
     font-size:11.5px;
     color:var(--text-dim);
   }
@@ -1075,7 +1076,7 @@
     font-size:13px;
   }
   .set-row.editing{
-    background:rgba(242,177,52,0.08);
+    background:rgba(var(--accent-rgb),0.08);
     border-radius:var(--radius-xs);
   }
   .set-row .set-idx{color:var(--text-faint);}
@@ -1657,7 +1658,7 @@
   }
   .mm-shape{cursor:pointer;transition:fill 0.15s ease, fill-opacity 0.15s ease, filter 0.15s ease;}
   .mm-shape:active{fill-opacity:1 !important;}
-  .mm-shape.selected{filter:drop-shadow(0 0 5px rgba(242,177,52,0.75));}
+  .mm-shape.selected{filter:drop-shadow(0 0 5px rgba(var(--accent-rgb),0.75));}
   .mm-shape-static{pointer-events:none;}
   @media (prefers-reduced-motion: reduce){
     .mm-shape{transition:none;}
@@ -2060,7 +2061,7 @@
     height:26px;
     flex-shrink:0;
     border-radius:var(--radius-sm);
-    background:rgba(242,177,52,0.12);
+    background:rgba(var(--accent-rgb),0.12);
     border:1px solid var(--accent-dim);
     color:var(--accent);
     font-size:12px;
@@ -2071,7 +2072,7 @@
     padding:0;
     position:relative;
   }
-  .hi-tip-btn:active{background:rgba(242,177,52,0.24);}
+  .hi-tip-btn:active{background:rgba(var(--accent-rgb),0.24);}
   .hi-tip-btn.locked{color:var(--text-faint);border-color:var(--line);background:var(--panel);}
   .hi-tip-btn.locked::after{
     content:'\1F512';
@@ -2282,13 +2283,13 @@
   .pro-panel-body .prc-set{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);padding:2px 0;gap:8px;}
   .pro-panel-body .prc-set-time{color:var(--text-faint);font-size:10.5px;margin-right:6px;}
   .pro-panel-body .prc-pr{color:var(--accent);font-weight:700;}
-  .pro-panel-body .prc-tip{margin-top:8px;padding:9px 10px;background:rgba(242,177,52,0.08);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;font-size:11.5px;color:var(--text-dim);line-height:1.5;}
+  .pro-panel-body .prc-tip{margin-top:8px;padding:9px 10px;background:rgba(var(--accent-rgb),0.08);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;font-size:11.5px;color:var(--text-dim);line-height:1.5;}
   .pro-panel-body .prc-tip b{color:var(--text);}
   .pro-panel-body .prc-tip-target{margin-top:5px;font-weight:700;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:0.03em;}
   .pro-panel-body .prc-tip-badge{
     margin-top:8px;
     padding:9px 10px;
-    background:rgba(242,177,52,0.14);
+    background:rgba(var(--accent-rgb),0.14);
     border:1px solid var(--accent-dim);
     border-radius:var(--radius-sm);
     font-size:11.5px;
@@ -2352,7 +2353,7 @@
   /* ---------- Trial banner ---------- */
   .trial-banner{
     display:flex;align-items:center;gap:8px;padding:9px 16px;
-    background:rgba(242,177,52,0.10);border-bottom:1px solid var(--accent-dim);
+    background:rgba(var(--accent-rgb),0.10);border-bottom:1px solid var(--accent-dim);
     font-size:12px;color:var(--text-dim);
   }
   .trial-banner.hidden{display:none;}
@@ -2679,6 +2680,28 @@
   }
   .goal-chip.active .goal-chip-range{color:var(--accent);}
   .routine-actions{display:flex;gap:8px;}
+  /* Accent color theme picker (Settings > Accent Color). Solid color
+     circles rather than photo swatches like Card Style — the active
+     ring is always --text (not --accent), since --accent equals the
+     active swatch's own fill and wouldn't read as a distinct highlight
+     against itself. */
+  .accent-theme-picker{display:flex;gap:14px;padding:4px 0 14px;}
+  .accent-theme-swatch{
+    width:40px;height:40px;border-radius:50%;
+    border:none;
+    box-shadow:0 0 0 2px var(--line);
+    cursor:pointer;padding:0;flex-shrink:0;
+  }
+  .accent-theme-swatch.active{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text);}
+  /* Rest timer default-duration presets (Settings > Rest Timer) */
+  .rest-preset-row{display:flex;flex-wrap:wrap;gap:8px;padding:0 0 14px;}
+  .rest-preset-chip{
+    flex:1 1 auto;min-width:56px;
+    background:var(--panel-2);border:1px solid var(--line);border-radius:var(--radius-sm);
+    padding:9px 6px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;
+    color:var(--text-dim);cursor:pointer;text-align:center;
+  }
+  .rest-preset-chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
   /* Card-background swatch picker (Settings > Card Style). Each swatch
      previews its actual photo as a small thumbnail so the choice is
      visual, not just a label. */
@@ -2705,7 +2728,7 @@
     padding:0;
     overflow:hidden;
   }
-  .card-bg-swatch.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(242,177,52,0.3);}
+  .card-bg-swatch.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),0.3);}
   .card-bg-swatch[data-bg="chest"]{background-image:url('images/chest-bg.jpg');}
   .card-bg-swatch[data-bg="back"]{background-image:url('images/back-bg.jpg');}
   .card-bg-swatch[data-bg="shoulder"]{background-image:url('images/shoulder-bg.jpg');}
@@ -4639,6 +4662,40 @@
   // Choices for Settings > Card Style. "id" matches both the data-bg swatch
   // attribute and the body[data-card-bg] CSS selector — keep them in sync
   // if options are ever added or renamed.
+  // Accent color themes (Settings > Accent Color). Each theme swaps
+  // --accent/--accent-dim/--accent-rgb at runtime via applyAccentTheme().
+  // accentRgb is the decimal "r,g,b" form of `accent`, used everywhere
+  // the stylesheet needs rgba(var(--accent-rgb),X) for glows/tints.
+  var ACCENT_THEME_OPTIONS = [
+    { id: 'gold',    label: 'Gold',    accent: '#f2b134', accentDim: '#7a6224' },
+    { id: 'ice',     label: 'Ice Blue',accent: '#4fb3e8', accentDim: '#1f4e63' },
+    { id: 'emerald', label: 'Emerald', accent: '#46c17f', accentDim: '#1f5c3e' },
+    { id: 'violet',  label: 'Violet',  accent: '#ab82ff', accentDim: '#3d2f66' }
+  ];
+  function hexToRgbString(hex){
+    var h = hex.replace('#','');
+    var r = parseInt(h.substring(0,2),16);
+    var g = parseInt(h.substring(2,4),16);
+    var b = parseInt(h.substring(4,6),16);
+    return r+','+g+','+b;
+  }
+  function currentAccentTheme(){
+    var id = (state.settings && state.settings.accentTheme) || 'gold';
+    return ACCENT_THEME_OPTIONS.filter(function(t){ return t.id === id; })[0] || ACCENT_THEME_OPTIONS[0];
+  }
+  // Applies a theme's colors as inline custom-property overrides on the
+  // root element, taking priority over the :root defaults in the
+  // stylesheet without needing to rewrite them. Called once at boot
+  // (bootAccountData) and again immediately whenever the user picks a
+  // new theme, so the change is instant with no re-render flicker.
+  function applyAccentTheme(themeId){
+    var theme = ACCENT_THEME_OPTIONS.filter(function(t){ return t.id === themeId; })[0] || ACCENT_THEME_OPTIONS[0];
+    var root = document.documentElement.style;
+    root.setProperty('--accent', theme.accent);
+    root.setProperty('--accent-dim', theme.accentDim);
+    root.setProperty('--accent-rgb', hexToRgbString(theme.accent));
+  }
+
   var CARD_BG_OPTIONS = [
     { id: 'default', label: 'Default' },
     { id: 'chest', label: 'Rack' },
@@ -5686,6 +5743,7 @@
   }
 
   function openRestTimerPicker(){
+    ui.restTimerDraftSeconds = (state.settings && state.settings.restTimerDefaultSeconds) || 90;
     ui.showRestTimerPicker = true;
     renderRestTimerPickerOverlay();
   }
@@ -5864,8 +5922,8 @@
       ui.restTimer = null;
       renderRestTimerBar();
       showToast('Rest complete \u2014 back to it');
-      if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
-      playRestTimerChime();
+      if (navigator.vibrate && state.settings.restTimerVibrate !== false) navigator.vibrate([120, 60, 120]);
+      if (state.settings.restTimerSound !== false) playRestTimerChime();
       return;
     }
     renderRestTimerBar(remaining);
@@ -6863,19 +6921,20 @@
       return (i===0?'M':'L') + xAt(i).toFixed(1) + ',' + yAt(p.e1rm).toFixed(1);
     }).join(' ');
 
+    var accentHex = currentAccentTheme().accent;
     var dots = points.map(function(p,i){
-      return '<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(p.e1rm).toFixed(1)+'" r="3" fill="#f2b134"/>';
+      return '<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(p.e1rm).toFixed(1)+'" r="3" fill="'+accentHex+'"/>';
     }).join('');
 
     var areaPath = path + ' L' + xAt(n-1).toFixed(1) + ',' + (h-pad) + ' L' + xAt(0).toFixed(1) + ',' + (h-pad) + ' Z';
 
     var svg = '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="140" preserveAspectRatio="none">';
     svg += '<defs><linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">' +
-             '<stop offset="0%" stop-color="#f2b134" stop-opacity="0.28"/>' +
-             '<stop offset="100%" stop-color="#f2b134" stop-opacity="0"/>' +
+             '<stop offset="0%" stop-color="'+accentHex+'" stop-opacity="0.28"/>' +
+             '<stop offset="100%" stop-color="'+accentHex+'" stop-opacity="0"/>' +
            '</linearGradient></defs>';
     svg += '<path d="'+areaPath+'" fill="url(#grad)" stroke="none"/>';
-    svg += '<path d="'+path+'" fill="none" stroke="#f2b134" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    svg += '<path d="'+path+'" fill="none" stroke="'+accentHex+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
     svg += dots;
     svg += '</svg>';
     return svg;
@@ -6947,6 +7006,38 @@
               '<div class="sr-sub">Powers real load, PRs, and progression tips in Pro Tips</div>' +
               '<div class="sr-value">'+(state.settings.bodyweightKg ? fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set') + ' \u00b7 ' + esc((GOAL_OPTIONS.filter(function(g){ return g.id === ((state.settings && state.settings.goal) || 'hypertrophy'); })[0] || GOAL_OPTIONS[1]).label) + '</div></div>' +
               '<button class="sr-action" data-action="open-bodyweight-picker">'+(state.settings.bodyweightKg ? 'Edit' : 'Set')+'</button></div>';
+    html += '</div>';
+
+    html += '<div class="section-label">Accent Color</div>';
+    html += '<div class="settings-group">';
+    html += '<div class="settings-row"><div><div class="sr-label">Theme</div><div class="sr-sub">Changes the accent color throughout the app</div></div></div>';
+    html += '<div class="accent-theme-picker">';
+    var chosenAccentTheme = (state.settings && state.settings.accentTheme) || 'gold';
+    ACCENT_THEME_OPTIONS.forEach(function(t){
+      html += '<button type="button" class="accent-theme-swatch'+(chosenAccentTheme===t.id?' active':'')+'" data-action="set-accent-theme" data-theme="'+t.id+'" style="background:'+t.accent+'" aria-label="'+esc(t.label)+'"></button>';
+    });
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="section-label">Rest Timer</div>';
+    html += '<div class="settings-group">';
+    var restDefaultSecs = (state.settings && state.settings.restTimerDefaultSeconds) || 90;
+    html += '<div class="settings-row"><div><div class="sr-label">Default duration</div><div class="sr-sub">Starting time each time you open the rest timer</div></div></div>';
+    html += '<div class="rest-preset-row">';
+    [60,90,120,150,180].forEach(function(s){
+      html += '<button type="button" class="rest-preset-chip'+(restDefaultSecs===s?' active':'')+'" data-action="set-rest-timer-default" data-seconds="'+s+'">'+fmtMMSS(s)+'</button>';
+    });
+    html += '</div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Sound</div><div class="sr-sub">Chime when rest ends</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="toggle-rest-timer-sound" data-val="on" class="'+(state.settings.restTimerSound !== false ? 'active' : '')+'">ON</button>' +
+                '<button data-action="toggle-rest-timer-sound" data-val="off" class="'+(state.settings.restTimerSound === false ? 'active' : '')+'">OFF</button>' +
+              '</div></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Vibrate</div><div class="sr-sub">Vibration pulse when rest ends</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="toggle-rest-timer-vibrate" data-val="on" class="'+(state.settings.restTimerVibrate !== false ? 'active' : '')+'">ON</button>' +
+                '<button data-action="toggle-rest-timer-vibrate" data-val="off" class="'+(state.settings.restTimerVibrate === false ? 'active' : '')+'">OFF</button>' +
+              '</div></div>';
     html += '</div>';
 
     html += '<div class="section-label">Card Style</div>';
@@ -7171,6 +7262,7 @@
     state.sessions = loadSessions();
     state.routines = loadRoutines();
     state.settings = loadSettings();
+    applyAccentTheme(state.settings.accentTheme || 'gold');
     state.activityLog = loadActivityLog();
     state.progressAccess = loadProgressAccessLocal();
     purgeStaleActivity();
@@ -9043,6 +9135,23 @@
       renderApp();
     } else if (action === 'set-card-bg'){
       state.settings.cardBg = el.dataset.bg;
+      saveSettings();
+      renderApp();
+    } else if (action === 'set-accent-theme'){
+      state.settings.accentTheme = el.dataset.theme;
+      saveSettings();
+      applyAccentTheme(state.settings.accentTheme);
+      renderApp();
+    } else if (action === 'set-rest-timer-default'){
+      state.settings.restTimerDefaultSeconds = parseInt(el.dataset.seconds, 10) || 90;
+      saveSettings();
+      renderApp();
+    } else if (action === 'toggle-rest-timer-sound'){
+      state.settings.restTimerSound = (el.dataset.val === 'on');
+      saveSettings();
+      renderApp();
+    } else if (action === 'toggle-rest-timer-vibrate'){
+      state.settings.restTimerVibrate = (el.dataset.val === 'on');
       saveSettings();
       renderApp();
     } else if (action === 'open-bodyweight-picker'){
