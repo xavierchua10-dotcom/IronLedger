@@ -5361,7 +5361,7 @@
     var html = '<div class="mm-overlay-head"><h2>Pick by Muscle Group</h2>' +
                  '<div class="mm-head-actions">' +
                    '<button class="icon-btn mm-help-btn" data-action="toggle-muscle-map-help" aria-label="How this works">' +
-                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.6-1.4c.5.8.4 1.9-.3 2.6l-.7.6c-.6.5-1.1 1.1-1.1 2"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg>' +
+                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
                    '</button>' +
                    '<button class="icon-btn" data-action="toggle-muscle-map" aria-label="Close">&#10005;</button>' +
                  '</div>' +
@@ -5389,6 +5389,11 @@
      EVENT HELPERS
      ========================================================= */
   var toastTimer = null;
+  // Auto-dismiss timer for the muscle-map "how this works" callout — also
+  // cleared (and the callout hidden) the moment the person actually
+  // interacts with the picker, since a tip that's still in the way once
+  // they've started using the thing it explains is just clutter.
+  var mmHelpTimer = null;
   function showToast(msg){
     var t = document.getElementById('toast');
     t.textContent = msg;
@@ -9731,6 +9736,8 @@
   document.getElementById('app').addEventListener('click', function(e){
     if (e.target.id === 'mmOverlay'){
       ui.showMuscleMap = false;
+      ui.showMuscleMapHelp = false;
+      if (mmHelpTimer){ clearTimeout(mmHelpTimer); mmHelpTimer = null; }
       ui.selectedMuscle = null;
       ui.pendingMuscle = null;
       renderApp();
@@ -9846,11 +9853,20 @@
     } else if (action === 'toggle-muscle-map'){
       ui.showMuscleMap = !ui.showMuscleMap;
       ui.showMuscleMapHelp = false;
+      if (mmHelpTimer){ clearTimeout(mmHelpTimer); mmHelpTimer = null; }
       ui.selectedMuscle = null;
       ui.pendingMuscle = null;
       renderApp();
     } else if (action === 'toggle-muscle-map-help'){
       ui.showMuscleMapHelp = !ui.showMuscleMapHelp;
+      if (mmHelpTimer){ clearTimeout(mmHelpTimer); mmHelpTimer = null; }
+      if (ui.showMuscleMapHelp){
+        mmHelpTimer = setTimeout(function(){
+          ui.showMuscleMapHelp = false;
+          mmHelpTimer = null;
+          renderMuscleMapOverlay();
+        }, 3500);
+      }
       renderMuscleMapOverlay();
     } else if (action === 'mm-view'){
       ui.muscleMapView = el.dataset.view;
@@ -9858,6 +9874,10 @@
       renderApp();
     } else if (action === 'mm-select-muscle'){
       ui.selectedMuscle = el.dataset.muscle;
+      if (ui.showMuscleMapHelp){
+        ui.showMuscleMapHelp = false;
+        if (mmHelpTimer){ clearTimeout(mmHelpTimer); mmHelpTimer = null; }
+      }
       renderApp();
     } else if (action === 'mm-add-exercise'){
       openAddNamedExerciseConfirm(el.dataset.name, el.dataset.muscle);
@@ -10629,11 +10649,25 @@
       closeNotifications();
     } else if (ui.showMuscleMap){
       ui.showMuscleMap = false;
+      ui.showMuscleMapHelp = false;
+      if (mmHelpTimer){ clearTimeout(mmHelpTimer); mmHelpTimer = null; }
       ui.selectedMuscle = null;
       ui.pendingMuscle = null;
       renderApp();
     }
   });
+
+  // Scroll doesn't bubble, so this listens in the capture phase on the
+  // stable panel element (its innerHTML gets replaced on every render,
+  // but the element itself never does) to catch scrolling anywhere
+  // inside it, including the exercise list once a muscle is selected.
+  document.getElementById('mmOverlayPanel').addEventListener('scroll', function(){
+    if (ui.showMuscleMapHelp){
+      ui.showMuscleMapHelp = false;
+      if (mmHelpTimer){ clearTimeout(mmHelpTimer); mmHelpTimer = null; }
+      renderMuscleMapOverlay();
+    }
+  }, true);
 
   /* =========================================================
      INIT
