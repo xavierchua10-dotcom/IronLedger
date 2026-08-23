@@ -1706,6 +1706,22 @@
     margin:0;
   }
   .mm-overlay-head .icon-btn{width:34px;height:34px;background:var(--panel-3);flex-shrink:0;}
+  .mm-head-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .mm-help-btn.icon-btn{color:var(--text-dim);}
+  .mm-help-btn.icon-btn svg{width:17px;height:17px;display:block;}
+  .mm-help-btn:active{color:var(--accent);}
+  .mm-help-box{
+    background:var(--accent-dim);
+    border:1px solid var(--accent-dim);
+    border-radius:var(--radius-sm);
+    padding:10px 12px;
+    margin-bottom:10px;
+    font-size:12px;
+    line-height:1.5;
+    color:var(--text);
+    flex-shrink:0;
+  }
+  .mm-help-box b{color:var(--accent);}
   .mm-columns{
     display:flex;
     flex-direction:column;
@@ -3785,6 +3801,7 @@
     showOldHistory: false, // whether the collapsed "Older" History group is expanded
     progressExercise: null,
     showMuscleMap: false,
+    showMuscleMapHelp: false, // small "how this works" callout, toggled by the ? button
     muscleMapView: 'front',
     selectedMuscle: null,
     pendingMuscle: null,
@@ -5342,7 +5359,19 @@
     // a hint or the exercise list for whatever's currently selected,
     // filling and scrolling within the remaining panel height.
     var html = '<div class="mm-overlay-head"><h2>Pick by Muscle Group</h2>' +
-                 '<button class="icon-btn" data-action="toggle-muscle-map" aria-label="Close">&#10005;</button></div>';
+                 '<div class="mm-head-actions">' +
+                   '<button class="icon-btn mm-help-btn" data-action="toggle-muscle-map-help" aria-label="How this works">' +
+                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.6-1.4c.5.8.4 1.9-.3 2.6l-.7.6c-.6.5-1.1 1.1-1.1 2"/><circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg>' +
+                   '</button>' +
+                   '<button class="icon-btn" data-action="toggle-muscle-map" aria-label="Close">&#10005;</button>' +
+                 '</div>' +
+               '</div>';
+    if (ui.showMuscleMapHelp){
+      html += '<div class="mm-help-box">' +
+                'Tap a highlighted body part below to see matching exercises. ' +
+                'Switch <b>FRONT</b> / <b>BACK</b> to reach muscles on either side.' +
+              '</div>';
+    }
     html += '<div class="mm-columns">';
     html += '<div class="mm-diagram-col">'+renderMuscleMapDiagram()+'</div>';
     html += '<div class="mm-list-col">';
@@ -9816,9 +9845,13 @@
       skipRestTimer();
     } else if (action === 'toggle-muscle-map'){
       ui.showMuscleMap = !ui.showMuscleMap;
+      ui.showMuscleMapHelp = false;
       ui.selectedMuscle = null;
       ui.pendingMuscle = null;
       renderApp();
+    } else if (action === 'toggle-muscle-map-help'){
+      ui.showMuscleMapHelp = !ui.showMuscleMapHelp;
+      renderMuscleMapOverlay();
     } else if (action === 'mm-view'){
       ui.muscleMapView = el.dataset.view;
       ui.selectedMuscle = null;
