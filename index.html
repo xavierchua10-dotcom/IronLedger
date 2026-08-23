@@ -2641,7 +2641,13 @@
 
   /* ---------- Progress lock (Basic tier, 3-day/month window) ---------- */
   .progress-tab-wrap{position:relative;}
-  .progress-blur{filter:blur(5px);user-select:none;pointer-events:none;}
+  .progress-blur{
+    filter:blur(5px);
+    user-select:none;
+    pointer-events:none;
+    -webkit-mask-image:linear-gradient(to bottom, #000 0%, #000 25%, transparent 90%);
+    mask-image:linear-gradient(to bottom, #000 0%, #000 25%, transparent 90%);
+  }
   .progress-lock-overlay{
     position:absolute;inset:0;display:flex;flex-direction:column;
     align-items:center;justify-content:center;text-align:center;padding:28px 20px;
