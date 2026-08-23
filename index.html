@@ -9144,6 +9144,7 @@
       name: '',
       date: new Date().toISOString(),
       status: 'active',
+      repeatedFromId: sessionId,
       exercises: source.exercises.map(function(ex){
         return { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false };
       })
