@@ -4029,9 +4029,20 @@
 
   // ---- FIRESTORE SYNC (real accounts only — guest stays local-only) ----
   var firestoreSyncTimer = null;
+  // Hard safety gate: no write to Firestore is allowed until the initial
+  // pull-down in enterAccount() has settled (success OR failure) for the
+  // account currently signed in. Without this, any code path that saves
+  // before that pull finishes — even one that looks harmless — can push
+  // this device's momentarily-empty local state up and permanently wipe
+  // real data already in the cloud, which is exactly how a full history
+  // got overwritten with a single blank session once. Reset to false on
+  // every fresh sign-in in enterAccount() and flipped true only once
+  // that account's pull has actually resolved or rejected.
+  var firestorePullSettled = false;
   function scheduleFirestoreSync(){
     if (!window.SaviorFirebase || !window.SaviorFirebase.saveUserData) return;
     if (!state.currentAccount || state.currentAccount === 'guest') return;
+    if (!firestorePullSettled) return;
     var acct = state.currentAccount;
     clearTimeout(firestoreSyncTimer);
     firestoreSyncTimer = setTimeout(function(){
@@ -4159,6 +4170,18 @@
   /* =========================================================
      SESSION / EXERCISE / SET HELPERS
      ========================================================= */
+  // CRITICAL: this function must never call saveSessions() itself.
+  // It runs on every Log tab render, including the moment right after
+  // local storage is empty for any reason (cleared cache, a failed
+  // Firestore pull on a flaky connection, a new device). If creating
+  // this placeholder synced to Firestore, an empty local boot could
+  // silently overwrite someone's entire real history in the cloud with
+  // a single blank session — which is exactly what happened once. A
+  // scaffold session with zero exercises is meaningless to persist
+  // anywhere; the moment the person actually adds something to it,
+  // whichever call site does that (applyTemplate, add-exercise, etc.)
+  // already calls saveSessions() itself, so real data still saves
+  // and syncs exactly as before. Only the "just existing" case is inert now.
   function getActiveSession(){
     var active = state.sessions.find(function(s){ return s.status === 'active'; });
     if (active && active.exercises.length === 0 && !isSameLocalDay(active.date)){
@@ -4168,7 +4191,6 @@
       // exercises is left alone even across midnight, since that's a real
       // in-progress workout, not a stale leftover.
       active.date = new Date().toISOString();
-      saveSessions();
     }
     if (!active){
       active = {
@@ -4179,7 +4201,6 @@
         exercises: []
       };
       state.sessions.unshift(active);
-      saveSessions();
     }
     return active;
   }
@@ -7921,6 +7942,7 @@
     state.currentAccountEmail = email;
     ui.authBusy = false;
     ui.authError = null;
+    firestorePullSettled = false;
     var pull = (window.SaviorFirebase && window.SaviorFirebase.loadUserData)
       ? window.SaviorFirebase.loadUserData(uidVal)
       : Promise.resolve(null);
@@ -7947,6 +7969,7 @@
       console.error('Firestore pull failed:', err);
       return false;
     }).then(function(isNewAccount){
+      firestorePullSettled = true;
       bootAccountData();
       subscribeUserDoc(uidVal);
       // Marks "last opened the app" for the 2-day inactivity push job
