@@ -7557,8 +7557,6 @@
     html += '<div class="settings-group">';
     html += '<div class="settings-row"><div><div class="sr-label">Brief</div><div class="sr-sub">Every add, edit, and rename \u2014 what changed and when</div></div>' +
               '<button class="sr-action" data-action="open-brief">View</button></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Guided tour</div><div class="sr-sub">A quick walkthrough of the app\u2019s main features</div></div>' +
-              '<button class="sr-action" data-action="start-tour">Start</button></div>';
     html += '</div>';
 
     html += '<div class="section-label">Plan</div>';
@@ -7623,6 +7621,11 @@
                 '<button data-action="toggle-haptic-feedback" data-val="on" class="'+(state.settings.hapticFeedback !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-haptic-feedback" data-val="off" class="'+(state.settings.hapticFeedback === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
+    if (state.currentAccount !== 'guest'){
+      var pushOn = !!(state.userDoc && state.userDoc.fcmToken);
+      html += '<div class="settings-row"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+(pushOn ? 'Enabled on this device' : 'Get a nudge when it\u2019s been a while')+'</div></div>' +
+                '<button class="sr-action" data-action="enable-push"'+(ui.pushBusy ? ' disabled' : '')+'>'+(ui.pushBusy ? '\u2026' : (pushOn ? 'Re-enable' : 'Enable'))+'</button></div>';
+    }
     html += '</div>';
 
     html += '<div class="section-label">Appearance</div>';
@@ -7682,15 +7685,12 @@
               '<button class="sr-action" data-action="export-data">Export</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Import backup</div><div class="sr-sub">Restore from a JSON file</div></div>' +
               '<button class="sr-action" data-action="import-data">Import</button></div>';
-    if (state.currentAccount !== 'guest'){
-      var pushOn = !!(state.userDoc && state.userDoc.fcmToken);
-      html += '<div class="settings-row"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+(pushOn ? 'Enabled on this device' : 'Get a nudge when it\u2019s been a while')+'</div></div>' +
-                '<button class="sr-action" data-action="enable-push"'+(ui.pushBusy ? ' disabled' : '')+'>'+(ui.pushBusy ? '\u2026' : (pushOn ? 'Re-enable' : 'Enable'))+'</button></div>';
-    }
     html += '</div>';
 
     html += '<div class="section-label">Support</div>';
     html += '<div class="settings-group">';
+    html += '<div class="settings-row"><div><div class="sr-label">Guided tour</div><div class="sr-sub">A quick walkthrough of the app\u2019s main features</div></div>' +
+              '<button class="sr-action" data-action="start-tour">Start</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Instagram</div><div class="sr-sub">@im.savior_</div></div>' +
               '<a class="sr-action" href="https://instagram.com/im.savior_" target="_blank" rel="noopener">Open</a></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Email</div><div class="sr-sub">xavierchua10@gmail.com</div></div>' +
