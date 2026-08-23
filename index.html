@@ -7212,7 +7212,7 @@
     var expanded = !!ui.expandedHistory[s.id];
     var isEditingName = ui.editingHistoryName === s.id;
     var searchBlob = ((s.name || '') + ' ' + s.exercises.map(function(ex){ return ex.name; }).join(' ')).toLowerCase();
-    var html = '<div class="history-item" data-search="'+esc(searchBlob)+'">';
+    var html = '<div class="history-item" data-session="'+s.id+'" data-search="'+esc(searchBlob)+'">';
     if (isEditingName){
       html += '<div class="history-item-head history-item-head-editing">' +
                 '<div class="hi-rename-row">' +
@@ -7326,6 +7326,29 @@
     }
     document.getElementById('view').innerHTML = html;
     if (done.length > 0) filterHistoryList(ui.historySearch || '');
+  }
+
+  // Animated equivalent of the old inline "ui.expandedHistory[sid] = !...;
+  // renderApp();" — opening renders immediately then grows the body from 0,
+  // closing shrinks the existing body to 0 first and only then flips state
+  // and re-renders, so collapsing a session reads as a slide-up instead of
+  // the list just snapping shorter.
+  function toggleHistoryItem(sid){
+    var opening = !ui.expandedHistory[sid];
+    if (opening){
+      ui.expandedHistory[sid] = true;
+      renderApp();
+      var item = document.querySelector('.history-item[data-session="'+sid+'"]');
+      var body = item && item.querySelector('.history-item-body');
+      animateSlideOpen(body);
+    } else {
+      var item2 = document.querySelector('.history-item[data-session="'+sid+'"]');
+      var body2 = item2 && item2.querySelector('.history-item-body');
+      animateSlideClosed(body2, function(){
+        ui.expandedHistory[sid] = false;
+        renderApp();
+      });
+    }
   }
 
   function filterHistoryList(query){
@@ -8706,6 +8729,65 @@
     btn.disabled = !(weightKg !== null && (isBW ? weightKg >= 0 : weightKg > 0) && !isNaN(reps) && reps > 0);
   }
 
+  // Generic slide-open/slide-closed helpers. The app re-renders panels by
+  // replacing innerHTML wholesale on every state change, so a plain CSS
+  // class-toggle transition never has a "before" DOM node to animate from
+  // — the new node just appears already in its final state. These bridge
+  // that gap with a measure-then-animate approach: animateSlideOpen grows
+  // an already-rendered (but freshly opened) element from 0 to its natural
+  // height; animateSlideClosed shrinks an existing element to 0 first and
+  // only THEN runs the callback that flips state + re-renders, so the
+  // person sees the collapse happen instead of a sudden hard cut.
+  function animateSlideOpen(el){
+    if (!el) return;
+    el.style.overflow = 'hidden';
+    el.style.height = '0px';
+    el.style.opacity = '0';
+    el.style.transition = 'none';
+    void el.offsetHeight; // force reflow so the 0px start actually commits
+    var target = el.scrollHeight;
+    var done = false;
+    function finish(e){
+      if (done || (e && e.propertyName !== 'height')) return;
+      done = true;
+      el.style.height = 'auto';
+      el.style.overflow = '';
+      el.style.transition = '';
+      el.style.opacity = '';
+      el.removeEventListener('transitionend', finish);
+    }
+    requestAnimationFrame(function(){
+      el.style.transition = 'height .24s cubic-bezier(.4,0,.2,1), opacity .2s ease';
+      el.style.height = target + 'px';
+      el.style.opacity = '1';
+    });
+    el.addEventListener('transitionend', finish);
+    setTimeout(finish, 300); // safety fallback if transitionend never fires
+  }
+
+  function animateSlideClosed(el, onDone){
+    if (!el){ if (onDone) onDone(); return; }
+    var start = el.scrollHeight;
+    el.style.overflow = 'hidden';
+    el.style.height = start + 'px';
+    el.style.transition = 'none';
+    void el.offsetHeight;
+    var done = false;
+    function finish(e){
+      if (done || (e && e.propertyName !== 'height')) return;
+      done = true;
+      el.removeEventListener('transitionend', finish);
+      if (onDone) onDone();
+    }
+    requestAnimationFrame(function(){
+      el.style.transition = 'height .2s cubic-bezier(.4,0,.2,1), opacity .16s ease';
+      el.style.height = '0px';
+      el.style.opacity = '0';
+    });
+    el.addEventListener('transitionend', finish);
+    setTimeout(finish, 260);
+  }
+
   function openAddSetPanelConfirm(exId){
     var session = getActiveSession();
     var ex = findExercise(session, exId);
@@ -8725,14 +8807,20 @@
     ui.expandedAddSet[exId] = true;
     renderApp();
     var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
+    var row = card && card.querySelector('.add-set-row');
+    animateSlideOpen(row);
     var input = card && card.querySelector('.set-weight-input');
     if (input){ input.focus(); }
   }
 
   function closeAddSetPanel(exId){
-    ui.expandedAddSet[exId] = false;
-    delete ui.draftSets[exId];
-    renderApp();
+    var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
+    var row = card && card.querySelector('.add-set-row');
+    animateSlideClosed(row, function(){
+      ui.expandedAddSet[exId] = false;
+      delete ui.draftSets[exId];
+      renderApp();
+    });
   }
 
   // Gate for the \u2715 on the add-set panel: if the person has typed a weight
@@ -9807,9 +9895,7 @@
       ui.showMuscleMap = false;
       openAddExerciseConfirm(el.dataset.muscle);
     } else if (action === 'toggle-history'){
-      var sid = el.dataset.session;
-      ui.expandedHistory[sid] = !ui.expandedHistory[sid];
-      renderApp();
+      toggleHistoryItem(el.dataset.session);
     } else if (action === 'toggle-old-history'){
       ui.showOldHistory = !ui.showOldHistory;
       renderApp();
