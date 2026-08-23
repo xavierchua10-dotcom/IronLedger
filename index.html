@@ -800,6 +800,28 @@
     flex-shrink:0;
   }
   .icon-btn:active{background:var(--panel-3);color:var(--text);}
+  .reference-btn{
+    background:var(--accent);
+    border:none;
+    color:#1c1500;
+    width:40px;
+    height:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    border-radius:var(--radius-sm);
+    flex-shrink:0;
+  }
+  .reference-btn svg{width:18px;height:18px;display:block;}
+  .reference-btn:active{background:var(--accent-dim);color:var(--accent);}
+  .ref-subtitle{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px;}
+  .ref-set-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);}
+  .ref-set-row:last-child{border-bottom:none;}
+  .ref-set-idx{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);width:16px;flex-shrink:0;}
+  .ref-set-wr{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--text);flex:1;}
+  .ref-set-wr .x{color:var(--text-faint);margin:0 4px;}
+  .ref-empty{color:var(--text-faint);font-size:13px;padding:14px 0;text-align:center;}
   .reminder-banner{
     display:flex;
     align-items:center;
@@ -3321,6 +3343,9 @@
 <div class="confirm-overlay hidden" id="bodyweightPickerOverlay">
   <div class="pro-panel" id="bodyweightPickerPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="refOverlay">
+  <div class="pro-panel" id="refOverlayPanel"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
 
@@ -3755,6 +3780,8 @@
     progressExercise: null,
     showMuscleMap: false,
     showMuscleMapHelp: false, // small "how this works" callout, toggled by the ? button
+    showReferenceOverlay: false, // gold reference button on repeated-session exercise cards
+    referenceExerciseName: null,
     muscleMapView: 'front',
     selectedMuscle: null,
     pendingMuscle: null,
@@ -7058,6 +7085,7 @@
   function renderExerciseCard(session, ex){
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
+    var refSets = getReferenceSets(session, ex.name);
     var html = '<div class="exercise-card'+(ex.id===ui.justAddedExId?' just-added':'')+'" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
     html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
             '<div class="eh-badges">' +
@@ -7066,6 +7094,9 @@
             '</div>' +
             '</div>' +
             '<div class="exercise-head-actions">' +
+              (refSets ? '<button class="reference-btn" data-action="open-exercise-reference" data-ex-name="'+esc(ex.name)+'" aria-label="Reference from last time">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M7.5 9h9M7.5 12.5h9M7.5 16h5.5"/></svg>' +
+              '</button>' : '') +
               '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
               '<button class="icon-btn" data-action="open-exercise-menu" data-ex="'+ex.id+'" aria-label="Exercise options">&#8942;</button>' +
             '</div></div>';
@@ -9021,6 +9052,56 @@
     renderApp();
   }
 
+  // Powers the gold reference button on each exercise card. Only returns
+  // something when the current session came from Repeat AND the source
+  // session actually logged that exact exercise (matched by name, since
+  // repeated exercises get fresh ids) AND it has at least one set —
+  // otherwise the button doesn't render at all rather than opening to
+  // an empty panel.
+  function getReferenceSets(session, exerciseName){
+    if (!session || !session.repeatedFromId) return null;
+    var source = state.sessions.find(function(s){ return s.id === session.repeatedFromId; });
+    if (!source) return null;
+    var match = source.exercises.find(function(e){ return e.name === exerciseName; });
+    return (match && match.sets && match.sets.length > 0) ? match.sets : null;
+  }
+  function openExerciseReference(exerciseName){
+    ui.referenceExerciseName = exerciseName;
+    ui.showReferenceOverlay = true;
+    renderReferenceOverlay();
+  }
+  function closeReferenceOverlay(){
+    ui.showReferenceOverlay = false;
+    renderReferenceOverlay();
+  }
+  function renderReferenceOverlay(){
+    var overlay = document.getElementById('refOverlay');
+    var panel = document.getElementById('refOverlayPanel');
+    if (!ui.showReferenceOverlay){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
+    var sets = getReferenceSets(activeSession, ui.referenceExerciseName) || [];
+    var rowsHtml = sets.map(function(st, i){
+      return '<div class="ref-set-row">' +
+               '<span class="ref-set-idx">'+(i+1)+'</span>' +
+               '<span class="ref-set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
+               (st.isPR ? '<span class="pr-tag">PR</span>' : '') +
+             '</div>';
+    }).join('');
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>'+esc(ui.referenceExerciseName || 'Reference')+'</h3>' +
+        '<button class="pro-panel-close" data-action="close-exercise-reference" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' +
+        '<div class="ref-subtitle">Last time</div>' +
+        (rowsHtml || '<div class="ref-empty">No sets logged for this exercise last time.</div>') +
+      '</div>';
+  }
+
   function repeatSession(sessionId){
     var source = state.sessions.find(function(s){ return s.id === sessionId; });
     if (!source) return;
@@ -9576,6 +9657,8 @@
       } else {
         openRowActionMenu('exercise', el.dataset.ex, null, el);
       }
+    } else if (action === 'open-exercise-reference'){
+      openExerciseReference(el.dataset.exName);
     } else if (action === 'open-set-menu'){
       if (ui.openRowMenu && ui.openRowMenu.type === 'set' && ui.openRowMenu.setId === el.dataset.set){
         closeRowActionMenu();
@@ -10351,6 +10434,25 @@
     }
   });
 
+  var refOverlayEl = document.getElementById('refOverlay');
+  refOverlayEl.addEventListener('click', function(e){
+    if (e.target === refOverlayEl){
+      closeReferenceOverlay();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-exercise-reference'){
+      closeReferenceOverlay();
+    }
+  });
+  refOverlayEl.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){
+      e.preventDefault();
+      closeReferenceOverlay();
+    }
+  });
+
   var changePasswordOverlayEl = document.getElementById('changePasswordOverlay');
   changePasswordOverlayEl.addEventListener('click', function(e){
     if (e.target === changePasswordOverlayEl){
@@ -10424,6 +10526,8 @@
       closeRestTimerPicker();
     } else if (ui.showBodyweightPicker){
       closeBodyweightPicker();
+    } else if (ui.showReferenceOverlay){
+      closeReferenceOverlay();
     } else if (ui.showChangePassword){
       if (!ui.changePasswordBusy) closeChangePasswordPanel();
     } else if (ui.showEquipmentGuide){
