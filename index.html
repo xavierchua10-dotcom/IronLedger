@@ -9134,13 +9134,39 @@
     renderApp();
   }
 
+  // Checks whether the currently active session has an Add Set panel open
+  // with an actual typed (but not yet logged, i.e. checkmark not tapped)
+  // weight or reps value. Repeat and Edit both archive the whole active
+  // session into History before swapping in a different one — anything
+  // properly logged rides along fine, but a draft sitting in the input
+  // boxes was never part of the session data to begin with, so it just
+  // vanishes unless callers here surface it first.
+  function activeSessionUnsavedDraftExercise(){
+    var session = getActiveSession();
+    if (!session) return null;
+    for (var i = 0; i < session.exercises.length; i++){
+      var ex = session.exercises[i];
+      if (!ui.expandedAddSet[ex.id]) continue;
+      var draft = ui.draftSets[ex.id];
+      var hasWeight = draft && draft.weight != null && String(draft.weight).trim() !== '';
+      var hasReps = draft && draft.reps != null && String(draft.reps).trim() !== '';
+      if (hasWeight || hasReps) return ex;
+    }
+    return null;
+  }
+
   function openEditSessionConfirm(sessionId){
     var session = state.sessions.find(function(s){ return s.id === sessionId; });
     var name = session && session.name ? session.name : 'this session';
+    var message = 'This reopens it in the Log tab so you can add, change, or remove sets. If you have another session in progress, it\u2019ll be saved to History first.';
+    var draftEx = activeSessionUnsavedDraftExercise();
+    if (draftEx){
+      message += ' You also have an unsaved set for ' + (draftEx.name || 'an exercise') + ' that hasn\u2019t been logged yet \u2014 editing this session will discard it.';
+    }
     ui.confirmModal = {
       kind: 'edit-session',
       title: 'Edit ' + name + '?',
-      message: 'This reopens it in the Log tab so you can add, change, or remove sets. If you have another session in progress, it\u2019ll be saved to History first.',
+      message: message,
       confirmLabel: 'Edit',
       variant: 'primary',
       sessionId: sessionId
@@ -9174,10 +9200,15 @@
   function openRepeatSessionConfirm(sessionId){
     var session = state.sessions.find(function(s){ return s.id === sessionId; });
     var name = session && session.name ? session.name : 'this session';
+    var message = 'A new session starts with the same exercises (no sets yet, fresh start). If you have another session in progress, it\u2019ll be saved to History first.';
+    var draftEx = activeSessionUnsavedDraftExercise();
+    if (draftEx){
+      message += ' You also have an unsaved set for ' + (draftEx.name || 'an exercise') + ' that hasn\u2019t been logged yet \u2014 repeating will discard it.';
+    }
     ui.confirmModal = {
       kind: 'repeat-session',
       title: 'Repeat ' + name + '?',
-      message: 'A new session starts with the same exercises (no sets yet, fresh start). If you have another session in progress, it\u2019ll be saved to History first.',
+      message: message,
       confirmLabel: 'Repeat',
       variant: 'primary',
       sessionId: sessionId
