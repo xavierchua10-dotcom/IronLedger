@@ -7121,6 +7121,7 @@
               '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
               '<button class="icon-btn" data-action="open-exercise-menu" data-ex="'+ex.id+'" aria-label="Exercise options">&#8942;</button>' +
             '</div></div>';
+    html += '<div class="exercise-card-body">';
 
     var editingSetId = (ui.editingSet && ui.editingSet.exId === ex.id) ? ui.editingSet.setId : null;
     var editingSetObj = null;
@@ -7183,6 +7184,7 @@
                 '</button>';
       }
     }
+    html += '</div>'; // close exercise-card-body
     html += '</div>';
     return html;
   }
@@ -8587,19 +8589,39 @@
     var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
-    ex.done = !ex.done;
-    if (ex.done && ui.editingSet && ui.editingSet.exId === exId) ui.editingSet = null;
-    if (ex.done && ui.editingExerciseName === exId){
-      if (ui.newExerciseId === exId) discardPendingNewExercise();
-      ui.editingExerciseName = null;
+
+    var collapsing = !ex.done; // currently expanded ("outside" open) -> about to collapse
+
+    function commitToggle(){
+      ex.done = !ex.done;
+      if (ex.done && ui.editingSet && ui.editingSet.exId === exId) ui.editingSet = null;
+      if (ex.done && ui.editingExerciseName === exId){
+        if (ui.newExerciseId === exId) discardPendingNewExercise();
+        ui.editingExerciseName = null;
+      }
+      // Collapsing hides the add-set input row from view, but doesn't
+      // otherwise clear it — leaving expandedAddSet[exId] stuck true would
+      // silently keep Finish Session disabled with no visual sign why,
+      // since the collapsed card never renders that panel to close it.
+      if (ex.done && ui.expandedAddSet[exId]) ui.expandedAddSet[exId] = false;
+      saveSessions();
+      renderApp();
     }
-    // Collapsing hides the add-set input row from view, but doesn't
-    // otherwise clear it — leaving expandedAddSet[exId] stuck true would
-    // silently keep Finish Session disabled with no visual sign why,
-    // since the collapsed card never renders that panel to close it.
-    if (ex.done && ui.expandedAddSet[exId]) ui.expandedAddSet[exId] = false;
-    saveSessions();
-    renderApp();
+
+    if (collapsing){
+      // Slide the card's body (sets list + add-set area) up first, THEN
+      // swap to the compact collapsed row — this only ever runs from the
+      // chevron/collapsed-row tap (the "outside" toggle), so it never
+      // fires while someone's mid-typing in the weight/reps inputs.
+      var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
+      var body = card && card.querySelector('.exercise-card-body');
+      animateSlideClosed(body, commitToggle);
+    } else {
+      commitToggle();
+      var freshCard = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
+      var freshBody = freshCard && freshCard.querySelector('.exercise-card-body');
+      animateSlideOpen(freshBody);
+    }
   }
 
   function addSet(exId){
