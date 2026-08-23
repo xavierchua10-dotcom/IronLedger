@@ -7601,6 +7601,14 @@
 
   // Slides the outgoing tab out and the incoming tab in, direction based on
   // their order in the tab bar (left tab -> right tab slides leftward, etc).
+  // Remembers how far down each tab was scrolled, so switching away to
+  // Log (e.g. to key in a weight you just checked in History) and back
+  // returns you to the same spot instead of dumping you at the top —
+  // exactly the flow of cross-referencing History while actively
+  // logging a set. Session-only, not persisted; resets on reload same
+  // as any other in-memory UI state.
+  var tabScrollPositions = {};
+
   function switchTabWithSlide(newTab){
     if (newTab === state.tab){
       renderApp();
@@ -7611,9 +7619,12 @@
     var viewEl = document.getElementById('view');
     var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    tabScrollPositions[state.tab] = viewEl.scrollTop;
+
     if (ui.tabAnimating || oldIndex === -1 || newIndex === -1 || reduceMotion){
       state.tab = newTab;
       renderApp();
+      viewEl.scrollTop = tabScrollPositions[newTab] || 0;
       return;
     }
 
@@ -7665,7 +7676,7 @@
       ui.tabAnimating = false;
       renderApp(); // re-render for real: reattaches any tab-specific listeners (e.g. Settings' import input)
       var freshView = document.getElementById('view');
-      if (freshView) freshView.scrollTop = 0;
+      if (freshView) freshView.scrollTop = tabScrollPositions[newTab] || 0;
     };
     track.addEventListener('transitionend', cleanup);
     setTimeout(cleanup, 400); // fallback in case transitionend doesn't fire
