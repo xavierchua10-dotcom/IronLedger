@@ -31,7 +31,7 @@ messaging.onBackgroundMessage(function(payload){
   });
 });
 
-var CACHE_NAME = 'iron-ledger-v1';
+var CACHE_NAME = 'iron-ledger-v2';
 var CORE_ASSETS = [
   './',
   './index.html',
@@ -61,22 +61,22 @@ self.addEventListener('activate', function(event){
   self.clients.claim();
 });
 
-// Cache-first for the app shell, falling back to network, and updating the
-// cache in the background so the next offline open has the latest version.
+// Network-first: always try the network so anyone online gets today's
+// deploy immediately, no lag, ever. Cache only kicks in as a fallback
+// when the network request itself fails — i.e. actually offline — which
+// is the only case this app needs to work without a connection at all.
 self.addEventListener('fetch', function(event){
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then(function(cached){
-      var network = fetch(event.request).then(function(response){
-        if (response && response.status === 200 && response.type === 'basic'){
-          var copy = response.clone();
-          caches.open(CACHE_NAME).then(function(cache){ cache.put(event.request, copy); });
-        }
-        return response;
-      }).catch(function(){ return cached; });
-
-      return cached || network;
+    fetch(event.request).then(function(response){
+      if (response && response.status === 200 && response.type === 'basic'){
+        var copy = response.clone();
+        caches.open(CACHE_NAME).then(function(cache){ cache.put(event.request, copy); });
+      }
+      return response;
+    }).catch(function(){
+      return caches.match(event.request);
     })
   );
 });
