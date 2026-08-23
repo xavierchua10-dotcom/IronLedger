@@ -1748,9 +1748,9 @@
     width:100%;
     text-align:left;
     display:flex;
-    flex-direction:column;
-    align-items:flex-start;
-    gap:4px;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
     background:var(--panel-3);
     border:1px solid var(--line);
     color:var(--text);
@@ -1762,7 +1762,7 @@
     border-radius:var(--radius-sm);
     cursor:pointer;
   }
-  .mm-exercise-item-name{width:100%;white-space:normal;word-break:break-word;}
+  .mm-exercise-item-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .mm-exercise-item-eq{
     flex-shrink:0;
     background:var(--panel);
@@ -5200,7 +5200,7 @@
     if (ui.selectedMuscle){
       html += renderMuscleExerciseList(ui.selectedMuscle);
     } else {
-      html += '<div class="mm-list-empty">No body part selected yet — tap a region on the left</div>';
+      html += '<div class="mm-list-empty">No body part selected yet — tap a region above</div>';
     }
     html += '</div>';
     html += '</div>';
