@@ -7665,7 +7665,7 @@
       html += '<div class="settings-group">';
       state.routines.forEach(function(r){
         html += '<div class="settings-row"><div><div class="sr-label">'+esc(r.name)+'</div>' +
-                  '<div class="sr-sub">'+r.exercises.length+' exercise'+(r.exercises.length===1?'':'s')+'</div></div>' +
+                  '<div class="sr-sub">'+(r.exercises || []).length+' exercise'+((r.exercises || []).length===1?'':'s')+'</div></div>' +
                   '<div class="routine-actions">' +
                     '<button class="sr-action" data-action="start-routine" data-routine="'+r.id+'">Start</button>' +
                     '<button class="sr-action sr-action-danger" data-action="delete-routine" data-routine="'+r.id+'">Delete</button>' +
@@ -9299,6 +9299,17 @@
   }
 
   function clearAllData(){
+    // Erasing writes an empty sessions/routines array up to Firestore —
+    // the one case where that's actually intended. But scheduleFirestoreSync
+    // silently no-ops until firestorePullSettled is true (that's the fix
+    // for the sync race elsewhere), so erasing in that same window would
+    // wipe locally while silently failing to reach the cloud copy, which
+    // would then quietly reappear on next launch. Refuse and say so
+    // instead of half-succeeding.
+    if (!firestorePullSettled){
+      showToast('Still loading your data \u2014 try again in a moment');
+      return;
+    }
     state.sessions = [];
     state.routines = [];
     saveSessions();
@@ -9744,13 +9755,32 @@
       try{
         var data = JSON.parse(evt.target.result);
         if (!data.sessions || !Array.isArray(data.sessions)) throw new Error('bad format');
-        state.sessions = data.sessions;
-        if (data.routines && Array.isArray(data.routines)) state.routines = data.routines;
-        if (data.settings) state.settings = data.settings;
+        // Every render path (Log/History/Settings) assumes each session
+        // and routine has an .exercises array. A hand-edited or corrupted
+        // backup could omit that and crash the whole app right after
+        // import — so malformed entries get dropped here instead of
+        // trusted as-is, rather than taking down the app with them.
+        var cleanSessions = data.sessions.filter(function(s){
+          return s && typeof s === 'object' && Array.isArray(s.exercises);
+        });
+        if (cleanSessions.length === 0 && data.sessions.length > 0) throw new Error('no valid sessions');
+        var droppedSessions = data.sessions.length - cleanSessions.length;
+        state.sessions = cleanSessions;
+
+        var droppedRoutines = 0;
+        if (data.routines && Array.isArray(data.routines)){
+          var cleanRoutines = data.routines.filter(function(r){
+            return r && typeof r === 'object' && Array.isArray(r.exercises);
+          });
+          droppedRoutines = data.routines.length - cleanRoutines.length;
+          state.routines = cleanRoutines;
+        }
+        if (data.settings && typeof data.settings === 'object') state.settings = data.settings;
         saveSessions();
         saveRoutines();
         saveSettings();
-        showToast('Backup restored');
+        var skipped = droppedSessions + droppedRoutines;
+        showToast(skipped > 0 ? 'Backup restored (' + skipped + ' malformed entr' + (skipped === 1 ? 'y' : 'ies') + ' skipped)' : 'Backup restored');
         renderApp();
       }catch(err){
         showToast('Could not read that file');
