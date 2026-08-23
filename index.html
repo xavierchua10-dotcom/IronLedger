@@ -1276,6 +1276,57 @@
     cursor:pointer;
   }
   .cancel-edit-btn:active{background:var(--panel-3);color:var(--text);}
+  .plate-calc-trigger-btn{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    border-radius:var(--radius-sm);
+    width:40px;
+    height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .plate-calc-trigger-btn svg{width:19px;height:19px;}
+  .plate-calc-trigger-btn:active{background:var(--panel-3);color:var(--accent);border-color:var(--accent-dim);}
+  .plate-calc-field-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;}
+  .plate-calc-field-row + .plate-calc-field-row{border-top:1px solid var(--line);}
+  .plate-calc-label{font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:0.03em;color:var(--text-dim);}
+  .plate-calc-input{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:7px;
+    padding:8px 10px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:16px;
+    width:100px;
+    text-align:right;
+  }
+  .plate-calc-input:focus{outline:none;border-color:var(--accent);}
+  .plate-calc-empty{color:var(--text-faint);font-size:13px;padding:14px 0;text-align:center;}
+  .plate-calc-per-side-label{font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-faint);margin:12px 0 8px;}
+  .plate-visual{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:12px;}
+  .plate-chip{
+    background:var(--accent-dim);
+    color:var(--accent);
+    border:1.5px solid var(--accent);
+    border-radius:50%;
+    width:38px;
+    height:38px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    flex-shrink:0;
+  }
+  .plate-calc-list{display:flex;flex-direction:column;gap:4px;}
+  .plate-calc-row{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text);padding:3px 0;}
+  .plate-calc-remainder{margin-top:10px;font-size:12px;color:var(--text-faint);}
 
   /* ---------- Buttons / generic ---------- */
   .btn-block{
@@ -1396,8 +1447,10 @@
     width:52px;
     height:52px;
     display:flex;
+    flex-direction:column;
     align-items:center;
     justify-content:center;
+    gap:2px;
     border-radius:var(--radius);
     border:2px solid var(--accent);
     background:var(--accent-dim);
@@ -1406,7 +1459,8 @@
     cursor:pointer;
   }
   .mm-toggle-btn:active{background:var(--accent);color:#1c1500;}
-  .mm-toggle-btn svg{display:block;width:22px;height:22px;}
+  .mm-toggle-btn svg{display:block;width:18px;height:18px;}
+  .mm-toggle-btn-label{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.03em;text-transform:uppercase;font-weight:700;line-height:1;}
 
   /* ---------- Template picker (category cards -> template list) ---------- */
   .pro-panel-header-left{display:flex;align-items:center;gap:6px;min-width:0;}
@@ -3295,6 +3349,9 @@
 <div class="confirm-overlay hidden" id="bodyweightPickerOverlay">
   <div class="pro-panel" id="bodyweightPickerPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="plateCalcOverlay">
+  <div class="pro-panel" id="plateCalcPanel"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
 
@@ -3773,6 +3830,8 @@
     showRestTimerPicker: false, // Rest timer duration picker overlay open state
     restTimerDraftSeconds: 90,  // Duration currently being tuned in the picker, before Start is pressed
     showBodyweightPicker: false, // Bodyweight edit overlay open state
+    showPlateCalc: false,  // Plate calculator overlay open state
+    plateCalcTarget: '',   // Draft target-weight string typed into the calculator
     bodyweightDraft: '',         // Draft value in the bodyweight overlay's input, before Confirm is pressed
     goalDraft: 'hypertrophy',    // Draft goal selected in the same overlay, before Confirm is pressed
     showChangePassword: false,  // Change-password overlay open state
@@ -4023,6 +4082,48 @@
   // compare against yet. Stored value is always kg regardless of the
   // user's display unit.
   var MAX_LOGGABLE_WEIGHT_KG = 500;
+
+  /* =========================================================
+     PLATE CALCULATOR
+     Standard gym plates are unit-specific hardware — a "45" plate
+     really is 45 lb, not a rounded conversion of a kg plate — so this
+     works entirely in whatever unit is currently active (state.settings.unit),
+     never converting through kg. Bar weight defaults to the standard
+     Olympic bar for that unit (20kg / 45lb) but is user-editable and
+     remembered per unit in state.settings.plateBarWeight.
+     ========================================================= */
+  var PLATE_SETS = {
+    kg: [25, 20, 15, 10, 5, 2.5, 1.25],
+    lb: [45, 35, 25, 10, 5, 2.5]
+  };
+  var DEFAULT_BAR_WEIGHT = { kg: 20, lb: 45 };
+  function plateBarWeight(){
+    var unit = unitLabel();
+    var custom = state.settings.plateBarWeight && state.settings.plateBarWeight[unit];
+    return (custom != null && !isNaN(custom) && custom >= 0) ? custom : DEFAULT_BAR_WEIGHT[unit];
+  }
+  function fmtPlateNum(n){
+    var r = Math.round(n * 100) / 100;
+    return (r % 1 === 0) ? String(r) : String(r).replace(/0+$/, '').replace(/\.$/, '');
+  }
+  // Greedy largest-plate-first allocation. Real plate sets can't hit
+  // every possible number exactly (e.g. an odd target with only whole
+  // plates available) — remainder is however much per side is left
+  // over after using the largest plates available, surfaced to the
+  // user rather than silently rounded.
+  function calcPlateBreakdown(perSide, plates){
+    var remaining = perSide;
+    var breakdown = [];
+    for (var i=0;i<plates.length;i++){
+      var p = plates[i];
+      var count = Math.floor((remaining + 1e-6) / p);
+      if (count > 0){
+        breakdown.push({ plate: p, count: count });
+        remaining = Math.max(0, remaining - count * p);
+      }
+    }
+    return { breakdown: breakdown, remainder: remaining };
+  }
   // Muscle-group-specific ceilings, used instead of the flat cap above
   // whenever the exercise has a known muscle. A flat 500kg cap is way too
   // loose for a bicep curl (world-record strict curls top out ~110kg) and,
@@ -6080,6 +6181,97 @@
   // backdrop, Escape) leaves the stored values untouched. Combined into
   // one panel since Pro Tips uses both together — one confirm instead of
   // two separate edits.
+  // Opened from the add-set row's plate-calc trigger button (prefilled
+  // with whatever weight is already typed there, if any) so it's a
+  // one-tap lookup mid-set rather than a separate typing task.
+  function openPlateCalc(prefill){
+    ui.plateCalcTarget = prefill || '';
+    ui.showPlateCalc = true;
+    renderPlateCalcOverlay();
+    var inp = document.getElementById('plateCalcTargetInput');
+    if (inp){ inp.focus(); inp.select(); }
+  }
+  function closePlateCalc(){
+    ui.showPlateCalc = false;
+    renderPlateCalcOverlay();
+  }
+  function setPlateCalcBarWeight(val){
+    var v = parseFloat(val);
+    state.settings.plateBarWeight = state.settings.plateBarWeight || {};
+    state.settings.plateBarWeight[unitLabel()] = (val === '' || isNaN(v)) ? undefined : v;
+    saveSettings();
+    updatePlateCalcResults();
+  }
+  // Rebuilds only the results block, not the whole panel — a full
+  // panel re-render on every keystroke would blow away input focus
+  // and cursor position while typing the target weight.
+  function updatePlateCalcResults(){
+    var el = document.getElementById('plateCalcResults');
+    if (el) el.innerHTML = renderPlateCalcResultsHtml();
+  }
+  function renderPlateCalcResultsHtml(){
+    var unit = unitLabel();
+    var unitU = unit.toUpperCase();
+    var target = parseFloat(ui.plateCalcTarget);
+    var bar = plateBarWeight();
+    if (isNaN(target) || target <= 0){
+      return '<div class="plate-calc-empty">Enter a target weight to see the plate breakdown.</div>';
+    }
+    if (target < bar){
+      return '<div class="plate-calc-empty">Target is less than the bar itself ('+fmtPlateNum(bar)+' '+unitU+').</div>';
+    }
+    var perSide = (target - bar) / 2;
+    var result = calcPlateBreakdown(perSide, PLATE_SETS[unit]);
+    var html = '';
+    if (result.breakdown.length === 0){
+      html += '<div class="plate-calc-empty">Just the bar \u2014 '+fmtPlateNum(bar)+' '+unitU+'.</div>';
+      return html;
+    }
+    html += '<div class="plate-calc-per-side-label">Per side, largest first</div>';
+    html += '<div class="plate-visual">';
+    result.breakdown.forEach(function(b){
+      for (var i=0;i<b.count;i++){
+        html += '<div class="plate-chip">'+fmtPlateNum(b.plate)+'</div>';
+      }
+    });
+    html += '</div>';
+    html += '<div class="plate-calc-list">' + result.breakdown.map(function(b){
+      return '<div class="plate-calc-row"><span>'+fmtPlateNum(b.plate)+' '+unitU+'</span><span>&times;'+b.count+' per side</span></div>';
+    }).join('') + '</div>';
+    if (result.remainder > 0.01){
+      var achievable = target - result.remainder * 2;
+      html += '<div class="plate-calc-remainder">Closest with these plates: '+fmtPlateNum(achievable)+' '+unitU+' (off by '+fmtPlateNum(result.remainder*2)+' '+unitU+')</div>';
+    }
+    return html;
+  }
+  function renderPlateCalcOverlay(){
+    var overlay = document.getElementById('plateCalcOverlay');
+    var panel = document.getElementById('plateCalcPanel');
+    if (!ui.showPlateCalc){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var unit = unitLabel();
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Plate Calculator</h3>' +
+        '<button class="pro-panel-close" data-action="close-plate-calc" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' +
+        '<div class="plate-calc-field-row">' +
+          '<label class="plate-calc-label" for="plateCalcTargetInput">Target weight</label>' +
+          '<input type="number" inputmode="decimal" step="0.5" id="plateCalcTargetInput" class="plate-calc-input" placeholder="'+unit.toUpperCase()+'" value="'+esc(ui.plateCalcTarget || '')+'">' +
+        '</div>' +
+        '<div class="plate-calc-field-row">' +
+          '<label class="plate-calc-label" for="plateCalcBarInput">Bar weight</label>' +
+          '<input type="number" inputmode="decimal" step="0.5" id="plateCalcBarInput" class="plate-calc-input" value="'+fmtPlateNum(plateBarWeight())+'">' +
+        '</div>' +
+        '<div class="template-divider"></div>' +
+        '<div id="plateCalcResults">' + renderPlateCalcResultsHtml() + '</div>' +
+      '</div>';
+  }
+
   function openBodyweightPicker(){
     ui.bodyweightDraft = state.settings.bodyweightKg ? String(roundNice(toDisplay(state.settings.bodyweightKg))) : '';
     ui.goalDraft = (state.settings && state.settings.goal) || 'hypertrophy';
@@ -6983,6 +7175,7 @@
           '<rect x="20" y="9" width="3" height="6" rx="1"/>' +
           '<rect x="7" y="10.75" width="10" height="2.5" rx="1"/>' +
         '</svg>' +
+        '<span class="mm-toggle-btn-label">Muscle</span>' +
       '</button>';
 
     var addExerciseRow = '<div class="exercise-actions-row' + (session.exercises.length > 0 ? ' exercise-actions-row--after-list' : '') + '">' +
@@ -7076,6 +7269,9 @@
                   '<input type="number" inputmode="decimal" step="0.5" placeholder="'+(isBW ? '+' + unitLabel() : unitLabel())+'" class="set-weight-input" data-ex="'+ex.id+'" value="'+(draft && draft.weight != null ? esc(draft.weight) : '')+'">' +
                   '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="set-reps-input" data-ex="'+ex.id+'" value="'+(draft && draft.reps != null ? esc(draft.reps) : '')+'">' +
                   '<div class="add-set-btn-group">' +
+                    '<button type="button" class="plate-calc-trigger-btn" data-action="open-plate-calc" data-prefill="'+(draft && draft.weight != null ? esc(draft.weight) : '')+'" aria-label="Plate calculator" title="Plate calculator">' +
+                      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>' +
+                    '</button>' +
                     '<button class="add-set-btn" data-action="add-set-row" data-ex="'+ex.id+'" aria-label="Add set"'+(rowReady?'':' disabled')+'>&#10003;</button>' +
                     '<button class="cancel-edit-btn" data-action="close-add-set" data-ex="'+ex.id+'" aria-label="Cancel">&#10005;</button>' +
                   '</div>' +
@@ -9721,6 +9917,8 @@
       renderApp();
     } else if (action === 'open-bodyweight-picker'){
       openBodyweightPicker();
+    } else if (action === 'open-plate-calc'){
+      openPlateCalc(el.dataset.prefill || '');
     } else if (action === 'open-change-password'){
       openChangePasswordPanel();
     } else if (action === 'open-equipment-guide'){
@@ -10284,6 +10482,36 @@
     } else if (e.key === 'Escape'){
       e.preventDefault();
       closeBodyweightPicker();
+    }
+  });
+
+  var plateCalcOverlayEl = document.getElementById('plateCalcOverlay');
+  plateCalcOverlayEl.addEventListener('click', function(e){
+    if (e.target === plateCalcOverlayEl){
+      closePlateCalc();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-plate-calc'){
+      closePlateCalc();
+    }
+  });
+  // Live-updates the breakdown as the person types, without touching the
+  // input elements themselves — a full panel re-render here would reset
+  // cursor position mid-keystroke (see updatePlateCalcResults comment).
+  plateCalcOverlayEl.addEventListener('input', function(e){
+    if (e.target.id === 'plateCalcTargetInput'){
+      ui.plateCalcTarget = e.target.value;
+      updatePlateCalcResults();
+    } else if (e.target.id === 'plateCalcBarInput'){
+      setPlateCalcBarWeight(e.target.value);
+    }
+  });
+  plateCalcOverlayEl.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){
+      e.preventDefault();
+      closePlateCalc();
     }
   });
 
