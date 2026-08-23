@@ -5451,25 +5451,12 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   }
 
-  // Basic tier gets PROGRESS_FREE_DAYS_PER_MONTH days of Progress-tab
-  // access, counted from the first time it's opened in a given calendar
-  // month — not the calendar days of that month. Pro/trial/dev always
-  // pass through unlocked. Has the side effect of recording "first use"
-  // the first time it's called for a new month (idempotent after that).
+  // Progress is Pro/trial only now — no Basic-tier grace period. Kept as
+  // its own function (rather than inlining isProActive() at each call
+  // site) so the {locked} shape stays the same for renderProgress() below,
+  // and so a future access-model change only has one place to touch.
   function progressAccessState(){
-    if (isProActive()) return { locked: false };
-    var mk = monthKey();
-    var map = (state.currentAccount === 'guest')
-      ? (state.progressAccess || {})
-      : ((state.userDoc && state.userDoc.progressAccess) || state.progressAccess || {});
-    var rec = map[mk];
-    if (!rec){
-      recordProgressFirstUse(mk);
-      return { locked: false };
-    }
-    var firstUseAt = toMillis(rec.firstUseAt) || rec.firstUseAt;
-    var elapsedDays = (Date.now() - firstUseAt) / (24 * 60 * 60 * 1000);
-    return { locked: elapsedDays >= PROGRESS_FREE_DAYS_PER_MONTH };
+    return { locked: !isProActive() };
   }
 
   function recordProgressFirstUse(mk){
@@ -7332,7 +7319,7 @@
         '<div class="progress-lock-overlay">' +
           '<div class="progress-lock-icon">&#128274;</div>' +
           '<div class="progress-lock-title">Progress is a Pro feature</div>' +
-          '<div class="progress-lock-sub">Basic gives you '+PROGRESS_FREE_DAYS_PER_MONTH+' days of Progress access each calendar month. Go Pro for unlimited access.</div>' +
+          '<div class="progress-lock-sub">Track your estimated 1-rep max, PRs, and trend lines for every exercise — available on Pro or during your free trial.</div>' +
           '<button class="progress-lock-cta" data-action="open-pricing"><span>&#9733;</span> ' + (state.currentAccount === 'guest' ? 'Create an account to go Pro' : 'See Pro plans') + '</button>' +
         '</div>';
       html = '<div class="progress-tab-wrap"><div class="progress-blur">' + html + '</div>' + lockHtml + '</div>';
