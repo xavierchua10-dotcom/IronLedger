@@ -2372,6 +2372,46 @@
     font-weight:700;
     color:var(--accent);
   }
+  .progress-tip-wrap{margin-bottom:16px;}
+  .progress-tip-wrap .prc-tip{margin-top:0;padding:10px 12px;background:rgba(var(--accent-rgb),0.08);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+  .progress-tip-wrap .prc-tip b{color:var(--text);}
+  .progress-tip-wrap .prc-tip-target{margin-top:6px;font-weight:700;color:var(--accent);font-size:11.5px;text-transform:uppercase;letter-spacing:0.03em;}
+  .progress-tip-wrap .prc-tip-badge{
+    margin-top:0;
+    margin-bottom:8px;
+    padding:9px 12px;
+    background:rgba(var(--accent-rgb),0.14);
+    border:1px solid var(--accent-dim);
+    border-radius:var(--radius-sm);
+    font-size:12px;
+    font-weight:700;
+    color:var(--accent);
+  }
+  .progress-tip-teaser{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:11px 12px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    margin-bottom:16px;
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  .progress-tip-teaser b{color:var(--text);}
+  .progress-tip-teaser button{
+    flex-shrink:0;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--accent);
+    border-radius:var(--radius-sm);
+    padding:8px 14px;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+  }
 
   /* ---------- Pro paywall ---------- */
   .paywall-body{padding:6px 20px 22px;text-align:center;}
@@ -5570,6 +5610,22 @@
     var goal = (state.settings && state.settings.goal) || 'hypertrophy';
     return GOAL_REP_RANGES[goal] || GOAL_REP_RANGES.hypertrophy;
   }
+  // Finds the most recent finished session that logged this exercise
+  // name, and returns that session's exercise entry (with its .sets) —
+  // overloadTipForExercise needs a session-scoped exercise object, not
+  // just a name, so this bridges the gap for the Progress tab, which
+  // only knows the exercise name from its dropdown, not any session.
+  function mostRecentExerciseEntry(name){
+    var target = name.trim().toLowerCase();
+    var done = state.sessions.filter(function(s){ return s.status === 'done'; });
+    done.sort(function(a, b){ return new Date(b.finishedAt || b.date) - new Date(a.finishedAt || a.date); });
+    for (var i = 0; i < done.length; i++){
+      var match = done[i].exercises.find(function(e){ return e.name.trim().toLowerCase() === target; });
+      if (match && match.sets && match.sets.length) return match;
+    }
+    return null;
+  }
+
   function overloadTipForExercise(ex){
     var sets = ex.sets;
     if (!sets || !sets.length) return null;
@@ -7241,6 +7297,25 @@
       html += '<div class="chart-empty-note">Log this exercise once more to start seeing a trend line.</div>';
     }
     html += '</div>';
+
+    // Same tip logic and shared renderTipHtml() the History lightbulb
+    // uses (see overloadTipForExercise) — surfaced here too since
+    // Progress is where you'd naturally check "what should I aim for on
+    // this lift" before a workout, rather than having to dig into an old
+    // History session just to see it. Uses the most recent session that
+    // logged this exercise as its basis.
+    if (isProActive()){
+      var tipEntry = mostRecentExerciseEntry(ui.progressExercise);
+      var progressTip = tipEntry ? overloadTipForExercise(tipEntry) : null;
+      if (progressTip){
+        html += '<div class="progress-tip-wrap">' + renderTipHtml(progressTip) + '</div>';
+      }
+    } else {
+      html += '<div class="progress-tip-teaser">' +
+                '<span>Unlock <b>Tips &amp; Target</b> \u2014 a specific weight or rep target for next session.</span>' +
+                '<button class="sr-action" data-action="open-pricing">Upgrade</button>' +
+              '</div>';
+    }
 
     html += '<div class="section-label">Personal Records</div>';
     var prSets = collectPRs(ui.progressExercise);
