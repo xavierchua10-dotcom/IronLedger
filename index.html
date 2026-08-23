@@ -2373,7 +2373,7 @@
     color:var(--accent);
   }
   .progress-tip-wrap{margin-bottom:16px;}
-  .progress-tip-wrap .prc-tip{margin-top:0;padding:10px 12px;background:rgba(var(--accent-rgb),0.08);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+  .progress-tip-wrap .prc-tip{margin-top:0;padding:9px 12px;background:rgba(var(--accent-rgb),0.08);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;font-size:12.5px;color:var(--text-dim);line-height:1.4;}
   .progress-tip-wrap .prc-tip b{color:var(--text);}
   .progress-tip-wrap .prc-tip-target{margin-top:6px;font-weight:700;color:var(--accent);font-size:11.5px;text-transform:uppercase;letter-spacing:0.03em;}
   .progress-tip-wrap .prc-tip-badge{
@@ -7308,7 +7308,7 @@
       var tipEntry = mostRecentExerciseEntry(ui.progressExercise);
       var progressTip = tipEntry ? overloadTipForExercise(tipEntry) : null;
       if (progressTip){
-        html += '<div class="progress-tip-wrap">' + renderTipHtml(progressTip) + '</div>';
+        html += '<div class="progress-tip-wrap">' + renderTipHtml(progressTip, true) + '</div>';
       }
     } else {
       html += '<div class="progress-tip-teaser">' +
