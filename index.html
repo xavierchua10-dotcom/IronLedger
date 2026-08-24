@@ -9307,6 +9307,23 @@
     renderHistoryEditOverlay();
   }
 
+  function draftOpenDeleteSetConfirm(exId, setId){
+    if (!ui.editDraft) return;
+    var ex = ui.editDraft.exercises.find(function(e){ return e.id === exId; });
+    var st = ex && ex.sets.find(function(s){ return s.id === setId; });
+    if (!st) return;
+    ui.confirmModal = {
+      kind: 'draft-delete-set-confirm',
+      title: 'Delete this set?',
+      message: 'Removes ' + fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps + ' from ' + ex.name + ' in this draft. Nothing is saved until you tap Save on the whole session.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      exId: exId,
+      setId: setId
+    };
+    renderApp();
+  }
+
   function draftDeleteSet(exId, setId){
     if (!ui.editDraft) return;
     var ex = ui.editDraft.exercises.find(function(e){ return e.id === exId; });
@@ -10747,6 +10764,7 @@
       else if (m && m.kind === 'reset-log') resetLog();
       else if (m && m.kind === 'discard-history-edit') closeHistoryEditOverlay();
       else if (m && m.kind === 'draft-delete-exercise-confirm') draftDeleteExercise(m.exId);
+      else if (m && m.kind === 'draft-delete-set-confirm') draftDeleteSet(m.exId, m.setId);
       else if (m && m.kind === 'draft-add-set-confirm') draftConfirmAddSet(m.exId);
       else if (m && m.kind === 'draft-edit-set-confirm') draftConfirmEditSet(m.exId, m.setId);
       else if (m && m.kind === 'draft-add-exercise-confirm') draftPickExercise(m.exName, m.exMuscle);
@@ -11063,7 +11081,7 @@
     } else if (action === 'draft-confirm-edit-set'){
       draftOpenEditSetConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'draft-delete-set'){
-      draftDeleteSet(el.dataset.ex, el.dataset.set);
+      draftOpenDeleteSetConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'draft-open-add-exercise'){
       draftOpenAddExercise();
     } else if (action === 'draft-close-add-exercise'){
