@@ -2424,6 +2424,15 @@
   }
   .he-exercise-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;}
   .he-exercise-head h3{font-size:14px;font-weight:700;color:var(--text);margin:0 0 4px;}
+  .he-ex-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    width:100%;box-sizing:border-box;background:var(--panel-3);
+    border:1px solid var(--line);border-radius:var(--radius-sm);
+    color:var(--text);font-size:13.5px;padding:11px 12px;margin-bottom:8px;
+    text-align:left;cursor:pointer;
+  }
+  .he-ex-row:active{background:var(--panel-2);}
+  .he-ex-custom{color:var(--accent);font-weight:600;justify-content:flex-start;}
   #historyEditPanel .set-detail{cursor:pointer;}
   .pro-panel-body{padding:14px 18px;overflow-y:auto;flex:1;}
   .pro-panel-footer{padding:14px 18px;border-top:1px solid var(--line);flex-shrink:0;}
@@ -3872,6 +3881,8 @@
     editDraft: null,             // { sessionId, name, exercises } — working copy while the History-edit overlay is open. Fully detached from state.sessions; nothing in it touches the real session until commitHistoryEditSave(). Cancel just discards it, no revert logic needed. See openHistoryEditOverlay.
     historyEditOpenRow: null,    // { type: 'add'|'edit', exId, setId? } — which single inline weight/reps row is currently open inside the edit overlay (only one at a time)
     historyEditRowDraft: { weight: null, reps: null }, // typed-but-unconfirmed values for whichever row historyEditOpenRow points at
+    historyEditAddingExercise: false, // true while the overlay is showing the "Add Exercise" search sub-view instead of the normal exercise list
+    historyEditExerciseQuery: '',     // typed search text for that sub-view
     pendingSuggestMuscle: null, // muscle carried from a tapped exercise-name suggestion, applied on save (see saveExerciseName)
     exFilterPanelOpen: false,   // whether the muscle/equipment filter panel is expanded in the exercise-search overlay
     exSearchFilters: { muscles: [], equipment: [] }, // active filter selections in the exercise-search overlay
@@ -9262,6 +9273,8 @@
     };
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
+    ui.historyEditAddingExercise = false;
+    ui.historyEditExerciseQuery = '';
     renderHistoryEditOverlay();
   }
 
@@ -9296,6 +9309,8 @@
     ui.editDraft = null;
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
+    ui.historyEditAddingExercise = false;
+    ui.historyEditExerciseQuery = '';
     renderApp();
   }
 
@@ -9321,6 +9336,8 @@
     ui.editDraft = null;
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
+    ui.historyEditAddingExercise = false;
+    ui.historyEditExerciseQuery = '';
     showToast('Session updated');
     flashSessionFinished(real.id);
   }
@@ -9415,6 +9432,62 @@
     st.reps = parseInt(ui.historyEditRowDraft.reps, 10);
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
+    renderHistoryEditOverlay();
+  }
+
+  // Add Exercise, inline within the same panel rather than a second
+  // stacked overlay — the History-edit overlay is position:fixed
+  // z-index:100 as a sibling of #app, while Log's own exercise-search
+  // overlay is position:absolute z-index:92 *inside* #app; stacking two
+  // separate fixed-position layers correctly on top of each other isn't
+  // guaranteed without the kind of live rendering this environment can't
+  // do, so this swaps the same panel's content instead of layering a
+  // second overlay on top of the first.
+  function draftOpenAddExercise(){
+    ui.historyEditAddingExercise = true;
+    ui.historyEditExerciseQuery = '';
+    ui.historyEditOpenRow = null;
+    renderHistoryEditOverlay();
+    setTimeout(function(){
+      var inp = document.getElementById('heExerciseSearchInput');
+      if (inp) inp.focus();
+    }, 30);
+  }
+
+  function draftCloseAddExercise(){
+    ui.historyEditAddingExercise = false;
+    ui.historyEditExerciseQuery = '';
+    renderHistoryEditOverlay();
+  }
+
+  function historyEditExerciseListHtml(query){
+    var q = String(query || '').trim().toLowerCase();
+    var matches = (q ? EXERCISE_LIBRARY_FLAT.filter(function(item){
+      return item.name.toLowerCase().indexOf(q) !== -1;
+    }) : EXERCISE_LIBRARY_FLAT).slice(0, 40);
+    var html = '';
+    if (q && !matches.some(function(m){ return m.name.toLowerCase() === q; })){
+      html += '<button class="he-ex-row he-ex-custom" data-action="draft-pick-exercise" data-name="'+esc(query.trim())+'" data-muscle="">' +
+                'Add "'+esc(query.trim())+'" as a custom exercise' +
+              '</button>';
+    }
+    matches.forEach(function(item){
+      html += '<button class="he-ex-row" data-action="draft-pick-exercise" data-name="'+esc(item.name)+'" data-muscle="'+esc(item.muscle)+'">' +
+                '<span>'+esc(item.name)+'</span><span class="muscle-badge">'+esc(item.muscle)+'</span>' +
+              '</button>';
+    });
+    if (!q && matches.length === 0) html = '<div class="empty" style="padding:24px 0;">No exercises in the library yet.</div>';
+    return html;
+  }
+
+  function draftPickExercise(name, muscle){
+    if (!ui.editDraft) return;
+    name = String(name || '').trim();
+    if (!name) return;
+    var newEx = { id: uid(), name: name, muscle: muscle || null, sets: [] };
+    ui.editDraft.exercises.push(newEx);
+    ui.historyEditAddingExercise = false;
+    ui.historyEditExerciseQuery = '';
     renderHistoryEditOverlay();
   }
 
@@ -9655,6 +9728,25 @@
       return;
     }
     overlay.classList.remove('hidden');
+
+    if (ui.historyEditAddingExercise){
+      panel.innerHTML =
+        '<div class="he-header">' +
+          '<button class="he-cancel-btn" data-action="draft-close-add-exercise">&#8592; Back</button>' +
+          '<div class="he-title">Add Exercise</div>' +
+          '<div style="width:52px;"></div>' +
+        '</div>' +
+        '<div class="he-body">' +
+          '<input type="text" id="heExerciseSearchInput" class="he-name-input" placeholder="Search exercises\u2026" autocomplete="off" value="'+esc(ui.historyEditExerciseQuery || '')+'">' +
+          '<div id="heExerciseSearchList">' + historyEditExerciseListHtml(ui.historyEditExerciseQuery) + '</div>' +
+        '</div>';
+      setTimeout(function(){
+        var inp = document.getElementById('heExerciseSearchInput');
+        if (inp) inp.focus();
+      }, 30);
+      return;
+    }
+
     var draft = ui.editDraft;
     var openRow = ui.historyEditOpenRow;
 
@@ -9723,6 +9815,9 @@
         html += '</div>'; // close he-exercise-card
       });
     }
+    html += '<button class="add-exercise-bottom-btn" data-action="draft-open-add-exercise" style="width:100%;box-sizing:border-box;margin-top:4px;">' +
+              '<span class="plus-glyph">&#43;</span> Add Exercise' +
+            '</button>';
     html += '</div>'; // close he-body
     panel.innerHTML = html;
   }
@@ -10943,7 +11038,8 @@
   var historyEditOverlayEl = document.getElementById('historyEditOverlay');
   historyEditOverlayEl.addEventListener('click', function(e){
     if (e.target === historyEditOverlayEl){
-      requestCloseHistoryEditOverlay();
+      if (ui.historyEditAddingExercise) draftCloseAddExercise();
+      else requestCloseHistoryEditOverlay();
       return;
     }
     var el = e.target.closest('[data-action]');
@@ -10967,6 +11063,12 @@
       draftConfirmEditSet(el.dataset.ex, el.dataset.set);
     } else if (action === 'draft-delete-set'){
       draftDeleteSet(el.dataset.ex, el.dataset.set);
+    } else if (action === 'draft-open-add-exercise'){
+      draftOpenAddExercise();
+    } else if (action === 'draft-close-add-exercise'){
+      draftCloseAddExercise();
+    } else if (action === 'draft-pick-exercise'){
+      draftPickExercise(el.dataset.name, el.dataset.muscle);
     }
   });
   historyEditOverlayEl.addEventListener('input', function(e){
@@ -10979,12 +11081,17 @@
     } else if (t.classList.contains('he-set-reps-input')){
       ui.historyEditRowDraft.reps = t.value;
       refreshHistoryEditRowBtn();
+    } else if (t.id === 'heExerciseSearchInput'){
+      ui.historyEditExerciseQuery = t.value;
+      var listEl = document.getElementById('heExerciseSearchList');
+      if (listEl) listEl.innerHTML = historyEditExerciseListHtml(t.value);
     }
   });
   historyEditOverlayEl.addEventListener('keydown', function(e){
     if (e.key === 'Escape'){
       e.preventDefault();
-      requestCloseHistoryEditOverlay();
+      if (ui.historyEditAddingExercise) draftCloseAddExercise();
+      else requestCloseHistoryEditOverlay();
     }
   });
 
