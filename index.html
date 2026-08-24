@@ -9387,12 +9387,19 @@
     if (!ex || !draftRowReady(ex.name)) return;
     var weightKg = toStoredKg(ui.historyEditRowDraft.weight);
     var reps = parseInt(ui.historyEditRowDraft.reps, 10);
+    // This is a retroactive correction to a session that already
+    // happened, not a live log entry — the set didn't happen "now," it
+    // happened whenever that session did. Stamp it with the real
+    // session's own original date/time instead of the moment you
+    // happen to be editing, falling back to now only if that session
+    // has somehow vanished by the time this runs.
+    var realSession = state.sessions.find(function(s){ return s.id === ui.editDraft.sessionId; });
     ex.sets.push({
       id: uid(),
       weightKg: roundNice(weightKg),
       reps: reps,
       isPR: false, // recalculated for real across all history when Save commits this draft
-      timestamp: new Date().toISOString()
+      timestamp: (realSession && realSession.date) || new Date().toISOString()
     });
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
