@@ -3297,6 +3297,18 @@
     100%{transform:scale(1);}
   }
   .pr-tag.fresh{animation:prpulse 0.4s ease;}
+  @keyframes setCountPulse{
+    0%{transform:scale(1);}
+    35%{transform:scale(1.3);}
+    100%{transform:scale(1);}
+  }
+  .session-meta b.flash{display:inline-block;animation:setCountPulse 450ms ease;}
+  @keyframes setTimeFlash{
+    0%{color:#a9aeb5;}
+    30%{color:var(--accent);}
+    100%{color:#a9aeb5;}
+  }
+  .set-time.flash{animation:setTimeFlash 700ms ease;}
   @keyframes notifSlideDown{
     0%{opacity:0;transform:translateY(-8px);}
     100%{opacity:1;transform:translateY(0);}
@@ -3881,6 +3893,8 @@
     deleteAccountPasswordBusy: false,
     deleteAccountPasswordError: null,
     freshPRSetId: null,    // id of a just-logged set that should play the PR pulse animation once
+    freshSetId: null,      // id of a just-logged set whose timestamp should flash once (see commitSet) — separate from freshPRSetId since this applies to every set, not just PRs
+    flashSetsCounter: false, // true for exactly one render right after a set is added, pulses the session-meta "N sets" counter
     activeExId: null,      // exercise whose weight/reps inputs were last focused — used by the global Add Set button
     draftSets: {},          // exId -> { weight, reps } — unsaved input, kept across collapse/expand or tab switches
     expandedAddSet: {},     // exId -> true when that exercise's add-set panel (kg/reps fields) is open
@@ -7152,7 +7166,7 @@
     html += '<div class="session-meta">' +
               '<span>'+fmtDate(session.date)+'</span>' +
               '<span><b>'+session.exercises.length+'</b> exercises</span>' +
-              '<span><b>'+sessionSetCount(session)+'</b> sets</span>' +
+              '<span><b'+(ui.flashSetsCounter ? ' class="flash"' : '')+'>'+sessionSetCount(session)+'</b> sets</span>' +
               '<div class="session-meta-actions">' +
                 '<button class="unit-toggle" id="unitToggleBtn" data-action="toggle-unit">'+state.settings.unit.toUpperCase()+'</button>' +
                 (session.exercises.length > 0 ? '<button class="reset-log-btn" data-action="reset-log" aria-label="Reset log">&#8635;</button>' : '') +
@@ -7237,7 +7251,7 @@
                   '<span class="set-idx">'+(i+1)+'</span>' +
                   '<span class="set-detail">' +
                     '<span class="set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
-                    (st.timestamp ? '<span class="set-time"> &middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
+                    (st.timestamp ? '<span class="set-time'+(st.id===ui.freshSetId?' flash':'')+'"> &middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
                     (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
                   '</span>' +
                   '<span class="set-actions">' +
@@ -7722,6 +7736,11 @@
               '<div class="seg">' +
                 '<button data-action="toggle-haptic-feedback" data-val="on" class="'+(state.settings.hapticFeedback !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-haptic-feedback" data-val="off" class="'+(state.settings.hapticFeedback === false ? 'active' : '')+'">OFF</button>' +
+              '</div></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Set flash effect</div><div class="sr-sub">Pulses the sets counter and timestamp when you log a set</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="toggle-set-flash" data-val="on" class="'+(state.settings.setFlashEffect !== false ? 'active' : '')+'">ON</button>' +
+                '<button data-action="toggle-set-flash" data-val="off" class="'+(state.settings.setFlashEffect === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
     if (state.currentAccount !== 'guest'){
       var pushOn = !!(state.userDoc && state.userDoc.fcmToken);
@@ -8780,6 +8799,10 @@
     saveSessions();
     logActivity('Added set ' + fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + ' to "' + ex.name + '"' + (isPR ? ' \u2014 new PR' : ''), 'Log');
     ui.freshPRSetId = isPR ? setId : null;
+    if (state.settings.setFlashEffect !== false){
+      ui.freshSetId = setId;
+      ui.flashSetsCounter = true;
+    }
     // Silently tracks/persists whether this muscle's strength badge was
     // just earned — no toast for it anymore, it shows up in the Tips/
     // Target overlay instead (see renderTipHtml) whenever that muscle's
@@ -8787,6 +8810,8 @@
     checkStrengthBadge(ex, weightKg);
     renderApp();
     ui.freshPRSetId = null;
+    ui.freshSetId = null;
+    ui.flashSetsCounter = false;
     if (state.settings.hapticFeedback !== false && navigator.vibrate){
       navigator.vibrate(isPR ? [15, 30, 15] : 10);
     }
@@ -10497,6 +10522,10 @@
       renderApp();
     } else if (action === 'toggle-haptic-feedback'){
       state.settings.hapticFeedback = (el.dataset.val === 'on');
+      saveSettings();
+      renderApp();
+    } else if (action === 'toggle-set-flash'){
+      state.settings.setFlashEffect = (el.dataset.val === 'on');
       saveSettings();
       renderApp();
     } else if (action === 'toggle-rest-timer-sound'){
