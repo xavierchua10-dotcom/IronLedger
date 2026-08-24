@@ -3303,12 +3303,23 @@
     100%{transform:scale(1);}
   }
   .session-meta b.flash{display:inline-block;animation:setCountPulse 450ms ease;}
-  @keyframes setTimeFlash{
-    0%{color:#a9aeb5;}
-    30%{color:var(--accent);}
-    100%{color:#a9aeb5;}
+  /* Whole-row white flash for a just-added set — targets the row itself
+     rather than just the timestamp text, so it works the same way
+     whether Pro shows a real time or Basic shows the lock icon instead. */
+  @keyframes setRowFlash{
+    0%{background-color:rgba(255,255,255,0.32);}
+    100%{background-color:rgba(255,255,255,0);}
   }
-  .set-time.flash{animation:setTimeFlash 700ms ease;}
+  .set-row.flash{animation:setRowFlash 650ms ease-out;border-radius:var(--radius-sm);}
+  /* Basic tier has no timestamp to flash, so the lock icon itself pulses
+     instead — same idea as the PR tag's pulse, just applied here so
+     Basic users still get a clear "this is what just changed" cue. */
+  @keyframes lockPulse{
+    0%{transform:scale(1);opacity:1;}
+    35%{transform:scale(1.35);opacity:1;}
+    100%{transform:scale(1);opacity:1;}
+  }
+  .ts-lock.flash{display:inline-flex;animation:lockPulse 500ms ease;}
   @keyframes notifSlideDown{
     0%{opacity:0;transform:translateY(-8px);}
     100%{opacity:1;transform:translateY(0);}
@@ -5697,9 +5708,9 @@
 
   // Redacts a set/session timestamp for Basic tier — Pro sees the real
   // clock time, Basic sees a small lock glyph in its place.
-  function tsOrLock(iso, label){
+  function tsOrLock(iso, label, flash){
     if (!iso) return '';
-    return isProActive() ? fmtTime(iso) : '<span class="ts-lock" title="Upgrade to Pro to see '+(label || 'set times')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>';
+    return isProActive() ? fmtTime(iso) : '<span class="ts-lock'+(flash ? ' flash' : '')+'" title="Upgrade to Pro to see '+(label || 'set times')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>';
   }
 
   // Best e1rm for this exercise name across all sessions, excluding a
@@ -7247,11 +7258,12 @@
       ex.sets.forEach(function(st, i){
         var isEditingRow = st.id === editingSetId;
         if (isEditingRow) editingSetObj = st;
-        html += '<div class="set-row'+(isEditingRow ? ' editing' : '')+'">' +
+        var isFreshSet = st.id === ui.freshSetId;
+        html += '<div class="set-row'+(isEditingRow ? ' editing' : '')+(isFreshSet ? ' flash' : '')+'">' +
                   '<span class="set-idx">'+(i+1)+'</span>' +
                   '<span class="set-detail">' +
                     '<span class="set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
-                    (st.timestamp ? '<span class="set-time'+(st.id===ui.freshSetId?' flash':'')+'"> &middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
+                    (st.timestamp ? '<span class="set-time"> &middot; '+tsOrLock(st.timestamp, null, isFreshSet)+'</span>' : '') +
                     (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
                   '</span>' +
                   '<span class="set-actions">' +
