@@ -2059,6 +2059,7 @@
   .empty .glyph{margin-bottom:10px;opacity:0.6;display:flex;justify-content:center;}
   .empty .glyph svg{width:32px;height:32px;}
   .empty p{font-size:13px;line-height:1.6;margin:0;}
+  .log-empty-hero{padding-top:56px;padding-bottom:20px;opacity:0.5;}
 
   /* ---------- History ---------- */
   .history-search-input{
@@ -7168,6 +7169,13 @@
       html += addExerciseRow;
       html += '<div class="onboarding-tip">Thanks for using SaviorFit Logger. For accurate tracking, set your bodyweight and training goals in <button class="onboarding-tip-link" data-action="open-bodyweight-picker">Settings</button> before logging your first exercise.</div>';
       html += '<div class="warmup-reminder">Take a few minutes to <b>warm up</b> before you go heavy \u2014 some light reps and a bit of mobility now saves you an injury later.</div>';
+      html += '<div class="empty log-empty-hero"><div class="glyph">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M6.5 6.5v11"></path><path d="M4 9v5"></path>' +
+                  '<path d="M17.5 6.5v11"></path><path d="M20 9v5"></path>' +
+                  '<path d="M6.5 12h11"></path>' +
+                '</svg>' +
+              '</div><p>Nothing logged yet \u2014 tap + Add Exercise to start</p></div>';
     } else {
       session.exercises.forEach(function(ex){
         html += renderExerciseCard(session, ex);
