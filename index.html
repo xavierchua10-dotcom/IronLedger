@@ -4202,20 +4202,21 @@
   // and syncs exactly as before. Only the "just existing" case is inert now.
   function getActiveSession(){
     var active = state.sessions.find(function(s){ return s.status === 'active'; });
-    if (active && active.exercises.length === 0 && !isSameLocalDay(active.date)){
-      if (active.finishedAt){
+    if (active && active.exercises.length === 0){
+      if (active.finishedAt && !isSameLocalDay(active.finishedAt)){
         // Not a throwaway blank placeholder — this is a real History
         // session that was reopened via Edit, then emptied out and
         // abandoned (closed the app, switched tabs, anything short of
         // actually tapping Apply Changes — there's no explicit "cancel
-        // edit" action). Recycling it into "today" would silently carry
-        // its old finishedAt/name forward and let the next Finish/Apply
-        // overwrite that real session's date and content. Put it back to
-        // History exactly as the user left it instead, and fall through
-        // below to hand back a genuinely fresh session for today.
+        // edit" action). Checked against finishedAt directly rather than
+        // date, since date is exactly the field a prior version of this
+        // bug could have already overwritten — anchoring on finishedAt
+        // makes this self-correcting even for a session already mid-drift.
+        // Put it back to History exactly as the user left it, and fall
+        // through below to hand back a genuinely fresh session for today.
         active.status = 'done';
         active = null;
-      } else {
+      } else if (!active.finishedAt && !isSameLocalDay(active.date)){
         // Left over from a previous day, never actually used (no exercises
         // added yet) — treat it as today's session instead of showing
         // yesterday's date on an empty log. A session that already has
