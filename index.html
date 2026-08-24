@@ -712,6 +712,16 @@
     12%{box-shadow:0 0 22px 3px rgba(var(--accent-rgb),0.6);border-color:var(--accent);}
     100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0);border-color:var(--line);}
   }
+  .history-item.just-finished{
+    animation:sessionFinishedGlow 2.6s ease-out;
+  }
+  @keyframes sessionFinishedGlow{
+    0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0);border-color:var(--line);}
+    8%{box-shadow:0 0 24px 4px rgba(var(--accent-rgb),0.55);border-color:var(--accent);}
+    35%{box-shadow:0 0 10px 1px rgba(var(--accent-rgb),0.25);border-color:var(--accent);}
+    55%{box-shadow:0 0 20px 3px rgba(var(--accent-rgb),0.45);border-color:var(--accent);}
+    100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0);border-color:var(--line);}
+  }
   .exercise-head-collapsed{
     display:flex;
     align-items:center;
@@ -3821,6 +3831,7 @@
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     justAddedExId: null,        // exId that should play the "just added" glow pulse once (see flashExerciseAdded)
+    justFinishedSessionId: null, // sessionId that should play the "just finished" glow pulse once in History (see flashSessionFinished)
     pendingSuggestMuscle: null, // muscle carried from a tapped exercise-name suggestion, applied on save (see saveExerciseName)
     exFilterPanelOpen: false,   // whether the muscle/equipment filter panel is expanded in the exercise-search overlay
     exSearchFilters: { muscles: [], equipment: [] }, // active filter selections in the exercise-search overlay
@@ -7220,7 +7231,7 @@
     var expanded = !!ui.expandedHistory[s.id];
     var isEditingName = ui.editingHistoryName === s.id;
     var searchBlob = ((s.name || '') + ' ' + s.exercises.map(function(ex){ return ex.name; }).join(' ')).toLowerCase();
-    var html = '<div class="history-item" data-session="'+s.id+'" data-search="'+esc(searchBlob)+'">';
+    var html = '<div class="history-item'+(ui.justFinishedSessionId === s.id ? ' just-finished' : '')+'" data-session="'+s.id+'" data-search="'+esc(searchBlob)+'">';
     if (isEditingName){
       html += '<div class="history-item-head history-item-head-editing">' +
                 '<div class="hi-rename-row">' +
@@ -8382,6 +8393,18 @@
     if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
+  // Same one-shot pattern, used when Finish Session drops you into History
+  // on the session you just logged: set the flag so this one render bakes
+  // the glow class into the fresh DOM node, then clear it immediately so
+  // the animation never replays on a later unrelated re-render.
+  function flashSessionFinished(sessionId){
+    ui.justFinishedSessionId = sessionId;
+    renderApp();
+    ui.justFinishedSessionId = null;
+    var item = document.querySelector('.history-item[data-session="'+sessionId+'"]');
+    if (item) item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   function commitAddExercise(name, muscle){
     var session = getActiveSession();
     var newExId = uid();
@@ -9055,7 +9078,7 @@
     state.tab = 'history';
     showToast('Session saved');
     if (state.settings.hapticFeedback !== false && navigator.vibrate) navigator.vibrate([15, 30, 15]);
-    renderApp();
+    flashSessionFinished(session.id);
   }
 
   function deleteSession(sessionId){
