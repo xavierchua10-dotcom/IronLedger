@@ -3831,6 +3831,7 @@
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     justAddedExIds: [],         // exIds that should play the "just added" glow pulse once (see flashExerciseAdded / flashExercisesAdded)
+    editingSessionId: null,     // id of a History (status:'done') session currently reopened via Edit. Log tab works on this instead of today's real session when set — see getWorkingSession(). Never mutates that session's status/finishedAt, so it can never collide with or corrupt the real active session the way the old status:'active'-reuse design could.
     editSessionSnapshot: null,  // { id, exercises, name } taken the moment Edit reopens a History session, so Reset can revert to it instead of wiping real saved data — see reopenSessionForEdit / resetLog
     justFinishedSessionId: null, // sessionId that should play the "just finished" glow pulse once in History (see flashSessionFinished)
     pendingSuggestMuscle: null, // muscle carried from a tapped exercise-name suggestion, applied on save (see saveExerciseName)
@@ -4238,6 +4239,29 @@
     return active;
   }
 
+  // The session Log is actually working with right now. Editing a History
+  // session (via History > \u22ee > Edit) used to be done by temporarily
+  // stealing the one status:'active' slot that today's real session also
+  // lives in — the two were fighting over the same spot, which is what
+  // let an abandoned edit get silently confused with a fresh session (see
+  // getActiveSession's finishedAt-drift recovery above, kept as a safety
+  // net for any data from before this existed). Editing now has its own
+  // separate slot: ui.editingSessionId, which never touches the target
+  // session's status or finishedAt at all. Every place in Log that used to
+  // call getActiveSession() to find "the session I'm editing" should call
+  // this instead; getActiveSession() itself is now only for genuinely
+  // wanting today's real session regardless of edit mode (used when
+  // starting something new via Repeat/Routine/Template, which correctly
+  // leaves any in-progress edit completely undisturbed).
+  function getWorkingSession(){
+    if (ui.editingSessionId){
+      var editing = state.sessions.find(function(s){ return s.id === ui.editingSessionId; });
+      if (editing) return editing;
+      ui.editingSessionId = null; // target no longer exists — fall through
+    }
+    return getActiveSession();
+  }
+
   // ---- IN-APP "HAVEN'T TRAINED IN A WHILE" NUDGE ----
   // Free, no backend: just checks the gap since your last finished session
   // whenever the app is opened. Not a real push notification — this only
@@ -4595,7 +4619,7 @@
   function renderExerciseSearchOverlay(){
     var overlay = document.getElementById('exSearchOverlay');
     var panel = document.getElementById('exSearchPanel');
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = ui.editingExerciseName && session ? findExercise(session, ui.editingExerciseName) : null;
     if (!ui.editingExerciseName || !ex){
       overlay.classList.add('hidden');
@@ -6129,7 +6153,7 @@
   function applyTemplate(templateKey){
     var tpl = WORKOUT_TEMPLATES[templateKey];
     if (!tpl) return;
-    var session = getActiveSession();
+    var session = getWorkingSession();
     session.name = tpl.label;
     session.exercises = tpl.exercises.map(function(ex){
       return { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false };
@@ -7072,7 +7096,7 @@
      RENDER: LOG TAB
      ========================================================= */
   function renderLog(){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var html = '';
 
     html += '<div class="session-name-row">' +
@@ -7871,8 +7895,8 @@
     }
     renderInstallBanner();
 
-    var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
-    var showFinishBar = state.tab === 'log' && !!activeSession && activeSession.exercises.length > 0;
+    var workingSession = getWorkingSession();
+    var showFinishBar = state.tab === 'log' && !!workingSession && workingSession.exercises.length > 0;
     document.getElementById('sessionFinishBar').classList.toggle('hidden', !showFinishBar);
     document.getElementById('stopwatchBar').classList.toggle('hidden', !showFinishBar || !ui.restTimer);
     if (showFinishBar) renderRestTimerBar();
@@ -7882,15 +7906,16 @@
     // it sits right above the keyboard in those moments.
     var isMidEdit = !!ui.editingSet || !!ui.editingExerciseName ||
       Object.keys(ui.expandedAddSet).some(function(k){ return ui.expandedAddSet[k]; });
-    var canFinish = !!activeSession && sessionSetCount(activeSession) > 0 && !isMidEdit;
+    var canFinish = !!workingSession && sessionSetCount(workingSession) > 0 && !isMidEdit;
     var finishBtnEl = document.getElementById('finishSessionBtn');
     finishBtnEl.disabled = !canFinish;
     finishBtnEl.classList.toggle('ready', canFinish);
-    // finishedAt is only ever set the first time a session finishes (see
-    // finishSession) and is deliberately preserved after that — so its
-    // presence here means we're re-finishing a session reopened via
-    // History > \u22ee > Edit, not starting fresh.
-    var isEditingPast = !!(activeSession && activeSession.finishedAt);
+    // ui.editingSessionId is the authoritative signal for "reopened via
+    // History > \u22ee > Edit" — set only there, cleared only on Apply/Finish
+    // or when something else genuinely new gets started. Editing lives in
+    // its own slot entirely separate from today's real active session now,
+    // so this can't drift the way inferring it from finishedAt could.
+    var isEditingPast = !!ui.editingSessionId;
     finishBtnEl.textContent = isEditingPast ? 'Apply Changes' : 'Finish Session';
 
     // Lives in the fixed bottom stack right above the button itself (see
@@ -7902,8 +7927,8 @@
     if (showFinishBar && isEditingPast){
       editingBannerEl.innerHTML =
         '<span class="editing-past-banner-icon">&#9998;</span>' +
-        '<span class="editing-past-banner-text">Editing <b>'+esc(activeSession.name || 'Untitled session')+'</b> \u2014 ' +
-        'from '+fmtDate(activeSession.finishedAt)+'</span>';
+        '<span class="editing-past-banner-text">Editing <b>'+esc(workingSession.name || 'Untitled session')+'</b> \u2014 ' +
+        'from '+fmtDate(workingSession.finishedAt)+'</span>';
     }
 
     renderMuscleMapOverlay();
@@ -8436,7 +8461,7 @@
   }
 
   function commitAddExercise(name, muscle){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var newExId = uid();
     session.exercises.push({ id: newExId, name: name, muscle: muscle || null, sets: [] });
     saveSessions();
@@ -8448,7 +8473,7 @@
   }
 
   function deleteExercise(exId){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     var name = ex ? ex.name : null;
     session.exercises = session.exercises.filter(function(e){ return e.id !== exId; });
@@ -8495,7 +8520,7 @@
   function openExerciseNamePickConfirm(exId, name, muscle){
     name = String(name || '').trim();
     if (!name){ showToast('Exercise name can\u2019t be empty'); return; }
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var isNew = ui.newExerciseId === exId;
@@ -8541,7 +8566,7 @@
   }
 
   function addBlankExercise(muscle){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var newEx = { id: uid(), name: '', muscle: muscle || null, sets: [], done: false };
     session.exercises.push(newEx);
     saveSessions();
@@ -8551,14 +8576,14 @@
 
   function discardPendingNewExercise(){
     if (!ui.newExerciseId) return;
-    var session = getActiveSession();
+    var session = getWorkingSession();
     session.exercises = session.exercises.filter(function(e){ return e.id !== ui.newExerciseId; });
     saveSessions();
     ui.newExerciseId = null;
   }
 
   function openRenameExerciseConfirm(exId){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     ui.confirmModal = {
@@ -8604,7 +8629,7 @@
   }
 
   function saveExerciseName(exId, providedName){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var name;
@@ -8645,7 +8670,7 @@
   }
 
   function toggleExerciseDone(exId){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
 
@@ -8684,7 +8709,7 @@
   }
 
   function addSet(exId){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     if (!ex.name || !ex.name.trim()){
@@ -8763,7 +8788,7 @@
   }
 
   function activeAddSetTarget(){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     if (!session) return null;
     var exId = ui.editingSet ? ui.editingSet.exId : ui.activeExId;
     var ex = exId ? findExercise(session, exId) : null;
@@ -8804,7 +8829,7 @@
     if (!btn || !weightInput || !repsInput) return;
     var weightKg = toStoredKg(weightInput.value);
     var reps = parseInt(repsInput.value, 10);
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = session && findExercise(session, exId);
     var isBW = ex && isBodyweightExercise(ex.name);
     btn.disabled = !(weightKg !== null && (isBW ? weightKg >= 0 : weightKg > 0) && !isNaN(reps) && reps > 0);
@@ -8870,7 +8895,7 @@
   }
 
   function openAddSetPanelConfirm(exId){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     ui.confirmModal = {
@@ -8915,7 +8940,7 @@
       closeAddSetPanel(exId);
       return;
     }
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     var weightPart = hasWeight ? fmtWeight(parseFloat(draft.weight) || 0) + ' ' + unitLabel() : 'a weight';
     var repsPart = hasReps ? ' \u00d7 ' + draft.reps + ' reps' : '';
@@ -8970,7 +8995,7 @@
   // addSetGlobal, just targeting a specific exercise's row directly instead
   // of relying on which input was last focused.
   function addSetRow(exId){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     if (!ex.name || !ex.name.trim()){
@@ -8993,7 +9018,7 @@
   }
 
   function deleteSet(exId, setId){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var st = ex.sets.find(function(s){ return s.id === setId; });
@@ -9008,7 +9033,7 @@
 
 
   function openEditSetConfirm(exId, setId){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var st = ex.sets.find(function(s){ return s.id === setId; });
@@ -9040,7 +9065,7 @@
   }
 
   function saveSetEdit(exId, setId){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var st = ex.sets.find(function(s){ return s.id === setId; });
@@ -9072,7 +9097,7 @@
   }
 
   function applySetEdit(exId, setId, weightKg, reps){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var st = ex.sets.find(function(s){ return s.id === setId; });
@@ -9092,7 +9117,7 @@
   }
 
   function finishSession(){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     session.status = 'done';
     // Only stamp finishedAt the first time a session is finished. If this
     // session was reopened via "Edit" (History > ⋮ > Edit) and is being
@@ -9104,6 +9129,7 @@
     ui.editingSet = null;
     ui.expandedHistory[session.id] = true;
     if (ui.editSessionSnapshot && ui.editSessionSnapshot.id === session.id) ui.editSessionSnapshot = null;
+    if (ui.editingSessionId === session.id) ui.editingSessionId = null;
     if (restTimerInterval){ clearInterval(restTimerInterval); restTimerInterval = null; }
     ui.restTimer = null;
     state.tab = 'history';
@@ -9120,6 +9146,10 @@
     }
     state.sessions = state.sessions.filter(function(s){ return s.id !== sessionId; });
     Object.keys(affectedNames).forEach(function(name){ recomputeExercisePRs(name); });
+    if (ui.editingSessionId === sessionId){
+      ui.editingSessionId = null;
+      ui.editSessionSnapshot = null;
+    }
     saveSessions();
     if (removed) logActivity('Deleted session "' + (removed.name || 'Untitled session') + '"', 'History');
     renderApp();
@@ -9129,7 +9159,7 @@
      DELETE CONFIRMATION OVERLAY
      ========================================================= */
   function openDeleteExerciseConfirm(exId){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     var name = ex ? ex.name : 'this exercise';
     ui.confirmModal = {
@@ -9142,7 +9172,7 @@
   }
 
   function openDeleteSetConfirm(exId, setId){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var ex = findExercise(session, exId);
     var st = ex ? ex.sets.find(function(s){ return s.id === setId; }) : null;
     var label = st ? (fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps) : 'This set';
@@ -9202,7 +9232,7 @@
   // boxes was never part of the session data to begin with, so it just
   // vanishes unless callers here surface it first.
   function activeSessionUnsavedDraftExercise(){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     if (!session) return null;
     for (var i = 0; i < session.exercises.length; i++){
       var ex = session.exercises[i];
@@ -9238,18 +9268,11 @@
     var target = state.sessions.find(function(s){ return s.id === sessionId; });
     if (!target) return;
 
-    var currentActive = state.sessions.find(function(s){ return s.status === 'active' && s.id !== sessionId; });
-    if (currentActive){
-      if (currentActive.exercises.length > 0){
-        currentActive.status = 'done';
-        if (!currentActive.finishedAt) currentActive.finishedAt = new Date().toISOString();
-      } else {
-        state.sessions = state.sessions.filter(function(s){ return s.id !== currentActive.id; });
-      }
-    }
-
-    target.status = 'active';
-    saveSessions();
+    // No archiving needed anymore — editing lives in its own slot
+    // (ui.editingSessionId) instead of the status:'active' slot today's
+    // real session uses, so there's nothing here to interrupt. Whatever
+    // workout is genuinely in progress right now is left completely alone.
+    ui.editingSessionId = sessionId;
     logActivity('Reopened session "' + (target.name || 'Untitled session') + '" for editing', 'History');
     ui.expandedHistory[sessionId] = false;
     // Snapshot exactly what was saved before any edits happen. If Reset
@@ -9316,8 +9339,8 @@
       return;
     }
     overlay.classList.remove('hidden');
-    var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
-    var sets = getReferenceSets(activeSession, ui.referenceExerciseName) || [];
+    var workingSessionForRef = getWorkingSession();
+    var sets = getReferenceSets(workingSessionForRef, ui.referenceExerciseName) || [];
     var rowsHtml = sets.map(function(st, i){
       return '<div class="ref-set-row">' +
                '<span class="ref-set-idx">'+(i+1)+'</span>' +
@@ -9362,14 +9385,15 @@
     state.sessions.unshift(newSession);
     saveSessions();
     logActivity('Started new session repeating "' + (source.name || 'Untitled session') + '"', 'History');
+    ui.editingSessionId = null;
+    ui.editSessionSnapshot = null;
     state.tab = 'log';
     showToast('Repeating ' + (source.name || 'session'));
     flashExercisesAdded(newSession.exercises.map(function(ex){ return ex.id; }));
   }
 
   function openFinishSessionConfirm(){
-    var activeSession = state.sessions.find(function(s){ return s.status === 'active'; });
-    var isReeditingPast = !!(activeSession && activeSession.finishedAt);
+    var isReeditingPast = !!ui.editingSessionId;
     ui.confirmModal = isReeditingPast ? {
       kind: 'finish-session',
       title: 'Apply these changes?',
@@ -9423,9 +9447,9 @@
   // session itself stays (same date, same name if any), History and
   // every other session are untouched.
   function resetLog(){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     if (!session) return;
-    var revertingEdit = ui.editSessionSnapshot && ui.editSessionSnapshot.id === session.id;
+    var revertingEdit = ui.editingSessionId === session.id && !!ui.editSessionSnapshot;
     if (revertingEdit){
       session.exercises = JSON.parse(JSON.stringify(ui.editSessionSnapshot.exercises));
       session.name = ui.editSessionSnapshot.name;
@@ -9738,7 +9762,7 @@
   }
 
   function openSaveRoutine(){
-    var session = getActiveSession();
+    var session = getWorkingSession();
     if (!session.exercises.length){
       showToast('Add at least one exercise first');
       return;
@@ -9759,7 +9783,7 @@
       showToast('Give the routine a name');
       return;
     }
-    var session = getActiveSession();
+    var session = getWorkingSession();
     var routine = {
       id: uid(),
       name: name,
@@ -9811,6 +9835,8 @@
     };
     state.sessions.unshift(newSession);
     saveSessions();
+    ui.editingSessionId = null;
+    ui.editSessionSnapshot = null;
     state.tab = 'log';
     showToast('Started ' + routine.name);
     flashExercisesAdded(newSession.exercises.map(function(ex){ return ex.id; }));
@@ -10153,8 +10179,8 @@
     } else if (action === 'clear-data'){
       openClearDataConfirm();
     } else if (action === 'reset-log'){
-      var sessionForReset = getActiveSession();
-      var isRevertingEdit = ui.editSessionSnapshot && sessionForReset && ui.editSessionSnapshot.id === sessionForReset.id;
+      var sessionForReset = getWorkingSession();
+      var isRevertingEdit = ui.editingSessionId === sessionForReset.id && !!ui.editSessionSnapshot;
       ui.confirmModal = isRevertingEdit ? {
         kind: 'reset-log',
         title: 'Revert changes?',
@@ -10198,7 +10224,7 @@
   document.getElementById('app').addEventListener('input', function(e){
     var t = e.target;
     if (t.dataset && t.dataset.role === 'session-name'){
-      var session = getActiveSession();
+      var session = getWorkingSession();
       session.name = t.value;
       saveSessions();
     }
@@ -10443,7 +10469,7 @@
       else if (m && m.kind === 'logout') logOut();
       else if (m && m.kind === 'delete-account') openDeleteAccountPasswordConfirm();
       else if (m && m.kind === 'add-set-global'){
-        var session = getActiveSession();
+        var session = getWorkingSession();
         var ex = findExercise(session, m.exId);
         ui.expandedAddSet[m.exId] = false;
         if (ex) commitSet(ex, m.weightKg, m.reps);
