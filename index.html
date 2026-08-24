@@ -3831,6 +3831,7 @@
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     justAddedExIds: [],         // exIds that should play the "just added" glow pulse once (see flashExerciseAdded / flashExercisesAdded)
+    editSessionSnapshot: null,  // { id, exercises, name } taken the moment Edit reopens a History session, so Reset can revert to it instead of wiping real saved data — see reopenSessionForEdit / resetLog
     justFinishedSessionId: null, // sessionId that should play the "just finished" glow pulse once in History (see flashSessionFinished)
     pendingSuggestMuscle: null, // muscle carried from a tapped exercise-name suggestion, applied on save (see saveExerciseName)
     exFilterPanelOpen: false,   // whether the muscle/equipment filter panel is expanded in the exercise-search overlay
@@ -9087,6 +9088,7 @@
     logActivity('Finished session "' + (session.name || 'Untitled session') + '"', 'Log');
     ui.editingSet = null;
     ui.expandedHistory[session.id] = true;
+    if (ui.editSessionSnapshot && ui.editSessionSnapshot.id === session.id) ui.editSessionSnapshot = null;
     if (restTimerInterval){ clearInterval(restTimerInterval); restTimerInterval = null; }
     ui.restTimer = null;
     state.tab = 'history';
@@ -9235,6 +9237,15 @@
     saveSessions();
     logActivity('Reopened session "' + (target.name || 'Untitled session') + '" for editing', 'History');
     ui.expandedHistory[sessionId] = false;
+    // Snapshot exactly what was saved before any edits happen. If Reset
+    // gets pressed during this edit, it restores this instead of wiping
+    // the session blank — the only way to actually destroy a real History
+    // record stays Delete from the History menu.
+    ui.editSessionSnapshot = {
+      id: target.id,
+      exercises: JSON.parse(JSON.stringify(target.exercises)),
+      name: target.name
+    };
     state.tab = 'log';
     showToast('Editing ' + (target.name || 'session'));
     flashExercisesAdded(target.exercises.map(function(ex){ return ex.id; }));
@@ -9399,14 +9410,20 @@
   function resetLog(){
     var session = getActiveSession();
     if (!session) return;
-    session.exercises = [];
+    var revertingEdit = ui.editSessionSnapshot && ui.editSessionSnapshot.id === session.id;
+    if (revertingEdit){
+      session.exercises = JSON.parse(JSON.stringify(ui.editSessionSnapshot.exercises));
+      session.name = ui.editSessionSnapshot.name;
+    } else {
+      session.exercises = [];
+    }
     ui.editingSet = null;
     ui.editingExerciseName = null;
     ui.expandedAddSet = {};
     ui.draftSets = {};
     saveSessions();
-    logActivity('Reset today\u2019s log', 'Log');
-    showToast('Log reset');
+    logActivity(revertingEdit ? 'Reverted unsaved changes to "' + (session.name || 'Untitled session') + '"' : 'Reset today\u2019s log', 'Log');
+    showToast(revertingEdit ? 'Changes reverted' : 'Log reset');
     renderApp();
   }
 
@@ -10121,7 +10138,15 @@
     } else if (action === 'clear-data'){
       openClearDataConfirm();
     } else if (action === 'reset-log'){
-      ui.confirmModal = {
+      var sessionForReset = getActiveSession();
+      var isRevertingEdit = ui.editSessionSnapshot && sessionForReset && ui.editSessionSnapshot.id === sessionForReset.id;
+      ui.confirmModal = isRevertingEdit ? {
+        kind: 'reset-log',
+        title: 'Revert changes?',
+        message: 'This undoes the changes you\u2019ve made since reopening this session \u2014 it goes back to exactly what was saved in History. The saved session itself isn\u2019t deleted; use Delete from the History menu for that.',
+        confirmLabel: 'Revert',
+        variant: 'danger'
+      } : {
         kind: 'reset-log',
         title: 'Reset log?',
         message: 'This clears every exercise and set from today\u2019s session \u2014 the session itself stays, just empty. Your History and other sessions aren\u2019t touched.',
