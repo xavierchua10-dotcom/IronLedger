@@ -2060,6 +2060,17 @@
   .empty .glyph svg{width:32px;height:32px;}
   .empty p{font-size:13px;line-height:1.6;margin:0;}
   .log-empty-hero{padding-top:56px;padding-bottom:20px;opacity:0.5;}
+  /* Whole-tab empty states (History, Progress) — as opposed to smaller
+     in-context ones like "no sets logged for this exercise yet" or the
+     exercise-search's "no results", which stay as plain top-padded .empty
+     and shouldn't claim the whole screen's height. */
+  .tab-empty-state{
+    min-height:55vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
 
   /* ---------- History ---------- */
   .history-search-input{
@@ -7353,7 +7364,13 @@
     });
     var html = '';
     if (done.length === 0){
-      html += '<div class="empty"><div class="glyph">&#128220;</div>' +
+      html += '<div class="empty tab-empty-state"><div class="glyph">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"></path>' +
+                  '<rect x="8" y="2" width="8" height="4" rx="1"></rect>' +
+                  '<path d="M9 12h6"></path><path d="M9 16h6"></path><path d="M9 8h1"></path>' +
+                '</svg>' +
+              '</div>' +
               '<p>No finished sessions yet.<br>Sessions you finish in the Log tab will show up here.</p></div>';
     } else {
       html += '<input type="text" id="historySearchInput" class="history-search-input" autocomplete="off" placeholder="Search by exercise or session name" value="'+esc(ui.historySearch || '')+'">';
@@ -7448,7 +7465,11 @@
     var names = allExerciseNames();
     var html = '';
     if (names.length === 0){
-      html += '<div class="empty"><div class="glyph">&#8599;</div>' +
+      html += '<div class="empty tab-empty-state"><div class="glyph">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path>' +
+                '</svg>' +
+              '</div>' +
               '<p>Nothing to chart yet.<br>Log a few sessions and your progress will appear here.</p></div>';
       document.getElementById('view').innerHTML = html;
       return;
