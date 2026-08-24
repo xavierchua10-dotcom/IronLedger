@@ -7490,7 +7490,11 @@
 
     var points = collectExercisePoints(ui.progressExercise);
     if (points.length === 0){
-      html += '<div class="empty"><div class="glyph">&#8599;</div><p>No logged sets for this exercise yet.</p></div>';
+      html += '<div class="empty tab-empty-state"><div class="glyph">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path>' +
+                '</svg>' +
+              '</div><p>No logged sets for this exercise yet.</p></div>';
       document.getElementById('view').innerHTML = html;
       return;
     }
