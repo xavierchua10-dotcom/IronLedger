@@ -3303,14 +3303,15 @@
     100%{transform:scale(1);}
   }
   .session-meta b.flash{display:inline-block;animation:setCountPulse 450ms ease;}
-  /* Whole-row white flash for a just-added set — targets the row itself
-     rather than just the timestamp text, so it works the same way
-     whether Pro shows a real time or Basic shows the lock icon instead. */
-  @keyframes setRowFlash{
-    0%{background-color:rgba(255,255,255,0.32);}
-    100%{background-color:rgba(255,255,255,0);}
+  /* White glow flash on the actual number text for a just-added set (set
+     index + weight\u00d7reps) — a text-shadow glow that fades to nothing,
+     rather than touching color directly, so it fades cleanly back to
+     whatever each element's normal color already is. */
+  @keyframes numberFlash{
+    0%{text-shadow:0 0 1px #fff, 0 0 10px rgba(255,255,255,0.9);}
+    100%{text-shadow:0 0 0 rgba(255,255,255,0);}
   }
-  .set-row.flash{animation:setRowFlash 650ms ease-out;border-radius:var(--radius-sm);}
+  .set-idx.flash, .set-wr.flash{animation:numberFlash 650ms ease-out;}
   /* Basic tier has no timestamp to flash, so the lock icon itself pulses
      instead — same idea as the PR tag's pulse, just applied here so
      Basic users still get a clear "this is what just changed" cue. */
@@ -7259,10 +7260,10 @@
         var isEditingRow = st.id === editingSetId;
         if (isEditingRow) editingSetObj = st;
         var isFreshSet = st.id === ui.freshSetId;
-        html += '<div class="set-row'+(isEditingRow ? ' editing' : '')+(isFreshSet ? ' flash' : '')+'">' +
-                  '<span class="set-idx">'+(i+1)+'</span>' +
+        html += '<div class="set-row'+(isEditingRow ? ' editing' : '')+'">' +
+                  '<span class="set-idx'+(isFreshSet ? ' flash' : '')+'">'+(i+1)+'</span>' +
                   '<span class="set-detail">' +
-                    '<span class="set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
+                    '<span class="set-wr'+(isFreshSet ? ' flash' : '')+'">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
                     (st.timestamp ? '<span class="set-time"> &middot; '+tsOrLock(st.timestamp, null, isFreshSet)+'</span>' : '') +
                     (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
                   '</span>' +
