@@ -1284,19 +1284,6 @@
   }
   .add-set-toggle-btn:active{background:var(--panel-2);border-color:var(--accent);}
   .add-set-toggle-btn .plus-glyph{font-size:16px;line-height:1;}
-  .edit-btn-group{display:flex;gap:6px;}
-  .save-edit-btn{
-    background:var(--accent);
-    border:none;
-    color:#1c1500;
-    font-weight:700;
-    border-radius:var(--radius-sm);
-    width:40px;
-    height:42px;
-    font-size:15px;
-    cursor:pointer;
-  }
-  .save-edit-btn:active{opacity:0.85;}
   .cancel-edit-btn{
     background:var(--panel-2);
     border:1px solid var(--line);
@@ -2119,28 +2106,6 @@
     white-space:nowrap;
   }
   .hi-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
-  .history-item-head-editing{cursor:default;}
-  .hi-rename-row{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    width:100%;
-  }
-  .hi-name-input{
-    flex:1;
-    min-width:0;
-    background:var(--panel-2);
-    border:1px solid var(--accent-dim);
-    color:var(--text);
-    border-radius:7px;
-    padding:9px 10px;
-    font-family:'Oswald',sans-serif;
-    font-weight:600;
-    font-size:14px;
-    text-transform:uppercase;
-    letter-spacing:0.02em;
-  }
-  .hi-name-input:focus{outline:none;border-color:var(--accent);}
   .history-item-head .hi-date{
     font-family:'JetBrains Mono',monospace;
     font-size:11px;
@@ -3848,7 +3813,6 @@
     selectedMuscle: null,
     pendingMuscle: null,
     editingSet: null,      // { exId, setId } or null
-    editingHistoryName: null,  // sessionId currently being renamed, or null
     historySearch: '',         // current History search query
     showAccountMenu: false,
     authMode: 'login',     // 'login' | 'signup'
@@ -6625,7 +6589,6 @@
       ];
     } else if (m.type === 'session'){
       items = [
-        { label: 'Rename', action: 'edit-history-name' },
         { label: 'Edit', action: 'edit-session' },
         { label: 'Repeat', action: 'repeat-session' },
         { label: 'Delete session', action: 'delete-session', danger: true }
@@ -7295,32 +7258,19 @@
   // Pulled out so the "this week" and "older" groups can both use it.
   function renderHistoryItem(s){
     var expanded = !!ui.expandedHistory[s.id];
-    var isEditingName = ui.editingHistoryName === s.id;
     var searchBlob = ((s.name || '') + ' ' + s.exercises.map(function(ex){ return ex.name; }).join(' ')).toLowerCase();
     var html = '<div class="history-item'+(ui.justFinishedSessionId === s.id ? ' just-finished' : '')+'" data-session="'+s.id+'" data-search="'+esc(searchBlob)+'">';
-    if (isEditingName){
-      html += '<div class="history-item-head history-item-head-editing">' +
-                '<div class="hi-rename-row">' +
-                  '<input type="text" class="hi-name-input" id="hiNameInput" maxlength="60" value="'+esc(s.name || '')+'" placeholder="Session name">' +
-                  '<div class="edit-btn-group">' +
-                    '<button class="save-edit-btn" data-action="save-history-name" data-session="'+s.id+'" aria-label="Save name">&#10003;</button>' +
-                    '<button class="cancel-edit-btn" data-action="cancel-history-name" aria-label="Cancel">&#10005;</button>' +
-                  '</div>' +
-                '</div>' +
-              '</div>';
-    } else {
-      html += '<div class="history-item-head" data-action="toggle-history" data-session="'+s.id+'">' +
-                '<div class="hi-left">' +
-                  '<span class="hi-name">'+esc(s.name || 'Untitled session')+'</span>' +
-                  '<span class="hi-date">'+fmtDate(s.finishedAt || s.date)+' &middot; '+tsOrLock(s.finishedAt || s.date)+'</span>' +
-                  durationBarHTML(s) +
-                '</div>' +
-                '<div class="hi-right">' +
-                  '<button class="icon-btn hi-menu-btn" data-action="open-session-menu" data-session="'+s.id+'" aria-label="Session options">&#8942;</button>' +
-                  '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol</div>' +
-                '</div>' +
-              '</div>';
-    }
+    html += '<div class="history-item-head" data-action="toggle-history" data-session="'+s.id+'">' +
+              '<div class="hi-left">' +
+                '<span class="hi-name">'+esc(s.name || 'Untitled session')+'</span>' +
+                '<span class="hi-date">'+fmtDate(s.finishedAt || s.date)+' &middot; '+tsOrLock(s.finishedAt || s.date)+'</span>' +
+                durationBarHTML(s) +
+              '</div>' +
+              '<div class="hi-right">' +
+                '<button class="icon-btn hi-menu-btn" data-action="open-session-menu" data-session="'+s.id+'" aria-label="Session options">&#8942;</button>' +
+                '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol</div>' +
+              '</div>' +
+            '</div>';
     if (expanded){
       html += '<div class="history-item-body">';
       s.exercises.forEach(function(ex){
@@ -8558,20 +8508,6 @@
     renderApp();
   }
 
-  function openRenameSessionConfirm(sessionId){
-    var session = state.sessions.find(function(s){ return s.id === sessionId; });
-    var name = session && session.name ? session.name : 'this session';
-    ui.confirmModal = {
-      kind: 'rename-session-confirm',
-      title: 'Rename session?',
-      message: 'Opens \u201c' + name + '\u201d for renaming.',
-      confirmLabel: 'Rename',
-      variant: 'primary',
-      sessionId: sessionId
-    };
-    renderApp();
-  }
-
   function addBlankExercise(muscle){
     var session = getActiveSession();
     var newEx = { id: uid(), name: '', muscle: muscle || null, sets: [], done: false };
@@ -9198,32 +9134,6 @@
       setId: setId
     };
     renderApp();
-  }
-
-  function editHistoryName(sessionId){
-    ui.editingHistoryName = sessionId;
-    renderApp();
-    var input = document.getElementById('hiNameInput');
-    if (input){ input.focus(); input.select(); }
-  }
-
-  function cancelHistoryNameEdit(){
-    ui.editingHistoryName = null;
-    renderApp();
-  }
-
-  function saveHistoryName(sessionId){
-    var session = state.sessions.find(function(s){ return s.id === sessionId; });
-    if (!session) return;
-    var oldName = session.name || 'Untitled session';
-    var input = document.getElementById('hiNameInput');
-    var name = input ? input.value.trim() : '';
-    session.name = name || 'Untitled session';
-    saveSessions();
-    if (oldName !== session.name) logActivity('Renamed session "' + oldName + '" to "' + session.name + '"', 'History');
-    ui.editingHistoryName = null;
-    renderApp();
-    showToast('Session renamed');
   }
 
   function openDeleteSessionConfirm(sessionId){
@@ -10386,12 +10296,6 @@
       toggleExFilter(el.dataset.kind, el.dataset.value);
     } else if (action === 'clear-ex-filters'){
       clearExFilters();
-    } else if (action === 'edit-history-name'){
-      openRenameSessionConfirm(el.dataset.session);
-    } else if (action === 'save-history-name'){
-      saveHistoryName(el.dataset.session);
-    } else if (action === 'cancel-history-name'){
-      cancelHistoryNameEdit();
     } else if (action === 'delete-session'){
       openDeleteSessionConfirm(el.dataset.session);
     } else if (action === 'edit-session'){
@@ -10551,16 +10455,10 @@
         ui.activeExId = e.target.dataset.ex;
         if (ui.editingSet) saveSetEdit(ui.editingSet.exId, ui.editingSet.setId);
         else addSetGlobal();
-      } else if (e.target.id === 'hiNameInput'){
-        e.preventDefault();
-        saveHistoryName(ui.editingHistoryName);
       } else if (e.target.id === 'exNameInput'){
         e.preventDefault();
         openExerciseNamePickConfirm(ui.editingExerciseName, e.target.value, null);
       }
-    } else if (e.key === 'Escape' && e.target.id === 'hiNameInput'){
-      e.preventDefault();
-      cancelHistoryNameEdit();
     } else if (e.key === 'Escape' && e.target.id === 'exNameInput'){
       e.preventDefault();
       cancelExerciseNameEdit();
@@ -10767,9 +10665,6 @@
         state.settings.unit = state.settings.unit === 'kg' ? 'lb' : 'kg';
         saveSettings();
         renderApp();
-      }
-      else if (m && m.kind === 'rename-session-confirm'){
-        editHistoryName(m.sessionId);
       }
       else if (m && m.kind === 'open-add-set-confirm'){
         openAddSetPanel(m.exId);
