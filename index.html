@@ -3830,7 +3830,7 @@
     exTipExId: null,        // exId (within that session) the Tips/Target overlay is showing, or null
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
-    justAddedExId: null,        // exId that should play the "just added" glow pulse once (see flashExerciseAdded)
+    justAddedExIds: [],         // exIds that should play the "just added" glow pulse once (see flashExerciseAdded / flashExercisesAdded)
     justFinishedSessionId: null, // sessionId that should play the "just finished" glow pulse once in History (see flashSessionFinished)
     pendingSuggestMuscle: null, // muscle carried from a tapped exercise-name suggestion, applied on save (see saveExerciseName)
     exFilterPanelOpen: false,   // whether the muscle/equipment filter panel is expanded in the exercise-search overlay
@@ -7124,7 +7124,7 @@
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
     var refSets = getReferenceSets(session, ex.name);
-    var html = '<div class="exercise-card'+(ex.id===ui.justAddedExId?' just-added':'')+'" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
+    var html = '<div class="exercise-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
     html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
             '<div class="eh-badges">' +
             (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
@@ -7212,7 +7212,7 @@
     if (setCount > 0){
       summary += ' &middot; ' + Math.round(toDisplay(exerciseVolume(ex))).toLocaleString() + ' ' + unitLabel().toUpperCase();
     }
-    var html = '<div class="exercise-card collapsed" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
+    var html = '<div class="exercise-card collapsed'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
     html += '<div class="exercise-head-collapsed" data-action="toggle-exercise-done" data-ex="'+ex.id+'">' +
               '<div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
               (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') + '</div>' +
@@ -8386,11 +8386,25 @@
   // flag so the class is absent on every subsequent render and the
   // animation never replays.
   function flashExerciseAdded(exId){
-    ui.justAddedExId = exId;
+    ui.justAddedExIds = [exId];
     renderApp();
-    ui.justAddedExId = null;
+    ui.justAddedExIds = [];
     var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
     if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Same one-shot pattern, for actions that populate several exercise
+  // cards at once (starting a routine/template, Repeat, Edit) — every
+  // card in exIds glows together instead of just one. Scrolls to the top
+  // of the list rather than centering a single card, since there isn't
+  // one card to center on.
+  function flashExercisesAdded(exIds){
+    if (!exIds || exIds.length === 0) return;
+    ui.justAddedExIds = exIds.slice();
+    renderApp();
+    ui.justAddedExIds = [];
+    var firstCard = document.querySelector('.exercise-card[data-ex="'+exIds[0]+'"]');
+    if (firstCard) firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   // Same one-shot pattern, used when Finish Session drops you into History
@@ -8608,9 +8622,9 @@
     }
     ui.newExerciseId = null;
     ui.editingExerciseName = null;
-    ui.justAddedExId = wasNew ? exId : null;
+    ui.justAddedExIds = wasNew ? [exId] : [];
     renderApp();
-    ui.justAddedExId = null;
+    ui.justAddedExIds = [];
     showToast(wasNew ? 'Exercise added' : 'Exercise renamed');
   }
 
@@ -9222,8 +9236,8 @@
     logActivity('Reopened session "' + (target.name || 'Untitled session') + '" for editing', 'History');
     ui.expandedHistory[sessionId] = false;
     state.tab = 'log';
-    renderApp();
     showToast('Editing ' + (target.name || 'session'));
+    flashExercisesAdded(target.exercises.map(function(ex){ return ex.id; }));
   }
 
   function openRepeatSessionConfirm(sessionId){
@@ -9323,8 +9337,8 @@
     saveSessions();
     logActivity('Started new session repeating "' + (source.name || 'Untitled session') + '"', 'History');
     state.tab = 'log';
-    renderApp();
     showToast('Repeating ' + (source.name || 'session'));
+    flashExercisesAdded(newSession.exercises.map(function(ex){ return ex.id; }));
   }
 
   function openFinishSessionConfirm(){
@@ -9766,8 +9780,8 @@
     state.sessions.unshift(newSession);
     saveSessions();
     state.tab = 'log';
-    renderApp();
     showToast('Started ' + routine.name);
+    flashExercisesAdded(newSession.exercises.map(function(ex){ return ex.id; }));
   }
 
   function openDeleteRoutineConfirm(routineId){
