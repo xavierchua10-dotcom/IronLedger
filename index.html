@@ -4203,12 +4203,26 @@
   function getActiveSession(){
     var active = state.sessions.find(function(s){ return s.status === 'active'; });
     if (active && active.exercises.length === 0 && !isSameLocalDay(active.date)){
-      // Left over from a previous day, never actually used (no exercises
-      // added yet) — treat it as today's session instead of showing
-      // yesterday's date on an empty log. A session that already has
-      // exercises is left alone even across midnight, since that's a real
-      // in-progress workout, not a stale leftover.
-      active.date = new Date().toISOString();
+      if (active.finishedAt){
+        // Not a throwaway blank placeholder — this is a real History
+        // session that was reopened via Edit, then emptied out and
+        // abandoned (closed the app, switched tabs, anything short of
+        // actually tapping Apply Changes — there's no explicit "cancel
+        // edit" action). Recycling it into "today" would silently carry
+        // its old finishedAt/name forward and let the next Finish/Apply
+        // overwrite that real session's date and content. Put it back to
+        // History exactly as the user left it instead, and fall through
+        // below to hand back a genuinely fresh session for today.
+        active.status = 'done';
+        active = null;
+      } else {
+        // Left over from a previous day, never actually used (no exercises
+        // added yet) — treat it as today's session instead of showing
+        // yesterday's date on an empty log. A session that already has
+        // exercises is left alone even across midnight, since that's a real
+        // in-progress workout, not a stale leftover.
+        active.date = new Date().toISOString();
+      }
     }
     if (!active){
       active = {
