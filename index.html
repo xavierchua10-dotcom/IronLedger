@@ -2390,6 +2390,41 @@
   .pro-panel-close{background:none;border:none;color:var(--text-faint);font-size:18px;cursor:pointer;padding:4px;line-height:1;flex-shrink:0;}
   .pro-panel-close:active{color:var(--text);}
   .pro-panel-sub{padding:0 18px 12px;font-size:11.5px;color:var(--text-faint);border-bottom:1px solid var(--line);}
+
+  /* History Edit Overlay — draft-based session editor opened from
+     History > \u22ee > Edit. Reuses .set-row / .add-set-row / .add-set-btn
+     etc. verbatim (same classes Log uses) so the inner rows look and
+     behave identically; only the panel chrome around them is new. */
+  .he-panel{max-height:88vh;}
+  .he-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;flex-shrink:0;border-bottom:1px solid var(--line);
+    gap:10px;
+  }
+  .he-title{
+    font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;
+    color:var(--text);letter-spacing:0.02em;
+  }
+  .he-cancel-btn, .he-save-btn{
+    background:none;border:none;font-size:14px;font-weight:600;cursor:pointer;
+    padding:6px 4px;
+  }
+  .he-cancel-btn{color:var(--text-dim);}
+  .he-save-btn{color:var(--accent);}
+  .he-body{padding:14px 16px 20px;overflow-y:auto;}
+  .he-name-input{
+    width:100%;box-sizing:border-box;background:var(--panel-3);
+    border:1px solid var(--line);border-radius:var(--radius-sm);
+    color:var(--text);font-size:14px;padding:10px 12px;margin-bottom:16px;
+  }
+  .he-name-input:focus{outline:none;border-color:var(--accent);}
+  .he-exercise-card{
+    background:var(--panel-3);border:1px solid var(--line);
+    border-radius:var(--radius-md);padding:12px;margin-bottom:12px;
+  }
+  .he-exercise-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;}
+  .he-exercise-head h3{font-size:14px;font-weight:700;color:var(--text);margin:0 0 4px;}
+  #historyEditPanel .set-detail{cursor:pointer;}
   .pro-panel-body{padding:14px 18px;overflow-y:auto;flex:1;}
   .pro-panel-footer{padding:14px 18px;border-top:1px solid var(--line);flex-shrink:0;}
   .pro-print-btn{width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:var(--radius);padding:12px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;}
@@ -3298,7 +3333,6 @@
   <div class="trial-banner hidden" id="installBanner"></div>
   <main id="view"></main>
   <div class="stopwatch-bar hidden" id="stopwatchBar"></div>
-  <div class="editing-past-banner hidden" id="editingPastBanner"></div>
   <div class="session-finish-bar hidden" id="sessionFinishBar">
     <button class="btn-primary" id="finishSessionBtn" data-action="finish-session" disabled>Finish Session</button>
     <button class="add-set-global-btn" data-action="add-set-global" disabled>&#10003; Add Set</button>
@@ -3361,6 +3395,9 @@
 </div>
 <div class="confirm-overlay hidden" id="refOverlay">
   <div class="pro-panel" id="refOverlayPanel"></div>
+</div>
+<div class="confirm-overlay hidden" id="historyEditOverlay">
+  <div class="pro-panel he-panel" id="historyEditPanel"></div>
 </div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
@@ -3831,9 +3868,10 @@
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     justAddedExIds: [],         // exIds that should play the "just added" glow pulse once (see flashExerciseAdded / flashExercisesAdded)
-    editingSessionId: null,     // id of a History (status:'done') session currently reopened via Edit. Log tab works on this instead of today's real session when set — see getWorkingSession(). Never mutates that session's status/finishedAt, so it can never collide with or corrupt the real active session the way the old status:'active'-reuse design could.
-    editSessionSnapshot: null,  // { id, exercises, name } taken the moment Edit reopens a History session, so Reset can revert to it instead of wiping real saved data — see reopenSessionForEdit / resetLog
     justFinishedSessionId: null, // sessionId that should play the "just finished" glow pulse once in History (see flashSessionFinished)
+    editDraft: null,             // { sessionId, name, exercises } — working copy while the History-edit overlay is open. Fully detached from state.sessions; nothing in it touches the real session until commitHistoryEditSave(). Cancel just discards it, no revert logic needed. See openHistoryEditOverlay.
+    historyEditOpenRow: null,    // { type: 'add'|'edit', exId, setId? } — which single inline weight/reps row is currently open inside the edit overlay (only one at a time)
+    historyEditRowDraft: { weight: null, reps: null }, // typed-but-unconfirmed values for whichever row historyEditOpenRow points at
     pendingSuggestMuscle: null, // muscle carried from a tapped exercise-name suggestion, applied on save (see saveExerciseName)
     exFilterPanelOpen: false,   // whether the muscle/equipment filter panel is expanded in the exercise-search overlay
     exSearchFilters: { muscles: [], equipment: [] }, // active filter selections in the exercise-search overlay
@@ -4239,29 +4277,6 @@
     return active;
   }
 
-  // The session Log is actually working with right now. Editing a History
-  // session (via History > \u22ee > Edit) used to be done by temporarily
-  // stealing the one status:'active' slot that today's real session also
-  // lives in — the two were fighting over the same spot, which is what
-  // let an abandoned edit get silently confused with a fresh session (see
-  // getActiveSession's finishedAt-drift recovery above, kept as a safety
-  // net for any data from before this existed). Editing now has its own
-  // separate slot: ui.editingSessionId, which never touches the target
-  // session's status or finishedAt at all. Every place in Log that used to
-  // call getActiveSession() to find "the session I'm editing" should call
-  // this instead; getActiveSession() itself is now only for genuinely
-  // wanting today's real session regardless of edit mode (used when
-  // starting something new via Repeat/Routine/Template, which correctly
-  // leaves any in-progress edit completely undisturbed).
-  function getWorkingSession(){
-    if (ui.editingSessionId){
-      var editing = state.sessions.find(function(s){ return s.id === ui.editingSessionId; });
-      if (editing) return editing;
-      ui.editingSessionId = null; // target no longer exists — fall through
-    }
-    return getActiveSession();
-  }
-
   // ---- IN-APP "HAVEN'T TRAINED IN A WHILE" NUDGE ----
   // Free, no backend: just checks the gap since your last finished session
   // whenever the app is opened. Not a real push notification — this only
@@ -4619,7 +4634,7 @@
   function renderExerciseSearchOverlay(){
     var overlay = document.getElementById('exSearchOverlay');
     var panel = document.getElementById('exSearchPanel');
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = ui.editingExerciseName && session ? findExercise(session, ui.editingExerciseName) : null;
     if (!ui.editingExerciseName || !ex){
       overlay.classList.add('hidden');
@@ -6153,7 +6168,7 @@
   function applyTemplate(templateKey){
     var tpl = WORKOUT_TEMPLATES[templateKey];
     if (!tpl) return;
-    var session = getWorkingSession();
+    var session = getActiveSession();
     session.name = tpl.label;
     session.exercises = tpl.exercises.map(function(ex){
       return { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false };
@@ -7096,7 +7111,7 @@
      RENDER: LOG TAB
      ========================================================= */
   function renderLog(){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var html = '';
 
     html += '<div class="session-name-row">' +
@@ -7895,8 +7910,8 @@
     }
     renderInstallBanner();
 
-    var workingSession = getWorkingSession();
-    var showFinishBar = state.tab === 'log' && !!workingSession && workingSession.exercises.length > 0;
+    var activeSession = getActiveSession();
+    var showFinishBar = state.tab === 'log' && !!activeSession && activeSession.exercises.length > 0;
     document.getElementById('sessionFinishBar').classList.toggle('hidden', !showFinishBar);
     document.getElementById('stopwatchBar').classList.toggle('hidden', !showFinishBar || !ui.restTimer);
     if (showFinishBar) renderRestTimerBar();
@@ -7906,35 +7921,16 @@
     // it sits right above the keyboard in those moments.
     var isMidEdit = !!ui.editingSet || !!ui.editingExerciseName ||
       Object.keys(ui.expandedAddSet).some(function(k){ return ui.expandedAddSet[k]; });
-    var canFinish = !!workingSession && sessionSetCount(workingSession) > 0 && !isMidEdit;
+    var canFinish = !!activeSession && sessionSetCount(activeSession) > 0 && !isMidEdit;
     var finishBtnEl = document.getElementById('finishSessionBtn');
     finishBtnEl.disabled = !canFinish;
     finishBtnEl.classList.toggle('ready', canFinish);
-    // ui.editingSessionId is the authoritative signal for "reopened via
-    // History > \u22ee > Edit" — set only there, cleared only on Apply/Finish
-    // or when something else genuinely new gets started. Editing lives in
-    // its own slot entirely separate from today's real active session now,
-    // so this can't drift the way inferring it from finishedAt could.
-    var isEditingPast = !!ui.editingSessionId;
-    finishBtnEl.textContent = isEditingPast ? 'Apply Changes' : 'Finish Session';
-
-    // Lives in the fixed bottom stack right above the button itself (see
-    // shell HTML), not the scrollable content above it — so it can't
-    // scroll out of view and stays paired with the action it explains,
-    // however far down the exercise list you scroll.
-    var editingBannerEl = document.getElementById('editingPastBanner');
-    editingBannerEl.classList.toggle('hidden', !(showFinishBar && isEditingPast));
-    if (showFinishBar && isEditingPast){
-      editingBannerEl.innerHTML =
-        '<span class="editing-past-banner-icon">&#9998;</span>' +
-        '<span class="editing-past-banner-text">Editing <b>'+esc(workingSession.name || 'Untitled session')+'</b> \u2014 ' +
-        'from '+fmtDate(workingSession.finishedAt)+'</span>';
-    }
 
     renderMuscleMapOverlay();
     renderExerciseSearchOverlay();
     renderConfirmModal();
     renderRoutineNamePanel();
+    renderHistoryEditOverlay();
     renderDeleteAccountPasswordPanel();
     if (ui.tourStep !== null) renderTourStep();
     renderBriefOverlay();
@@ -8461,7 +8457,7 @@
   }
 
   function commitAddExercise(name, muscle){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var newExId = uid();
     session.exercises.push({ id: newExId, name: name, muscle: muscle || null, sets: [] });
     saveSessions();
@@ -8473,7 +8469,7 @@
   }
 
   function deleteExercise(exId){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     var name = ex ? ex.name : null;
     session.exercises = session.exercises.filter(function(e){ return e.id !== exId; });
@@ -8520,7 +8516,7 @@
   function openExerciseNamePickConfirm(exId, name, muscle){
     name = String(name || '').trim();
     if (!name){ showToast('Exercise name can\u2019t be empty'); return; }
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var isNew = ui.newExerciseId === exId;
@@ -8566,7 +8562,7 @@
   }
 
   function addBlankExercise(muscle){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var newEx = { id: uid(), name: '', muscle: muscle || null, sets: [], done: false };
     session.exercises.push(newEx);
     saveSessions();
@@ -8576,14 +8572,14 @@
 
   function discardPendingNewExercise(){
     if (!ui.newExerciseId) return;
-    var session = getWorkingSession();
+    var session = getActiveSession();
     session.exercises = session.exercises.filter(function(e){ return e.id !== ui.newExerciseId; });
     saveSessions();
     ui.newExerciseId = null;
   }
 
   function openRenameExerciseConfirm(exId){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     ui.confirmModal = {
@@ -8629,7 +8625,7 @@
   }
 
   function saveExerciseName(exId, providedName){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var name;
@@ -8670,7 +8666,7 @@
   }
 
   function toggleExerciseDone(exId){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
 
@@ -8709,7 +8705,7 @@
   }
 
   function addSet(exId){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     if (!ex.name || !ex.name.trim()){
@@ -8788,7 +8784,7 @@
   }
 
   function activeAddSetTarget(){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     if (!session) return null;
     var exId = ui.editingSet ? ui.editingSet.exId : ui.activeExId;
     var ex = exId ? findExercise(session, exId) : null;
@@ -8820,6 +8816,15 @@
 
   // Live-updates a single exercise's inline "+" button as its weight/reps
   // inputs change, without needing a full re-render on every keystroke.
+  function refreshHistoryEditRowBtn(){
+    var panel = document.getElementById('historyEditPanel');
+    if (!panel || !ui.historyEditOpenRow) return;
+    var btn = panel.querySelector('.add-set-btn');
+    if (!btn) return;
+    var ex = ui.editDraft && ui.editDraft.exercises.find(function(e){ return e.id === ui.historyEditOpenRow.exId; });
+    btn.disabled = !(ex && draftRowReady(ex.name));
+  }
+
   function refreshRowAddSetBtn(exId){
     var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
     if (!card) return;
@@ -8829,7 +8834,7 @@
     if (!btn || !weightInput || !repsInput) return;
     var weightKg = toStoredKg(weightInput.value);
     var reps = parseInt(repsInput.value, 10);
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = session && findExercise(session, exId);
     var isBW = ex && isBodyweightExercise(ex.name);
     btn.disabled = !(weightKg !== null && (isBW ? weightKg >= 0 : weightKg > 0) && !isNaN(reps) && reps > 0);
@@ -8895,7 +8900,7 @@
   }
 
   function openAddSetPanelConfirm(exId){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     ui.confirmModal = {
@@ -8940,7 +8945,7 @@
       closeAddSetPanel(exId);
       return;
     }
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     var weightPart = hasWeight ? fmtWeight(parseFloat(draft.weight) || 0) + ' ' + unitLabel() : 'a weight';
     var repsPart = hasReps ? ' \u00d7 ' + draft.reps + ' reps' : '';
@@ -8995,7 +9000,7 @@
   // addSetGlobal, just targeting a specific exercise's row directly instead
   // of relying on which input was last focused.
   function addSetRow(exId){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     if (!ex.name || !ex.name.trim()){
@@ -9018,7 +9023,7 @@
   }
 
   function deleteSet(exId, setId){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var st = ex.sets.find(function(s){ return s.id === setId; });
@@ -9033,7 +9038,7 @@
 
 
   function openEditSetConfirm(exId, setId){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var st = ex.sets.find(function(s){ return s.id === setId; });
@@ -9065,7 +9070,7 @@
   }
 
   function saveSetEdit(exId, setId){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var st = ex.sets.find(function(s){ return s.id === setId; });
@@ -9097,7 +9102,7 @@
   }
 
   function applySetEdit(exId, setId, weightKg, reps){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
     var st = ex.sets.find(function(s){ return s.id === setId; });
@@ -9117,19 +9122,16 @@
   }
 
   function finishSession(){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     session.status = 'done';
-    // Only stamp finishedAt the first time a session is finished. If this
-    // session was reopened via "Edit" (History > ⋮ > Edit) and is being
-    // finished again, it already has a finishedAt from the first time —
-    // that original time should stick, not get overwritten with now.
+    // Only stamp finishedAt the first time a session is finished — a
+    // sensible no-op guard even though every session finished here is a
+    // genuinely new one now (Log never shows a reopened History edit).
     if (!session.finishedAt) session.finishedAt = new Date().toISOString();
     saveSessions();
     logActivity('Finished session "' + (session.name || 'Untitled session') + '"', 'Log');
     ui.editingSet = null;
     ui.expandedHistory[session.id] = true;
-    if (ui.editSessionSnapshot && ui.editSessionSnapshot.id === session.id) ui.editSessionSnapshot = null;
-    if (ui.editingSessionId === session.id) ui.editingSessionId = null;
     if (restTimerInterval){ clearInterval(restTimerInterval); restTimerInterval = null; }
     ui.restTimer = null;
     state.tab = 'history';
@@ -9146,9 +9148,10 @@
     }
     state.sessions = state.sessions.filter(function(s){ return s.id !== sessionId; });
     Object.keys(affectedNames).forEach(function(name){ recomputeExercisePRs(name); });
-    if (ui.editingSessionId === sessionId){
-      ui.editingSessionId = null;
-      ui.editSessionSnapshot = null;
+    if (ui.editDraft && ui.editDraft.sessionId === sessionId){
+      ui.editDraft = null;
+      ui.historyEditOpenRow = null;
+      ui.historyEditRowDraft = { weight: null, reps: null };
     }
     saveSessions();
     if (removed) logActivity('Deleted session "' + (removed.name || 'Untitled session') + '"', 'History');
@@ -9159,7 +9162,7 @@
      DELETE CONFIRMATION OVERLAY
      ========================================================= */
   function openDeleteExerciseConfirm(exId){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     var name = ex ? ex.name : 'this exercise';
     ui.confirmModal = {
@@ -9172,7 +9175,7 @@
   }
 
   function openDeleteSetConfirm(exId, setId){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var ex = findExercise(session, exId);
     var st = ex ? ex.sets.find(function(s){ return s.id === setId; }) : null;
     var label = st ? (fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps) : 'This set';
@@ -9232,7 +9235,7 @@
   // boxes was never part of the session data to begin with, so it just
   // vanishes unless callers here surface it first.
   function activeSessionUnsavedDraftExercise(){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     if (!session) return null;
     for (var i = 0; i < session.exercises.length; i++){
       var ex = session.exercises[i];
@@ -9245,48 +9248,167 @@
     return null;
   }
 
-  function openEditSessionConfirm(sessionId){
-    var session = state.sessions.find(function(s){ return s.id === sessionId; });
-    var name = session && session.name ? session.name : 'this session';
-    var message = 'This reopens it in the Log tab so you can add, change, or remove sets. If you have another session in progress, it\u2019ll be saved to History first.';
-    var draftEx = activeSessionUnsavedDraftExercise();
-    if (draftEx){
-      message += ' You also have an unsaved set for ' + (draftEx.name || 'an exercise') + ' that hasn\u2019t been logged yet \u2014 editing this session will discard it.';
+  // Edit (History > \u22ee > Edit) opens a draft overlay directly — no
+  // confirm step needed, since opening it touches nothing until Save is
+  // tapped. An unsaved-draft warning happens on the Cancel side instead,
+  // via requestCloseHistoryEditOverlay's dirty-check below.
+  function openHistoryEditOverlay(sessionId){
+    var target = state.sessions.find(function(s){ return s.id === sessionId; });
+    if (!target) return;
+    ui.editDraft = {
+      sessionId: target.id,
+      name: target.name,
+      exercises: JSON.parse(JSON.stringify(target.exercises))
+    };
+    ui.historyEditOpenRow = null;
+    ui.historyEditRowDraft = { weight: null, reps: null };
+    renderHistoryEditOverlay();
+  }
+
+  // True only if the draft actually differs from what's really saved right
+  // now — lets Cancel close silently when nothing changed, and only ask
+  // when there's something real to lose.
+  function historyEditIsDirty(){
+    if (!ui.editDraft) return false;
+    var real = state.sessions.find(function(s){ return s.id === ui.editDraft.sessionId; });
+    if (!real) return true; // target vanished — nothing safe to compare against
+    return JSON.stringify({ name: real.name, exercises: real.exercises }) !==
+           JSON.stringify({ name: ui.editDraft.name, exercises: ui.editDraft.exercises });
+  }
+
+  function requestCloseHistoryEditOverlay(){
+    if (!ui.editDraft) return;
+    if (!historyEditIsDirty()){
+      closeHistoryEditOverlay();
+      return;
     }
     ui.confirmModal = {
-      kind: 'edit-session',
-      title: 'Edit ' + name + '?',
-      message: message,
-      confirmLabel: 'Edit',
-      variant: 'primary',
-      sessionId: sessionId
+      kind: 'discard-history-edit',
+      title: 'Discard changes?',
+      message: 'You\u2019ve made changes that haven\u2019t been saved. Closing now discards them \u2014 the session in History stays exactly as it was.',
+      confirmLabel: 'Discard',
+      variant: 'danger'
     };
     renderApp();
   }
 
-  function reopenSessionForEdit(sessionId){
-    var target = state.sessions.find(function(s){ return s.id === sessionId; });
-    if (!target) return;
+  function closeHistoryEditOverlay(){
+    ui.editDraft = null;
+    ui.historyEditOpenRow = null;
+    ui.historyEditRowDraft = { weight: null, reps: null };
+    renderApp();
+  }
 
-    // No archiving needed anymore — editing lives in its own slot
-    // (ui.editingSessionId) instead of the status:'active' slot today's
-    // real session uses, so there's nothing here to interrupt. Whatever
-    // workout is genuinely in progress right now is left completely alone.
-    ui.editingSessionId = sessionId;
-    logActivity('Reopened session "' + (target.name || 'Untitled session') + '" for editing', 'History');
-    ui.expandedHistory[sessionId] = false;
-    // Snapshot exactly what was saved before any edits happen. If Reset
-    // gets pressed during this edit, it restores this instead of wiping
-    // the session blank — the only way to actually destroy a real History
-    // record stays Delete from the History menu.
-    ui.editSessionSnapshot = {
-      id: target.id,
-      exercises: JSON.parse(JSON.stringify(target.exercises)),
-      name: target.name
-    };
-    state.tab = 'log';
-    showToast('Editing ' + (target.name || 'session'));
-    flashExercisesAdded(target.exercises.map(function(ex){ return ex.id; }));
+  // Merges the draft back into the real session — the only point in this
+  // whole flow where real, saved data actually changes.
+  function commitHistoryEditSave(){
+    if (!ui.editDraft) return;
+    var real = state.sessions.find(function(s){ return s.id === ui.editDraft.sessionId; });
+    if (!real){
+      showToast('That session no longer exists');
+      closeHistoryEditOverlay();
+      return;
+    }
+    var affectedNames = {};
+    real.exercises.forEach(function(ex){ affectedNames[ex.name] = true; });
+    ui.editDraft.exercises.forEach(function(ex){ affectedNames[ex.name] = true; });
+
+    real.name = ui.editDraft.name;
+    real.exercises = ui.editDraft.exercises;
+    Object.keys(affectedNames).forEach(function(name){ recomputeExercisePRs(name); });
+    saveSessions();
+    logActivity('Edited session "' + (real.name || 'Untitled session') + '"', 'History');
+    ui.editDraft = null;
+    ui.historyEditOpenRow = null;
+    ui.historyEditRowDraft = { weight: null, reps: null };
+    showToast('Session updated');
+    flashSessionFinished(real.id);
+  }
+
+  function draftDeleteExercise(exId){
+    if (!ui.editDraft) return;
+    ui.editDraft.exercises = ui.editDraft.exercises.filter(function(e){ return e.id !== exId; });
+    if (ui.historyEditOpenRow && ui.historyEditOpenRow.exId === exId) ui.historyEditOpenRow = null;
+    renderHistoryEditOverlay();
+  }
+
+  function draftDeleteSet(exId, setId){
+    if (!ui.editDraft) return;
+    var ex = ui.editDraft.exercises.find(function(e){ return e.id === exId; });
+    if (!ex) return;
+    ex.sets = ex.sets.filter(function(s){ return s.id !== setId; });
+    if (ui.historyEditOpenRow && ui.historyEditOpenRow.exId === exId && ui.historyEditOpenRow.setId === setId){
+      ui.historyEditOpenRow = null;
+    }
+    renderHistoryEditOverlay();
+  }
+
+  function draftOpenAddSet(exId){
+    ui.historyEditOpenRow = { type: 'add', exId: exId };
+    ui.historyEditRowDraft = { weight: null, reps: null };
+    renderHistoryEditOverlay();
+    setTimeout(function(){
+      var inp = document.querySelector('#historyEditPanel .he-set-weight-input');
+      if (inp) inp.focus();
+    }, 30);
+  }
+
+  function draftOpenEditSet(exId, setId){
+    if (!ui.editDraft) return;
+    var ex = ui.editDraft.exercises.find(function(e){ return e.id === exId; });
+    var st = ex && ex.sets.find(function(s){ return s.id === setId; });
+    if (!st) return;
+    ui.historyEditOpenRow = { type: 'edit', exId: exId, setId: setId };
+    ui.historyEditRowDraft = { weight: fmtWeight(st.weightKg), reps: String(st.reps) };
+    renderHistoryEditOverlay();
+    setTimeout(function(){
+      var inp = document.querySelector('#historyEditPanel .he-set-weight-input');
+      if (inp) inp.focus();
+    }, 30);
+  }
+
+  function draftCloseRow(){
+    ui.historyEditOpenRow = null;
+    ui.historyEditRowDraft = { weight: null, reps: null };
+    renderHistoryEditOverlay();
+  }
+
+  function draftRowReady(exerciseName){
+    var draft = ui.historyEditRowDraft;
+    var weightKg = draft.weight != null && String(draft.weight).trim() !== '' ? toStoredKg(draft.weight) : null;
+    var reps = draft.reps != null ? parseInt(draft.reps, 10) : NaN;
+    var isBW = isBodyweightExercise(exerciseName);
+    return weightKg !== null && (isBW ? weightKg >= 0 : weightKg > 0) && !isNaN(reps) && reps > 0;
+  }
+
+  function draftConfirmAddSet(exId){
+    if (!ui.editDraft) return;
+    var ex = ui.editDraft.exercises.find(function(e){ return e.id === exId; });
+    if (!ex || !draftRowReady(ex.name)) return;
+    var weightKg = toStoredKg(ui.historyEditRowDraft.weight);
+    var reps = parseInt(ui.historyEditRowDraft.reps, 10);
+    ex.sets.push({
+      id: uid(),
+      weightKg: roundNice(weightKg),
+      reps: reps,
+      isPR: false, // recalculated for real across all history when Save commits this draft
+      timestamp: new Date().toISOString()
+    });
+    ui.historyEditOpenRow = null;
+    ui.historyEditRowDraft = { weight: null, reps: null };
+    renderHistoryEditOverlay();
+  }
+
+  function draftConfirmEditSet(exId, setId){
+    if (!ui.editDraft) return;
+    var ex = ui.editDraft.exercises.find(function(e){ return e.id === exId; });
+    var st = ex && ex.sets.find(function(s){ return s.id === setId; });
+    if (!st || !draftRowReady(ex.name)) return;
+    st.weightKg = roundNice(toStoredKg(ui.historyEditRowDraft.weight));
+    st.reps = parseInt(ui.historyEditRowDraft.reps, 10);
+    ui.historyEditOpenRow = null;
+    ui.historyEditRowDraft = { weight: null, reps: null };
+    renderHistoryEditOverlay();
   }
 
   function openRepeatSessionConfirm(sessionId){
@@ -9339,7 +9461,7 @@
       return;
     }
     overlay.classList.remove('hidden');
-    var workingSessionForRef = getWorkingSession();
+    var workingSessionForRef = getActiveSession();
     var sets = getReferenceSets(workingSessionForRef, ui.referenceExerciseName) || [];
     var rowsHtml = sets.map(function(st, i){
       return '<div class="ref-set-row">' +
@@ -9385,22 +9507,13 @@
     state.sessions.unshift(newSession);
     saveSessions();
     logActivity('Started new session repeating "' + (source.name || 'Untitled session') + '"', 'History');
-    ui.editingSessionId = null;
-    ui.editSessionSnapshot = null;
     state.tab = 'log';
     showToast('Repeating ' + (source.name || 'session'));
     flashExercisesAdded(newSession.exercises.map(function(ex){ return ex.id; }));
   }
 
   function openFinishSessionConfirm(){
-    var isReeditingPast = !!ui.editingSessionId;
-    ui.confirmModal = isReeditingPast ? {
-      kind: 'finish-session',
-      title: 'Apply these changes?',
-      message: 'This saves your edits back to this session in History.',
-      confirmLabel: 'Apply',
-      variant: 'primary'
-    } : {
+    ui.confirmModal = {
       kind: 'finish-session',
       title: 'Finish this session?',
       message: 'You won\u2019t be able to add more exercises or sets to it afterward — make sure you\u2019re actually done.',
@@ -9447,22 +9560,16 @@
   // session itself stays (same date, same name if any), History and
   // every other session are untouched.
   function resetLog(){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     if (!session) return;
-    var revertingEdit = ui.editingSessionId === session.id && !!ui.editSessionSnapshot;
-    if (revertingEdit){
-      session.exercises = JSON.parse(JSON.stringify(ui.editSessionSnapshot.exercises));
-      session.name = ui.editSessionSnapshot.name;
-    } else {
-      session.exercises = [];
-    }
+    session.exercises = [];
     ui.editingSet = null;
     ui.editingExerciseName = null;
     ui.expandedAddSet = {};
     ui.draftSets = {};
     saveSessions();
-    logActivity(revertingEdit ? 'Reverted unsaved changes to "' + (session.name || 'Untitled session') + '"' : 'Reset today\u2019s log', 'Log');
-    showToast(revertingEdit ? 'Changes reverted' : 'Log reset');
+    logActivity('Reset today\u2019s log', 'Log');
+    showToast('Log reset');
     renderApp();
   }
 
@@ -9530,6 +9637,87 @@
       var inp = document.getElementById('routineNameInput');
       if (inp) inp.focus();
     }, 30);
+  }
+
+  function renderHistoryEditOverlay(){
+    var overlay = document.getElementById('historyEditOverlay');
+    var panel = document.getElementById('historyEditPanel');
+    if (!ui.editDraft){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var draft = ui.editDraft;
+    var openRow = ui.historyEditOpenRow;
+
+    var html = '<div class="he-header">' +
+        '<button class="he-cancel-btn" data-action="request-close-history-edit">Cancel</button>' +
+        '<div class="he-title">Edit Session</div>' +
+        '<button class="he-save-btn" data-action="save-history-edit">Save</button>' +
+      '</div>';
+    html += '<div class="he-body">';
+    html += '<input type="text" id="heNameInput" class="he-name-input" maxlength="60" placeholder="Untitled session" value="'+esc(draft.name)+'">';
+
+    if (draft.exercises.length === 0){
+      html += '<div class="empty" style="padding:24px 0;"><p>No exercises left in this session.<br>Save to keep it empty, or Cancel to keep the original.</p></div>';
+    } else {
+      draft.exercises.forEach(function(ex){
+        html += '<div class="he-exercise-card">' +
+            '<div class="he-exercise-head">' +
+              '<div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
+                (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
+              '</div>' +
+              '<button class="icon-btn" data-action="draft-delete-exercise" data-ex="'+ex.id+'" aria-label="Delete '+esc(ex.name)+'">&#128465;</button>' +
+            '</div>';
+
+        ex.sets.forEach(function(st, i){
+          var isEditingRow = openRow && openRow.type === 'edit' && openRow.exId === ex.id && openRow.setId === st.id;
+          if (isEditingRow){
+            var rReady = draftRowReady(ex.name);
+            html += '<div class="add-set-row">' +
+                '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="he-set-weight-input" value="'+(ui.historyEditRowDraft.weight != null ? esc(ui.historyEditRowDraft.weight) : '')+'">' +
+                '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="he-set-reps-input" value="'+(ui.historyEditRowDraft.reps != null ? esc(ui.historyEditRowDraft.reps) : '')+'">' +
+                '<div class="add-set-btn-group">' +
+                  '<button class="add-set-btn" data-action="draft-confirm-edit-set" data-ex="'+ex.id+'" data-set="'+st.id+'"'+(rReady?'':' disabled')+'>&#10003;</button>' +
+                  '<button class="cancel-edit-btn" data-action="draft-cancel-row" aria-label="Cancel">&#10005;</button>' +
+                '</div>' +
+              '</div>';
+          } else {
+            html += '<div class="set-row">' +
+                '<span class="set-idx">'+(i+1)+'</span>' +
+                '<span class="set-detail" data-action="draft-open-edit-set" data-ex="'+ex.id+'" data-set="'+st.id+'">' +
+                  '<span class="set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
+                  (st.isPR ? '<span class="pr-tag">PR</span>' : '') +
+                '</span>' +
+                '<span class="set-actions">' +
+                  '<button class="set-act-btn" data-action="draft-delete-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Delete set">&#128465;</button>' +
+                '</span>' +
+              '</div>';
+          }
+        });
+
+        var isAddingRow = openRow && openRow.type === 'add' && openRow.exId === ex.id;
+        if (isAddingRow){
+          var addReady = draftRowReady(ex.name);
+          html += '<div class="add-set-row">' +
+              '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="he-set-weight-input" value="'+(ui.historyEditRowDraft.weight != null ? esc(ui.historyEditRowDraft.weight) : '')+'">' +
+              '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="he-set-reps-input" value="'+(ui.historyEditRowDraft.reps != null ? esc(ui.historyEditRowDraft.reps) : '')+'">' +
+              '<div class="add-set-btn-group">' +
+                '<button class="add-set-btn" data-action="draft-confirm-add-set" data-ex="'+ex.id+'"'+(addReady?'':' disabled')+'>&#10003;</button>' +
+                '<button class="cancel-edit-btn" data-action="draft-cancel-row" aria-label="Cancel">&#10005;</button>' +
+              '</div>' +
+            '</div>';
+        } else {
+          html += '<button class="add-set-toggle-btn" data-action="draft-open-add-set" data-ex="'+ex.id+'">' +
+              '<span class="plus-glyph">&#43;</span> Add Set '+(ex.sets.length+1) +
+            '</button>';
+        }
+        html += '</div>'; // close he-exercise-card
+      });
+    }
+    html += '</div>'; // close he-body
+    panel.innerHTML = html;
   }
 
   /* =========================================================
@@ -9762,7 +9950,7 @@
   }
 
   function openSaveRoutine(){
-    var session = getWorkingSession();
+    var session = getActiveSession();
     if (!session.exercises.length){
       showToast('Add at least one exercise first');
       return;
@@ -9783,7 +9971,7 @@
       showToast('Give the routine a name');
       return;
     }
-    var session = getWorkingSession();
+    var session = getActiveSession();
     var routine = {
       id: uid(),
       name: name,
@@ -9835,8 +10023,6 @@
     };
     state.sessions.unshift(newSession);
     saveSessions();
-    ui.editingSessionId = null;
-    ui.editSessionSnapshot = null;
     state.tab = 'log';
     showToast('Started ' + routine.name);
     flashExercisesAdded(newSession.exercises.map(function(ex){ return ex.id; }));
@@ -10107,7 +10293,7 @@
     } else if (action === 'delete-session'){
       openDeleteSessionConfirm(el.dataset.session);
     } else if (action === 'edit-session'){
-      openEditSessionConfirm(el.dataset.session);
+      openHistoryEditOverlay(el.dataset.session);
     } else if (action === 'repeat-session'){
       openRepeatSessionConfirm(el.dataset.session);
     } else if (action === 'open-print-menu'){
@@ -10179,15 +10365,7 @@
     } else if (action === 'clear-data'){
       openClearDataConfirm();
     } else if (action === 'reset-log'){
-      var sessionForReset = getWorkingSession();
-      var isRevertingEdit = ui.editingSessionId === sessionForReset.id && !!ui.editSessionSnapshot;
-      ui.confirmModal = isRevertingEdit ? {
-        kind: 'reset-log',
-        title: 'Revert changes?',
-        message: 'This undoes the changes you\u2019ve made since reopening this session \u2014 it goes back to exactly what was saved in History. The saved session itself isn\u2019t deleted; use Delete from the History menu for that.',
-        confirmLabel: 'Revert',
-        variant: 'danger'
-      } : {
+      ui.confirmModal = {
         kind: 'reset-log',
         title: 'Reset log?',
         message: 'This clears every exercise and set from today\u2019s session \u2014 the session itself stays, just empty. Your History and other sessions aren\u2019t touched.',
@@ -10224,7 +10402,7 @@
   document.getElementById('app').addEventListener('input', function(e){
     var t = e.target;
     if (t.dataset && t.dataset.role === 'session-name'){
-      var session = getWorkingSession();
+      var session = getActiveSession();
       session.name = t.value;
       saveSessions();
     }
@@ -10300,7 +10478,7 @@
   // access to the rest timer/notifications mid-type. Uses its own class
   // (not .hidden) so it doesn't fight with the render-driven show/hide
   // logic tied to session state.
-  var KB_HIDE_TARGETS = ['sessionFinishBar', 'editingPastBanner'];
+  var KB_HIDE_TARGETS = ['sessionFinishBar'];
   var KB_HIDE_TARGET_SELECTORS = ['.tabbar'];
   function setKbHide(on){
     KB_HIDE_TARGETS.forEach(function(id){
@@ -10450,7 +10628,6 @@
       if (m && m.kind === 'exercise') deleteExercise(m.exId);
       else if (m && m.kind === 'set') deleteSet(m.exId, m.setId);
       else if (m && m.kind === 'session') deleteSession(m.sessionId);
-      else if (m && m.kind === 'edit-session') reopenSessionForEdit(m.sessionId);
       else if (m && m.kind === 'repeat-session') repeatSession(m.sessionId);
       else if (m && m.kind === 'finish-session') finishSession();
       else if (m && m.kind === 'add-blank-exercise') addBlankExercise(m.muscle);
@@ -10466,10 +10643,11 @@
       else if (m && m.kind === 'clear-brief') clearBrief();
       else if (m && m.kind === 'brief-entry') deleteBriefEntry(m.entryId);
       else if (m && m.kind === 'reset-log') resetLog();
+      else if (m && m.kind === 'discard-history-edit') closeHistoryEditOverlay();
       else if (m && m.kind === 'logout') logOut();
       else if (m && m.kind === 'delete-account') openDeleteAccountPasswordConfirm();
       else if (m && m.kind === 'add-set-global'){
-        var session = getWorkingSession();
+        var session = getActiveSession();
         var ex = findExercise(session, m.exId);
         ui.expandedAddSet[m.exId] = false;
         if (ex) commitSet(ex, m.weightKg, m.reps);
@@ -10752,6 +10930,54 @@
     if (e.key === 'Escape'){
       e.preventDefault();
       closeReferenceOverlay();
+    }
+  });
+
+  var historyEditOverlayEl = document.getElementById('historyEditOverlay');
+  historyEditOverlayEl.addEventListener('click', function(e){
+    if (e.target === historyEditOverlayEl){
+      requestCloseHistoryEditOverlay();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var action = el.dataset.action;
+    if (action === 'request-close-history-edit'){
+      requestCloseHistoryEditOverlay();
+    } else if (action === 'save-history-edit'){
+      commitHistoryEditSave();
+    } else if (action === 'draft-delete-exercise'){
+      draftDeleteExercise(el.dataset.ex);
+    } else if (action === 'draft-open-add-set'){
+      draftOpenAddSet(el.dataset.ex);
+    } else if (action === 'draft-open-edit-set'){
+      draftOpenEditSet(el.dataset.ex, el.dataset.set);
+    } else if (action === 'draft-cancel-row'){
+      draftCloseRow();
+    } else if (action === 'draft-confirm-add-set'){
+      draftConfirmAddSet(el.dataset.ex);
+    } else if (action === 'draft-confirm-edit-set'){
+      draftConfirmEditSet(el.dataset.ex, el.dataset.set);
+    } else if (action === 'draft-delete-set'){
+      draftDeleteSet(el.dataset.ex, el.dataset.set);
+    }
+  });
+  historyEditOverlayEl.addEventListener('input', function(e){
+    var t = e.target;
+    if (t.id === 'heNameInput'){
+      if (ui.editDraft) ui.editDraft.name = t.value;
+    } else if (t.classList.contains('he-set-weight-input')){
+      ui.historyEditRowDraft.weight = t.value;
+      refreshHistoryEditRowBtn();
+    } else if (t.classList.contains('he-set-reps-input')){
+      ui.historyEditRowDraft.reps = t.value;
+      refreshHistoryEditRowBtn();
+    }
+  });
+  historyEditOverlayEl.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){
+      e.preventDefault();
+      requestCloseHistoryEditOverlay();
     }
   });
 
