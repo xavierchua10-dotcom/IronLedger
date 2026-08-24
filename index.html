@@ -2384,8 +2384,51 @@
   }
   .he-name-input:focus{outline:none;border-color:var(--accent);}
   .he-exercise-card{
-    background:var(--panel-3);border:1px solid var(--line);
+    background-color:var(--panel-3);
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/exercise-card-bg.jpg');
+    background-size:cover;background-position:center;background-repeat:no-repeat;
+    border:1px solid var(--line);
     border-radius:var(--radius-md);padding:12px;margin-bottom:12px;
+  }
+  /* Same targeted brightness bumps as .exercise-card, for the same reason
+     — text sitting directly on a busy photo background needs a lift the
+     flat panel color didn't. Reuses the exact classes .he-exercise-card
+     shares with Log's card (.set-idx, .set-detail .x, .set-act-btn,
+     .eh-title h3) rather than duplicating values that could drift. */
+  .he-exercise-card .set-idx,
+  .he-exercise-card .set-detail .x,
+  .he-exercise-card .set-act-btn{
+    color:#c7ccd3;
+  }
+  .he-exercise-card .set-detail .set-time{color:#dfe2e6;}
+  .he-exercise-card .eh-title h3{color:#e4e6ea;}
+  .he-exercise-card .set-act-btn{
+    border:1px solid var(--line);
+    background:rgba(10,12,16,0.4);
+  }
+  /* Follows Settings > Card Style the same way Log's cards do — same
+     data-card-bg attribute JS already sets on <body>, just also applied
+     here so History Edit matches whatever photo (or none) the user chose. */
+  body[data-card-bg="chest"] .he-exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/chest-bg.jpg');
+  }
+  body[data-card-bg="back"] .he-exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/back-bg.jpg');
+  }
+  body[data-card-bg="shoulder"] .he-exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/shoulder-bg.jpg');
+  }
+  body[data-card-bg="arms"] .he-exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/arms-bg.jpg');
+  }
+  body[data-card-bg="legs"] .he-exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/legs-bg.jpg');
+  }
+  body[data-card-bg="abs"] .he-exercise-card{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.62), rgba(8,9,12,0.93)), url('images/abs-bg.jpg');
+  }
+  body[data-card-bg="none"] .he-exercise-card{
+    background-image:none;
   }
   .he-exercise-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;}
   .he-exercise-head h3{font-size:14px;font-weight:700;color:var(--text);margin:0 0 4px;}
@@ -9242,6 +9285,21 @@
     flashSessionFinished(real.id);
   }
 
+  function draftOpenDeleteExerciseConfirm(exId){
+    if (!ui.editDraft) return;
+    var ex = ui.editDraft.exercises.find(function(e){ return e.id === exId; });
+    if (!ex) return;
+    ui.confirmModal = {
+      kind: 'draft-delete-exercise-confirm',
+      title: 'Delete this exercise?',
+      message: 'Removes \u201c' + ex.name + '\u201d (and its sets) from this draft. Nothing is saved until you tap Save on the whole session.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      exId: exId
+    };
+    renderApp();
+  }
+
   function draftDeleteExercise(exId){
     if (!ui.editDraft) return;
     ui.editDraft.exercises = ui.editDraft.exercises.filter(function(e){ return e.id !== exId; });
@@ -9298,6 +9356,21 @@
     return weightKg !== null && (isBW ? weightKg >= 0 : weightKg > 0) && !isNaN(reps) && reps > 0;
   }
 
+  function draftOpenAddSetConfirm(exId){
+    if (!ui.editDraft) return;
+    var ex = ui.editDraft.exercises.find(function(e){ return e.id === exId; });
+    if (!ex || !draftRowReady(ex.name)) return;
+    ui.confirmModal = {
+      kind: 'draft-add-set-confirm',
+      title: 'Add this set?',
+      message: 'Adds ' + ui.historyEditRowDraft.weight + ' ' + unitLabel() + ' \u00d7 ' + ui.historyEditRowDraft.reps + ' to ' + ex.name + ' in this draft. Nothing is saved until you tap Save on the whole session.',
+      confirmLabel: 'Add Set',
+      variant: 'primary',
+      exId: exId
+    };
+    renderApp();
+  }
+
   function draftConfirmAddSet(exId){
     if (!ui.editDraft) return;
     var ex = ui.editDraft.exercises.find(function(e){ return e.id === exId; });
@@ -9321,6 +9394,23 @@
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
     renderHistoryEditOverlay();
+  }
+
+  function draftOpenEditSetConfirm(exId, setId){
+    if (!ui.editDraft) return;
+    var ex = ui.editDraft.exercises.find(function(e){ return e.id === exId; });
+    var st = ex && ex.sets.find(function(s){ return s.id === setId; });
+    if (!st || !draftRowReady(ex.name)) return;
+    ui.confirmModal = {
+      kind: 'draft-edit-set-confirm',
+      title: 'Update this set?',
+      message: 'Changes it to ' + ui.historyEditRowDraft.weight + ' ' + unitLabel() + ' \u00d7 ' + ui.historyEditRowDraft.reps + ' in this draft. Nothing is saved until you tap Save on the whole session.',
+      confirmLabel: 'Update',
+      variant: 'primary',
+      exId: exId,
+      setId: setId
+    };
+    renderApp();
   }
 
   function draftConfirmEditSet(exId, setId){
@@ -9378,6 +9468,21 @@
     });
     if (!q && matches.length === 0) html = '<div class="empty" style="padding:24px 0;">No exercises in the library yet.</div>';
     return html;
+  }
+
+  function draftOpenAddExerciseConfirm(name, muscle){
+    name = String(name || '').trim();
+    if (!name || !ui.editDraft) return;
+    ui.confirmModal = {
+      kind: 'draft-add-exercise-confirm',
+      title: 'Add this exercise?',
+      message: 'Adds \u201c' + name + '\u201d to this draft. Nothing is saved until you tap Save on the whole session.',
+      confirmLabel: 'Add',
+      variant: 'primary',
+      exName: name,
+      exMuscle: muscle || null
+    };
+    renderApp();
   }
 
   function draftPickExercise(name, muscle){
@@ -10641,6 +10746,10 @@
       else if (m && m.kind === 'brief-entry') deleteBriefEntry(m.entryId);
       else if (m && m.kind === 'reset-log') resetLog();
       else if (m && m.kind === 'discard-history-edit') closeHistoryEditOverlay();
+      else if (m && m.kind === 'draft-delete-exercise-confirm') draftDeleteExercise(m.exId);
+      else if (m && m.kind === 'draft-add-set-confirm') draftConfirmAddSet(m.exId);
+      else if (m && m.kind === 'draft-edit-set-confirm') draftConfirmEditSet(m.exId, m.setId);
+      else if (m && m.kind === 'draft-add-exercise-confirm') draftPickExercise(m.exName, m.exMuscle);
       else if (m && m.kind === 'logout') logOut();
       else if (m && m.kind === 'delete-account') openDeleteAccountPasswordConfirm();
       else if (m && m.kind === 'add-set-global'){
@@ -10942,7 +11051,7 @@
     } else if (action === 'save-history-edit'){
       commitHistoryEditSave();
     } else if (action === 'draft-delete-exercise'){
-      draftDeleteExercise(el.dataset.ex);
+      draftOpenDeleteExerciseConfirm(el.dataset.ex);
     } else if (action === 'draft-open-add-set'){
       draftOpenAddSet(el.dataset.ex);
     } else if (action === 'draft-open-edit-set'){
@@ -10950,9 +11059,9 @@
     } else if (action === 'draft-cancel-row'){
       draftCloseRow();
     } else if (action === 'draft-confirm-add-set'){
-      draftConfirmAddSet(el.dataset.ex);
+      draftOpenAddSetConfirm(el.dataset.ex);
     } else if (action === 'draft-confirm-edit-set'){
-      draftConfirmEditSet(el.dataset.ex, el.dataset.set);
+      draftOpenEditSetConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'draft-delete-set'){
       draftDeleteSet(el.dataset.ex, el.dataset.set);
     } else if (action === 'draft-open-add-exercise'){
@@ -10960,7 +11069,7 @@
     } else if (action === 'draft-close-add-exercise'){
       draftCloseAddExercise();
     } else if (action === 'draft-pick-exercise'){
-      draftPickExercise(el.dataset.name, el.dataset.muscle);
+      draftOpenAddExerciseConfirm(el.dataset.name, el.dataset.muscle);
     }
   });
   historyEditOverlayEl.addEventListener('input', function(e){
