@@ -5949,7 +5949,7 @@
           '<span class="pmo-text"><span class="pmo-title">Print PDF</span><span class="pmo-sub">Classic receipt layout</span></span>' +
         '</button>' +
         '<button class="print-menu-option pro" data-action="print-pdf-pro-choice" data-session="'+s.id+'">' +
-          '<span class="pmo-icon">&#9733;</span>' +
+          '<span class="pmo-icon"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="display:block;margin:0 auto;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg></span>' +
           '<span class="pmo-text"><span class="pmo-title">Print PDF Pro</span><span class="pmo-sub">Modern layout with progress tips</span></span>' +
         '</button>' +
       '</div>';
@@ -6941,7 +6941,7 @@
           '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
         '</div>' +
         '<div class="paywall-body">' +
-          '<div class="paywall-icon">&#9733;</div>' +
+          '<div class="paywall-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg></div>' +
           '<div class="paywall-title">Sign up to go Pro</div>' +
           '<div class="paywall-sub">Guest data doesn\u2019t sync or hold a subscription. Create a free account (or log in) to unlock Pro tiers.</div>' +
           '<button class="paywall-unlock-btn" data-action="guest-signup-prompt">Sign Up / Log In</button>' +
@@ -6955,7 +6955,7 @@
           '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
         '</div>' +
         '<div class="paywall-body">' +
-          '<div class="paywall-icon">&#9733;</div>' +
+          '<div class="paywall-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg></div>' +
           '<div class="paywall-title">You\u2019re on the house</div>' +
           '<div class="paywall-sub">Developer account \u2014 permanent Pro access, no payment needed.</div>' +
         '</div>';
@@ -6968,7 +6968,7 @@
           '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
         '</div>' +
         '<div class="paywall-body">' +
-          '<div class="paywall-icon">&#9733;</div>' +
+          '<div class="paywall-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg></div>' +
           '<div class="paywall-title">You\u2019re Pro</div>' +
           '<div class="paywall-sub">'+esc(proExpiryLabel())+'</div>' +
           (isPaidPlanActive()
@@ -7001,7 +7001,7 @@
                   '</div>' +
                 '</div>'
               : '<div class="trial-offer-card">' +
-                  '<div class="trial-offer-title">&#9733; Try Pro free for 14 days</div>' +
+                  '<div class="trial-offer-title"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="vertical-align:-2px;margin-right:2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg> Try Pro free for 14 days</div>' +
                   '<div class="trial-offer-sub">No card needed. Cancel anytime \u2014 or just let it lapse back to Basic.</div>' +
                   '<button class="trial-offer-btn" data-action="request-start-trial">Start Free Trial</button>' +
                 '</div>') +
@@ -7552,7 +7552,7 @@
           '<div class="progress-lock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>' +
           '<div class="progress-lock-title">Progress is a Pro feature</div>' +
           '<div class="progress-lock-sub">Track your estimated 1-rep max, PRs, and trend lines for every exercise — available on Pro or during your free trial.</div>' +
-          '<button class="progress-lock-cta" data-action="open-pricing"><span>&#9733;</span> ' + (state.currentAccount === 'guest' ? 'Create an account to go Pro' : 'See Pro plans') + '</button>' +
+          '<button class="progress-lock-cta" data-action="open-pricing"><span><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="vertical-align:-2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg></span> ' + (state.currentAccount === 'guest' ? 'Create an account to go Pro' : 'See Pro plans') + '</button>' +
         '</div>';
       html = '<div class="progress-tab-wrap"><div class="progress-blur">' + html + '</div>' + lockHtml + '</div>';
     }
@@ -7667,10 +7667,10 @@
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
                 '<div class="sr-sub">Create a free account, then start a 14-day Pro trial anytime</div></div></div>';
     } else if (isDevOverride()){
-      html += '<div class="settings-row"><div><div class="sr-label">&#9733; Pro <span class="dev-badge">DEV</span></div>' +
+      html += '<div class="settings-row"><div><div class="sr-label"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="vertical-align:-2px;margin-right:2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg> Pro <span class="dev-badge">DEV</span></div>' +
                 '<div class="sr-sub">Developer account — permanent Pro access</div></div></div>';
     } else if (isProActive()){
-      html += '<div class="settings-row"><div><div class="sr-label">&#9733; Pro</div>' +
+      html += '<div class="settings-row"><div><div class="sr-label"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="vertical-align:-2px;margin-right:2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg> Pro</div>' +
                 '<div class="sr-sub">'+esc(proExpiryLabel())+'</div></div>' +
                 '<button class="sr-action" data-action="open-pricing">Manage</button></div>';
     } else if (trialAvailable()){
