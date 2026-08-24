@@ -6120,8 +6120,8 @@
       return { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false };
     });
     saveSessions();
-    renderApp();
     showToast('Started ' + tpl.label);
+    flashExercisesAdded(session.exercises.map(function(ex){ return ex.id; }));
   }
 
   /* =========================================================
