@@ -704,7 +704,7 @@
     color:var(--text);
   }
   .exercise-card.collapsed{padding:0;}
-  .exercise-card.just-added{
+  .exercise-card.just-added, .he-exercise-card.just-added{
     animation:exerciseAddedGlow 900ms ease-out;
   }
   @keyframes exerciseAddedGlow{
@@ -9388,7 +9388,14 @@
     ui.editDraft.exercises.push(newEx);
     ui.historyEditAddingExercise = false;
     ui.historyEditExerciseQuery = '';
+    // Same one-shot glow pattern as Log's flashExerciseAdded: bake the
+    // class into this one render, then clear immediately so it never
+    // replays on a later unrelated re-render of the overlay.
+    ui.justAddedExIds = [newEx.id];
     renderHistoryEditOverlay();
+    ui.justAddedExIds = [];
+    var card = document.querySelector('#historyEditPanel .he-exercise-card.just-added');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function openRepeatSessionConfirm(sessionId){
@@ -9662,7 +9669,7 @@
       html += '<div class="empty" style="padding:24px 0;"><p>No exercises left in this session.<br>Save to keep it empty, or Cancel to keep the original.</p></div>';
     } else {
       draft.exercises.forEach(function(ex){
-        html += '<div class="he-exercise-card">' +
+        html += '<div class="he-exercise-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'">' +
             '<div class="he-exercise-head">' +
               '<div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
                 (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
