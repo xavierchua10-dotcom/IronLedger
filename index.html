@@ -2538,7 +2538,8 @@
 
   /* ---------- Pro paywall ---------- */
   .paywall-body{padding:6px 20px 22px;text-align:center;}
-  .paywall-icon{font-size:34px;margin-bottom:8px;}
+  .paywall-icon{color:var(--accent);margin-bottom:8px;display:flex;justify-content:center;}
+  .paywall-icon svg{width:34px;height:34px;}
   .paywall-title{font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;color:var(--text);margin-bottom:6px;}
   .paywall-sub{font-size:12.5px;color:var(--text-dim);line-height:1.5;margin-bottom:16px;}
   .paywall-features{text-align:left;list-style:none;padding:0;margin:0 0 18px;}
@@ -2726,7 +2727,8 @@
     align-items:center;justify-content:center;text-align:center;padding:28px 20px;
     background:rgba(20,22,26,0.62);border-radius:var(--radius);
   }
-  .progress-lock-icon{font-size:30px;margin-bottom:10px;}
+  .progress-lock-icon{color:var(--accent);margin-bottom:10px;display:flex;justify-content:center;}
+  .progress-lock-icon svg{width:30px;height:30px;}
   .progress-lock-title{font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;}
   .progress-lock-sub{font-size:12px;color:var(--text-dim);line-height:1.5;max-width:280px;margin-bottom:16px;}
   .progress-lock-cta{
@@ -2736,7 +2738,8 @@
   }
 
   /* ---------- Redacted timestamp (Basic tier) ---------- */
-  .ts-lock{color:var(--text-faint);font-size:10px;cursor:default;}
+  .ts-lock{color:var(--text-faint);cursor:default;display:inline-flex;vertical-align:middle;}
+  .ts-lock svg{width:11px;height:11px;}
 
   /* ---------- Google sign-in button ---------- */
   .auth-google-btn{
@@ -5682,7 +5685,7 @@
   // clock time, Basic sees a small lock glyph in its place.
   function tsOrLock(iso, label){
     if (!iso) return '';
-    return isProActive() ? fmtTime(iso) : '<span class="ts-lock" title="Upgrade to Pro to see '+(label || 'set times')+'">&#128274;</span>';
+    return isProActive() ? fmtTime(iso) : '<span class="ts-lock" title="Upgrade to Pro to see '+(label || 'set times')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>';
   }
 
   // Best e1rm for this exercise name across all sessions, excluding a
@@ -7056,7 +7059,7 @@
           '<button class="pro-panel-close" data-action="close-pro-receipt" aria-label="Close">&#10005;</button>' +
         '</div>' +
         '<div class="paywall-body">' +
-          '<div class="paywall-icon">&#128274;</div>' +
+          '<div class="paywall-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>' +
           '<div class="paywall-title">Unlock the Pro receipt</div>' +
           '<div class="paywall-sub">A modern, printable PDF for \u201c'+esc(s.name || 'this session')+'\u201d with a timestamp on every set and progressive-overload guidance for each exercise.</div>' +
           '<ul class="paywall-features">' +
@@ -7546,7 +7549,7 @@
     if (access.locked){
       var lockHtml =
         '<div class="progress-lock-overlay">' +
-          '<div class="progress-lock-icon">&#128274;</div>' +
+          '<div class="progress-lock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>' +
           '<div class="progress-lock-title">Progress is a Pro feature</div>' +
           '<div class="progress-lock-sub">Track your estimated 1-rep max, PRs, and trend lines for every exercise — available on Pro or during your free trial.</div>' +
           '<button class="progress-lock-cta" data-action="open-pricing"><span>&#9733;</span> ' + (state.currentAccount === 'guest' ? 'Create an account to go Pro' : 'See Pro plans') + '</button>' +
