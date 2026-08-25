@@ -5383,19 +5383,17 @@
   // Arms is intentionally excluded from this table — Arms only counts
   // exercises whose primary EXERCISE_LIBRARY category is Biceps, Triceps,
   // or Forearms directly, with zero secondary credit from bench/press/
-  // row/pull-up/dip/push-up work, bodyweight or otherwise.
+  // row/pull-up/dip/push-up work, bodyweight or otherwise. Upright Row
+  // (tagged 'Shoulder/Trap' in the library) is also strictly Shoulders
+  // only — no Back secondary credit, despite Traps folding into Back
+  // elsewhere.
   var SECONDARY_MUSCLE_BUCKETS = {
     'deadlift': ['Legs'],
     'sumo deadlift': ['Legs'],
     'barbell romanian deadlift': ['Back'],
     'dumbbell romanian deadlift': ['Back'],
     'stiff-leg deadlift': ['Back'],
-    'good morning': ['Back'],
-    // Tagged 'Shoulder/Trap' in the library (-> Shoulders primary below);
-    // Traps folds into Back in the 6-bucket dashboard, so these need Back
-    // added explicitly to actually hit both.
-    'barbell upright row': ['Back'],
-    'dumbbell upright row': ['Back']
+    'good morning': ['Back']
   };
 
   // name.toLowerCase() -> library item, each carrying a `muscles: []`
