@@ -2660,29 +2660,10 @@
   .pricing-panel .paywall-note{color:#c7ccd3;}
   .pricing-panel .paywall-sub{color:#d7dae0;}
   .pricing-body{padding:6px 20px 22px;overflow-y:auto;overflow-x:hidden;flex:1;-webkit-overflow-scrolling:touch;}
-  .billing-toggle{
-    display:flex;align-items:center;justify-content:center;
-    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-pill);
-    padding:4px;margin:14px 0 18px;position:relative;
-  }
-  .billing-toggle button{
-    flex:1;border:none;background:none;color:var(--text-dim);
-    font-family:'Oswald',sans-serif;font-weight:700;font-size:12.5px;
-    letter-spacing:0.03em;text-transform:uppercase;padding:10px 12px;
-    border-radius:var(--radius-pill);cursor:pointer;position:relative;z-index:1;
-    transition:color 0.2s ease;
-  }
-  .billing-toggle button.active{color:#1c1500;}
-  .billing-toggle::before{
-    content:'';position:absolute;top:4px;bottom:4px;left:4px;
-    width:calc(50% - 4px);background:var(--accent);border-radius:var(--radius-pill);
-    transition:transform 0.22s cubic-bezier(0.22,0.61,0.36,1);z-index:0;
-  }
-  .billing-toggle.annual::before{transform:translateX(100%);}
-  .bt-save{
-    position:absolute;top:-9px;right:6px;background:var(--accent-2);color:#fff;
-    font-size:9px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;
-    padding:2px 7px;border-radius:var(--radius-xl);pointer-events:none;z-index:2;
+  .price-card-divider{
+    text-align:center;color:var(--text-faint);font-size:12px;
+    font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.05em;
+    margin:10px 0;
   }
   .price-card{
     background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);
@@ -3970,7 +3951,6 @@
     showNotifications: false,  // Notification bell overlay open state
     openRowMenu: null,         // { type: 'exercise'|'set', exId, setId } for the shared "⋮" popover, or null when closed
     avatarPickDraft: null,  // staged icon selection, applied only on confirm
-    billingCycle: 'monthly', // 'monthly' | 'annual' — toggle state inside the pricing modal
     startingTrial: false,   // true while the "Start Free Trial" write is in flight
     confirmingTrial: false, // true while the inline "Start trial?" confirm step is shown
     openingPortal: false,    // true while a Stripe Customer Portal link is being requested
@@ -7023,7 +7003,6 @@
       return;
     }
 
-    var cycle = ui.billingCycle === 'annual' ? 'annual' : 'monthly';
     var showTrialOffer = trialAvailable();
     panel.innerHTML =
       '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Go Pro</h3>' +
@@ -7052,16 +7031,13 @@
                 '</div>') +
             '<div class="trial-offer-divider">or subscribe now</div>'
           : '') +
-        '<div class="billing-toggle '+cycle+'" role="tablist">' +
-          '<button class="'+(cycle==='monthly'?'active':'')+'" data-action="set-billing-cycle" data-cycle="monthly">Monthly</button>' +
-          '<button class="'+(cycle==='annual'?'active':'')+'" data-action="set-billing-cycle" data-cycle="annual">Annual<span class="bt-save">-42%</span></button>' +
-        '</div>' +
-        '<div class="price-card'+(cycle==='monthly'?' featured':'')+'" id="priceCardMonthly">' +
+        '<div class="price-card" id="priceCardMonthly">' +
           '<div class="price-card-amount">$'+PRICE_MONTHLY.toFixed(2)+'<span>/month</span></div>' +
           '<div class="price-card-sub">Cancel anytime</div>' +
           '<button class="price-cta-btn" data-action="start-checkout" data-plan="monthly">Start Monthly \u2014 $'+PRICE_MONTHLY.toFixed(2)+'/mo</button>' +
         '</div>' +
-        '<div class="price-card'+(cycle==='annual'?' featured':'')+'" id="priceCardAnnual">' +
+        '<div class="price-card-divider">or</div>' +
+        '<div class="price-card featured" id="priceCardAnnual">' +
           '<div class="price-savings-badge">Save ~42% \u00b7 5 months free</div>' +
           '<div class="price-card-amount">$'+PRICE_ANNUAL.toFixed(2)+'<span>/year</span></div>' +
           '<div class="price-card-sub">$'+(PRICE_ANNUAL/12).toFixed(2)+'/mo billed annually</div>' +
@@ -8055,7 +8031,6 @@
     ui.pendingMuscle = null;
     ui.showAccountMenu = false;
     ui.showPricing = false;
-    ui.billingCycle = 'monthly';
   }
 
   // Realtime listener on the current user's Firestore doc — keeps
@@ -10992,12 +10967,6 @@
       closePricing();
     } else if (el.dataset.action === 'guest-signup-prompt'){
       promptGuestSignUp();
-    } else if (el.dataset.action === 'set-billing-cycle'){
-      var c = el.dataset.cycle;
-      ui.billingCycle = (c === 'annual') ? c : 'monthly';
-      renderPricingPanel();
-      var targetCard = document.getElementById(c === 'annual' ? 'priceCardAnnual' : 'priceCardMonthly');
-      if (targetCard) targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (el.dataset.action === 'start-checkout'){
       var p = el.dataset.plan;
       startCheckout((p === 'annual') ? p : 'monthly');
