@@ -5497,6 +5497,7 @@
   // interacts with the picker, since a tip that's still in the way once
   // they've started using the thing it explains is just clutter.
   var mmHelpTimer = null;
+  var bwHelpTimer = null;
   function showToast(msg){
     var t = document.getElementById('toast');
     t.textContent = msg;
@@ -8989,6 +8990,7 @@
   function openAddSetPanel(exId){
     ui.expandedAddSet[exId] = true;
     ui.showBwHelp = false;
+    if (bwHelpTimer){ clearTimeout(bwHelpTimer); bwHelpTimer = null; }
     // One-shot glow flag, same pattern as flashExerciseAdded — bake the
     // class into this one render, then clear immediately so it never
     // replays on a later unrelated re-render.
@@ -9003,6 +9005,7 @@
   function closeAddSetPanel(exId){
     ui.expandedAddSet[exId] = false;
     ui.showBwHelp = false;
+    if (bwHelpTimer){ clearTimeout(bwHelpTimer); bwHelpTimer = null; }
     delete ui.draftSets[exId];
     renderApp();
   }
@@ -10356,6 +10359,10 @@
     if (ui.openRowMenu && action !== 'open-exercise-menu' && action !== 'open-set-menu' && action !== 'open-session-menu'){
       closeRowActionMenu();
     }
+    if (ui.showBwHelp && action !== 'toggle-bw-help'){
+      ui.showBwHelp = false;
+      if (bwHelpTimer){ clearTimeout(bwHelpTimer); bwHelpTimer = null; }
+    }
 
     if (action === 'open-exercise-menu'){
       if (ui.openRowMenu && ui.openRowMenu.type === 'exercise' && ui.openRowMenu.exId === el.dataset.ex){
@@ -10435,6 +10442,14 @@
       requestCloseAddSetPanel(el.dataset.ex);
     } else if (action === 'toggle-bw-help'){
       ui.showBwHelp = !ui.showBwHelp;
+      if (bwHelpTimer){ clearTimeout(bwHelpTimer); bwHelpTimer = null; }
+      if (ui.showBwHelp){
+        bwHelpTimer = setTimeout(function(){
+          ui.showBwHelp = false;
+          bwHelpTimer = null;
+          renderApp();
+        }, 3500);
+      }
       renderApp();
     } else if (action === 'add-set-row'){
       addSetRow(el.dataset.ex);
