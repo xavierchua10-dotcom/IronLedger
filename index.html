@@ -3311,7 +3311,7 @@
     0%{text-shadow:0 0 1px #fff, 0 0 10px rgba(255,255,255,0.9);}
     100%{text-shadow:0 0 0 rgba(255,255,255,0);}
   }
-  .set-idx.flash, .set-wr.flash{animation:numberFlash 650ms ease-out;}
+  .set-idx.flash, .set-wr.flash, .set-time.flash{animation:numberFlash 650ms ease-out;}
   /* Basic tier has no timestamp to flash, so the lock icon itself pulses
      instead — same idea as the PR tag's pulse, just applied here so
      Basic users still get a clear "this is what just changed" cue. */
@@ -7264,7 +7264,7 @@
                   '<span class="set-idx'+(isFreshSet ? ' flash' : '')+'">'+(i+1)+'</span>' +
                   '<span class="set-detail">' +
                     '<span class="set-wr'+(isFreshSet ? ' flash' : '')+'">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
-                    (st.timestamp ? '<span class="set-time"> &middot; '+tsOrLock(st.timestamp, null, isFreshSet)+'</span>' : '') +
+                    (st.timestamp ? '<span class="set-time'+(isFreshSet ? ' flash' : '')+'"> &middot; '+tsOrLock(st.timestamp, null, isFreshSet)+'</span>' : '') +
                     (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
                   '</span>' +
                   '<span class="set-actions">' +
