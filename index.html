@@ -568,25 +568,38 @@
     transition:transform 0.15s ease;
   }
   .danger-zone-toggle.open .dz-chevron{transform:rotate(180deg);}
-  .history-old-toggle{
-    cursor:pointer;
+  .history-week-panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    margin-bottom:10px;
+    overflow:hidden;
+  }
+  .history-week-toggle{
     display:flex;
+    justify-content:space-between;
     align-items:center;
-    gap:6px;
+    padding:13px 14px;
+    cursor:pointer;
     user-select:none;
   }
-  .history-old-toggle:active{opacity:0.7;}
-  .history-old-caret{font-size:9px;}
-  .history-month-label{
+  .history-week-toggle:active{opacity:0.7;}
+  .history-week-range{
     font-family:'JetBrains Mono',monospace;
-    font-size:10.5px;
+    font-size:13px;
     font-weight:600;
-    letter-spacing:0.04em;
-    text-transform:uppercase;
-    color:var(--text-faint);
-    padding:10px 2px 4px;
+    letter-spacing:0.02em;
+    color:var(--text);
   }
-  .history-month-label:first-of-type{padding-top:2px;}
+  .history-week-meta{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .history-week-count{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--text-faint);
+  }
+  .history-week-caret{font-size:9px;color:var(--text-faint);}
+  .history-week-body{padding:2px 14px 12px;border-top:1px solid var(--line);}
+  .history-week-body .history-item{margin-top:10px;margin-bottom:0;}
 
   input[type=text].session-name-input{
     width:100%;
@@ -3915,7 +3928,7 @@
 
   var ui = {
     expandedHistory: {},   // sessionId -> bool
-    showOldHistory: false, // whether the collapsed "Older" History group is expanded
+    expandedHistoryWeeks: {}, // weekKey (Monday's yyyy-mm-dd) -> bool; explicit open/closed override for a History week panel. Absent = default (most recent week open, earlier weeks collapsed).
     progressExercise: null,
     showMuscleMap: false,
     showMuscleMapHelp: false, // small "how this works" callout, toggled by the ? button
@@ -5567,6 +5580,29 @@
     var d = new Date(iso);
     var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     return months[d.getMonth()] + ' ' + d.getFullYear();
+  }
+  // Returns the Monday (00:00 local) of the calendar week containing d.
+  // Used to bucket History sessions into Mon-Sun week panels.
+  function mondayOf(d){
+    var m = new Date(d);
+    m.setHours(0, 0, 0, 0);
+    var day = m.getDay(); // 0=Sun..6=Sat
+    var diff = day === 0 ? -6 : 1 - day;
+    m.setDate(m.getDate() + diff);
+    return m;
+  }
+  // Stable grouping key for a Monday date (yyyy-mm-dd), used as the History
+  // week panel's data-week / ui.expandedHistoryWeeks key.
+  function weekKeyFor(mondayDate){
+    var y = mondayDate.getFullYear();
+    var mo = String(mondayDate.getMonth() + 1).padStart(2, '0');
+    var da = String(mondayDate.getDate()).padStart(2, '0');
+    return y + '-' + mo + '-' + da;
+  }
+  // D/M/YYYY, no leading zeros — the format shown on each History week
+  // panel's date-range header (e.g. "24/8/2026").
+  function fmtWeekDay(d){
+    return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
   }
   function fmtDateShort(iso){
     var d = new Date(iso);
@@ -7441,46 +7477,48 @@
       html += '<input type="text" id="historySearchInput" class="history-search-input" autocomplete="off" placeholder="Search by exercise or session name" value="'+esc(ui.historySearch || '')+'">';
       html += '<div class="history-no-match hidden" id="historyNoMatch">No sessions match your search.</div>';
 
-      // Split into "this week" (last 7 days) vs everything older, so the
-      // list stays short by default and old sessions don't clutter it.
-      var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      var recent = [];
-      var older = [];
+      // Group into Monday-Sunday week buckets so History reads as a
+      // scannable stack of weeks instead of one long scroll. Each week is
+      // its own collapsible panel labelled by its date range; the most
+      // recent week opens by default and every earlier week starts
+      // collapsed until tapped. While actively searching, every week is
+      // forced open so filterHistoryList (which just toggles .hidden on
+      // individual .history-item rows below) can surface matches no
+      // matter which week they live in.
+      var searching = !!(ui.historySearch && ui.historySearch.trim());
+      var weekOrder = [];
+      var weekMap = {};
       done.forEach(function(s){
-        var t = new Date(s.finishedAt || s.date).getTime();
-        if (!isNaN(t) && t >= cutoff) recent.push(s);
-        else older.push(s);
+        var t = new Date(s.finishedAt || s.date);
+        var mon = mondayOf(isNaN(t.getTime()) ? new Date() : t);
+        var key = weekKeyFor(mon);
+        if (!weekMap[key]){
+          var sun = new Date(mon);
+          sun.setDate(sun.getDate() + 6);
+          weekMap[key] = { monday: mon, sunday: sun, sessions: [] };
+          weekOrder.push(key);
+        }
+        weekMap[key].sessions.push(s);
       });
 
-      if (older.length > 0 && recent.length > 0){
-        html += '<div class="section-label">This week</div>';
-      }
-      recent.forEach(function(s){ html += renderHistoryItem(s); });
-
-      if (older.length > 0){
-        // While actively searching, always include older sessions so the
-        // search can actually find them, regardless of collapsed state.
-        var oldOpen = !!ui.showOldHistory || !!(ui.historySearch && ui.historySearch.trim());
-        html += '<div class="section-label history-old-toggle" data-action="toggle-old-history">' +
-                  'Older (' + older.length + ') ' +
-                  '<span class="history-old-caret">' + (oldOpen ? '&#9650;' : '&#9660;') + '</span>' +
-                '</div>';
-        if (oldOpen){
-          // Clustered by month rather than one flat list — older[] is
-          // already sorted newest-first, so same-month sessions are
-          // already contiguous; this just labels the boundaries. Makes
-          // "find that session from March" a scan instead of a scroll.
-          var currentLabel = null;
-          older.forEach(function(s){
-            var label = monthYearLabel(s.finishedAt || s.date);
-            if (label !== currentLabel){
-              html += '<div class="history-month-label">'+esc(label)+'</div>';
-              currentLabel = label;
-            }
-            html += renderHistoryItem(s);
-          });
+      weekOrder.forEach(function(key, idx){
+        var wk = weekMap[key];
+        var isOpen = searching || (key in ui.expandedHistoryWeeks ? ui.expandedHistoryWeeks[key] : idx === 0);
+        html += '<div class="history-week-panel'+(isOpen ? ' open' : '')+'" data-week="'+key+'">' +
+                  '<div class="history-week-toggle" data-action="toggle-history-week" data-week="'+key+'">' +
+                    '<span class="history-week-range">'+fmtWeekDay(wk.monday)+' - '+fmtWeekDay(wk.sunday)+'</span>' +
+                    '<span class="history-week-meta">' +
+                      '<span class="history-week-count">'+wk.sessions.length+' session'+(wk.sessions.length === 1 ? '' : 's')+'</span>' +
+                      '<span class="history-week-caret">' + (isOpen ? '&#9650;' : '&#9660;') + '</span>' +
+                    '</span>' +
+                  '</div>';
+        if (isOpen){
+          html += '<div class="history-week-body">';
+          wk.sessions.forEach(function(s){ html += renderHistoryItem(s); });
+          html += '</div>';
         }
-      }
+        html += '</div>';
+      });
     }
     document.getElementById('view').innerHTML = html;
     if (done.length > 0) filterHistoryList(ui.historySearch || '');
@@ -10527,8 +10565,9 @@
       openAddExerciseConfirm(el.dataset.muscle);
     } else if (action === 'toggle-history'){
       toggleHistoryItem(el.dataset.session);
-    } else if (action === 'toggle-old-history'){
-      ui.showOldHistory = !ui.showOldHistory;
+    } else if (action === 'toggle-history-week'){
+      var weekPanel = el.closest('.history-week-panel');
+      ui.expandedHistoryWeeks[el.dataset.week] = !(weekPanel && weekPanel.classList.contains('open'));
       renderApp();
     } else if (action === 'edit-exercise-name'){
       openRenameExerciseConfirm(el.dataset.ex);
