@@ -2902,8 +2902,7 @@
     padding:16px 14px;
     margin-bottom:16px;
   }
-  .mg-panel-header{margin-bottom:14px;}
-  .mg-panel-title-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+  .mg-panel-header{margin-bottom:12px;}
   .mg-panel-header h3{
     font-family:'Oswald',sans-serif;
     font-weight:700;
@@ -2913,21 +2912,36 @@
     color:var(--text);
     margin:0;
   }
-  .mg-badge{
-    font-family:'Oswald',sans-serif;
-    font-weight:700;
-    font-size:12.5px;
-    text-transform:uppercase;
-    letter-spacing:0.05em;
-    color:var(--accent-2);
-    flex-shrink:0;
-    white-space:nowrap;
-  }
   .mg-panel-sub{
     font-family:'JetBrains Mono',monospace;
     font-size:11px;
     color:#c7ccd3;
   }
+  .mg-mode-toggle{
+    display:flex;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:999px;
+    padding:3px;
+    margin-bottom:14px;
+  }
+  .mg-mode-btn{
+    flex:1;
+    text-align:center;
+    padding:8px 10px;
+    border:none;
+    background:none;
+    color:#c7ccd3;
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:12px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    border-radius:999px;
+    cursor:pointer;
+  }
+  .mg-mode-btn.active{background:var(--accent);color:#1c1408;}
+  .mg-mode-btn:active{opacity:0.85;}
   .mg-row{padding:10px 0;cursor:pointer;}
   .mg-row + .mg-row{border-top:1px solid rgba(255,255,255,0.08);}
   .mg-row:active{opacity:0.85;}
@@ -4104,6 +4118,7 @@
     progressExercise: null,
     progressView: 'dashboard',    // 'dashboard' (Muscle Groups Overview) | 'exercise' (the existing 1RM/trendline deep-dive)
     progressMuscleScope: null,    // bucket key (e.g. 'Chest') narrowing the exercise dropdown when drilled in from a muscle bar; null = unscoped
+    progressOverviewMode: 'regular', // 'regular' | 'intensity' — which Muscle Overview profile's caps/rows are showing
     showMuscleMap: false,
     showMuscleMapHelp: false, // small "how this works" callout, toggled by the ? button
     showBwHelp: false,        // same idea, for the "i" icon on a bodyweight exercise's weight input
@@ -8043,22 +8058,11 @@
   /* =========================================================
      RENDER: PROGRESS TAB
      ========================================================= */
-  // Renders the "Muscle Groups Overview" dashboard — the Progress tab's
-  // default landing view. Each row is a weekly-volume bar for one bucket
-  // from MUSCLE_GROUP_TARGETS; tapping the row scopes the exercise
-  // deep-dive to that muscle, tapping one of its chips jumps straight to
-  // that specific exercise's trend line.
-  // Renders one Muscle Groups Overview panel for a given profile (see
-  // MUSCLE_OVERVIEW_PROFILES) against the shared weekly set data. Rows
-  // for muscles the profile doesn't cap (Intensity has no Core) are
-  // simply skipped, so that panel just has fewer rows.
-  function renderMuscleOverviewPanel(profile, weeklyData, monday, sunday){
-    var html = '<div class="mg-panel">';
-    html += '<div class="mg-panel-header">' +
-              '<div class="mg-panel-title-row"><h3>Muscle Groups Overview</h3><span class="mg-badge">'+esc(profile.badge)+'</span></div>' +
-              '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+'</span>' +
-            '</div>';
-
+  // Renders the rows for one profile against the shared weekly set data.
+  // Rows for muscles the profile doesn't cap (Intensity has no Core) are
+  // simply skipped, so that mode just shows fewer rows.
+  function renderMuscleOverviewRows(profile, weeklyData){
+    var html = '';
     weeklyData.forEach(function(g){
       var cap = profile.caps[g.key];
       if (cap === undefined) return; // this profile doesn't track this muscle
@@ -8085,24 +8089,37 @@
       }
       html += '</div>';
     });
-
-    html += '</div>';
     return html;
   }
 
-  // The Progress tab's dashboard landing view: Regular panel first, then
-  // Intensity below it — both scored from the exact same weekly set
-  // counts (computeWeeklyMuscleVolume), just against different caps.
+  // The Progress tab's dashboard landing view: one panel, a Regular/
+  // Intensity switch at the top instead of stacking both (see
+  // ui.progressOverviewMode), and rows for whichever mode is active
+  // below it — both modes read the exact same weekly set counts
+  // (computeWeeklyMuscleVolume), just scored against different caps.
   function renderMuscleGroupsOverviewHtml(){
     var weeklyData = computeWeeklyMuscleVolume();
     var monday = mondayOf(new Date());
     var sunday = new Date(monday);
     sunday.setDate(sunday.getDate() + 6);
 
-    var html = '';
-    MUSCLE_OVERVIEW_PROFILES.forEach(function(profile){
-      html += renderMuscleOverviewPanel(profile, weeklyData, monday, sunday);
+    if (!ui.progressOverviewMode) ui.progressOverviewMode = 'regular';
+    var activeProfile = MUSCLE_OVERVIEW_PROFILES.filter(function(p){ return p.key === ui.progressOverviewMode; })[0] || MUSCLE_OVERVIEW_PROFILES[0];
+
+    var html = '<div class="mg-panel">';
+    html += '<div class="mg-panel-header"><h3>Muscle Overview</h3>' +
+              '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+'</span></div>';
+
+    html += '<div class="mg-mode-toggle">';
+    MUSCLE_OVERVIEW_PROFILES.forEach(function(p){
+      var active = p.key === activeProfile.key;
+      html += '<button type="button" class="mg-mode-btn'+(active ? ' active' : '')+'" data-action="set-progress-overview-mode" data-mode="'+esc(p.key)+'">'+esc(p.badge)+'</button>';
     });
+    html += '</div>';
+
+    html += renderMuscleOverviewRows(activeProfile, weeklyData);
+
+    html += '</div>';
     return html;
   }
 
@@ -11155,6 +11172,9 @@
       renderApp();
     } else if (action === 'open-history-date-range'){
       openHistoryDateRange();
+    } else if (action === 'set-progress-overview-mode'){
+      ui.progressOverviewMode = el.dataset.mode;
+      renderApp();
     } else if (action === 'open-muscle-drilldown'){
       ui.progressMuscleScope = el.dataset.muscle;
       ui.progressView = 'exercise';
