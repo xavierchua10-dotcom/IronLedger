@@ -52,6 +52,8 @@
     --accent-rgb:242,177,52;
     --accent-2:#c1443c;
     --accent-2-dim:#4a2321;
+    --success:#5fb86a;
+    --success-dim:#233821;
     --radius-xs:6px;
     --radius-sm:8px;
     --radius:10px;
@@ -2928,10 +2930,12 @@
     color:var(--text);
   }
   .mg-row-count{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#c7ccd3;white-space:nowrap;}
-  .mg-row-count.mg-met{color:var(--accent);font-weight:700;}
+  .mg-row-count.mg-good{color:var(--success);font-weight:700;}
+  .mg-row-count.mg-over{color:var(--accent-2);font-weight:700;}
   .mg-bar-track{height:9px;border-radius:5px;background:rgba(255,255,255,0.1);overflow:hidden;}
   .mg-bar-fill{height:100%;border-radius:5px;background:var(--accent-dim);}
-  .mg-bar-fill.mg-met{background:var(--accent);}
+  .mg-bar-fill.mg-good{background:var(--success);}
+  .mg-bar-fill.mg-over{background:var(--accent-2);}
   .mg-chips{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
   .mg-chip{
     background:rgba(255,255,255,0.06);
@@ -5317,6 +5321,11 @@
     { key: 'Legs',      label: 'Legs',      targetSets: 14 },
     { key: 'Core',      label: 'Core',      targetSets: 10 }
   ];
+
+  // Sets at or above this multiple of the weekly target flag the bar as
+  // a possible-overtraining warning (red) instead of "met" (green). 1.5x
+  // is a rough rule of thumb, not a hard science — easy to retune.
+  var MUSCLE_OVERTRAIN_MULTIPLIER = 1.5;
 
   // A handful of well-known compounds load a clear second bucket beyond
   // their primary EXERCISE_LIBRARY category — e.g. Bench Press is
@@ -8015,14 +8024,19 @@
               '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+'</span></div>';
 
     groups.forEach(function(g){
-      var pct = g.targetSets > 0 ? Math.min(100, Math.round((g.sets / g.targetSets) * 100)) : 0;
-      var met = g.sets >= g.targetSets;
+      var ratio = g.targetSets > 0 ? (g.sets / g.targetSets) : 0;
+      var pct = Math.min(100, Math.round(ratio * 100));
+      // under target: default dim bar (no class). good: hit target but
+      // still under the overtrain multiplier — green. over: past the
+      // overtrain multiplier — red, a "you may be overdoing this one"
+      // flag rather than a second "even more done" tier of green.
+      var stateClass = ratio >= MUSCLE_OVERTRAIN_MULTIPLIER ? ' mg-over' : (ratio >= 1 ? ' mg-good' : '');
       html += '<div class="mg-row" data-action="open-muscle-drilldown" data-muscle="'+esc(g.key)+'">' +
                 '<div class="mg-row-head">' +
                   '<span class="mg-row-name">'+esc(g.label)+'</span>' +
-                  '<span class="mg-row-count'+(met ? ' mg-met' : '')+'">'+g.sets+' / '+g.targetSets+' sets</span>' +
+                  '<span class="mg-row-count'+stateClass+'">'+g.sets+' / '+g.targetSets+' sets</span>' +
                 '</div>' +
-                '<div class="mg-bar-track"><div class="mg-bar-fill'+(met ? ' mg-met' : '')+'" style="width:'+pct+'%"></div></div>';
+                '<div class="mg-bar-track"><div class="mg-bar-fill'+stateClass+'" style="width:'+pct+'%"></div></div>';
       if (g.topExercises.length){
         html += '<div class="mg-chips">';
         g.topExercises.forEach(function(name){
