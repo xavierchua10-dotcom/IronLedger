@@ -1247,6 +1247,23 @@
     margin-top:6px;
     padding-top:0;
   }
+  .bw-help-icon{
+    background:none;border:none;color:var(--text-dim);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    width:24px;height:100%;flex-shrink:0;padding:0;
+  }
+  .bw-help-icon svg{width:16px;height:16px;display:block;}
+  .bw-help-icon:active{color:var(--accent);}
+  .bw-help-box{
+    background:var(--accent-dim);
+    border:1px solid var(--accent);
+    border-radius:var(--radius-sm);
+    padding:10px 12px;
+    font-size:12px;
+    line-height:1.5;
+    color:var(--text);
+    margin-top:8px;
+  }
   .add-set-row input{
     background:var(--panel-2);
     border:1px solid var(--line);
@@ -3885,6 +3902,7 @@
     progressExercise: null,
     showMuscleMap: false,
     showMuscleMapHelp: false, // small "how this works" callout, toggled by the ? button
+    showBwHelp: false,        // same idea, for the "i" icon on a bodyweight exercise's weight input
     showReferenceOverlay: false, // gold reference button on repeated-session exercise cards
     referenceExerciseName: null,
     muscleMapView: 'front',
@@ -4773,6 +4791,7 @@
     Chest: 1.25,
     Hamstrings: 1.25,
     Shoulders: 0.75,
+    'Shoulder/Trap': 1.0,
     Triceps: 0.6,
     Biceps: 0.5
   };
@@ -4971,8 +4990,8 @@
     Traps: [
       { name: 'Barbell Shrug', equipment: 'Barbell' },
       { name: 'Dumbbell Shrug', equipment: 'Dumbbell' },
-      { name: 'Barbell Upright Row', equipment: 'Barbell' },
-      { name: 'Dumbbell Upright Row', equipment: 'Dumbbell' },
+      { name: 'Barbell Upright Row', equipment: 'Barbell', muscle: 'Shoulder/Trap' },
+      { name: 'Dumbbell Upright Row', equipment: 'Dumbbell', muscle: 'Shoulder/Trap' },
       { name: "Farmer's Carry", equipment: 'Dumbbell' }
     ],
     Biceps: [
@@ -5063,7 +5082,7 @@
     var flat = [];
     Object.keys(EXERCISE_LIBRARY).forEach(function(muscle){
       EXERCISE_LIBRARY[muscle].forEach(function(item){
-        flat.push({ name: item.name, muscle: muscle, equipment: item.equipment });
+        flat.push({ name: item.name, muscle: item.muscle || muscle, equipment: item.equipment });
       });
     });
     return flat;
@@ -5744,7 +5763,7 @@
   // jump — a heavy weighted push-up total shouldn't jump by chest-press
   // increments if the working muscle here is really the shoulder/triceps.
   // Big compound-friendly groups just use the normal weight-scaled step.
-  var SMALL_MUSCLE_GROUPS = ['Shoulders', 'Biceps', 'Triceps', 'Calves', 'Forearms', 'Traps', 'Abs'];
+  var SMALL_MUSCLE_GROUPS = ['Shoulders', 'Shoulder/Trap', 'Biceps', 'Triceps', 'Calves', 'Forearms', 'Traps', 'Abs'];
   // Training goal also scales the step, on top of the muscle-group cap
   // above: Strength work is low-rep/near-max-effort, where standard
   // programming pushes load more aggressively session to session, so it
@@ -7292,7 +7311,10 @@
         // without typing some arbitrary nonzero placeholder number.
         var isBW = isBodyweightExercise(ex.name);
         var rowReady = draftWeightKg !== null && (isBW ? draftWeightKg >= 0 : draftWeightKg > 0) && !isNaN(draftReps) && draftReps > 0;
-        html += '<div class="add-set-row'+(ui.freshAddSetRow === ex.id ? ' just-added' : '')+'">' +
+        html += '<div class="add-set-row'+(ui.freshAddSetRow === ex.id ? ' just-added' : '')+'"'+(isBW ? ' style="grid-template-columns:auto 1fr 1fr auto;"' : '')+'>' +
+                  (isBW ? '<button class="bw-help-icon" data-action="toggle-bw-help" aria-label="What is this?">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="10.5" x2="12" y2="16"></line><line x1="12" y1="7.5" x2="12.01" y2="7.5"></line></svg>' +
+                  '</button>' : '') +
                   '<input type="number" inputmode="decimal" step="0.5" placeholder="'+(isBW ? '+' + unitLabel() : unitLabel())+'" class="set-weight-input" data-ex="'+ex.id+'" value="'+(draft && draft.weight != null ? esc(draft.weight) : '')+'">' +
                   '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="set-reps-input" data-ex="'+ex.id+'" value="'+(draft && draft.reps != null ? esc(draft.reps) : '')+'">' +
                   '<div class="add-set-btn-group">' +
@@ -7300,6 +7322,9 @@
                     '<button class="cancel-edit-btn" data-action="close-add-set" data-ex="'+ex.id+'" aria-label="Cancel">&#10005;</button>' +
                   '</div>' +
                 '</div>';
+        if (isBW && ui.showBwHelp){
+          html += '<div class="bw-help-box">This is <b>extra</b> weight added on top of your bodyweight (like a weighted vest or dip belt) \u2014 not your total. We add your bodyweight from Settings automatically to work out the real load. Type 0 if you did it unweighted.</div>';
+        }
       } else {
         html += '<button class="add-set-toggle-btn" data-action="open-add-set" data-ex="'+ex.id+'">' +
                   '<span class="plus-glyph">&#43;</span> Add Set '+(ex.sets.length+1) +
@@ -8963,6 +8988,7 @@
 
   function openAddSetPanel(exId){
     ui.expandedAddSet[exId] = true;
+    ui.showBwHelp = false;
     // One-shot glow flag, same pattern as flashExerciseAdded — bake the
     // class into this one render, then clear immediately so it never
     // replays on a later unrelated re-render.
@@ -8976,6 +9002,7 @@
 
   function closeAddSetPanel(exId){
     ui.expandedAddSet[exId] = false;
+    ui.showBwHelp = false;
     delete ui.draftSets[exId];
     renderApp();
   }
@@ -10406,6 +10433,9 @@
       openAddSetPanelConfirm(el.dataset.ex);
     } else if (action === 'close-add-set'){
       requestCloseAddSetPanel(el.dataset.ex);
+    } else if (action === 'toggle-bw-help'){
+      ui.showBwHelp = !ui.showBwHelp;
+      renderApp();
     } else if (action === 'add-set-row'){
       addSetRow(el.dataset.ex);
     } else if (action === 'add-set-global'){
