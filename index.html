@@ -2985,23 +2985,6 @@
   }
   .mg-chip:active{opacity:0.7;background:rgba(255,255,255,0.12);}
   .mg-empty-note{color:#9198a1;font-size:11px;margin-top:8px;}
-  .mg-back-link{
-    display:inline-flex;
-    align-items:center;
-    gap:4px;
-    background:none;
-    border:none;
-    color:var(--text-dim);
-    font-family:'Oswald',sans-serif;
-    font-weight:600;
-    font-size:12.5px;
-    letter-spacing:0.02em;
-    text-transform:uppercase;
-    padding:0;
-    margin-bottom:12px;
-    cursor:pointer;
-  }
-  .mg-back-link:active{opacity:0.7;}
   .mg-scope-banner{
     display:flex;
     justify-content:space-between;
@@ -8187,7 +8170,10 @@
   // { html, skipLock } — skipLock mirrors the original behavior of
   // bypassing the Pro paywall blur for the "nothing logged yet" case.
   function renderProgressExerciseView(names){
-    var html = '<button type="button" class="mg-back-link" data-action="back-to-muscle-dashboard">&#8592; Muscle Groups</button>';
+    // No inline back link here anymore — the sticky Volume overview /
+    // Exercise progression bar at the bottom of the screen (see
+    // progressSubtabbar) is the way back now, so this doesn't duplicate it.
+    var html = '';
 
     var scope = ui.progressMuscleScope;
     var scopedNames = names;
