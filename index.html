@@ -10997,7 +10997,7 @@
       ui.billingCycle = (c === 'annual') ? c : 'monthly';
       renderPricingPanel();
       var targetCard = document.getElementById(c === 'annual' ? 'priceCardAnnual' : 'priceCardMonthly');
-      if (targetCard) targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (targetCard) targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (el.dataset.action === 'start-checkout'){
       var p = el.dataset.plan;
       startCheckout((p === 'annual') ? p : 'monthly');
