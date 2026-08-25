@@ -10363,6 +10363,14 @@
       renderApp();
       return;
     }
+    // Catches every tap, including blank space with no data-action at all
+    // (the check further down only ever saw taps on other actionable
+    // elements, so tapping empty space silently did nothing before this).
+    if (ui.showBwHelp && !e.target.closest('.bw-help-box, .bw-help-icon')){
+      ui.showBwHelp = false;
+      if (bwHelpTimer){ clearTimeout(bwHelpTimer); bwHelpTimer = null; }
+      renderApp();
+    }
     var el = e.target.closest('[data-action]');
     if (!el) return;
     var action = el.dataset.action;
@@ -10373,10 +10381,6 @@
     // away entirely while it was open".
     if (ui.openRowMenu && action !== 'open-exercise-menu' && action !== 'open-set-menu' && action !== 'open-session-menu'){
       closeRowActionMenu();
-    }
-    if (ui.showBwHelp && action !== 'toggle-bw-help'){
-      ui.showBwHelp = false;
-      if (bwHelpTimer){ clearTimeout(bwHelpTimer); bwHelpTimer = null; }
     }
 
     if (action === 'open-exercise-menu'){
