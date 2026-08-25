@@ -2903,6 +2903,7 @@
     margin-bottom:16px;
   }
   .mg-panel-header{margin-bottom:14px;}
+  .mg-panel-title-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
   .mg-panel-header h3{
     font-family:'Oswald',sans-serif;
     font-weight:700;
@@ -2911,6 +2912,16 @@
     letter-spacing:0.03em;
     color:var(--text);
     margin:0;
+  }
+  .mg-badge{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--accent-2);
+    flex-shrink:0;
+    white-space:nowrap;
   }
   .mg-panel-sub{
     font-family:'JetBrains Mono',monospace;
@@ -5313,19 +5324,41 @@
   // working sets/muscle/week is a commonly-cited hypertrophy guideline;
   // Back and Legs get a slightly higher target since more/larger
   // muscles share that bucket. Easy to retune per group here.
+  // Canonical list of dashboard buckets — just an identity/label list now.
+  // Per-muscle caps and green-zone thresholds live in
+  // MUSCLE_OVERVIEW_PROFILES below instead, since the Muscle Groups
+  // Overview renders two panels (Regular / Intensity) against the same
+  // underlying weekly set counts, each with its own scale.
   var MUSCLE_GROUP_TARGETS = [
-    { key: 'Chest',     label: 'Chest',     targetSets: 12 },
-    { key: 'Back',      label: 'Back',      targetSets: 14 },
-    { key: 'Shoulders', label: 'Shoulders', targetSets: 12 },
-    { key: 'Arms',      label: 'Arms',      targetSets: 12 },
-    { key: 'Legs',      label: 'Legs',      targetSets: 14 },
-    { key: 'Core',      label: 'Core',      targetSets: 10 }
+    { key: 'Chest',     label: 'Chest' },
+    { key: 'Back',      label: 'Back' },
+    { key: 'Shoulders', label: 'Shoulders' },
+    { key: 'Arms',      label: 'Arms' },
+    { key: 'Legs',      label: 'Legs' },
+    { key: 'Core',      label: 'Core' }
   ];
 
-  // Sets at or above this multiple of the weekly target flag the bar as
-  // a possible-overtraining warning (red) instead of "met" (green). 1.5x
-  // is a rough rule of thumb, not a hard science — easy to retune.
-  var MUSCLE_OVERTRAIN_MULTIPLIER = 1.5;
+  // The two Muscle Groups Overview panels. Both read the exact same
+  // weekly set counts (computeWeeklyMuscleVolume) — only the cap per
+  // muscle and the "green" floor differ, so someone can see the same
+  // week's sets scored against a higher-volume view and a fewer-harder-
+  // sets view side by side, instead of picking one philosophy for them.
+  // "caps" only lists the muscles that profile tracks — Intensity has no
+  // Core entry, so that row is simply omitted from that panel.
+  var MUSCLE_OVERVIEW_PROFILES = [
+    {
+      key: 'regular',
+      badge: 'REGULAR',
+      greenMinSets: 10,
+      caps: { Chest: 20, Back: 20, Shoulders: 15, Arms: 15, Legs: 20, Core: 15 }
+    },
+    {
+      key: 'intensity',
+      badge: 'INTENSITY',
+      greenMinSets: 3,
+      caps: { Chest: 10, Back: 10, Shoulders: 8, Arms: 8, Legs: 10 }
+    }
+  ];
 
   // A handful of well-known compounds load a clear second bucket beyond
   // their primary EXERCISE_LIBRARY category — e.g. Bench Press is
@@ -5411,7 +5444,9 @@
   // This week = Monday 00:00 through now. Returns one entry per
   // MUSCLE_GROUP_TARGETS bucket (always present, even at zero sets) with
   // its weekly set total and up to 3 most-recently-trained exercise
-  // names in that bucket, for the dashboard's tap-through chips.
+  // names in that bucket. Cap-agnostic — the same output feeds both the
+  // Regular and Intensity panels, each scoring these numbers against its
+  // own caps (see MUSCLE_OVERVIEW_PROFILES).
   function computeWeeklyMuscleVolume(){
     var weekStartMs = mondayOf(new Date()).getTime();
     var byBucket = {};
@@ -5442,7 +5477,7 @@
       var topExercises = Object.keys(b.exLastSeen).sort(function(a, c){
         return b.exLastSeen[c] - b.exLastSeen[a];
       }).slice(0, 3);
-      return { key: g.key, label: g.label, targetSets: g.targetSets, sets: b.sets, topExercises: topExercises };
+      return { key: g.key, label: g.label, sets: b.sets, topExercises: topExercises };
     });
   }
 
@@ -8013,28 +8048,30 @@
   // from MUSCLE_GROUP_TARGETS; tapping the row scopes the exercise
   // deep-dive to that muscle, tapping one of its chips jumps straight to
   // that specific exercise's trend line.
-  function renderMuscleGroupsOverviewHtml(){
-    var groups = computeWeeklyMuscleVolume();
-    var monday = mondayOf(new Date());
-    var sunday = new Date(monday);
-    sunday.setDate(sunday.getDate() + 6);
-
+  // Renders one Muscle Groups Overview panel for a given profile (see
+  // MUSCLE_OVERVIEW_PROFILES) against the shared weekly set data. Rows
+  // for muscles the profile doesn't cap (Intensity has no Core) are
+  // simply skipped, so that panel just has fewer rows.
+  function renderMuscleOverviewPanel(profile, weeklyData, monday, sunday){
     var html = '<div class="mg-panel">';
-    html += '<div class="mg-panel-header"><h3>Muscle Groups Overview</h3>' +
-              '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+'</span></div>';
+    html += '<div class="mg-panel-header">' +
+              '<div class="mg-panel-title-row"><h3>Muscle Groups Overview</h3><span class="mg-badge">'+esc(profile.badge)+'</span></div>' +
+              '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+'</span>' +
+            '</div>';
 
-    groups.forEach(function(g){
-      var ratio = g.targetSets > 0 ? (g.sets / g.targetSets) : 0;
-      var pct = Math.min(100, Math.round(ratio * 100));
-      // under target: default dim bar (no class). good: hit target but
-      // still under the overtrain multiplier — green. over: past the
-      // overtrain multiplier — red, a "you may be overdoing this one"
-      // flag rather than a second "even more done" tier of green.
-      var stateClass = ratio >= MUSCLE_OVERTRAIN_MULTIPLIER ? ' mg-over' : (ratio >= 1 ? ' mg-good' : '');
+    weeklyData.forEach(function(g){
+      var cap = profile.caps[g.key];
+      if (cap === undefined) return; // this profile doesn't track this muscle
+      var pct = cap > 0 ? Math.min(100, Math.round((g.sets / cap) * 100)) : 0;
+      // under the green floor: default dim bar (no class). good: at or
+      // above the floor, at or under cap — green. over: past the cap —
+      // red overtraining flag. The number itself is never capped, so
+      // going over still reads honestly as e.g. "21 / 20".
+      var stateClass = g.sets > cap ? ' mg-over' : (g.sets >= profile.greenMinSets ? ' mg-good' : '');
       html += '<div class="mg-row" data-action="open-muscle-drilldown" data-muscle="'+esc(g.key)+'">' +
                 '<div class="mg-row-head">' +
                   '<span class="mg-row-name">'+esc(g.label)+'</span>' +
-                  '<span class="mg-row-count'+stateClass+'">'+g.sets+' / '+g.targetSets+' sets</span>' +
+                  '<span class="mg-row-count'+stateClass+'">'+g.sets+' / '+cap+' sets</span>' +
                 '</div>' +
                 '<div class="mg-bar-track"><div class="mg-bar-fill'+stateClass+'" style="width:'+pct+'%"></div></div>';
       if (g.topExercises.length){
@@ -8050,6 +8087,22 @@
     });
 
     html += '</div>';
+    return html;
+  }
+
+  // The Progress tab's dashboard landing view: Regular panel first, then
+  // Intensity below it — both scored from the exact same weekly set
+  // counts (computeWeeklyMuscleVolume), just against different caps.
+  function renderMuscleGroupsOverviewHtml(){
+    var weeklyData = computeWeeklyMuscleVolume();
+    var monday = mondayOf(new Date());
+    var sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 6);
+
+    var html = '';
+    MUSCLE_OVERVIEW_PROFILES.forEach(function(profile){
+      html += renderMuscleOverviewPanel(profile, weeklyData, monday, sunday);
+    });
     return html;
   }
 
