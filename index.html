@@ -7339,7 +7339,7 @@
                     '<button class="add-set-btn" data-action="add-set-row" data-ex="'+ex.id+'" aria-label="Add set"'+(rowReady?'':' disabled')+'>&#10003;</button>' +
                     '<button class="cancel-edit-btn" data-action="close-add-set" data-ex="'+ex.id+'" aria-label="Cancel">&#10005;</button>' +
                   '</div>' +
-                  (isBW && ui.showBwHelp ? '<div class="bw-help-box">This is <b>extra</b> weight added on top of your bodyweight (like a weighted vest or dip belt) \u2014 not your total. We add your bodyweight from Settings automatically to work out the real load. Type 0 if you did it unweighted.</div>' : '') +
+                  (isBW && ui.showBwHelp ? '<div class="bw-help-box"><b>Extra</b> weight on top of bodyweight \u2014 not your total. Type 0 if unweighted.</div>' : '') +
                 '</div>';
       } else {
         html += '<button class="add-set-toggle-btn" data-action="open-add-set" data-ex="'+ex.id+'">' +
