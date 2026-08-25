@@ -4293,6 +4293,27 @@
     if (!ok) warnStorageUnavailableOnce();
     scheduleFirestoreSync();
   }
+  // One-time data fix: exercise-picker's browse-by-category view used to
+  // tag Barbell/Dumbbell Upright Row with the section's category key
+  // ('Traps') instead of the item's own override ('Shoulder/Trap') —
+  // see exerciseLibraryBrowseHtml. That made already-logged Upright Row
+  // sets bucket under Back on Progress instead of Shoulders. Runs once
+  // per boot after sessions load; only touches sessions that actually
+  // have the stale tag, and only saves (and re-syncs to Firestore) if it
+  // found something to fix.
+  function fixUprightRowMuscleTag(){
+    var fixedAny = false;
+    state.sessions.forEach(function(s){
+      (s.exercises || []).forEach(function(ex){
+        var name = (ex.name || '').trim().toLowerCase();
+        if ((name === 'barbell upright row' || name === 'dumbbell upright row') && ex.muscle === 'Traps'){
+          ex.muscle = 'Shoulder/Trap';
+          fixedAny = true;
+        }
+      });
+    });
+    if (fixedAny) saveSessions();
+  }
   function loadRoutines(){
     try{
       var raw = localStorage.getItem(scopedKey(STORAGE_ROUTINES));
@@ -4797,7 +4818,11 @@
       if (!items.length) return '';
       return '<div class="section-label">'+esc(muscle)+'</div>' +
         items.map(function(item){
-          return exerciseSuggestItemHtml(item.name, muscle, item.equipment);
+          // item.muscle is a per-item override (e.g. Upright Row is filed
+          // under the Traps section but tagged 'Shoulder/Trap') — must win
+          // over the section's own category key, or the exercise gets
+          // logged with the wrong muscle and buckets wrong on Progress.
+          return exerciseSuggestItemHtml(item.name, item.muscle || muscle, item.equipment);
         }).join('');
     }).join('');
     if (!html && f && (f.muscles.length || f.equipment.length)){
@@ -8679,6 +8704,7 @@
 
   function bootAccountData(){
     state.sessions = loadSessions();
+    fixUprightRowMuscleTag();
     state.routines = loadRoutines();
     state.settings = loadSettings();
     applyAccentTheme(state.settings.accentTheme || 'gold');
