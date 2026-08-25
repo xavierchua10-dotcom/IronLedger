@@ -715,7 +715,7 @@
     color:var(--text);
   }
   .exercise-card.collapsed{padding:0;}
-  .exercise-card.just-added, .he-exercise-card.just-added{
+  .exercise-card.just-added, .he-exercise-card.just-added, .add-set-row.just-added{
     animation:exerciseAddedGlow 900ms ease-out;
   }
   @keyframes exerciseAddedGlow{
@@ -3933,6 +3933,7 @@
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     justAddedExIds: [],         // exIds that should play the "just added" glow pulse once (see flashExerciseAdded / flashExercisesAdded)
+    freshAddSetRow: null,       // exId whose Add Set input row should play the same glow pulse once it opens (see openAddSetPanel)
     justFinishedSessionId: null, // sessionId that should play the "just finished" glow pulse once in History (see flashSessionFinished)
     editDraft: null,             // { sessionId, name, exercises } — working copy while the History-edit overlay is open. Fully detached from state.sessions; nothing in it touches the real session until commitHistoryEditSave(). Cancel just discards it, no revert logic needed. See openHistoryEditOverlay.
     historyEditOpenRow: null,    // { type: 'add'|'edit', exId, setId? } — which single inline weight/reps row is currently open inside the edit overlay (only one at a time)
@@ -7309,7 +7310,7 @@
         // without typing some arbitrary nonzero placeholder number.
         var isBW = isBodyweightExercise(ex.name);
         var rowReady = draftWeightKg !== null && (isBW ? draftWeightKg >= 0 : draftWeightKg > 0) && !isNaN(draftReps) && draftReps > 0;
-        html += '<div class="add-set-row">' +
+        html += '<div class="add-set-row'+(ui.freshAddSetRow === ex.id ? ' just-added' : '')+'">' +
                   '<input type="number" inputmode="decimal" step="0.5" placeholder="'+(isBW ? '+' + unitLabel() : unitLabel())+'" class="set-weight-input" data-ex="'+ex.id+'" value="'+(draft && draft.weight != null ? esc(draft.weight) : '')+'">' +
                   '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="set-reps-input" data-ex="'+ex.id+'" value="'+(draft && draft.reps != null ? esc(draft.reps) : '')+'">' +
                   '<div class="add-set-btn-group">' +
@@ -8981,22 +8982,21 @@
 
   function openAddSetPanel(exId){
     ui.expandedAddSet[exId] = true;
+    // One-shot glow flag, same pattern as flashExerciseAdded — bake the
+    // class into this one render, then clear immediately so it never
+    // replays on a later unrelated re-render.
+    ui.freshAddSetRow = exId;
     renderApp();
+    ui.freshAddSetRow = null;
     var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
-    var row = card && card.querySelector('.add-set-row');
-    animateSlideOpen(row);
     var input = card && card.querySelector('.set-weight-input');
     if (input){ input.focus(); }
   }
 
   function closeAddSetPanel(exId){
-    var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
-    var row = card && card.querySelector('.add-set-row');
-    animateSlideClosed(row, function(){
-      ui.expandedAddSet[exId] = false;
-      delete ui.draftSets[exId];
-      renderApp();
-    });
+    ui.expandedAddSet[exId] = false;
+    delete ui.draftSets[exId];
+    renderApp();
   }
 
   // Gate for the \u2715 on the add-set panel: if the person has typed a weight
