@@ -94,6 +94,17 @@
     min-height:100dvh;
   }
   button{font-family:inherit;}
+  /* Universal press feedback — every button, and every element the app
+     treats as clickable via data-action (several "buttons" here are divs/
+     spans, not real <button> tags), briefly lightens the instant you press
+     down and settles back the instant you release. Placed early in the
+     stylesheet so any element with its own more specific :active style
+     defined later (same pattern already used on .template-cat-card) keeps
+     winning for that element, while everything else gets this by default. */
+  button:active, [data-action]:active{
+    filter:brightness(1.2);
+    transition:filter 70ms ease-out;
+  }
   input,select{font-family:inherit;}
   .mono{font-family:'JetBrains Mono',ui-monospace,monospace;}
   .display{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.03em;}
