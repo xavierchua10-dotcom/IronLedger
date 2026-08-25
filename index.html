@@ -5376,30 +5376,15 @@
   ];
 
   // A handful of well-known compounds load a clear second bucket beyond
-  // their primary EXERCISE_LIBRARY category — e.g. Bench Press is
-  // Chest-primary but loads Arms (triceps) hard too. Anything not listed
+  // their primary EXERCISE_LIBRARY category — e.g. Deadlift is Back-
+  // primary but loads Legs (hamstrings) hard too. Anything not listed
   // here just counts toward its single primary bucket. Keyed by lowercase
   // exercise name; values are additional bucket keys from the list above.
+  // Arms is intentionally excluded from this table — Arms only counts
+  // exercises whose primary EXERCISE_LIBRARY category is Biceps, Triceps,
+  // or Forearms directly, with zero secondary credit from bench/press/
+  // row/pull-up/dip/push-up work, bodyweight or otherwise.
   var SECONDARY_MUSCLE_BUCKETS = {
-    'barbell bench press': ['Arms'],
-    'dumbbell bench press': ['Arms'],
-    'machine bench press': ['Arms'],
-    'barbell incline bench press': ['Arms'],
-    'dumbbell incline bench press': ['Arms'],
-    'barbell decline bench press': ['Arms'],
-    'dumbbell decline bench press': ['Arms'],
-    'dips': ['Arms'],
-    'push-ups': ['Arms'],
-    'barbell shoulder press': ['Arms'],
-    'dumbbell shoulder press': ['Arms'],
-    'machine shoulder press': ['Arms'],
-    'arnold press': ['Arms'],
-    'pull-ups': ['Arms'],
-    'lat pulldown': ['Arms'],
-    'undergrip lat pulldown': ['Arms'],
-    'barbell row': ['Arms'],
-    'dumbbell row': ['Arms'],
-    'seated cable row': ['Arms'],
     'deadlift': ['Legs'],
     'sumo deadlift': ['Legs'],
     'barbell romanian deadlift': ['Back'],
@@ -8107,7 +8092,7 @@
     var activeProfile = MUSCLE_OVERVIEW_PROFILES.filter(function(p){ return p.key === ui.progressOverviewMode; })[0] || MUSCLE_OVERVIEW_PROFILES[0];
 
     var html = '<div class="mg-panel">';
-    html += '<div class="mg-panel-header"><h3>Muscle Overview</h3>' +
+    html += '<div class="mg-panel-header"><h3>Muscle Groups Overview</h3>' +
               '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+'</span></div>';
 
     html += '<div class="mg-mode-toggle">';
