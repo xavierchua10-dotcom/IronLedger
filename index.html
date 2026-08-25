@@ -1255,14 +1255,31 @@
   .bw-help-icon svg{width:16px;height:16px;display:block;}
   .bw-help-icon:active{color:var(--accent);}
   .bw-help-box{
-    background:var(--accent-dim);
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;
+    right:0;
+    z-index:10;
+    background:var(--panel-2);
     border:1px solid var(--accent);
     border-radius:var(--radius-sm);
     padding:10px 12px;
     font-size:12px;
     line-height:1.5;
     color:var(--text);
-    margin-top:8px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.45);
+  }
+  .bw-help-box::before{
+    content:'';
+    position:absolute;
+    top:-6px;
+    left:20px;
+    width:10px;
+    height:10px;
+    background:var(--panel-2);
+    border-left:1px solid var(--accent);
+    border-top:1px solid var(--accent);
+    transform:rotate(45deg);
   }
   .add-set-row input{
     background:var(--panel-2);
@@ -7312,7 +7329,7 @@
         // without typing some arbitrary nonzero placeholder number.
         var isBW = isBodyweightExercise(ex.name);
         var rowReady = draftWeightKg !== null && (isBW ? draftWeightKg >= 0 : draftWeightKg > 0) && !isNaN(draftReps) && draftReps > 0;
-        html += '<div class="add-set-row'+(ui.freshAddSetRow === ex.id ? ' just-added' : '')+'"'+(isBW ? ' style="grid-template-columns:auto 1fr 1fr auto;"' : '')+'>' +
+        html += '<div class="add-set-row'+(ui.freshAddSetRow === ex.id ? ' just-added' : '')+'"'+(isBW ? ' style="grid-template-columns:auto 1fr 1fr auto;position:relative;"' : '')+'>' +
                   (isBW ? '<button class="bw-help-icon" data-action="toggle-bw-help" aria-label="What is this?">' +
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="10.5" x2="12" y2="16"></line><line x1="12" y1="7.5" x2="12.01" y2="7.5"></line></svg>' +
                   '</button>' : '') +
@@ -7322,10 +7339,8 @@
                     '<button class="add-set-btn" data-action="add-set-row" data-ex="'+ex.id+'" aria-label="Add set"'+(rowReady?'':' disabled')+'>&#10003;</button>' +
                     '<button class="cancel-edit-btn" data-action="close-add-set" data-ex="'+ex.id+'" aria-label="Cancel">&#10005;</button>' +
                   '</div>' +
+                  (isBW && ui.showBwHelp ? '<div class="bw-help-box">This is <b>extra</b> weight added on top of your bodyweight (like a weighted vest or dip belt) \u2014 not your total. We add your bodyweight from Settings automatically to work out the real load. Type 0 if you did it unweighted.</div>' : '') +
                 '</div>';
-        if (isBW && ui.showBwHelp){
-          html += '<div class="bw-help-box">This is <b>extra</b> weight added on top of your bodyweight (like a weighted vest or dip belt) \u2014 not your total. We add your bodyweight from Settings automatically to work out the real load. Type 0 if you did it unweighted.</div>';
-        }
       } else {
         html += '<button class="add-set-toggle-btn" data-action="open-add-set" data-ex="'+ex.id+'">' +
                   '<span class="plus-glyph">&#43;</span> Add Set '+(ex.sets.length+1) +
