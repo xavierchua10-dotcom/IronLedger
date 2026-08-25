@@ -5348,7 +5348,12 @@
     'barbell romanian deadlift': ['Back'],
     'dumbbell romanian deadlift': ['Back'],
     'stiff-leg deadlift': ['Back'],
-    'good morning': ['Back']
+    'good morning': ['Back'],
+    // Tagged 'Shoulder/Trap' in the library (-> Shoulders primary below);
+    // Traps folds into Back in the 6-bucket dashboard, so these need Back
+    // added explicitly to actually hit both.
+    'barbell upright row': ['Back'],
+    'dumbbell upright row': ['Back']
   };
 
   // name.toLowerCase() -> library item, each carrying a `muscles: []`
