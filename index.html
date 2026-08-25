@@ -2888,6 +2888,100 @@
     font-size:12px;
     padding:22px 10px;
   }
+  /* ---------- Progress: Muscle Groups Overview dashboard ---------- */
+  .mg-panel{
+    background-color:var(--panel);
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.62), rgba(10,12,16,0.9)), url('images/est-1rm-bg.jpg');
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px 14px;
+    margin-bottom:16px;
+  }
+  .mg-panel-header{margin-bottom:14px;}
+  .mg-panel-header h3{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:16px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:var(--text);
+    margin:0;
+  }
+  .mg-panel-sub{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:#c7ccd3;
+  }
+  .mg-row{padding:10px 0;cursor:pointer;}
+  .mg-row + .mg-row{border-top:1px solid rgba(255,255,255,0.08);}
+  .mg-row:active{opacity:0.85;}
+  .mg-row-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;gap:8px;}
+  .mg-row-name{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:13.5px;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:var(--text);
+  }
+  .mg-row-count{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#c7ccd3;white-space:nowrap;}
+  .mg-row-count.mg-met{color:var(--accent);font-weight:700;}
+  .mg-bar-track{height:9px;border-radius:5px;background:rgba(255,255,255,0.1);overflow:hidden;}
+  .mg-bar-fill{height:100%;border-radius:5px;background:var(--accent-dim);}
+  .mg-bar-fill.mg-met{background:var(--accent);}
+  .mg-chips{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
+  .mg-chip{
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:999px;
+    padding:5px 11px;
+    font-size:11px;
+    color:#dfe2e6;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .mg-chip:active{opacity:0.7;background:rgba(255,255,255,0.12);}
+  .mg-empty-note{color:#9198a1;font-size:11px;margin-top:8px;}
+  .mg-back-link{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    letter-spacing:0.02em;
+    text-transform:uppercase;
+    padding:0;
+    margin-bottom:12px;
+    cursor:pointer;
+  }
+  .mg-back-link:active{opacity:0.7;}
+  .mg-scope-banner{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin:-8px 0 12px;
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  .mg-scope-clear{background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;padding:0;text-decoration:underline;}
+  .mg-scope-empty{
+    text-align:center;
+    color:var(--text-faint);
+    font-size:12.5px;
+    padding:26px 12px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    margin-bottom:16px;
+  }
   .pr-list-item{
     display:flex;
     justify-content:space-between;
@@ -3993,6 +4087,8 @@
     historyDateRangeDraft: {start:'', end:''}, // draft start/end while the picker is open, discarded on Cancel
     historyDateRangeError: null,  // validation message shown in the date-range picker, if any
     progressExercise: null,
+    progressView: 'dashboard',    // 'dashboard' (Muscle Groups Overview) | 'exercise' (the existing 1RM/trendline deep-dive)
+    progressMuscleScope: null,    // bucket key (e.g. 'Chest') narrowing the exercise dropdown when drilled in from a muscle bar; null = unscoped
     showMuscleMap: false,
     showMuscleMapHelp: false, // small "how this works" callout, toggled by the ? button
     showBwHelp: false,        // same idea, for the "i" icon on a bodyweight exercise's weight input
@@ -5180,6 +5276,179 @@
     });
     return flat;
   })();
+
+  /* =========================================================
+     MUSCLE GROUPS OVERVIEW — data tables
+     Backs the Progress tab's weekly volume dashboard. Kept separate
+     from EXERCISE_LIBRARY itself so the browse-by-muscle picker above
+     is unaffected — these just describe how that same library rolls
+     up into the broader dashboard buckets.
+     ========================================================= */
+  // Every fine-grained EXERCISE_LIBRARY category folds into exactly one
+  // of the six dashboard buckets below. Traps folds into Back;
+  // Biceps/Triceps/Forearms fold into Arms; Quads/Hamstrings/Glutes/
+  // Calves fold into Legs — matching how most lifters think about a
+  // split, even though the exercise picker itself stays fine-grained.
+  var MUSCLE_GROUP_TO_BUCKET = {
+    Chest: 'Chest',
+    Back: 'Back',
+    Traps: 'Back',
+    Shoulders: 'Shoulders',
+    'Shoulder/Trap': 'Shoulders',
+    Biceps: 'Arms',
+    Triceps: 'Arms',
+    Forearms: 'Arms',
+    Abs: 'Core',
+    Quads: 'Legs',
+    Hamstrings: 'Legs',
+    Glutes: 'Legs',
+    Calves: 'Legs'
+  };
+
+  // Display order + weekly set targets for the dashboard bars. 10-12
+  // working sets/muscle/week is a commonly-cited hypertrophy guideline;
+  // Back and Legs get a slightly higher target since more/larger
+  // muscles share that bucket. Easy to retune per group here.
+  var MUSCLE_GROUP_TARGETS = [
+    { key: 'Chest',     label: 'Chest',     targetSets: 12 },
+    { key: 'Back',      label: 'Back',      targetSets: 14 },
+    { key: 'Shoulders', label: 'Shoulders', targetSets: 12 },
+    { key: 'Arms',      label: 'Arms',      targetSets: 12 },
+    { key: 'Legs',      label: 'Legs',      targetSets: 14 },
+    { key: 'Core',      label: 'Core',      targetSets: 10 }
+  ];
+
+  // A handful of well-known compounds load a clear second bucket beyond
+  // their primary EXERCISE_LIBRARY category — e.g. Bench Press is
+  // Chest-primary but loads Arms (triceps) hard too. Anything not listed
+  // here just counts toward its single primary bucket. Keyed by lowercase
+  // exercise name; values are additional bucket keys from the list above.
+  var SECONDARY_MUSCLE_BUCKETS = {
+    'barbell bench press': ['Arms'],
+    'dumbbell bench press': ['Arms'],
+    'machine bench press': ['Arms'],
+    'barbell incline bench press': ['Arms'],
+    'dumbbell incline bench press': ['Arms'],
+    'barbell decline bench press': ['Arms'],
+    'dumbbell decline bench press': ['Arms'],
+    'dips': ['Arms'],
+    'push-ups': ['Arms'],
+    'barbell shoulder press': ['Arms'],
+    'dumbbell shoulder press': ['Arms'],
+    'machine shoulder press': ['Arms'],
+    'arnold press': ['Arms'],
+    'pull-ups': ['Arms'],
+    'lat pulldown': ['Arms'],
+    'undergrip lat pulldown': ['Arms'],
+    'barbell row': ['Arms'],
+    'dumbbell row': ['Arms'],
+    'seated cable row': ['Arms'],
+    'deadlift': ['Legs'],
+    'sumo deadlift': ['Legs'],
+    'barbell romanian deadlift': ['Back'],
+    'dumbbell romanian deadlift': ['Back'],
+    'stiff-leg deadlift': ['Back'],
+    'good morning': ['Back']
+  };
+
+  // name.toLowerCase() -> library item, each carrying a `muscles: []`
+  // array (the "exercise database" the dashboard reads from). Primary
+  // bucket first, secondary bucket(s) appended when SECONDARY_MUSCLE_
+  // BUCKETS has an entry for that exercise.
+  var EXERCISE_LIBRARY_BY_NAME = (function(){
+    var byName = {};
+    EXERCISE_LIBRARY_FLAT.forEach(function(item){
+      var key = item.name.toLowerCase();
+      var muscles = [];
+      var bucket = MUSCLE_GROUP_TO_BUCKET[item.muscle];
+      if (bucket) muscles.push(bucket);
+      var secondary = SECONDARY_MUSCLE_BUCKETS[key];
+      if (secondary){
+        secondary.forEach(function(m){ if (muscles.indexOf(m) === -1) muscles.push(m); });
+      }
+      byName[key] = { name: item.name, muscle: item.muscle, equipment: item.equipment, muscles: muscles };
+    });
+    return byName;
+  })();
+
+  // Resolves the dashboard bucket(s) a *logged* exercise's sets should
+  // count toward. Trusts the fine-grained muscle string already stored
+  // on the session's exercise entry (captured at add-time) first, since
+  // that's stable even if the exercise is later renamed or removed from
+  // the library; falls back to a name lookup against the library for
+  // older entries logged before that was reliably captured.
+  function bucketsForLoggedExercise(name, fineMuscle){
+    var key = String(name || '').trim().toLowerCase();
+    var muscles = [];
+    var bucket = fineMuscle && MUSCLE_GROUP_TO_BUCKET[fineMuscle];
+    if (bucket){
+      muscles.push(bucket);
+    } else {
+      var libEntry = EXERCISE_LIBRARY_BY_NAME[key];
+      if (libEntry && libEntry.muscles.length) muscles = libEntry.muscles.slice();
+    }
+    var secondary = SECONDARY_MUSCLE_BUCKETS[key];
+    if (secondary){
+      secondary.forEach(function(m){ if (muscles.indexOf(m) === -1) muscles.push(m); });
+    }
+    return muscles;
+  }
+
+  // This week = Monday 00:00 through now. Returns one entry per
+  // MUSCLE_GROUP_TARGETS bucket (always present, even at zero sets) with
+  // its weekly set total and up to 3 most-recently-trained exercise
+  // names in that bucket, for the dashboard's tap-through chips.
+  function computeWeeklyMuscleVolume(){
+    var weekStartMs = mondayOf(new Date()).getTime();
+    var byBucket = {};
+    MUSCLE_GROUP_TARGETS.forEach(function(g){ byBucket[g.key] = { sets: 0, exLastSeen: {} }; });
+
+    state.sessions.forEach(function(s){
+      if (s.status !== 'done') return;
+      var t = new Date(s.finishedAt || s.date).getTime();
+      if (isNaN(t) || t < weekStartMs) return;
+      s.exercises.forEach(function(ex){
+        var setCount = ex.sets.length;
+        if (setCount === 0) return;
+        var buckets = bucketsForLoggedExercise(ex.name, ex.muscle);
+        buckets.forEach(function(bucketKey){
+          var b = byBucket[bucketKey];
+          if (!b) return;
+          b.sets += setCount;
+          var nameKey = ex.name.trim();
+          if (nameKey && (!b.exLastSeen[nameKey] || t > b.exLastSeen[nameKey])){
+            b.exLastSeen[nameKey] = t;
+          }
+        });
+      });
+    });
+
+    return MUSCLE_GROUP_TARGETS.map(function(g){
+      var b = byBucket[g.key];
+      var topExercises = Object.keys(b.exLastSeen).sort(function(a, c){
+        return b.exLastSeen[c] - b.exLastSeen[a];
+      }).slice(0, 3);
+      return { key: g.key, label: g.label, targetSets: g.targetSets, sets: b.sets, topExercises: topExercises };
+    });
+  }
+
+  // All exercise names logged this week for a given bucket, unioned with
+  // the library's own exercises for that bucket, restricted to names the
+  // user has actually logged at some point (allExerciseNames()) — this
+  // is the scoped list shown in the exercise dropdown after tapping a
+  // muscle bar, so the drill-down only ever offers real, chartable data.
+  function loggedExerciseNamesForBucket(bucketKey){
+    var logged = allExerciseNames();
+    return logged.filter(function(name){
+      var entry = state.sessions.reduce(function(found, s){
+        if (found) return found;
+        return s.exercises.find(function(e){ return e.name.trim() === name; }) || null;
+      }, null);
+      var fineMuscle = entry ? entry.muscle : null;
+      var buckets = bucketsForLoggedExercise(name, fineMuscle);
+      return buckets.indexOf(bucketKey) !== -1;
+    });
+  }
 
   // Equipment chip options for the exercise-search filter panel, in the
   // order they're shown. Kept as an explicit list (rather than derived
@@ -7725,29 +7994,77 @@
   /* =========================================================
      RENDER: PROGRESS TAB
      ========================================================= */
-  function renderProgress(){
-    var names = allExerciseNames();
-    var html = '';
-    if (names.length === 0){
-      html += '<div class="empty tab-empty-state"><div class="glyph">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                  '<path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path>' +
-                '</svg>' +
-              '</div>' +
-              '<p>Nothing to chart yet.<br>Log a few sessions and your progress will appear here.</p></div>';
-      document.getElementById('view').innerHTML = html;
-      return;
+  // Renders the "Muscle Groups Overview" dashboard — the Progress tab's
+  // default landing view. Each row is a weekly-volume bar for one bucket
+  // from MUSCLE_GROUP_TARGETS; tapping the row scopes the exercise
+  // deep-dive to that muscle, tapping one of its chips jumps straight to
+  // that specific exercise's trend line.
+  function renderMuscleGroupsOverviewHtml(){
+    var groups = computeWeeklyMuscleVolume();
+    var monday = mondayOf(new Date());
+    var sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 6);
+
+    var html = '<div class="mg-panel">';
+    html += '<div class="mg-panel-header"><h3>Muscle Groups Overview</h3>' +
+              '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+'</span></div>';
+
+    groups.forEach(function(g){
+      var pct = g.targetSets > 0 ? Math.min(100, Math.round((g.sets / g.targetSets) * 100)) : 0;
+      var met = g.sets >= g.targetSets;
+      html += '<div class="mg-row" data-action="open-muscle-drilldown" data-muscle="'+esc(g.key)+'">' +
+                '<div class="mg-row-head">' +
+                  '<span class="mg-row-name">'+esc(g.label)+'</span>' +
+                  '<span class="mg-row-count'+(met ? ' mg-met' : '')+'">'+g.sets+' / '+g.targetSets+' sets</span>' +
+                '</div>' +
+                '<div class="mg-bar-track"><div class="mg-bar-fill'+(met ? ' mg-met' : '')+'" style="width:'+pct+'%"></div></div>';
+      if (g.topExercises.length){
+        html += '<div class="mg-chips">';
+        g.topExercises.forEach(function(name){
+          html += '<button type="button" class="mg-chip" data-action="open-exercise-drilldown" data-name="'+esc(name)+'">'+esc(name)+'</button>';
+        });
+        html += '</div>';
+      } else {
+        html += '<div class="mg-empty-note">No sets logged this week</div>';
+      }
+      html += '</div>';
+    });
+
+    html += '</div>';
+    return html;
+  }
+
+  // The pre-existing per-exercise deep dive (1RM chart, tip, PR list),
+  // now scope-aware: when ui.progressMuscleScope is set (arrived via a
+  // muscle bar tap), the dropdown only lists exercises logged for that
+  // bucket and a banner offers to clear back to the full list. Returns
+  // { html, skipLock } — skipLock mirrors the original behavior of
+  // bypassing the Pro paywall blur for the "nothing logged yet" case.
+  function renderProgressExerciseView(names){
+    var html = '<button type="button" class="mg-back-link" data-action="back-to-muscle-dashboard">&#8592; Muscle Groups</button>';
+
+    var scope = ui.progressMuscleScope;
+    var scopedNames = names;
+    var scopeLabel = null;
+    if (scope){
+      var groupDef = MUSCLE_GROUP_TARGETS.find(function(g){ return g.key === scope; });
+      scopeLabel = groupDef ? groupDef.label : scope;
+      scopedNames = loggedExerciseNamesForBucket(scope);
+      html += '<div class="mg-scope-banner"><span>'+esc(scopeLabel)+' exercises</span>' +
+                '<button type="button" class="mg-scope-clear" data-action="clear-progress-muscle-scope">Show all exercises</button></div>';
     }
-    // Only counts as "using" the Progress tab (and starts the Basic-tier
-    // 3-free-days-per-month clock — see progressAccessState) once there's
-    // actually something loggable to view. Checked after the empty-account
-    // guard above so simply opening an empty tab doesn't burn a free day.
-    var access = progressAccessState();
-    if (!ui.progressExercise || names.indexOf(ui.progressExercise) === -1){
-      ui.progressExercise = names[0];
+
+    if (scope && scopedNames.length === 0){
+      html += '<div class="mg-scope-empty">You haven&rsquo;t logged any '+esc(scopeLabel)+' exercises yet.<br>Log one from the Log tab and it&rsquo;ll show up here.</div>';
+      return { html: html, skipLock: false };
     }
+
+    if (scope && scopedNames.indexOf(ui.progressExercise) === -1){
+      ui.progressExercise = scopedNames[0];
+    }
+
     html += '<select class="progress-select" data-action="select-progress-exercise">';
-    names.forEach(function(n){
+    scopedNames.forEach(function(n){
       html += '<option value="'+esc(n)+'" '+(n===ui.progressExercise?'selected':'')+'>'+esc(n)+'</option>';
     });
     html += '</select>';
@@ -7759,8 +8076,7 @@
                   '<path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path>' +
                 '</svg>' +
               '</div><p>No logged sets for this exercise yet.</p></div>';
-      document.getElementById('view').innerHTML = html;
-      return;
+      return { html: html, skipLock: true };
     }
 
     var best = points.reduce(function(a,b){ return b.e1rm > a.e1rm ? b : a; }, points[0]);
@@ -7807,7 +8123,42 @@
       });
     }
 
-    if (access.locked){
+    return { html: html, skipLock: false };
+  }
+
+  function renderProgress(){
+    var names = allExerciseNames();
+    var html = '';
+    if (names.length === 0){
+      html += '<div class="empty tab-empty-state"><div class="glyph">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path>' +
+                '</svg>' +
+              '</div>' +
+              '<p>Nothing to chart yet.<br>Log a few sessions and your progress will appear here.</p></div>';
+      document.getElementById('view').innerHTML = html;
+      return;
+    }
+    // Only counts as "using" the Progress tab (and starts the Basic-tier
+    // 3-free-days-per-month clock — see progressAccessState) once there's
+    // actually something loggable to view. Checked after the empty-account
+    // guard above so simply opening an empty tab doesn't burn a free day.
+    var access = progressAccessState();
+    if (!ui.progressExercise || names.indexOf(ui.progressExercise) === -1){
+      ui.progressExercise = names[0];
+    }
+    if (!ui.progressView) ui.progressView = 'dashboard';
+
+    var skipLock = false;
+    if (ui.progressView === 'exercise'){
+      var result = renderProgressExerciseView(names);
+      html += result.html;
+      skipLock = result.skipLock;
+    } else {
+      html += renderMuscleGroupsOverviewHtml();
+    }
+
+    if (access.locked && !skipLock){
       var lockHtml =
         '<div class="progress-lock-overlay">' +
           '<div class="progress-lock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>' +
@@ -10178,7 +10529,7 @@
     { tab: 'log', selector: '#restTimerHeaderBtn', title: 'Rest timer', text: 'Start a rest timer between sets. It keeps counting down even if you switch tabs.' },
     { tab: 'log', selector: '#notifBellBtn', title: 'Notifications', text: 'Trial status, reminders, and other updates show up here.' },
     { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Tap the \u22ee on any session to edit, repeat, or delete it.' },
-    { tab: 'progress', selector: '.progress-select', fallback: '#view', title: 'Progress', text: 'Track your estimated 1-rep max and trend over time for any exercise you\u2019ve logged.' },
+    { tab: 'progress', selector: '.mg-panel', fallback: '#view', title: 'Progress', text: 'See your weekly set volume per muscle group at a glance \u2014 tap a bar to drill into 1RM trend lines for exercises in that group.' },
     { tab: 'settings', selector: '[data-action="open-bodyweight-picker"]', fallback: '#view', title: 'Bodyweight & goal', text: 'Set these once \u2014 they power real load tracking on bodyweight exercises and shape how Pro Tips suggests your next set.' },
     { tab: 'settings', selector: '.accent-theme-picker', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
     { tab: 'settings', selector: '.card-bg-picker', fallback: '#view', title: 'Card style', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
@@ -10732,6 +11083,22 @@
       renderApp();
     } else if (action === 'open-history-date-range'){
       openHistoryDateRange();
+    } else if (action === 'open-muscle-drilldown'){
+      ui.progressMuscleScope = el.dataset.muscle;
+      ui.progressView = 'exercise';
+      renderApp();
+    } else if (action === 'open-exercise-drilldown'){
+      ui.progressExercise = el.dataset.name;
+      ui.progressMuscleScope = null;
+      ui.progressView = 'exercise';
+      renderApp();
+    } else if (action === 'back-to-muscle-dashboard'){
+      ui.progressView = 'dashboard';
+      ui.progressMuscleScope = null;
+      renderApp();
+    } else if (action === 'clear-progress-muscle-scope'){
+      ui.progressMuscleScope = null;
+      renderApp();
     } else if (action === 'edit-exercise-name'){
       openRenameExerciseConfirm(el.dataset.ex);
     } else if (action === 'cancel-exercise-name'){
