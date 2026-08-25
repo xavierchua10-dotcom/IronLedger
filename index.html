@@ -715,7 +715,14 @@
     color:var(--text);
   }
   .exercise-card.collapsed{padding:0;}
-  .exercise-card.just-added, .he-exercise-card.just-added, .add-set-row.just-added{
+  .exercise-card.just-added, .he-exercise-card.just-added{
+    animation:exerciseAddedGlow 900ms ease-out;
+  }
+  /* Each box in the Add Set row glows individually (kg input, reps
+     input, checkmark, X) rather than one glow around the whole row. */
+  .add-set-row.just-added input,
+  .add-set-row.just-added .add-set-btn,
+  .add-set-row.just-added .cancel-edit-btn{
     animation:exerciseAddedGlow 900ms ease-out;
   }
   @keyframes exerciseAddedGlow{
