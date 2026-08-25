@@ -7056,18 +7056,17 @@
           '<button class="'+(cycle==='monthly'?'active':'')+'" data-action="set-billing-cycle" data-cycle="monthly">Monthly</button>' +
           '<button class="'+(cycle==='annual'?'active':'')+'" data-action="set-billing-cycle" data-cycle="annual">Annual<span class="bt-save">-42%</span></button>' +
         '</div>' +
-        (cycle === 'monthly'
-          ? '<div class="price-card">' +
-              '<div class="price-card-amount">$'+PRICE_MONTHLY.toFixed(2)+'<span>/month</span></div>' +
-              '<div class="price-card-sub">Cancel anytime</div>' +
-              '<button class="price-cta-btn" data-action="start-checkout" data-plan="monthly">Start Monthly \u2014 $'+PRICE_MONTHLY.toFixed(2)+'/mo</button>' +
-            '</div>'
-          : '<div class="price-card featured">' +
-              '<div class="price-savings-badge">Save ~42% \u00b7 5 months free</div>' +
-              '<div class="price-card-amount">$'+PRICE_ANNUAL.toFixed(2)+'<span>/year</span></div>' +
-              '<div class="price-card-sub">$'+(PRICE_ANNUAL/12).toFixed(2)+'/mo billed annually</div>' +
-              '<button class="price-cta-btn" data-action="start-checkout" data-plan="annual">Start Annual \u2014 $'+PRICE_ANNUAL.toFixed(2)+'/yr</button>' +
-            '</div>') +
+        '<div class="price-card" id="priceCardMonthly">' +
+          '<div class="price-card-amount">$'+PRICE_MONTHLY.toFixed(2)+'<span>/month</span></div>' +
+          '<div class="price-card-sub">Cancel anytime</div>' +
+          '<button class="price-cta-btn" data-action="start-checkout" data-plan="monthly">Start Monthly \u2014 $'+PRICE_MONTHLY.toFixed(2)+'/mo</button>' +
+        '</div>' +
+        '<div class="price-card featured" id="priceCardAnnual">' +
+          '<div class="price-savings-badge">Save ~42% \u00b7 5 months free</div>' +
+          '<div class="price-card-amount">$'+PRICE_ANNUAL.toFixed(2)+'<span>/year</span></div>' +
+          '<div class="price-card-sub">$'+(PRICE_ANNUAL/12).toFixed(2)+'/mo billed annually</div>' +
+          '<button class="price-cta-btn" data-action="start-checkout" data-plan="annual">Start Annual \u2014 $'+PRICE_ANNUAL.toFixed(2)+'/yr</button>' +
+        '</div>' +
         '<div class="paywall-note">Secure checkout via Stripe. Manage or cancel anytime.</div>' +
       '</div>';
   }
@@ -10997,6 +10996,8 @@
       var c = el.dataset.cycle;
       ui.billingCycle = (c === 'annual') ? c : 'monthly';
       renderPricingPanel();
+      var targetCard = document.getElementById(c === 'annual' ? 'priceCardAnnual' : 'priceCardMonthly');
+      if (targetCard) targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else if (el.dataset.action === 'start-checkout'){
       var p = el.dataset.plan;
       startCheckout((p === 'annual') ? p : 'monthly');
