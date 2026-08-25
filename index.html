@@ -5281,70 +5281,77 @@
      MUSCLE GROUPS OVERVIEW — data tables
      Backs the Progress tab's weekly volume dashboard. Kept separate
      from EXERCISE_LIBRARY itself so the browse-by-muscle picker above
-     is unaffected — these just describe how that same library rolls
-     up into the broader dashboard buckets.
+     is unaffected. One bar per EXERCISE_LIBRARY category — nothing
+     gets folded together (e.g. Biceps/Triceps/Forearms each get their
+     own bar instead of a combined "Arms"), so the overview matches the
+     same muscle breakdown used everywhere else in the app.
      ========================================================= */
-  // Every fine-grained EXERCISE_LIBRARY category folds into exactly one
-  // of the six dashboard buckets below. Traps folds into Back;
-  // Biceps/Triceps/Forearms fold into Arms; Quads/Hamstrings/Glutes/
-  // Calves fold into Legs — matching how most lifters think about a
-  // split, even though the exercise picker itself stays fine-grained.
+  // The one non-obvious case: "Shoulder/Trap" is an inline override used
+  // by a couple of Traps-category items (Upright Rows) — folded into
+  // Shoulders since that's their primary mover. Every other
+  // EXERCISE_LIBRARY category maps to itself.
   var MUSCLE_GROUP_TO_BUCKET = {
     Chest: 'Chest',
     Back: 'Back',
-    Traps: 'Back',
+    Traps: 'Traps',
     Shoulders: 'Shoulders',
     'Shoulder/Trap': 'Shoulders',
-    Biceps: 'Arms',
-    Triceps: 'Arms',
-    Forearms: 'Arms',
-    Abs: 'Core',
-    Quads: 'Legs',
-    Hamstrings: 'Legs',
-    Glutes: 'Legs',
-    Calves: 'Legs'
+    Biceps: 'Biceps',
+    Triceps: 'Triceps',
+    Forearms: 'Forearms',
+    Abs: 'Abs',
+    Quads: 'Quads',
+    Hamstrings: 'Hamstrings',
+    Glutes: 'Glutes',
+    Calves: 'Calves'
   };
 
-  // Display order + weekly set targets for the dashboard bars. 10-12
-  // working sets/muscle/week is a commonly-cited hypertrophy guideline;
-  // Back and Legs get a slightly higher target since more/larger
-  // muscles share that bucket. Easy to retune per group here.
+  // Display order + weekly set targets for the dashboard bars, one per
+  // muscle "part" rather than a combined region. Smaller/isolation-heavy
+  // groups (Traps, Forearms, Calves) get a lower target than the larger
+  // compound-heavy ones (Chest, Back, Quads). Easy to retune per group.
   var MUSCLE_GROUP_TARGETS = [
-    { key: 'Chest',     label: 'Chest',     targetSets: 12 },
-    { key: 'Back',      label: 'Back',      targetSets: 14 },
-    { key: 'Shoulders', label: 'Shoulders', targetSets: 12 },
-    { key: 'Arms',      label: 'Arms',      targetSets: 12 },
-    { key: 'Legs',      label: 'Legs',      targetSets: 14 },
-    { key: 'Core',      label: 'Core',      targetSets: 10 }
+    { key: 'Chest',      label: 'Chest',      targetSets: 12 },
+    { key: 'Back',       label: 'Back',       targetSets: 14 },
+    { key: 'Traps',      label: 'Traps',      targetSets: 8  },
+    { key: 'Shoulders',  label: 'Shoulders',  targetSets: 12 },
+    { key: 'Biceps',     label: 'Biceps',     targetSets: 10 },
+    { key: 'Triceps',    label: 'Triceps',    targetSets: 10 },
+    { key: 'Forearms',   label: 'Forearms',   targetSets: 6  },
+    { key: 'Abs',        label: 'Abs',        targetSets: 10 },
+    { key: 'Quads',      label: 'Quads',      targetSets: 12 },
+    { key: 'Hamstrings', label: 'Hamstrings', targetSets: 10 },
+    { key: 'Glutes',     label: 'Glutes',     targetSets: 10 },
+    { key: 'Calves',     label: 'Calves',     targetSets: 10 }
   ];
 
-  // A handful of well-known compounds load a clear second bucket beyond
+  // A handful of well-known compounds load a clear second muscle beyond
   // their primary EXERCISE_LIBRARY category — e.g. Bench Press is
-  // Chest-primary but loads Arms (triceps) hard too. Anything not listed
-  // here just counts toward its single primary bucket. Keyed by lowercase
+  // Chest-primary but loads Triceps hard too. Anything not listed here
+  // just counts toward its single primary bucket. Keyed by lowercase
   // exercise name; values are additional bucket keys from the list above.
   var SECONDARY_MUSCLE_BUCKETS = {
-    'barbell bench press': ['Arms'],
-    'dumbbell bench press': ['Arms'],
-    'machine bench press': ['Arms'],
-    'barbell incline bench press': ['Arms'],
-    'dumbbell incline bench press': ['Arms'],
-    'barbell decline bench press': ['Arms'],
-    'dumbbell decline bench press': ['Arms'],
-    'dips': ['Arms'],
-    'push-ups': ['Arms'],
-    'barbell shoulder press': ['Arms'],
-    'dumbbell shoulder press': ['Arms'],
-    'machine shoulder press': ['Arms'],
-    'arnold press': ['Arms'],
-    'pull-ups': ['Arms'],
-    'lat pulldown': ['Arms'],
-    'undergrip lat pulldown': ['Arms'],
-    'barbell row': ['Arms'],
-    'dumbbell row': ['Arms'],
-    'seated cable row': ['Arms'],
-    'deadlift': ['Legs'],
-    'sumo deadlift': ['Legs'],
+    'barbell bench press': ['Triceps'],
+    'dumbbell bench press': ['Triceps'],
+    'machine bench press': ['Triceps'],
+    'barbell incline bench press': ['Triceps'],
+    'dumbbell incline bench press': ['Triceps'],
+    'barbell decline bench press': ['Triceps'],
+    'dumbbell decline bench press': ['Triceps'],
+    'dips': ['Triceps'],
+    'push-ups': ['Triceps'],
+    'barbell shoulder press': ['Triceps'],
+    'dumbbell shoulder press': ['Triceps'],
+    'machine shoulder press': ['Triceps'],
+    'arnold press': ['Triceps'],
+    'pull-ups': ['Biceps'],
+    'lat pulldown': ['Biceps'],
+    'undergrip lat pulldown': ['Biceps'],
+    'barbell row': ['Biceps'],
+    'dumbbell row': ['Biceps'],
+    'seated cable row': ['Biceps'],
+    'deadlift': ['Hamstrings'],
+    'sumo deadlift': ['Glutes'],
     'barbell romanian deadlift': ['Back'],
     'dumbbell romanian deadlift': ['Back'],
     'stiff-leg deadlift': ['Back'],
