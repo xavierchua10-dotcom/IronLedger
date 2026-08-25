@@ -2942,6 +2942,12 @@
   }
   .mg-mode-btn.active{background:var(--accent);color:#1c1408;}
   .mg-mode-btn:active{opacity:0.85;}
+  .mg-mode-desc{
+    font-size:11.5px;
+    line-height:1.5;
+    color:#9198a1;
+    margin:-6px 0 14px;
+  }
   .mg-row{padding:10px 0;cursor:pointer;}
   .mg-row + .mg-row{border-top:1px solid rgba(255,255,255,0.08);}
   .mg-row:active{opacity:0.85;}
@@ -5389,12 +5395,14 @@
     {
       key: 'regular',
       badge: 'REGULAR',
+      description: 'Standard — more exercises and sets spread through the week to reach weekly volume.',
       greenMinSets: 10,
       caps: { Chest: 20, Back: 20, Shoulders: 15, Arms: 15, Legs: 20, Core: 15 }
     },
     {
       key: 'intensity',
       badge: 'INTENSITY',
+      description: 'Advanced — fewer, harder sets that prioritize intensity over chasing high volume.',
       greenMinSets: 3,
       caps: { Chest: 10, Back: 10, Shoulders: 8, Arms: 8, Legs: 10 }
     }
@@ -8124,6 +8132,10 @@
       html += '<button type="button" class="mg-mode-btn'+(active ? ' active' : '')+'" data-action="set-progress-overview-mode" data-mode="'+esc(p.key)+'">'+esc(p.badge)+'</button>';
     });
     html += '</div>';
+
+    if (activeProfile.description){
+      html += '<div class="mg-mode-desc">'+esc(activeProfile.description)+'</div>';
+    }
 
     html += renderMuscleOverviewRows(activeProfile, weeklyData);
 
