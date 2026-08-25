@@ -2899,16 +2899,8 @@
   .mg-panel{
     background-color:var(--panel);
     background-image:linear-gradient(180deg, rgba(8,9,11,0.75), rgba(8,9,11,0.92)), url('images/muscle-overview-bg.jpg');
-    /* Two layers, two sizing rules: the gradient still just covers
-       whatever height the panel ends up (Regular has 6 rows incl. Core,
-       Intensity has 5 — no Core — so panel height differs by mode).
-       The photo layer is locked to 100% width / proportional height
-       instead of `cover`, so its scale depends only on the panel's
-       width (constant either mode) and never on that row-count-driven
-       height difference — otherwise the taller Regular panel forced
-       `cover` to zoom the figure in more than Intensity showed it. */
-    background-size:cover, 100% auto;
-    background-position:center, top center;
+    background-size:cover;
+    background-position:center;
     background-repeat:no-repeat;
     border:1px solid var(--line);
     border-radius:var(--radius);
@@ -5432,7 +5424,7 @@
       badge: 'INTENSITY',
       description: 'Advanced — fewer, harder sets that prioritize intensity over chasing high volume.',
       greenMinSets: 3,
-      caps: { Chest: 10, Back: 10, Shoulders: 8, Arms: 8, Legs: 10 }
+      caps: { Chest: 10, Back: 10, Shoulders: 8, Arms: 8, Legs: 10, Core: 8 }
     }
   ];
 
