@@ -2915,12 +2915,6 @@
     font-size:11px;
     color:#c7ccd3;
   }
-  .mg-panel-note{
-    font-size:11px;
-    line-height:1.5;
-    color:#9198a1;
-    margin:-8px 0 14px;
-  }
   .mg-row{padding:10px 0;cursor:pointer;}
   .mg-row + .mg-row{border-top:1px solid rgba(255,255,255,0.08);}
   .mg-row:active{opacity:0.85;}
@@ -5324,13 +5318,6 @@
     { key: 'Core',      label: 'Core',      targetSets: 10 }
   ];
 
-  // A set only counts toward the weekly muscle bars if it's at least this
-  // fraction of your current best e1RM for that exercise. Filters out
-  // warm-ups and light backoff sets so low-volume/high-intensity training
-  // still fills the bar on real working sets, instead of needing a high
-  // set count regardless of how heavy they were. Easy to retune.
-  var HARD_SET_MIN_INTENSITY = 0.75;
-
   // A handful of well-known compounds load a clear second bucket beyond
   // their primary EXERCISE_LIBRARY category — e.g. Bench Press is
   // Chest-primary but loads Arms (triceps) hard too. Anything not listed
@@ -5407,33 +5394,12 @@
     return muscles;
   }
 
-  // Best-ever estimated 1RM per exercise name (across all logged sets,
-  // any session status), used as the "100%" baseline each set's intensity
-  // gets measured against below. Computed once per dashboard render
-  // rather than re-scanning history per set.
-  function bestE1RMAllTimeByExercise(){
-    var map = {};
-    state.sessions.forEach(function(s){
-      s.exercises.forEach(function(ex){
-        var key = ex.name.trim().toLowerCase();
-        ex.sets.forEach(function(st){
-          var val = e1rm(effectiveLoadKg(ex.name, st.weightKg), st.reps);
-          if (!map[key] || val > map[key]) map[key] = val;
-        });
-      });
-    });
-    return map;
-  }
-
-  // This week = Monday 00:00 through now. Only sets at or above
-  // HARD_SET_MIN_INTENSITY of that exercise's best-ever e1RM count toward
-  // the bar — see the constant above. Returns one entry per
-  // MUSCLE_GROUP_TARGETS bucket (always present, even at zero) with its
-  // weekly hard-set total and up to 3 most-recently-trained exercise
+  // This week = Monday 00:00 through now. Returns one entry per
+  // MUSCLE_GROUP_TARGETS bucket (always present, even at zero sets) with
+  // its weekly set total and up to 3 most-recently-trained exercise
   // names in that bucket, for the dashboard's tap-through chips.
   function computeWeeklyMuscleVolume(){
     var weekStartMs = mondayOf(new Date()).getTime();
-    var bestE1RMByName = bestE1RMAllTimeByExercise();
     var byBucket = {};
     MUSCLE_GROUP_TARGETS.forEach(function(g){ byBucket[g.key] = { sets: 0, exLastSeen: {} }; });
 
@@ -5442,23 +5408,13 @@
       var t = new Date(s.finishedAt || s.date).getTime();
       if (isNaN(t) || t < weekStartMs) return;
       s.exercises.forEach(function(ex){
-        if (ex.sets.length === 0) return;
-        var bestE1RM = bestE1RMByName[ex.name.trim().toLowerCase()] || 0;
-        var hardSetCount = 0;
-        ex.sets.forEach(function(st){
-          var setE1RM = e1rm(effectiveLoadKg(ex.name, st.weightKg), st.reps);
-          // No baseline yet (first time this exercise has ever been
-          // logged) — count it rather than dividing by zero and
-          // silently dropping someone's very first working sets.
-          var intensity = bestE1RM > 0 ? (setE1RM / bestE1RM) : 1;
-          if (intensity >= HARD_SET_MIN_INTENSITY) hardSetCount++;
-        });
-        if (hardSetCount === 0) return;
+        var setCount = ex.sets.length;
+        if (setCount === 0) return;
         var buckets = bucketsForLoggedExercise(ex.name, ex.muscle);
         buckets.forEach(function(bucketKey){
           var b = byBucket[bucketKey];
           if (!b) return;
-          b.sets += hardSetCount;
+          b.sets += setCount;
           var nameKey = ex.name.trim();
           if (nameKey && (!b.exLastSeen[nameKey] || t > b.exLastSeen[nameKey])){
             b.exLastSeen[nameKey] = t;
@@ -8052,7 +8008,6 @@
     var html = '<div class="mg-panel">';
     html += '<div class="mg-panel-header"><h3>Muscle Groups Overview</h3>' +
               '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+'</span></div>';
-    html += '<div class="mg-panel-note">Counts working sets at 75%+ of your best e1RM for that lift &mdash; light warm-ups don&rsquo;t count, so fewer heavy sets still fill the bar.</div>';
 
     groups.forEach(function(g){
       var pct = g.targetSets > 0 ? Math.min(100, Math.round((g.sets / g.targetSets) * 100)) : 0;
@@ -8060,7 +8015,7 @@
       html += '<div class="mg-row" data-action="open-muscle-drilldown" data-muscle="'+esc(g.key)+'">' +
                 '<div class="mg-row-head">' +
                   '<span class="mg-row-name">'+esc(g.label)+'</span>' +
-                  '<span class="mg-row-count'+(met ? ' mg-met' : '')+'">'+g.sets+' / '+g.targetSets+' hard sets</span>' +
+                  '<span class="mg-row-count'+(met ? ' mg-met' : '')+'">'+g.sets+' / '+g.targetSets+' sets</span>' +
                 '</div>' +
                 '<div class="mg-bar-track"><div class="mg-bar-fill'+(met ? ' mg-met' : '')+'" style="width:'+pct+'%"></div></div>';
       if (g.topExercises.length){
@@ -8070,7 +8025,7 @@
         });
         html += '</div>';
       } else {
-        html += '<div class="mg-empty-note">No hard sets logged this week</div>';
+        html += '<div class="mg-empty-note">No sets logged this week</div>';
       }
       html += '</div>';
     });
