@@ -10716,6 +10716,13 @@
     var session = getActiveSession();
     if (!session) return;
     session.exercises = [];
+    // A reset is meant to be a genuinely blank slate — without this, the
+    // session still remembered which past session it was "repeating",
+    // so re-adding an exercise with the same name afterward would silently
+    // resurface that old session's reference data (the gold reference
+    // button) even though the user had just wiped everything and started
+    // fresh.
+    delete session.repeatedFromId;
     ui.editingSet = null;
     ui.editingExerciseName = null;
     ui.expandedAddSet = {};
