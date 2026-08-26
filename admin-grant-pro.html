@@ -101,10 +101,13 @@
     getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider,
     onAuthStateChanged, signOut
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    getFunctions, httpsCallable
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
 
   // Same public config already visible in index.html's own source —
   // safe to reuse, it's not a secret (the real gate is server-side,
-  // see grant-pro.js).
+  // see the grantPro Cloud Function).
   const firebaseConfig = {
     apiKey: "AIzaSyA5zTxIK6Yn81BZ03_rlUUgWjGBkbtL2Wo",
     authDomain: "iron-ledge.firebaseapp.com",
@@ -114,19 +117,20 @@
     appId: "1:978680753798:web:13fdbdb6b4bd3dbc72ab07"
   };
 
-  // Client-side check only, for a clean "not authorized" screen
-  // instead of a confusing error. NOT the real security boundary —
-  // that's the server-side check in grant-pro.js, which can't be
-  // bypassed by editing this page's JS.
+  // Client-side check only, for a clean "not authorized" screen instead
+  // of a confusing error. NOT the real security boundary — that's the
+  // server-side check inside the grantPro Cloud Function, which can't
+  // be bypassed by editing this page's JS.
   const ADMIN_EMAIL = 'xavierchua10@gmail.com';
-
-  // Update this if grant-pro.js ever ends up deployed somewhere other
-  // than your existing functions site.
-  const GRANT_PRO_ENDPOINT = 'https://ubiquitous-gaufre-bcda53.netlify.app/.netlify/functions/grant-pro';
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const googleProvider = new GoogleAuthProvider();
+  const functions = getFunctions(app);
+  // httpsCallable attaches and the platform verifies the caller's own
+  // ID token automatically — no manual getIdToken()/Authorization
+  // header needed here anymore.
+  const grantProFn = httpsCallable(functions, 'grantPro');
 
   const loginCard = document.getElementById('loginCard');
   const deniedCard = document.getElementById('deniedCard');
@@ -206,33 +210,22 @@
     btn.disabled = true;
     btn.textContent = 'Granting\u2026';
 
-    auth.currentUser.getIdToken().then(function(idToken){
-      return fetch(GRANT_PRO_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: clientEmail,
-          plan: plan === 'custom' ? null : plan,
-          customDays: plan === 'custom' ? customDays : null
-        })
-      });
-    }).then(function(res){
-      return res.json().then(function(data){ return { ok: res.ok, data: data }; });
+    grantProFn({
+      email: clientEmail,
+      plan: plan === 'custom' ? null : plan,
+      customDays: plan === 'custom' ? customDays : null
     }).then(function(result){
       btn.disabled = false;
       btn.textContent = 'Grant Pro';
-      if (result.ok && result.data.ok){
-        var endDate = new Date(result.data.currentPeriodEnd).toLocaleDateString();
-        showSuccess(resultMsg, 'Pro granted for ' + result.data.email + ' \u2014 ' + result.data.daysGranted + ' days, until ' + endDate + '.');
-        document.getElementById('clientEmail').value = '';
-        document.getElementById('customDays').value = '';
-      } else {
-        showError(resultMsg, (result.data && result.data.error) || 'Something went wrong.');
-      }
+      var data = result.data;
+      var endDate = new Date(data.currentPeriodEnd).toLocaleDateString();
+      showSuccess(resultMsg, 'Pro granted for ' + data.email + ' \u2014 ' + data.daysGranted + ' days, until ' + endDate + '.');
+      document.getElementById('clientEmail').value = '';
+      document.getElementById('customDays').value = '';
     }).catch(function(err){
       btn.disabled = false;
       btn.textContent = 'Grant Pro';
-      showError(resultMsg, 'Request failed \u2014 check your connection and try again.');
+      showError(resultMsg, (err && err.message) || 'Something went wrong.');
       console.error('Grant Pro request failed:', err);
     });
   });
