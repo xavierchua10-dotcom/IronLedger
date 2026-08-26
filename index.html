@@ -2895,7 +2895,7 @@
     font-size:12px;
     padding:22px 10px;
   }
-  /* ---------- Progress: Muscle Groups Overview dashboard ---------- */
+  /* ---------- Progress: Muscle Volume Overview dashboard ---------- */
   .mg-panel{
     background-color:var(--panel);
     background-image:linear-gradient(180deg, rgba(8,9,11,0.75), rgba(8,9,11,0.92)), url('images/muscle-overview-bg.jpg');
@@ -4142,7 +4142,7 @@
     historyDateRangeDraft: {start:'', end:''}, // draft start/end while the picker is open, discarded on Cancel
     historyDateRangeError: null,  // validation message shown in the date-range picker, if any
     progressExercise: null,
-    progressView: 'dashboard',    // 'dashboard' (Muscle Groups Overview) | 'exercise' (the existing 1RM/trendline deep-dive)
+    progressView: 'dashboard',    // 'dashboard' (Muscle Volume Overview) | 'exercise' (the existing 1RM/trendline deep-dive)
     progressMuscleScope: null,    // bucket key (e.g. 'Chest') narrowing the exercise dropdown when drilled in from a muscle bar; null = unscoped
     progressOverviewMode: 'regular', // 'regular' | 'intensity' — which Muscle Overview profile's caps/rows are showing
     showMuscleMap: false,
@@ -5404,7 +5404,7 @@
     { key: 'Core',      label: 'Core' }
   ];
 
-  // The two Muscle Groups Overview panels. Both read the exact same
+  // The two Muscle Volume Overview panels. Both read the exact same
   // weekly set counts (computeWeeklyMuscleVolume) — only the cap per
   // muscle and the "green" floor differ, so someone can see the same
   // week's sets scored against a higher-volume view and a fewer-harder-
@@ -8143,7 +8143,7 @@
     var activeProfile = MUSCLE_OVERVIEW_PROFILES.filter(function(p){ return p.key === ui.progressOverviewMode; })[0] || MUSCLE_OVERVIEW_PROFILES[0];
 
     var html = '<div class="mg-panel">';
-    html += '<div class="mg-panel-header"><h3>Muscle Groups Overview</h3>' +
+    html += '<div class="mg-panel-header"><h3>Muscle Volume Overview</h3>' +
               '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+'</span></div>';
 
     html += '<div class="mg-mode-toggle">';
@@ -8295,7 +8295,7 @@
         '<div class="progress-lock-overlay">' +
           '<div class="progress-lock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>' +
           '<div class="progress-lock-title">Progress is a Pro feature</div>' +
-          '<div class="progress-lock-sub">Track your estimated 1-rep max, PRs, and trend lines for every exercise — plus a weekly Muscle Groups Overview of your set volume per muscle — available on Pro or during your free trial.</div>' +
+          '<div class="progress-lock-sub">Track your estimated 1-rep max, PRs, and trend lines for every exercise — plus a weekly Muscle Volume Overview of your set volume per muscle — available on Pro or during your free trial.</div>' +
           '<button class="progress-lock-cta" data-action="open-pricing"><span><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="vertical-align:-2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg></span> ' + (state.currentAccount === 'guest' ? 'Create an account to go Pro' : 'See Pro plans') + '</button>' +
         '</div>';
       html = '<div class="progress-tab-wrap"><div class="progress-blur">' + html + '</div>' + lockHtml + '</div>';
