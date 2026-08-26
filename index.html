@@ -2831,16 +2831,32 @@
   /* ---------- Progress lock (Basic tier, 3-day/month window) ---------- */
   .progress-tab-wrap{position:relative;}
   .progress-blur{
-    filter:blur(5px);
+    filter:blur(6px);
     user-select:none;
     pointer-events:none;
-    -webkit-mask-image:linear-gradient(to bottom, #000 0%, #000 25%, transparent 90%);
-    mask-image:linear-gradient(to bottom, #000 0%, #000 25%, transparent 90%);
+  }
+  .progress-dim{
+    position:absolute;
+    inset:0;
+    background:rgba(14,15,18,0.55);
+    pointer-events:none;
+    z-index:1;
   }
   .progress-lock-overlay{
-    position:absolute;inset:0;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;text-align:center;padding:28px 20px;
-    background:rgba(20,22,26,0.62);border-radius:var(--radius);
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;
+    padding:28px 24px;
+    width:calc(100% - 56px);
+    max-width:320px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    box-shadow:0 14px 36px rgba(0,0,0,0.5);
+    z-index:6;
   }
   .progress-lock-icon{color:var(--accent);margin-bottom:10px;display:flex;justify-content:center;}
   .progress-lock-icon svg{width:30px;height:30px;}
@@ -8534,7 +8550,7 @@
           '<div class="progress-lock-sub">Track your estimated 1-rep max, PRs, and trend lines for every exercise — plus a weekly Muscle Volume Overview of your set volume per muscle — available on Pro or during your free trial.</div>' +
           '<button class="progress-lock-cta" data-action="open-pricing"><span><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="vertical-align:-2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg></span> ' + (state.currentAccount === 'guest' ? 'Create an account to go Pro' : 'See Pro plans') + '</button>' +
         '</div>';
-      html = '<div class="progress-tab-wrap"><div class="progress-blur">' + html + '</div>' + lockHtml + '</div>';
+      html = '<div class="progress-tab-wrap"><div class="progress-blur">' + html + '</div><div class="progress-dim"></div>' + lockHtml + '</div>';
     }
 
     document.getElementById('view').innerHTML = html;
