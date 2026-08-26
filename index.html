@@ -3826,6 +3826,9 @@
   import {
     getMessaging, getToken, onMessage, isSupported as isMessagingSupported
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
+  import {
+    getFunctions, httpsCallable
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
 
   // ---- PASTE YOUR FIREBASE PROJECT CONFIG HERE ----
   // Firebase console → Project settings → Your apps → SDK setup and config
@@ -3842,6 +3845,7 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const cloudFunctions = getFunctions(app);
   const googleProvider = new GoogleAuthProvider();
 
   // Lets writes/reads queue locally and sync automatically when back
@@ -3942,11 +3946,19 @@
     onAuthChange: function(cb){
       return onAuthStateChanged(auth, cb);
     },
-    // Used only to call the send-trial-email Netlify function — proves
-    // to that function this request really came from a logged-in
-    // Firebase user, so it can't be used to spam arbitrary addresses.
-    getIdToken: function(){
-      return auth.currentUser ? auth.currentUser.getIdToken() : Promise.resolve(null);
+    // Thin wrappers around the Cloud Functions the app calls directly —
+    // httpsCallable attaches and the platform verifies the caller's ID
+    // token automatically, so there's no manual Authorization header or
+    // token-fetching needed here (unlike the old Netlify versions, which
+    // lived on a different origin and had to handle that by hand).
+    callTrialEmail: function(){
+      return httpsCallable(cloudFunctions, 'sendTrialEmail')().then(function(res){ return res.data; });
+    },
+    callPortalSession: function(returnUrl){
+      return httpsCallable(cloudFunctions, 'createPortalSession')({ returnUrl: returnUrl }).then(function(res){ return res.data; });
+    },
+    callWelcomePush: function(){
+      return httpsCallable(cloudFunctions, 'sendWelcomePush')().then(function(res){ return res.data; });
     },
     // NOTE: merge:true is essential here — this doc also holds tier/
     // subscription/trial fields (see ensureUserDoc below). A plain
@@ -4145,34 +4157,24 @@
   var PRICE_ANNUAL = 34.99;
   // ---- PASTE YOUR STRIPE PAYMENT LINKS HERE ----
   // Stripe Dashboard → Payment Links → one for Monthly ($4.99/mo), one
-  // for Annual ($34.99/yr). Quarterly was retired — two clean tiers
-  // convert better than three for an app with no reviews/brand trust yet.
   // client_reference_id is appended automatically so the checkout can
   // be tied back to the Firebase uid.
-  // IMPORTANT: actually granting Pro after a successful payment must
-  // happen server-side — a Stripe webhook + a Cloud Function (Admin SDK)
-  // that writes subscription.currentPeriodEnd on /users/{uid}. Client
-  // code can never be trusted to grant itself Pro (see security rules).
+  // Pro-granting after a successful payment happens server-side, via
+  // stripeWebhook in the Firebase Cloud Functions project (Iron-Ledge-
+  // Webhook repo) — it writes subscription.currentPeriodEnd on
+  // /users/{uid}. Client code can never be trusted to grant itself Pro
+  // (see security rules). The trial-email, portal-session, and welcome-
+  // push calls below are the other three functions in that same
+  // project, called via window.SaviorFirebase.call*() (see the Firebase
+  // module script) rather than a raw endpoint URL — Cloud Functions'
+  // callable protocol handles auth automatically.
   var STRIPE_LINK_MONTHLY = 'https://buy.stripe.com/5kQ00lbrDbsD9Jl0gO4wM09';
   var STRIPE_LINK_ANNUAL = 'https://buy.stripe.com/14A6oJ3Zb40b4p1gfM4wM0a';
-  // The same Netlify site the Stripe webhook lives on, one function
-  // over — sends the "your free trial has started" email. Update this
-  // if the webhook's site URL ever changes (e.g. a new Netlify site).
-  var TRIAL_EMAIL_ENDPOINT = 'https://ubiquitous-gaufre-bcda53.netlify.app/.netlify/functions/send-trial-email';
-  // Same Netlify site, one more function — opens Stripe's own hosted
-  // Customer Portal so a paying user can cancel/switch plans/update
-  // their card themselves, without messaging Xavier directly.
-  var PORTAL_ENDPOINT = 'https://ubiquitous-gaufre-bcda53.netlify.app/.netlify/functions/create-portal-session';
   // Firebase console → Project settings → Cloud Messaging → Web Push
   // certificates → generate/copy the key pair. Required before push
   // notifications can be enabled; requestPushToken() silently resolves
   // to null without a real key here.
   var FCM_VAPID_KEY = 'BBEwAFY4aYKpnWMsgo2bGe1X4jKT_32UtP_SBcOTfyJHhvE_LcRdQxe6l9HppjC_dULjIlutaYC-S_m7j347NlM';
-  // Same Netlify site, one more function — sends the one-time "welcome"
-  // push right after a brand-new account is created (see enterAccount).
-  // Needs to be added to the Netlify functions folder; it isn't built
-  // yet as of this comment. See setup notes for its expected shape.
-  var WELCOME_PUSH_ENDPOINT = 'https://ubiquitous-gaufre-bcda53.netlify.app/.netlify/functions/send-welcome-push';
 
   // ---- Preset profile icons (no upload — just a small built-in set) ----
   var DEFAULT_AVATAR = 'dumbbell';
@@ -7438,14 +7440,8 @@
   // and any failure here is just logged, not surfaced to the user (an
   // unsent welcome email isn't worth interrupting them over).
   function sendTrialStartEmail(){
-    if (!window.SaviorFirebase || !window.SaviorFirebase.getIdToken || !TRIAL_EMAIL_ENDPOINT) return;
-    window.SaviorFirebase.getIdToken().then(function(token){
-      if (!token) return;
-      return fetch(TRIAL_EMAIL_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-    }).catch(function(err){
+    if (!window.SaviorFirebase || !window.SaviorFirebase.callTrialEmail) return;
+    window.SaviorFirebase.callTrialEmail().catch(function(err){
       console.error('Trial-start email request failed:', err);
     });
   }
@@ -7479,19 +7475,12 @@
   // accounts have no Stripe customer to manage, so this isn't shown to
   // them at all (see renderPricingPanel/renderSettings).
   function openManageSubscription(){
-    if (!window.SaviorFirebase || !window.SaviorFirebase.getIdToken || !PORTAL_ENDPOINT) return;
+    if (!window.SaviorFirebase || !window.SaviorFirebase.callPortalSession) return;
     if (ui.openingPortal) return;
     ui.openingPortal = true;
     renderPricingPanel();
     renderApp();
-    window.SaviorFirebase.getIdToken().then(function(token){
-      if (!token) throw new Error('Not logged in');
-      return fetch(PORTAL_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ returnUrl: window.location.href })
-      });
-    }).then(function(res){ return res.json(); }).then(function(data){
+    window.SaviorFirebase.callPortalSession(window.location.href).then(function(data){
       ui.openingPortal = false;
       renderPricingPanel();
       renderApp();
@@ -7562,15 +7551,9 @@
         fcmToken: token,
         fcmTokenUpdatedAt: Date.now()
       }).then(function(){
-        if (!WELCOME_PUSH_ENDPOINT || !window.SaviorFirebase.getIdToken) return;
-        return window.SaviorFirebase.getIdToken().then(function(idToken){
-          if (!idToken) return;
-          return fetch(WELCOME_PUSH_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + idToken, 'Content-Type': 'application/json' }
-          }).catch(function(err){
-            console.error('send-welcome-push request failed:', err);
-          });
+        if (!window.SaviorFirebase.callWelcomePush) return;
+        return window.SaviorFirebase.callWelcomePush().catch(function(err){
+          console.error('send-welcome-push request failed:', err);
         });
       });
     }).catch(function(err){
