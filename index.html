@@ -2866,34 +2866,11 @@
   .auth-google-btn svg{flex-shrink:0;}
 
   /* ---------- Progress ---------- */
-  .progress-select-row{display:flex;gap:8px;margin-bottom:16px;}
-  .progress-select{
-    width:100%;
-    background:var(--panel);
-    border:1px solid var(--line);
-    color:var(--text);
-    border-radius:var(--radius);
-    padding:12px;
-    font-size:16px;
-    margin-bottom:16px;
-  }
-  .progress-select-row .progress-select{margin-bottom:0;flex:1;min-width:0;}
-  .progress-filter-btn{
-    flex-shrink:0;
-    width:46px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:var(--radius);
-    color:var(--text-dim);
-    cursor:pointer;
-    padding:0;
-  }
-  .progress-filter-btn svg{width:17px;height:17px;}
-  .progress-filter-btn:active{opacity:0.7;}
-  .progress-filter-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+  .progress-muscle-chips{margin-bottom:10px;}
+  .progress-muscle-clear{display:block;margin:0 0 14px;}
+  .progress-ex-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .ex-suggest-item.selected{border-color:var(--accent);}
+  .ex-suggest-item.selected .ex-suggest-name{color:var(--accent);}
   .chart-wrap{
     background-color:var(--panel);
     background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.85)), url('images/est-1rm-bg.jpg');
@@ -3036,16 +3013,6 @@
   }
   .mg-chip:active{opacity:0.7;background:rgba(255,255,255,0.12);}
   .mg-empty-note{color:#9198a1;font-size:11px;margin-top:8px;}
-  .mg-scope-banner{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-    margin:-8px 0 12px;
-    font-size:12px;
-    color:var(--text-dim);
-  }
-  .mg-scope-clear{background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;padding:0;text-decoration:underline;}
   .mg-scope-empty{
     text-align:center;
     color:var(--text-faint);
@@ -3762,9 +3729,6 @@
 <div class="confirm-overlay hidden" id="muscleInsightOverlay">
   <div class="pro-panel" id="muscleInsightPanel"></div>
 </div>
-<div class="confirm-overlay hidden" id="progressMuscleFilterOverlay">
-  <div class="pro-panel" id="progressMuscleFilterPanel"></div>
-</div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
 
@@ -4200,9 +4164,7 @@
     historyDateRangeError: null,  // validation message shown in the date-range picker, if any
     progressExercise: null,
     progressView: 'dashboard',    // 'dashboard' (Muscle Volume Overview) | 'exercise' (the existing 1RM/trendline deep-dive)
-    progressMuscleScope: null,    // bucket key (e.g. 'Chest') narrowing the exercise dropdown when drilled in from a muscle bar; null = unscoped
-    progressFineMuscleFilter: null, // fine EXERCISE_LIBRARY category (e.g. 'Biceps') from the Exercise Progression filter button; mutually exclusive with progressMuscleScope
-    showProgressMuscleFilter: false, // whether the Exercise Progression muscle-filter overlay is open
+    progressMuscleFilters: [],    // array of fine EXERCISE_LIBRARY categories (e.g. ['Biceps','Triceps']) narrowing the Exercise Progression list; empty = unscoped
     progressOverviewMode: 'regular', // 'regular' | 'intensity' — which Muscle Overview profile's caps/rows are showing
     showMuscleVolumeInsight: false,  // whether the weekly volume-balance insight callout is expanded
     showMuscleMap: false,
@@ -5601,47 +5563,39 @@
     });
   }
 
-  // All exercise names logged this week for a given bucket, unioned with
-  // the library's own exercises for that bucket, restricted to names the
-  // user has actually logged at some point (allExerciseNames()) — this
-  // is the scoped list shown in the exercise dropdown after tapping a
-  // muscle bar, so the drill-down only ever offers real, chartable data.
-  function loggedExerciseNamesForBucket(bucketKey){
-    var logged = allExerciseNames();
-    return logged.filter(function(name){
-      var entry = state.sessions.reduce(function(found, s){
-        if (found) return found;
-        return s.exercises.find(function(e){ return e.name.trim() === name; }) || null;
-      }, null);
-      var fineMuscle = entry ? entry.muscle : null;
-      var buckets = bucketsForLoggedExercise(name, fineMuscle);
-      return buckets.indexOf(bucketKey) !== -1;
-    });
+  // The fine EXERCISE_LIBRARY category (Chest/Back/.../Calves) for a
+  // logged exercise name — trusts the muscle string already stored on
+  // the session's exercise entry first (stable even if renamed/removed
+  // from the library later), falling back to a name lookup against the
+  // library. Backs both the Exercise Progression muscle-filter chips and
+  // the Volume Overview bar drill-down translation below.
+  function fineMuscleForLoggedName(name){
+    var entry = state.sessions.reduce(function(found, s){
+      if (found) return found;
+      return s.exercises.find(function(e){ return e.name.trim() === name; }) || null;
+    }, null);
+    var fineMuscle = entry ? entry.muscle : null;
+    if (!fineMuscle){
+      var libEntry = EXERCISE_LIBRARY_BY_NAME[name.trim().toLowerCase()];
+      fineMuscle = libEntry ? libEntry.muscle : null;
+    }
+    return fineMuscle;
   }
 
-  // Same idea as loggedExerciseNamesForBucket above, but matched against
-  // the fine-grained EXERCISE_LIBRARY category (Chest/Back/.../Calves —
-  // the same 12 used in the exercise-search picker's Muscle filter) 
-  // rather than the coarse 6-bucket Progress dashboard grouping. Backs
-  // the Exercise Progression screen's own muscle filter button, which is
-  // deliberately a separate, single-select filter from the Volume
-  // Overview's bar drill-down (ui.progressMuscleScope) — the two are
-  // mutually exclusive, whichever was set most recently wins.
-  function loggedExerciseNamesForFineMuscle(muscle){
-    var logged = allExerciseNames();
-    return logged.filter(function(name){
-      var entry = state.sessions.reduce(function(found, s){
-        if (found) return found;
-        return s.exercises.find(function(e){ return e.name.trim() === name; }) || null;
-      }, null);
-      var fineMuscle = entry ? entry.muscle : null;
-      if (!fineMuscle){
-        var libEntry = EXERCISE_LIBRARY_BY_NAME[name.trim().toLowerCase()];
-        fineMuscle = libEntry ? libEntry.muscle : null;
-      }
-      return fineMuscle === muscle;
-    });
-  }
+  // Translates a Volume Overview bar's coarse bucket (Chest/Back/
+  // Shoulders/Arms/Legs/Core) into the equivalent set of fine
+  // EXERCISE_LIBRARY categories, so tapping "Arms" on the dashboard
+  // pre-selects Biceps + Triceps + Forearms in the Exercise Progression
+  // muscle filter — one filter mechanism (progressMuscleFilters) instead
+  // of two parallel ones.
+  var BUCKET_TO_FINE_MUSCLES = {
+    Chest: ['Chest'],
+    Back: ['Back', 'Traps'],
+    Shoulders: ['Shoulders'],
+    Arms: ['Biceps', 'Triceps', 'Forearms'],
+    Legs: ['Quads', 'Hamstrings', 'Glutes', 'Calves'],
+    Core: ['Abs']
+  };
 
   // Equipment chip options for the exercise-search filter panel, in the
   // order they're shown. Kept as an explicit list (rather than derived
@@ -8316,58 +8270,6 @@
       '<div class="pro-panel-body">' + renderMuscleVolumeInsightHtml(activeProfile, weeklyData) + '</div>';
   }
 
-  /* =========================================================
-     EXERCISE PROGRESSION: MUSCLE FILTER OVERLAY
-     Single-select filter on the Exercise Progression dropdown, using the
-     same 12 fine EXERCISE_LIBRARY categories (and the same .ex-filter-chip
-     styling) as the exercise-search picker's Muscle row — deliberately
-     muscle-only, no equipment row, since this is just narrowing which
-     exercise names show up in one dropdown, not browsing the library.
-     ========================================================= */
-  function openProgressMuscleFilter(){
-    ui.showProgressMuscleFilter = true;
-    renderProgressMuscleFilterOverlay();
-  }
-  function closeProgressMuscleFilter(){
-    ui.showProgressMuscleFilter = false;
-    renderProgressMuscleFilterOverlay();
-  }
-  function applyProgressMuscleFilter(muscle){
-    ui.progressFineMuscleFilter = muscle;
-    ui.progressMuscleScope = null; // mutually exclusive with the coarse bar drill-down
-    ui.showProgressMuscleFilter = false;
-    renderProgressMuscleFilterOverlay();
-    renderApp();
-  }
-  function clearProgressFineMuscleFilter(){
-    ui.progressFineMuscleFilter = null;
-    ui.showProgressMuscleFilter = false;
-    renderProgressMuscleFilterOverlay();
-    renderApp();
-  }
-  function renderProgressMuscleFilterOverlay(){
-    var overlay = document.getElementById('progressMuscleFilterOverlay');
-    var panel = document.getElementById('progressMuscleFilterPanel');
-    if (!ui.showProgressMuscleFilter){
-      overlay.classList.add('hidden');
-      panel.innerHTML = '';
-      return;
-    }
-    overlay.classList.remove('hidden');
-    var muscles = Object.keys(EXERCISE_LIBRARY);
-    var active = ui.progressFineMuscleFilter;
-    panel.innerHTML =
-      '<div class="pro-panel-header"><h3>Filter by Muscle</h3>' +
-        '<button class="pro-panel-close" data-action="close-progress-muscle-filter" aria-label="Close">&#10005;</button>' +
-      '</div>' +
-      '<div class="pro-panel-body">' +
-        '<div class="ex-filter-chips">' + muscles.map(function(m){
-          return '<button type="button" class="ex-filter-chip'+(active === m ? ' active' : '')+'" data-action="apply-progress-muscle-filter" data-muscle="'+esc(m)+'">'+esc(m)+'</button>';
-        }).join('') + '</div>' +
-        (active ? '<button type="button" class="hdr-clear-btn" data-action="clear-progress-fine-filter">Clear filter</button>' : '') +
-      '</div>';
-  }
-
   // The Progress tab's dashboard landing view: one panel, a Regular/
   // Intensity switch at the top instead of stacking both (see
   // ui.progressOverviewMode), and rows for whichever mode is active
@@ -8408,74 +8310,96 @@
     return html;
   }
 
-  // The pre-existing per-exercise deep dive (1RM chart, tip, PR list),
-  // now scope-aware: when ui.progressMuscleScope is set (arrived via a
-  // muscle bar tap), the dropdown only lists exercises logged for that
-  // bucket and a banner offers to clear back to the full list. Returns
-  // { html, skipLock } — skipLock mirrors the original behavior of
-  // bypassing the Pro paywall blur for the "nothing logged yet" case.
+  // The per-exercise deep dive (1RM chart, tip, PR list). The top of the
+  // screen is a muscle-filter chip row (ui.progressMuscleFilters, multi-
+  // select — matches the exercise-search picker's Muscle row) followed
+  // by a tappable list of logged exercises grouped by muscle, instead of
+  // a dropdown; tapping a row sets ui.progressExercise and the chart/
+  // tip/PR list below follow it. Returns { html, skipLock } — skipLock
+  // mirrors the original behavior of bypassing the Pro paywall blur for
+  // the "nothing logged yet" case.
   function renderProgressExerciseView(names){
     // No inline back link here anymore — the sticky Volume overview /
     // Exercise progression bar at the bottom of the screen (see
     // progressSubtabbar) is the way back now, so this doesn't duplicate it.
     var html = '';
 
-    // Two mutually-exclusive ways to narrow the dropdown: the coarse
-    // 6-bucket scope set by tapping a Volume Overview bar
-    // (progressMuscleScope), or the fine 12-category filter set via the
-    // funnel button below (progressFineMuscleFilter). Fine filter wins
-    // if somehow both are set — see the action handlers, which clear the
-    // other one whenever either gets set, so this should be rare.
-    var fineFilter = ui.progressFineMuscleFilter;
-    var coarseScope = ui.progressMuscleScope;
-    var scopedNames = names;
-    var scopeLabel = null;
-    var clearAction = null;
-    if (fineFilter){
-      scopeLabel = fineFilter;
-      scopedNames = loggedExerciseNamesForFineMuscle(fineFilter);
-      clearAction = 'clear-progress-fine-filter';
-    } else if (coarseScope){
-      var groupDef = MUSCLE_GROUP_TARGETS.find(function(g){ return g.key === coarseScope; });
-      scopeLabel = groupDef ? groupDef.label : coarseScope;
-      scopedNames = loggedExerciseNamesForBucket(coarseScope);
-      clearAction = 'clear-progress-muscle-scope';
+    // Only exercises with actual logged sets have anything to show below
+    // — an exercise added to a session but never logged would just be a
+    // dead end, so it's excluded here before muscle filtering even runs.
+    var namesWithProgress = names.filter(function(n){ return collectExercisePoints(n).length > 0; });
+
+    // Multi-select muscle chips, same toggle behavior and .ex-filter-chip
+    // styling as the exercise-search picker's Muscle row — deliberately
+    // muscle-only (no equipment) and no search box, since this list is
+    // meant to be browsed and tapped, not typed into.
+    var filters = ui.progressMuscleFilters || [];
+    var muscleOptions = Object.keys(EXERCISE_LIBRARY);
+    html += '<div class="ex-filter-chips progress-muscle-chips">' + muscleOptions.map(function(m){
+      var active = filters.indexOf(m) !== -1;
+      return '<button type="button" class="ex-filter-chip'+(active ? ' active' : '')+'" data-action="toggle-progress-muscle-filter" data-muscle="'+esc(m)+'">'+esc(m)+'</button>';
+    }).join('') + '</div>';
+    if (filters.length > 0){
+      html += '<button type="button" class="ex-filter-clear progress-muscle-clear" data-action="clear-progress-muscle-filters">Clear filters</button>';
     }
 
-    if (scopeLabel){
-      html += '<div class="mg-scope-banner"><span>'+esc(scopeLabel)+' exercises</span>' +
-                '<button type="button" class="mg-scope-clear" data-action="'+clearAction+'">Show all exercises</button></div>';
-    }
-
-    if (scopeLabel && scopedNames.length === 0){
-      html += '<div class="mg-scope-empty">You haven&rsquo;t logged any '+esc(scopeLabel)+' exercises yet.<br>Log one from the Log tab and it&rsquo;ll show up here.</div>';
-      return { html: html, skipLock: false };
-    }
-
-    if (scopeLabel && scopedNames.indexOf(ui.progressExercise) === -1){
-      ui.progressExercise = scopedNames[0];
-    }
-
-    html += '<div class="progress-select-row">';
-    html += '<select class="progress-select" data-action="select-progress-exercise">';
-    scopedNames.forEach(function(n){
-      html += '<option value="'+esc(n)+'" '+(n===ui.progressExercise?'selected':'')+'>'+esc(n)+'</option>';
-    });
-    html += '</select>';
-    html += '<button type="button" class="progress-filter-btn'+(fineFilter ? ' active' : '')+'" data-action="open-progress-muscle-filter" aria-label="'+(fineFilter ? 'Muscle filter active, tap to change or clear' : 'Filter by muscle')+'">' +
-              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 4 21 4 14 12.5 14 19 10 21 10 12.5 3 4"></polygon></svg>' +
-            '</button>';
-    html += '</div>';
-
-    var points = collectExercisePoints(ui.progressExercise);
-    if (points.length === 0){
+    if (namesWithProgress.length === 0){
       html += '<div class="empty tab-empty-state"><div class="glyph">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
                   '<path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path>' +
                 '</svg>' +
-              '</div><p>No logged sets for this exercise yet.</p></div>';
+              '</div><p>No logged sets for any exercise yet.</p></div>';
       return { html: html, skipLock: true };
     }
+
+    var visibleNames = namesWithProgress.filter(function(n){
+      if (filters.length === 0) return true;
+      var fm = fineMuscleForLoggedName(n);
+      return fm && filters.indexOf(fm) !== -1;
+    });
+
+    if (visibleNames.length === 0){
+      html += '<div class="mg-scope-empty">No logged exercises match '+(filters.length === 1 ? 'that muscle' : 'those muscles')+'.</div>';
+      return { html: html, skipLock: false };
+    }
+
+    if (visibleNames.indexOf(ui.progressExercise) === -1){
+      ui.progressExercise = visibleNames[0];
+    }
+
+    // Grouped by fine muscle category in EXERCISE_LIBRARY's own order —
+    // reads the same way the exercise-search picker's browse view does.
+    // A logged exercise with no recognized category (fully custom name)
+    // falls into a trailing "Other" group instead of being dropped.
+    var grouped = {};
+    var order = [];
+    visibleNames.forEach(function(n){
+      var fm = fineMuscleForLoggedName(n) || 'Other';
+      if (!grouped[fm]){ grouped[fm] = []; order.push(fm); }
+      grouped[fm].push(n);
+    });
+    order.sort(function(a, b){
+      var ai = muscleOptions.indexOf(a); if (ai === -1) ai = muscleOptions.length;
+      var bi = muscleOptions.indexOf(b); if (bi === -1) bi = muscleOptions.length;
+      return ai - bi;
+    });
+
+    html += '<div class="progress-ex-list">';
+    order.forEach(function(fm){
+      html += '<div class="section-label">'+esc(fm)+'</div>';
+      grouped[fm].forEach(function(n){
+        var selected = n === ui.progressExercise;
+        html += '<button type="button" class="ex-suggest-item'+(selected ? ' selected' : '')+'" data-action="select-progress-exercise-row" data-name="'+esc(n)+'">' +
+                  '<span class="ex-suggest-name">'+esc(n)+'</span>' +
+                '</button>';
+      });
+    });
+    html += '</div>';
+
+    // Guaranteed non-empty: ui.progressExercise is always chosen from
+    // visibleNames, which was itself filtered from namesWithProgress
+    // (collectExercisePoints(n).length > 0) above.
+    var points = collectExercisePoints(ui.progressExercise);
 
     var best = points.reduce(function(a,b){ return b.e1rm > a.e1rm ? b : a; }, points[0]);
     var latest = points[points.length - 1];
@@ -11501,38 +11425,42 @@
       renderApp();
     } else if (action === 'open-muscle-volume-insight'){
       openMuscleVolumeInsight();
-    } else if (action === 'open-progress-muscle-filter'){
-      openProgressMuscleFilter();
     } else if (action === 'open-muscle-drilldown'){
-      ui.progressMuscleScope = el.dataset.muscle;
-      ui.progressFineMuscleFilter = null;
+      // Translates the bar's coarse bucket into the equivalent fine
+      // categories — tapping "Arms" pre-selects Biceps+Triceps+Forearms
+      // in the same progressMuscleFilters the chips below use directly.
+      ui.progressMuscleFilters = (BUCKET_TO_FINE_MUSCLES[el.dataset.muscle] || []).slice();
       ui.progressView = 'exercise';
       renderApp();
     } else if (action === 'open-exercise-drilldown'){
       ui.progressExercise = el.dataset.name;
-      ui.progressMuscleScope = null;
-      ui.progressFineMuscleFilter = null;
+      ui.progressMuscleFilters = [];
       ui.progressView = 'exercise';
       renderApp();
     } else if (action === 'back-to-muscle-dashboard'){
       ui.progressView = 'dashboard';
-      ui.progressMuscleScope = null;
-      ui.progressFineMuscleFilter = null;
+      ui.progressMuscleFilters = [];
       renderApp();
     } else if (action === 'open-exercise-progression'){
       // Entry point from the sticky sub-tab bar — a general "see exercise
       // trends" landing, not a muscle-scoped drill-down, so it clears any
-      // scope left over from a muscle-bar tap the same way the dashboard
-      // button clears it going the other direction.
+      // filters left over from a muscle-bar tap the same way the
+      // dashboard button clears them going the other direction.
       ui.progressView = 'exercise';
-      ui.progressMuscleScope = null;
-      ui.progressFineMuscleFilter = null;
+      ui.progressMuscleFilters = [];
       renderApp();
-    } else if (action === 'clear-progress-muscle-scope'){
-      ui.progressMuscleScope = null;
+    } else if (action === 'select-progress-exercise-row'){
+      ui.progressExercise = el.dataset.name;
       renderApp();
-    } else if (action === 'clear-progress-fine-filter'){
-      clearProgressFineMuscleFilter();
+    } else if (action === 'toggle-progress-muscle-filter'){
+      var pmf = ui.progressMuscleFilters || [];
+      var pmfIdx = pmf.indexOf(el.dataset.muscle);
+      if (pmfIdx === -1) pmf.push(el.dataset.muscle); else pmf.splice(pmfIdx, 1);
+      ui.progressMuscleFilters = pmf;
+      renderApp();
+    } else if (action === 'clear-progress-muscle-filters'){
+      ui.progressMuscleFilters = [];
+      renderApp();
     } else if (action === 'edit-exercise-name'){
       openRenameExerciseConfirm(el.dataset.ex);
     } else if (action === 'cancel-exercise-name'){
@@ -11693,14 +11621,6 @@
     if (t.classList && (t.classList.contains('set-weight-input') || t.classList.contains('set-reps-input'))){
       ui.activeExId = t.dataset.ex;
       refreshAddSetGlobalBtn();
-    }
-  });
-
-  document.getElementById('app').addEventListener('change', function(e){
-    var t = e.target;
-    if (t.matches('.progress-select')){
-      ui.progressExercise = t.value;
-      renderApp();
     }
   });
 
@@ -12212,29 +12132,6 @@
     }
   });
 
-  var progressMuscleFilterOverlayEl = document.getElementById('progressMuscleFilterOverlay');
-  progressMuscleFilterOverlayEl.addEventListener('click', function(e){
-    if (e.target === progressMuscleFilterOverlayEl){
-      closeProgressMuscleFilter();
-      return;
-    }
-    var el = e.target.closest('[data-action]');
-    if (!el) return;
-    if (el.dataset.action === 'close-progress-muscle-filter'){
-      closeProgressMuscleFilter();
-    } else if (el.dataset.action === 'apply-progress-muscle-filter'){
-      applyProgressMuscleFilter(el.dataset.muscle);
-    } else if (el.dataset.action === 'clear-progress-fine-filter'){
-      clearProgressFineMuscleFilter();
-    }
-  });
-  progressMuscleFilterOverlayEl.addEventListener('keydown', function(e){
-    if (e.key === 'Escape'){
-      e.preventDefault();
-      closeProgressMuscleFilter();
-    }
-  });
-
   var refOverlayEl = document.getElementById('refOverlay');
   refOverlayEl.addEventListener('click', function(e){
     if (e.target === refOverlayEl){
@@ -12391,8 +12288,6 @@
       closeHistoryDateRange();
     } else if (ui.showMuscleVolumeInsight){
       closeMuscleVolumeInsight();
-    } else if (ui.showProgressMuscleFilter){
-      closeProgressMuscleFilter();
     } else if (ui.showReferenceOverlay){
       closeReferenceOverlay();
     } else if (ui.showChangePassword){
