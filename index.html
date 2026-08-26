@@ -54,6 +54,14 @@
     --accent-2-dim:#4a2321;
     --success:#5fb86a;
     --success-dim:#233821;
+    /* Fixed gold, deliberately NOT overridden by applyAccentTheme() (see
+       ACCENT_THEME_OPTIONS) — the Muscle Volume Overview panel always
+       uses these regardless of which accent color the user picks in
+       Settings, so its brand identity stays gold even on Ice/Emerald/
+       Violet themes. Same literal values as the 'gold' theme option. */
+    --mg-gold:#f2b134;
+    --mg-gold-dim:#7a6224;
+    --mg-gold-rgb:242,177,52;
     --radius-xs:6px;
     --radius-sm:8px;
     --radius:10px;
@@ -2934,8 +2942,8 @@
     height:26px;
     flex-shrink:0;
     border-radius:var(--radius-sm);
-    background:var(--accent);
-    border:1px solid var(--accent);
+    background:var(--mg-gold);
+    border:1px solid var(--mg-gold);
     color:#1c1500;
     display:flex;
     align-items:center;
@@ -2944,9 +2952,9 @@
     padding:0;
   }
   .mg-insight-btn svg{width:15px;height:15px;display:block;}
-  .mg-insight-btn:active{background:var(--accent-dim);border-color:var(--accent-dim);}
+  .mg-insight-btn:active{background:var(--mg-gold-dim);border-color:var(--mg-gold-dim);}
   .mg-insight-wrap{margin:2px 0 14px;}
-  .mg-insight-wrap .prc-tip{margin-top:0;padding:9px 12px;background:rgba(var(--accent-rgb),0.08);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;font-size:12.5px;color:var(--text-dim);line-height:1.4;}
+  .mg-insight-wrap .prc-tip{margin-top:0;padding:9px 12px;background:rgba(var(--mg-gold-rgb),0.08);border-left:3px solid var(--mg-gold);border-radius:0 var(--radius) var(--radius) 0;font-size:12.5px;color:var(--text-dim);line-height:1.4;}
   .mg-insight-wrap .prc-tip + .prc-tip{margin-top:8px;}
   .mg-insight-wrap .prc-tip b{color:var(--text);}
   .mg-mode-toggle{
@@ -2972,7 +2980,7 @@
     border-radius:999px;
     cursor:pointer;
   }
-  .mg-mode-btn.active{background:var(--accent);color:#1c1408;}
+  .mg-mode-btn.active{background:var(--mg-gold);color:#1c1408;}
   .mg-mode-btn:active{opacity:0.85;}
   .mg-mode-desc{
     font-size:11.5px;
@@ -2996,7 +3004,7 @@
   .mg-row-count.mg-good{color:var(--success);font-weight:700;}
   .mg-row-count.mg-over{color:var(--accent-2);font-weight:700;}
   .mg-bar-track{height:9px;border-radius:5px;background:rgba(255,255,255,0.1);overflow:hidden;}
-  .mg-bar-fill{height:100%;border-radius:5px;background:var(--accent-dim);}
+  .mg-bar-fill{height:100%;border-radius:5px;background:var(--mg-gold-dim);}
   .mg-bar-fill.mg-good{background:var(--success);}
   .mg-bar-fill.mg-over{background:var(--accent-2);}
   .mg-chips{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
@@ -3021,7 +3029,7 @@
     font-size:12px;
     color:var(--text-dim);
   }
-  .mg-scope-clear{background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;padding:0;text-decoration:underline;}
+  .mg-scope-clear{background:none;border:none;color:var(--mg-gold);font-size:12px;cursor:pointer;padding:0;text-decoration:underline;}
   .mg-scope-empty{
     text-align:center;
     color:var(--text-faint);
