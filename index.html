@@ -3735,6 +3735,9 @@
 <div class="confirm-overlay hidden" id="historyDateRangeOverlay">
   <div class="pro-panel" id="historyDateRangePanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="muscleInsightOverlay">
+  <div class="pro-panel" id="muscleInsightPanel"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
 
@@ -8219,6 +8222,38 @@
     return html;
   }
 
+  /* =========================================================
+     MUSCLE VOLUME INSIGHT OVERLAY
+     Same open/close/render shell as the History date-range picker —
+     the button in the panel header opens this rather than expanding
+     content inline.
+     ========================================================= */
+  function openMuscleVolumeInsight(){
+    ui.showMuscleVolumeInsight = true;
+    renderMuscleVolumeInsightOverlay();
+  }
+  function closeMuscleVolumeInsight(){
+    ui.showMuscleVolumeInsight = false;
+    renderMuscleVolumeInsightOverlay();
+  }
+  function renderMuscleVolumeInsightOverlay(){
+    var overlay = document.getElementById('muscleInsightOverlay');
+    var panel = document.getElementById('muscleInsightPanel');
+    if (!ui.showMuscleVolumeInsight){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var weeklyData = computeWeeklyMuscleVolume();
+    var activeProfile = MUSCLE_OVERVIEW_PROFILES.filter(function(p){ return p.key === (ui.progressOverviewMode || 'regular'); })[0] || MUSCLE_OVERVIEW_PROFILES[0];
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Weekly Volume Insight</h3>' +
+        '<button class="pro-panel-close" data-action="close-muscle-volume-insight" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' + renderMuscleVolumeInsightHtml(activeProfile, weeklyData) + '</div>';
+  }
+
   // The Progress tab's dashboard landing view: one panel, a Regular/
   // Intensity switch at the top instead of stacking both (see
   // ui.progressOverviewMode), and rows for whichever mode is active
@@ -8236,7 +8271,7 @@
     var html = '<div class="mg-panel'+(activeProfile.key === 'intensity' ? ' mg-panel-intensity' : '')+'">';
     html += '<div class="mg-panel-header">' +
               '<div class="mg-panel-title-row"><h3>Muscle Volume Overview</h3>' +
-                '<button type="button" class="mg-insight-btn" data-action="toggle-muscle-volume-insight" aria-label="'+(ui.showMuscleVolumeInsight ? 'Hide' : 'Show')+' weekly volume insight">' +
+                '<button type="button" class="mg-insight-btn" data-action="open-muscle-volume-insight" aria-label="Weekly volume insight">' +
                   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>' +
                 '</button>' +
               '</div>' +
@@ -8251,10 +8286,6 @@
 
     if (activeProfile.description){
       html += '<div class="mg-mode-desc">'+esc(activeProfile.description)+'</div>';
-    }
-
-    if (ui.showMuscleVolumeInsight){
-      html += renderMuscleVolumeInsightHtml(activeProfile, weeklyData);
     }
 
     html += renderMuscleOverviewRows(activeProfile, weeklyData);
@@ -11333,9 +11364,8 @@
     } else if (action === 'set-progress-overview-mode'){
       ui.progressOverviewMode = el.dataset.mode;
       renderApp();
-    } else if (action === 'toggle-muscle-volume-insight'){
-      ui.showMuscleVolumeInsight = !ui.showMuscleVolumeInsight;
-      renderApp();
+    } else if (action === 'open-muscle-volume-insight'){
+      openMuscleVolumeInsight();
     } else if (action === 'open-muscle-drilldown'){
       ui.progressMuscleScope = el.dataset.muscle;
       ui.progressView = 'exercise';
@@ -12021,6 +12051,24 @@
     }
   });
 
+  var muscleInsightOverlayEl = document.getElementById('muscleInsightOverlay');
+  muscleInsightOverlayEl.addEventListener('click', function(e){
+    if (e.target === muscleInsightOverlayEl){
+      closeMuscleVolumeInsight();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (el && el.dataset.action === 'close-muscle-volume-insight'){
+      closeMuscleVolumeInsight();
+    }
+  });
+  muscleInsightOverlayEl.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){
+      e.preventDefault();
+      closeMuscleVolumeInsight();
+    }
+  });
+
   var refOverlayEl = document.getElementById('refOverlay');
   refOverlayEl.addEventListener('click', function(e){
     if (e.target === refOverlayEl){
@@ -12175,6 +12223,8 @@
       closeBodyweightPicker();
     } else if (ui.showHistoryDateRange){
       closeHistoryDateRange();
+    } else if (ui.showMuscleVolumeInsight){
+      closeMuscleVolumeInsight();
     } else if (ui.showReferenceOverlay){
       closeReferenceOverlay();
     } else if (ui.showChangePassword){
