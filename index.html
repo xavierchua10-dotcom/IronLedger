@@ -2218,6 +2218,30 @@
     margin-top:8px;
   }
   .hdr-clear-btn:active{opacity:0.7;}
+
+  /* ---------- Rate SaviorFit Logger overlay ---------- */
+  .rating-panel-body{text-align:center;}
+  .rating-stars-row{display:flex;justify-content:center;gap:8px;margin-bottom:14px;}
+  .rating-star{background:none;border:none;padding:4px;cursor:pointer;color:var(--line);}
+  .rating-star svg{width:34px;height:34px;display:block;}
+  .rating-star.filled{color:var(--accent);}
+  .rating-subtitle{font-size:13px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;}
+  .rating-subtitle-positive{color:var(--text);font-weight:600;}
+  .rating-feedback-input{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:var(--radius);
+    padding:12px;
+    font-family:inherit;
+    font-size:13px;
+    resize:vertical;
+    margin-bottom:14px;
+  }
+  .rating-feedback-input:focus{outline:none;border-color:var(--accent);}
+  .rating-submit-btn{width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:var(--radius-md);padding:14px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13.5px;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;}
+  .rating-submit-btn:active{background:var(--accent-dim);}
   .history-no-match{
     text-align:center;
     color:var(--text-faint);
@@ -3775,6 +3799,9 @@
 <div class="confirm-overlay hidden" id="muscleInsightOverlay">
   <div class="pro-panel" id="muscleInsightPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="ratingOverlay">
+  <div class="pro-panel" id="ratingPanel"></div>
+</div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
 
@@ -4214,6 +4241,8 @@
     progressExerciseListOpen: false, // Exercise Progression: true = browsing the chip-filtered list, false = viewing the selected exercise's chart
     progressOverviewMode: 'regular', // 'regular' | 'intensity' — which Muscle Overview profile's caps/rows are showing
     showMuscleVolumeInsight: false,  // whether the weekly volume-balance insight callout is expanded
+    showRatingPanel: false,    // whether the "Rate SaviorFit Logger" overlay is open
+    ratingDraftStars: 0,       // star count picked in the rating overlay before it's submitted
     showMuscleMap: false,
     showMuscleMapHelp: false, // small "how this works" callout, toggled by the ? button
     showBwHelp: false,        // same idea, for the "i" icon on a bodyweight exercise's weight input
@@ -8317,6 +8346,85 @@
       '<div class="pro-panel-body">' + renderMuscleVolumeInsightHtml(activeProfile, weeklyData) + '</div>';
   }
 
+  /* =========================================================
+     RATE SAVIORFIT LOGGER OVERLAY
+     Two entry points: automatically once, after a user's very first
+     finished session (see finishSession), and any time afterward via
+     Settings -> Support -> "Rate SaviorFit Logger". Same open/close/
+     render shell as the other pickers in this file.
+     ========================================================= */
+  function openRatingPanel(){
+    ui.ratingDraftStars = state.settings.appRating || 0;
+    ui.showRatingPanel = true;
+    renderRatingOverlay();
+  }
+  function closeRatingPanel(){
+    ui.showRatingPanel = false;
+    renderRatingOverlay();
+  }
+  function setRatingDraftStars(n){
+    ui.ratingDraftStars = n;
+    renderRatingOverlay();
+  }
+  function submitRating(){
+    var stars = ui.ratingDraftStars;
+    if (!stars) return;
+    var feedbackInput = document.getElementById('ratingFeedbackInput');
+    var feedback = feedbackInput ? feedbackInput.value.trim() : '';
+    state.settings.appRating = stars;
+    state.settings.ratingPromptShown = true; // covers submitting via Settings before the auto-prompt would have fired
+    saveSettings();
+    logActivity('Rated the app ' + stars + ' star' + (stars === 1 ? '' : 's'), 'Settings');
+    if (feedback){
+      // No in-app feedback inbox exists — reusing the same support email
+      // already listed in Settings is the honest way to actually get this
+      // read, rather than silently storing text nobody will see.
+      var subject = encodeURIComponent('SaviorFit Logger feedback (' + stars + '\u2605)');
+      var body = encodeURIComponent(feedback);
+      window.location.href = 'mailto:xavierchua10@gmail.com?subject=' + subject + '&body=' + body;
+    }
+    ui.showRatingPanel = false;
+    renderRatingOverlay();
+    showToast(stars >= 4 ? 'Thanks so much! \ud83d\ude4f' : 'Thanks for the feedback!');
+  }
+  function renderRatingOverlay(){
+    var overlay = document.getElementById('ratingOverlay');
+    var panel = document.getElementById('ratingPanel');
+    if (!ui.showRatingPanel){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var stars = ui.ratingDraftStars || 0;
+    var starsHtml = '';
+    for (var i = 1; i <= 5; i++){
+      starsHtml += '<button type="button" class="rating-star'+(i <= stars ? ' filled' : '')+'" data-action="set-rating-stars" data-stars="'+i+'" aria-label="'+i+' star'+(i > 1 ? 's' : '')+'">' +
+                     '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg>' +
+                   '</button>';
+    }
+    var body;
+    if (stars === 0){
+      body = '<div class="rating-subtitle">Let us know how it\u2019s going</div>';
+    } else if (stars >= 4){
+      body = '<div class="rating-subtitle rating-subtitle-positive">Awesome, glad to hear it! \ud83c\udf89</div>' +
+             '<textarea id="ratingFeedbackInput" class="rating-feedback-input" rows="3" placeholder="Anything you\u2019d love to see next? (optional)"></textarea>' +
+             '<button type="button" class="rating-submit-btn" data-action="submit-rating">Submit</button>';
+    } else {
+      body = '<div class="rating-subtitle">Thanks for the honesty \u2014 what could we do better?</div>' +
+             '<textarea id="ratingFeedbackInput" class="rating-feedback-input" rows="3" placeholder="Tell us what\u2019s not working (optional)"></textarea>' +
+             '<button type="button" class="rating-submit-btn" data-action="submit-rating">Send feedback</button>';
+    }
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Rate SaviorFit Logger</h3>' +
+        '<button class="pro-panel-close" data-action="close-rating-panel" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body rating-panel-body">' +
+        '<div class="rating-stars-row">' + starsHtml + '</div>' +
+        body +
+      '</div>';
+  }
+
   // The Progress tab's dashboard landing view: one panel, a Regular/
   // Intensity switch at the top instead of stacking both (see
   // ui.progressOverviewMode), and rows for whichever mode is active
@@ -8794,6 +8902,8 @@
     html += '<div class="settings-group">';
     html += '<div class="settings-row"><div><div class="sr-label">Guided tour</div><div class="sr-sub">A quick walkthrough of the app\u2019s main features</div></div>' +
               '<button class="sr-action" data-action="start-tour">Start</button></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Rate SaviorFit Logger</div><div class="sr-sub">'+(state.settings.appRating ? 'You rated '+state.settings.appRating+' star'+(state.settings.appRating === 1 ? '' : 's')+' \u2014 tap to update' : 'Let us know how it\u2019s going')+'</div></div>' +
+              '<button class="sr-action" data-action="open-rating-panel">Rate</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Instagram</div><div class="sr-sub">@im.savior_</div></div>' +
               '<a class="sr-action" href="https://instagram.com/im.savior_" target="_blank" rel="noopener">Open</a></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Email</div><div class="sr-sub">xavierchua10@gmail.com</div></div>' +
@@ -10178,6 +10288,20 @@
     showToast('Session saved');
     if (state.settings.hapticFeedback !== false && navigator.vibrate) navigator.vibrate([15, 30, 15]);
     flashSessionFinished(session.id);
+
+    // First-ever finished session: prompt for a rating once, then never
+    // again automatically — reachable afterward only via Settings ->
+    // Support -> "Rate SaviorFit Logger". Marked shown immediately so it
+    // can't double-fire, and delayed past the toast/flash animation so it
+    // doesn't collide with the "Session saved" moment.
+    if (!state.settings.ratingPromptShown){
+      var doneCount = state.sessions.filter(function(s){ return s.status === 'done'; }).length;
+      if (doneCount === 1){
+        state.settings.ratingPromptShown = true;
+        saveSettings();
+        setTimeout(openRatingPanel, 1500);
+      }
+    }
   }
 
   function deleteSession(sessionId){
@@ -11494,6 +11618,8 @@
       renderApp();
     } else if (action === 'open-muscle-volume-insight'){
       openMuscleVolumeInsight();
+    } else if (action === 'open-rating-panel'){
+      openRatingPanel();
     } else if (action === 'open-muscle-drilldown'){
       // Translates the bar's coarse bucket into the equivalent fine
       // categories — tapping "Arms" pre-selects Biceps+Triceps+Forearms
@@ -12210,6 +12336,29 @@
     }
   });
 
+  var ratingOverlayEl = document.getElementById('ratingOverlay');
+  ratingOverlayEl.addEventListener('click', function(e){
+    if (e.target === ratingOverlayEl){
+      closeRatingPanel();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-rating-panel'){
+      closeRatingPanel();
+    } else if (el.dataset.action === 'set-rating-stars'){
+      setRatingDraftStars(parseInt(el.dataset.stars, 10));
+    } else if (el.dataset.action === 'submit-rating'){
+      submitRating();
+    }
+  });
+  ratingOverlayEl.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){
+      e.preventDefault();
+      closeRatingPanel();
+    }
+  });
+
   var refOverlayEl = document.getElementById('refOverlay');
   refOverlayEl.addEventListener('click', function(e){
     if (e.target === refOverlayEl){
@@ -12366,6 +12515,8 @@
       closeHistoryDateRange();
     } else if (ui.showMuscleVolumeInsight){
       closeMuscleVolumeInsight();
+    } else if (ui.showRatingPanel){
+      closeRatingPanel();
     } else if (ui.showReferenceOverlay){
       closeReferenceOverlay();
     } else if (ui.showChangePassword){
