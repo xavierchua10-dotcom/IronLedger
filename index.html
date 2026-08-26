@@ -2907,6 +2907,12 @@
     padding:16px 14px;
     margin-bottom:16px;
   }
+  /* Intensity mode swaps in the red muscle-fiber illustration instead of
+     the gray anatomy figure — same overlay strength (checked against
+     this image's own brightness) and sizing, just a different photo. */
+  .mg-panel.mg-panel-intensity{
+    background-image:linear-gradient(180deg, rgba(8,9,11,0.75), rgba(8,9,11,0.92)), url('images/muscle-intensity-bg.jpg');
+  }
   .mg-panel-header{margin-bottom:12px;}
   .mg-panel-header h3{
     font-family:'Oswald',sans-serif;
@@ -8142,7 +8148,7 @@
     if (!ui.progressOverviewMode) ui.progressOverviewMode = 'regular';
     var activeProfile = MUSCLE_OVERVIEW_PROFILES.filter(function(p){ return p.key === ui.progressOverviewMode; })[0] || MUSCLE_OVERVIEW_PROFILES[0];
 
-    var html = '<div class="mg-panel">';
+    var html = '<div class="mg-panel'+(activeProfile.key === 'intensity' ? ' mg-panel-intensity' : '')+'">';
     html += '<div class="mg-panel-header"><h3>Muscle Volume Overview</h3>' +
               '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+'</span></div>';
 
