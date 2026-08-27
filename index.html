@@ -3818,7 +3818,7 @@
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
     signOut, onAuthStateChanged, deleteUser, GoogleAuthProvider, signInWithPopup,
     reauthenticateWithCredential, EmailAuthProvider, reauthenticateWithPopup,
-    sendPasswordResetEmail, updatePassword
+    sendPasswordResetEmail, updatePassword, sendEmailVerification
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
     getFirestore, doc, setDoc, getDoc, deleteDoc, enableIndexedDbPersistence, onSnapshot, writeBatch
@@ -3888,7 +3888,17 @@
 
   window.SaviorFirebase = {
     signUp: function(email, password){
-      return createUserWithEmailAndPassword(auth, email, password).then(function(cred){ return cred.user; });
+      return createUserWithEmailAndPassword(auth, email, password).then(function(cred){
+        // Firebase's own built-in verification email — fully separate
+        // from the Resend-based trial/welcome emails, and needs no
+        // domain setup since Firebase sends it directly. Fire-and-forget:
+        // a failed send here shouldn't block someone from using an
+        // account they just successfully created.
+        sendEmailVerification(cred.user).catch(function(err){
+          console.error('sendEmailVerification failed:', err);
+        });
+        return cred.user;
+      });
     },
     logIn: function(email, password){
       return signInWithEmailAndPassword(auth, email, password).then(function(cred){ return cred.user; });
