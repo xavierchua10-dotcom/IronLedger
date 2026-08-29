@@ -4340,6 +4340,7 @@
     progressOverviewMode: 'regular', // 'regular' | 'intensity' | 'custom' — which Muscle Overview profile's caps/rows are showing. Chosen via the settings overlay now (see showMgSettings), not an on-screen toggle.
     mgExpandedGroups: {},  // muscle key -> bool; whether that row's exercise chips are expanded. Collapsed by default — see renderMuscleOverviewRows.
     showMgSettings: false, // whether the Muscle Volume Overview settings overlay (mode picker + custom targets) is open
+    mgDraftMode: null,     // mode picked inside the panel but not yet applied — see openMgSettings/applyMgSettings. null when panel's closed.
     showMuscleVolumeInsight: false,  // whether the weekly volume-balance insight callout is expanded
     showRatingPanel: false,    // whether the "Rate SaviorFit Logger" overlay is open
     ratingDraftStars: 0,       // star count picked in the rating overlay before it's submitted
@@ -8536,35 +8537,44 @@
   /* =========================================================
      MUSCLE VOLUME OVERVIEW — SETTINGS OVERLAY
      Mode picker (Regular / Intensity / Custom) +, when Custom is
-     selected, a weekly set-target input per muscle. Picking Regular or
-     Intensity here applies immediately and closes the panel — there's
-     nothing further to configure for either. Picking Custom keeps the
-     panel open to reveal the number inputs, prefilled from whatever's
-     already saved (or DEFAULT_CUSTOM_TARGETS the first time); nothing
-     is written to state.settings until "Save" is tapped, so backing out
-     without saving leaves any previously-saved custom numbers untouched.
+     selected, a weekly set-target input per muscle. Picking a mode
+     inside the panel only updates the DRAFT (ui.mgDraftMode) and
+     re-renders the panel — nothing takes effect on the dashboard until
+     "Apply" (Regular/Intensity) or "Save" (Custom, which also validates
+     and persists the target numbers) is tapped. Closing without that —
+     the X, tapping outside, Escape — discards the draft entirely;
+     ui.progressOverviewMode (and any already-saved custom numbers)
+     stay exactly as they were.
      ========================================================= */
   function openMgSettings(){
     ui.showMgSettings = true;
+    ui.mgDraftMode = ui.progressOverviewMode || 'regular';
     renderMgSettingsOverlay();
   }
   function closeMgSettings(){
     ui.showMgSettings = false;
+    ui.mgDraftMode = null;
     renderMgSettingsOverlay();
   }
-  // Called when Regular or Intensity is picked inside the panel —
-  // applies immediately (no separate save step) and closes.
+  // Called when a pill is tapped inside the panel — just updates the
+  // draft and re-renders the panel (to move the highlight and show/hide
+  // the custom inputs). Never touches ui.progressOverviewMode directly.
   function pickMgOverlayMode(mode){
-    ui.progressOverviewMode = mode;
-    if (mode === 'custom'){
-      // Stay open, re-render just the panel to reveal the inputs.
-      renderMgSettingsOverlay();
-    } else {
-      ui.showMgSettings = false;
-      renderMgSettingsOverlay();
-      renderApp(); // refreshes the dashboard behind the (now-closed) panel
-    }
+    ui.mgDraftMode = mode;
+    renderMgSettingsOverlay();
   }
+  // The Apply button, for a Regular/Intensity draft — nothing to
+  // validate or save, just commit the draft and close.
+  function applyMgMode(){
+    ui.progressOverviewMode = ui.mgDraftMode || 'regular';
+    ui.showMgSettings = false;
+    ui.mgDraftMode = null;
+    renderMgSettingsOverlay();
+    renderApp();
+  }
+  // The Save button, for a Custom draft — validates and persists the
+  // target numbers, THEN commits the draft mode too (both happen
+  // together; there's no "save numbers but stay on Regular" state).
   function saveMgCustomTargets(){
     var targets = {};
     var invalid = false;
@@ -8580,7 +8590,9 @@
     }
     state.settings.customMuscleTargets = targets;
     saveSettings();
+    ui.progressOverviewMode = 'custom';
     ui.showMgSettings = false;
+    ui.mgDraftMode = null;
     renderMgSettingsOverlay();
     renderApp();
     showToast('Custom targets saved');
@@ -8594,7 +8606,7 @@
       return;
     }
     overlay.classList.remove('hidden');
-    var mode = ui.progressOverviewMode || 'regular';
+    var mode = ui.mgDraftMode || ui.progressOverviewMode || 'regular';
     var body = '<div class="mg-settings-mode-toggle">';
     var pickable = MUSCLE_OVERVIEW_PROFILES.concat([{ key: 'custom', badge: 'CUSTOM' }]);
     pickable.forEach(function(p){
@@ -8618,6 +8630,7 @@
       if (descProfile && descProfile.description){
         body += '<div class="mg-mode-desc" style="margin-top:2px;">'+esc(descProfile.description)+'</div>';
       }
+      body += '<button type="button" class="mg-custom-save-btn" data-action="apply-mg-mode">Apply</button>';
     }
 
     panel.innerHTML =
@@ -12653,6 +12666,8 @@
       closeMgSettings();
     } else if (el.dataset.action === 'pick-mg-overlay-mode'){
       pickMgOverlayMode(el.dataset.mode);
+    } else if (el.dataset.action === 'apply-mg-mode'){
+      applyMgMode();
     } else if (el.dataset.action === 'save-mg-custom-targets'){
       saveMgCustomTargets();
     }
