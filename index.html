@@ -5688,9 +5688,14 @@
 
     return MUSCLE_GROUP_TARGETS.map(function(g){
       var b = byBucket[g.key];
+      // No cap — every exercise logged for this muscle this week, most
+      // recently logged first. Used to cut off at 3, but the chips are
+      // collapsed behind a toggle now (see renderMuscleOverviewRows), so
+      // there's no longer a reason to hide the rest once someone
+      // deliberately expands it.
       var topExercises = Object.keys(b.exLastSeen).sort(function(a, c){
         return b.exLastSeen[c] - b.exLastSeen[a];
-      }).slice(0, 3);
+      });
       return { key: g.key, label: g.label, sets: b.sets, topExercises: topExercises };
     });
   }
