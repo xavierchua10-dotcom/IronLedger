@@ -3069,6 +3069,10 @@
   .mg-settings-mode-btn.active{background:var(--accent);color:#1c1408;}
   .mg-settings-mode-btn:active{opacity:0.85;}
   .mg-custom-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
+  .mg-custom-row-off .mg-custom-label{color:var(--text-faint);}
+  .mg-custom-row-off .mg-custom-input{opacity:0.4;}
+  .mg-custom-check-label{display:flex;align-items:center;gap:9px;cursor:pointer;}
+  .mg-custom-checkbox{width:17px;height:17px;accent-color:var(--accent);flex-shrink:0;}
   .mg-custom-row:first-of-type{border-top:none;}
   .mg-custom-label{font-size:13px;color:var(--text);}
   .mg-custom-input{
@@ -5663,8 +5667,10 @@
     var mode = ui.progressOverviewMode || 'regular';
     if (mode === 'custom'){
       var stored = (state.settings && state.settings.customMuscleTargets) || {};
+      var enabled = (state.settings && state.settings.customMuscleGroupsEnabled) || {};
       var caps = {};
       MUSCLE_GROUP_TARGETS.forEach(function(g){
+        if (enabled[g.key] === false) return; // toggled off — leaves cap undefined, same mechanism Intensity uses to skip a row
         var v = Number(stored[g.key]);
         caps[g.key] = (v > 0) ? v : DEFAULT_CUSTOM_TARGETS[g.key];
       });
@@ -8577,18 +8583,29 @@
   // together; there's no "save numbers but stay on Regular" state).
   function saveMgCustomTargets(){
     var targets = {};
+    var enabled = {};
     var invalid = false;
     MUSCLE_GROUP_TARGETS.forEach(function(g){
+      var checkbox = document.getElementById('mgCustomEnabled_' + g.key);
+      var isOn = checkbox ? checkbox.checked : true;
+      enabled[g.key] = isOn;
       var input = document.getElementById('mgCustomInput_' + g.key);
       var v = input ? parseInt(input.value, 10) : NaN;
-      if (!Number.isInteger(v) || v < 1 || v > 99) invalid = true;
+      // A toggled-off muscle doesn't need a valid number — it won't be
+      // shown at all, so nothing to validate.
+      if (isOn && (!Number.isInteger(v) || v < 1 || v > 99)) invalid = true;
       targets[g.key] = v;
     });
     if (invalid){
-      showToast('Enter a number 1\u201399 for every muscle');
+      showToast('Enter a number 1\u201399 for every enabled muscle');
+      return;
+    }
+    if (Object.keys(enabled).every(function(k){ return enabled[k] === false; })){
+      showToast('Keep at least one muscle on');
       return;
     }
     state.settings.customMuscleTargets = targets;
+    state.settings.customMuscleGroupsEnabled = enabled;
     saveSettings();
     ui.progressOverviewMode = 'custom';
     ui.showMgSettings = false;
@@ -8617,11 +8634,17 @@
 
     if (mode === 'custom'){
       var stored = (state.settings && state.settings.customMuscleTargets) || {};
-      body += '<div class="mg-custom-hint">Set your own weekly set target per muscle. Green starts at half your target; past 100% flags as over.</div>';
+      var storedEnabled = (state.settings && state.settings.customMuscleGroupsEnabled) || {};
+      body += '<div class="mg-custom-hint">Set your own weekly set target per muscle. Green starts at half your target; past 100% flags as over. Untick a muscle to drop it from the overview entirely.</div>';
       MUSCLE_GROUP_TARGETS.forEach(function(g){
         var v = Number(stored[g.key]);
         var val = (v > 0) ? v : DEFAULT_CUSTOM_TARGETS[g.key];
-        body += '<div class="mg-custom-row"><span class="mg-custom-label">'+esc(g.label)+'</span>' +
+        var isOn = storedEnabled[g.key] !== false;
+        body += '<div class="mg-custom-row'+(isOn ? '' : ' mg-custom-row-off')+'">' +
+                  '<label class="mg-custom-check-label">' +
+                    '<input type="checkbox" class="mg-custom-checkbox" id="mgCustomEnabled_'+esc(g.key)+'"'+(isOn ? ' checked' : '')+'>' +
+                    '<span class="mg-custom-label">'+esc(g.label)+'</span>' +
+                  '</label>' +
                   '<input type="number" inputmode="numeric" min="1" max="99" step="1" class="mg-custom-input" id="mgCustomInput_'+esc(g.key)+'" value="'+val+'"></div>';
       });
       body += '<button type="button" class="mg-custom-save-btn" data-action="save-mg-custom-targets">Save</button>';
