@@ -4061,6 +4061,28 @@
         return { trialStartDate: now, trialEndDate: end };
       });
     },
+    // Reads (never writes) trialClaimsByEmail — lets the UI hide the
+    // trial offer upfront for an email that's already claimed one on a
+    // previous, since-deleted account, instead of showing "Start Free
+    // Trial" and only failing after the tap (see rules: this doc is
+    // readable by its own owner). code46311@gmail.com never has a doc
+    // here (rules block create for that one email), so this always
+    // resolves false for it — the test account keeps re-claiming freely
+    // without any special-casing needed on this side.
+    checkTrialClaimedByEmail: function(email){
+      var emailKey = (email || '').trim().toLowerCase();
+      if (!emailKey) return Promise.resolve(false);
+      return getDoc(doc(db, 'trialClaimsByEmail', emailKey)).then(function(snap){
+        return snap.exists();
+      }).catch(function(err){
+        // Read-permission edge cases (e.g. token not yet refreshed with
+        // the email claim) shouldn't block showing the trial offer —
+        // worst case here is just falling back to the existing
+        // after-the-tap error handling, not a broken account.
+        console.error('checkTrialClaimedByEmail failed:', err);
+        return false;
+      });
+    },
     // Realtime listener on the user's own doc — picks up subscription
     // changes (e.g. a future payment webhook writing currentPeriodEnd)
     // without needing a reload or re-login.
@@ -7410,6 +7432,7 @@
     setCurrentAccountId(null);
     state.currentAccount = null;
     state.currentAccountEmail = null;
+    state.trialClaimedByEmail = false;
     state.userDoc = null;
     ui.authMode = 'signup';
     ui.authError = null;
@@ -7442,8 +7465,14 @@
   // True only for a real (non-guest) account that has never started its
   // one-time 14-day trial. Once trialStartDate is set — whether the trial
   // is still running or has since expired — this goes false for good.
+  // Also false if this account's EMAIL already claimed a trial on a
+  // previous, since-deleted account (state.trialClaimedByEmail, set by
+  // enterAccount()) — this is what makes the trial offer itself
+  // disappear for a delete-and-resign-up repeat, instead of showing
+  // "Start Free Trial" and only failing after the tap.
   function trialAvailable(){
     if (state.currentAccount === 'guest' || isDevOverride()) return false;
+    if (state.trialClaimedByEmail) return false;
     return !(state.userDoc && state.userDoc.trialStartDate);
   }
 
@@ -9174,6 +9203,7 @@
     setCurrentAccountId(uidVal);
     state.currentAccount = uidVal;
     state.currentAccountEmail = email;
+    state.trialClaimedByEmail = false;
     ui.authBusy = false;
     ui.authError = null;
     firestorePullSettled = false;
@@ -9183,6 +9213,16 @@
     var ensureDoc = (window.SaviorFirebase && window.SaviorFirebase.ensureUserDoc)
       ? window.SaviorFirebase.ensureUserDoc(uidVal, email)
       : Promise.resolve(null);
+    // Checked once per login, not on every render — the trial offer only
+    // needs to reflect this by the time the pricing modal is opened, and
+    // this way it's ready before that ever happens rather than adding a
+    // read+re-render in the middle of opening the modal.
+    if (window.SaviorFirebase && window.SaviorFirebase.checkTrialClaimedByEmail){
+      window.SaviorFirebase.checkTrialClaimedByEmail(email).then(function(claimed){
+        state.trialClaimedByEmail = claimed;
+        renderApp();
+      });
+    }
     Promise.all([pull, ensureDoc]).then(function(results){
       var remote = results[0];
       state.userDoc = results[1];
@@ -9254,6 +9294,7 @@
     setCurrentAccountId(null);
     state.currentAccount = null;
     state.currentAccountEmail = null;
+    state.trialClaimedByEmail = false;
     state.userDoc = null;
     state.progressAccess = {};
     ui.showAccountMenu = false;
@@ -12573,6 +12614,7 @@
       } else {
         state.currentAccount = null;
         state.currentAccountEmail = null;
+        state.trialClaimedByEmail = false;
         state.userDoc = null;
         showAuthGateShell();
         renderAuthGate();
