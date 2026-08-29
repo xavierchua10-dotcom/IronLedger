@@ -4027,22 +4027,28 @@
       });
     },
     // Called only when the user explicitly taps "Start Free Trial" in
-    // the pricing modal. One-time — enforced two ways: (1) Firestore
+    // the pricing modal. One-time — enforced three ways: (1) Firestore
     // rules reject this write if trialStartDate is already set on the
     // /users/{uid} doc, so it can't be replayed to extend the trial;
     // (2) a permanent, undeletable /trialClaims/{uid} doc is written in
     // the SAME batch, and the update rule also requires that doc not
-    // already exist. That second check is what stops someone from
-    // deleting just their /users/{uid} doc (bypassing the app entirely,
-    // straight through the Firestore SDK) to make ensureUserDoc() treat
-    // them as brand-new and hand out a fresh trial — trialClaims never
-    // gets deleted, so the exists() check still blocks it. Needs the
-    // matching Firestore security rules (see notes near DEV_OVERRIDE_EMAIL).
-    // Deliberately does not touch subscription/tier/isDev (the update
-    // security rule blocks client writes to those).
-    startTrial: function(uidVal){
+    // already exist — this is what stops someone from deleting just
+    // their /users/{uid} doc (bypassing the app entirely, straight
+    // through the Firestore SDK) to make ensureUserDoc() treat them as
+    // brand-new and hand out a fresh trial; (3) a permanent, undeletable
+    // /trialClaimsByEmail/{email} doc, same idea but keyed to the email
+    // instead of the uid — this is what stops the wider version of the
+    // same trick: deleting the whole ACCOUNT (not just the doc) and
+    // signing up again with the same email, which gets a brand new uid
+    // every time and would otherwise sail past check (2) entirely.
+    // Needs the matching Firestore security rules (see notes near
+    // DEV_OVERRIDE_EMAIL). Deliberately does not touch
+    // subscription/tier/isDev (the update security rule blocks client
+    // writes to those).
+    startTrial: function(uidVal, emailVal){
       var now = Date.now();
       var end = now + TRIAL_DAYS * 24 * 60 * 60 * 1000;
+      var emailKey = (emailVal || '').trim().toLowerCase();
       var batch = writeBatch(db);
       batch.set(doc(db, 'users', uidVal), {
         trialStartDate: now,
@@ -4050,6 +4056,7 @@
         updatedAt: now
       }, { merge: true });
       batch.set(doc(db, 'trialClaims', uidVal), { claimedAt: now });
+      if (emailKey) batch.set(doc(db, 'trialClaimsByEmail', emailKey), { claimedAt: now });
       return batch.commit().then(function(){
         return { trialStartDate: now, trialEndDate: end };
       });
@@ -7461,7 +7468,7 @@
     if (!trialAvailable()) return;
     ui.startingTrial = true;
     renderPricingPanel();
-    window.SaviorFirebase.startTrial(state.currentAccount).then(function(fields){
+    window.SaviorFirebase.startTrial(state.currentAccount, state.currentAccountEmail).then(function(fields){
       state.userDoc = Object.assign({}, state.userDoc, fields);
       ui.startingTrial = false;
       ui.confirmingTrial = false;
