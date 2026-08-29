@@ -8885,6 +8885,19 @@
       html += '<div class="settings-row"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+(pushOn ? 'Enabled on this device' : 'Get a nudge when it\u2019s been a while')+'</div></div>' +
                 '<button class="sr-action" data-action="enable-push"'+(ui.pushBusy ? ' disabled' : '')+'>'+(ui.pushBusy ? '\u2026' : (pushOn ? 'Re-enable' : 'Enable'))+'</button></div>';
     }
+    // Reuses the exact same install-app action and triggerInstallPrompt()
+    // as the top-of-app banner (see near the bottom of this script) —
+    // this just gives people a deliberate place to find it even if they
+    // already dismissed the banner. Same install-opportunity check
+    // (ui.installPromptAvailable) as the banner, but does NOT check
+    // installBannerDismissedPermanently() — Settings is somewhere they
+    // came looking on purpose, dismissing the banner shouldn't hide it
+    // from here too.
+    if (ui.installPromptAvailable){
+      html += '<div class="settings-row"><div><div class="sr-label">Install App</div>' +
+                '<div class="sr-sub">Add to your home screen \u2014 works offline, opens like a real app</div></div>' +
+                '<button class="sr-action" data-action="install-app">Install</button></div>';
+    }
     html += '</div>';
 
     html += '<div class="section-label">Appearance</div>';
@@ -12744,18 +12757,21 @@
       deferredInstallPrompt = e;
       ui.installPromptAvailable = true;
       renderInstallBanner();
+      renderApp();
     });
 
     if (/iphone|ipad|ipod/i.test(navigator.userAgent)){
       ui.installIsIOS = true;
       ui.installPromptAvailable = true;
       renderInstallBanner();
+      renderApp();
     }
 
     window.addEventListener('appinstalled', function(){
       deferredInstallPrompt = null;
       ui.installPromptAvailable = false;
       renderInstallBanner();
+      renderApp();
     });
   })();
 })();
