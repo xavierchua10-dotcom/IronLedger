@@ -8309,7 +8309,13 @@
       // red overtraining flag. The number itself is never capped, so
       // going over still reads honestly as e.g. "21 / 20".
       var stateClass = g.sets > cap ? ' mg-over' : (g.sets >= profile.greenMinSets ? ' mg-good' : '');
-      html += '<div class="mg-row" data-action="open-muscle-drilldown" data-muscle="'+esc(g.key)+'">' +
+      // Whole row toggles the exercise list open/closed now — tapping
+      // anywhere on it, not just the small arrow text. Used to navigate
+      // to the muscle-filtered Exercise Progression list instead
+      // (open-muscle-drilldown); dropped in favor of expand, since
+      // navigating away on every tap made the arrow the only thing that
+      // actually got the tap people meant to make.
+      html += '<div class="mg-row" data-action="toggle-mg-exercises" data-muscle="'+esc(g.key)+'">' +
                 '<div class="mg-row-head">' +
                   '<span class="mg-row-name">'+esc(g.label)+'</span>' +
                   '<span class="mg-row-count'+stateClass+'">'+g.sets+' / '+cap+' sets</span>' +
@@ -8318,14 +8324,13 @@
       if (g.topExercises.length){
         // Collapsed by default — the chip list wraps unevenly (pill
         // widths vary, so the last row rarely fills), which reads messy
-        // sitting open in every row all the time. Tapping this toggle
-        // is its own data-action, resolved by closest('[data-action]')
-        // before the row's own open-muscle-drilldown, so it doesn't
-        // also trigger the drill-down navigation.
+        // sitting open in every row all the time. Plain span now, not a
+        // button — the whole row already carries the toggle action, a
+        // second nested control here would just be redundant.
         var expanded = !!ui.mgExpandedGroups[g.key];
-        html += '<button type="button" class="mg-chips-toggle" data-action="toggle-mg-exercises" data-muscle="'+esc(g.key)+'">' +
+        html += '<span class="mg-chips-toggle">' +
                   (expanded ? '\u25b4 Hide exercises' : '\u25be '+g.topExercises.length+' exercise'+(g.topExercises.length===1?'':'s')) +
-                '</button>';
+                '</span>';
         if (expanded){
           html += '<div class="mg-chips">';
           g.topExercises.forEach(function(name){
