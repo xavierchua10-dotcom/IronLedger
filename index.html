@@ -3071,6 +3071,11 @@
   .mg-bar-fill.mg-good{background:var(--success);}
   .mg-bar-fill.mg-over{background:var(--accent-2);}
   .mg-chips{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
+  .mg-chips-toggle{
+    background:none;border:none;padding:0;margin-top:9px;
+    font-size:11px;color:var(--text-faint);cursor:pointer;
+  }
+  .mg-chips-toggle:active{color:var(--text-dim);}
   .mg-chip{
     background:rgba(255,255,255,0.06);
     border:1px solid rgba(255,255,255,0.14);
@@ -4290,6 +4295,7 @@
     progressMuscleFilters: [],    // array of fine EXERCISE_LIBRARY categories (e.g. ['Biceps','Triceps']) narrowing the Exercise Progression list; empty = unscoped
     progressExerciseListOpen: false, // Exercise Progression: true = browsing the chip-filtered list, false = viewing the selected exercise's chart
     progressOverviewMode: 'regular', // 'regular' | 'intensity' — which Muscle Overview profile's caps/rows are showing
+    mgExpandedGroups: {},  // muscle key -> bool; whether that row's exercise chips are expanded. Collapsed by default — see renderMuscleOverviewRows.
     showMuscleVolumeInsight: false,  // whether the weekly volume-balance insight callout is expanded
     showRatingPanel: false,    // whether the "Rate SaviorFit Logger" overlay is open
     ratingDraftStars: 0,       // star count picked in the rating overlay before it's submitted
@@ -8305,11 +8311,23 @@
                 '</div>' +
                 '<div class="mg-bar-track"><div class="mg-bar-fill'+stateClass+'" style="width:'+pct+'%"></div></div>';
       if (g.topExercises.length){
-        html += '<div class="mg-chips">';
-        g.topExercises.forEach(function(name){
-          html += '<button type="button" class="mg-chip" data-action="open-exercise-drilldown" data-name="'+esc(name)+'">'+esc(name)+'</button>';
-        });
-        html += '</div>';
+        // Collapsed by default — the chip list wraps unevenly (pill
+        // widths vary, so the last row rarely fills), which reads messy
+        // sitting open in every row all the time. Tapping this toggle
+        // is its own data-action, resolved by closest('[data-action]')
+        // before the row's own open-muscle-drilldown, so it doesn't
+        // also trigger the drill-down navigation.
+        var expanded = !!ui.mgExpandedGroups[g.key];
+        html += '<button type="button" class="mg-chips-toggle" data-action="toggle-mg-exercises" data-muscle="'+esc(g.key)+'">' +
+                  (expanded ? '\u25b4 Hide exercises' : '\u25be '+g.topExercises.length+' exercise'+(g.topExercises.length===1?'':'s')) +
+                '</button>';
+        if (expanded){
+          html += '<div class="mg-chips">';
+          g.topExercises.forEach(function(name){
+            html += '<button type="button" class="mg-chip" data-action="open-exercise-drilldown" data-name="'+esc(name)+'">'+esc(name)+'</button>';
+          });
+          html += '</div>';
+        }
       } else {
         html += '<div class="mg-empty-note">No sets logged this week</div>';
       }
@@ -11709,6 +11727,10 @@
       openHistoryDateRange();
     } else if (action === 'set-progress-overview-mode'){
       ui.progressOverviewMode = el.dataset.mode;
+      renderApp();
+    } else if (action === 'toggle-mg-exercises'){
+      var mKey = el.dataset.muscle;
+      ui.mgExpandedGroups[mKey] = !ui.mgExpandedGroups[mKey];
       renderApp();
     } else if (action === 'open-muscle-volume-insight'){
       openMuscleVolumeInsight();
