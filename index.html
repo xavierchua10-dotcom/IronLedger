@@ -3720,7 +3720,9 @@
   <div class="tour-backdrop hidden" id="tourBackdrop"></div>
   <div class="tour-spotlight hidden" id="tourSpotlight"></div>
   <div class="tour-bubble hidden" id="tourBubble"></div>
-  <div class="trial-banner hidden" id="installBanner"></div>
+  <div class="confirm-overlay hidden" id="installOverlay">
+    <div class="pro-panel" id="installPanel"></div>
+  </div>
   <main id="view"></main>
   <div class="stopwatch-bar hidden" id="stopwatchBar"></div>
   <div class="session-finish-bar hidden" id="sessionFinishBar">
@@ -7799,30 +7801,40 @@
     window.print();
   }
 
-  // Shows the "install this as an app" banner — same visual pattern as
-  // the trial banner above (reuses its CSS classes) plus a dismiss (X)
-  // button. Only appears when there's an actual install opportunity:
+  // Shows the "install this as an app" prompt as a proper overlay/modal —
+  // dimmed backdrop, floating panel, explicit Install/Not now buttons —
+  // same visual pattern as the Go Pro panel (reuses its .pro-panel /
+  // .paywall-* classes) rather than a thin banner easy to scroll past.
+  // Same function/action names as before (renderInstallBanner,
+  // install-app, dismiss-install-banner) even though the DOM target and
+  // markup changed, so every existing call site still works untouched.
+  // Only appears when there's an actual install opportunity:
   // Android/Chrome fired beforeinstallprompt (captured in the IIFE near
   // the bottom of this script), or this is iOS Safari, which never
   // fires that event but can still be walked through manually. Hidden
   // once already installed, or once the person's dismissed it (see
-  // installBannerDismissedPermanently — that check already happened
-  // before ui.installPromptAvailable was ever set true, but it's
-  // re-checked here too in case dismissal happens after the flag is set).
+  // installBannerDismissedPermanently).
   function renderInstallBanner(){
-    var el = document.getElementById('installBanner');
-    if (!el) return;
+    var overlay = document.getElementById('installOverlay');
+    var panel = document.getElementById('installPanel');
+    if (!overlay || !panel) return;
     if (!ui.installPromptAvailable || installBannerDismissedPermanently()){
-      el.classList.add('hidden');
-      el.innerHTML = '';
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
       return;
     }
-    el.classList.remove('hidden');
-    el.innerHTML =
-      '<span class="trial-banner-star">&#8595;</span>' +
-      '<span class="trial-banner-text">Install SaviorFit Logger \u2014 <b>works offline, opens like a real app</b></span>' +
-      '<button class="trial-banner-cta" data-action="install-app">Install</button>' +
-      '<button class="reminder-banner-dismiss" data-action="dismiss-install-banner" aria-label="Dismiss">&#10005;</button>';
+    overlay.classList.remove('hidden');
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Install SaviorFit Logger</h3>' +
+        '<button class="pro-panel-close" data-action="dismiss-install-banner" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="paywall-body">' +
+        '<div class="paywall-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg></div>' +
+        '<div class="paywall-title">Add to your home screen</div>' +
+        '<div class="paywall-sub">Works offline and opens full-screen like a real app \u2014 no browser bar, no address bar.</div>' +
+        '<button class="paywall-unlock-btn" data-action="install-app">Install</button>' +
+        '<button class="trial-offer-btn" data-action="dismiss-install-banner" style="margin-top:10px;background:transparent;color:var(--text-dim);">Not now</button>' +
+      '</div>';
   }
 
   /* =========================================================
