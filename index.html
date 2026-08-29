@@ -3016,41 +3016,81 @@
   }
   .mg-insight-btn svg{width:15px;height:15px;display:block;}
   .mg-insight-btn:active{background:var(--accent-dim);border-color:var(--accent-dim);}
+  .mg-header-btns{display:flex;gap:6px;flex-shrink:0;}
+  .mg-settings-btn{
+    width:26px;
+    height:26px;
+    flex-shrink:0;
+    border-radius:var(--radius-sm);
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.16);
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+  }
+  .mg-settings-btn svg{width:15px;height:15px;display:block;}
+  .mg-settings-btn:active{background:rgba(255,255,255,0.14);}
   .mg-insight-wrap{margin:2px 0 14px;}
   .mg-insight-wrap .prc-tip{margin-top:0;padding:9px 12px;background:rgba(var(--accent-rgb),0.08);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;font-size:12.5px;color:var(--text-dim);line-height:1.4;}
   .mg-insight-wrap .prc-tip + .prc-tip{margin-top:8px;}
   .mg-insight-wrap .prc-tip b{color:var(--text);}
-  .mg-mode-toggle{
-    display:flex;
-    background:rgba(255,255,255,0.06);
-    border:1px solid rgba(255,255,255,0.14);
-    border-radius:999px;
-    padding:3px;
-    margin-bottom:14px;
-  }
-  .mg-mode-btn{
-    flex:1;
-    text-align:center;
-    padding:8px 10px;
-    border:none;
-    background:none;
-    color:#c7ccd3;
-    font-family:'Oswald',sans-serif;
-    font-weight:700;
-    font-size:12px;
-    letter-spacing:0.04em;
-    text-transform:uppercase;
-    border-radius:999px;
-    cursor:pointer;
-  }
-  .mg-mode-btn.active{background:var(--accent);color:#1c1408;}
-  .mg-mode-btn:active{opacity:0.85;}
   .mg-mode-desc{
     font-size:11.5px;
     line-height:1.5;
     color:#9198a1;
     margin:-6px 0 14px;
   }
+  .mg-settings-mode-toggle{
+    display:flex;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:999px;
+    padding:3px;
+    margin:0 0 14px;
+  }
+  .mg-settings-mode-btn{
+    flex:1;
+    text-align:center;
+    padding:9px 6px;
+    border:none;
+    background:none;
+    color:#c7ccd3;
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:11px;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    border-radius:999px;
+    cursor:pointer;
+  }
+  .mg-settings-mode-btn.active{background:var(--accent);color:#1c1408;}
+  .mg-settings-mode-btn:active{opacity:0.85;}
+  .mg-custom-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
+  .mg-custom-row:first-of-type{border-top:none;}
+  .mg-custom-label{font-size:13px;color:var(--text);}
+  .mg-custom-input{
+    width:64px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:var(--radius-sm);
+    padding:8px 10px;
+    font-size:13px;
+    font-family:'JetBrains Mono',monospace;
+    text-align:center;
+  }
+  .mg-custom-input:focus{outline:none;border-color:var(--accent);}
+  .mg-custom-hint{font-size:11.5px;line-height:1.5;color:#9198a1;margin:10px 0 14px;}
+  .mg-custom-save-btn{
+    width:100%;background:var(--accent);color:#1c1500;border:none;
+    border-radius:var(--radius-md);padding:13px;font-family:'Oswald',sans-serif;
+    font-weight:700;font-size:13px;letter-spacing:0.03em;text-transform:uppercase;
+    cursor:pointer;margin-top:6px;
+  }
+  .mg-custom-save-btn:active{background:var(--accent-dim);}
   .mg-row{padding:10px 0;cursor:pointer;}
   .mg-row + .mg-row{border-top:1px solid rgba(255,255,255,0.08);}
   .mg-row:active{opacity:0.85;}
@@ -3806,6 +3846,9 @@
 <div class="confirm-overlay hidden" id="muscleInsightOverlay">
   <div class="pro-panel" id="muscleInsightPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="mgSettingsOverlay">
+  <div class="pro-panel" id="mgSettingsPanel"></div>
+</div>
 <div class="confirm-overlay hidden" id="ratingOverlay">
   <div class="pro-panel" id="ratingPanel"></div>
 </div>
@@ -4294,8 +4337,9 @@
     progressView: 'dashboard',    // 'dashboard' (Muscle Volume Overview) | 'exercise' (the existing 1RM/trendline deep-dive)
     progressMuscleFilters: [],    // array of fine EXERCISE_LIBRARY categories (e.g. ['Biceps','Triceps']) narrowing the Exercise Progression list; empty = unscoped
     progressExerciseListOpen: false, // Exercise Progression: true = browsing the chip-filtered list, false = viewing the selected exercise's chart
-    progressOverviewMode: 'regular', // 'regular' | 'intensity' — which Muscle Overview profile's caps/rows are showing
+    progressOverviewMode: 'regular', // 'regular' | 'intensity' | 'custom' — which Muscle Overview profile's caps/rows are showing. Chosen via the settings overlay now (see showMgSettings), not an on-screen toggle.
     mgExpandedGroups: {},  // muscle key -> bool; whether that row's exercise chips are expanded. Collapsed by default — see renderMuscleOverviewRows.
+    showMgSettings: false, // whether the Muscle Volume Overview settings overlay (mode picker + custom targets) is open
     showMuscleVolumeInsight: false,  // whether the weekly volume-balance insight callout is expanded
     showRatingPanel: false,    // whether the "Rate SaviorFit Logger" overlay is open
     ratingDraftStars: 0,       // star count picked in the rating overlay before it's submitted
@@ -5590,6 +5634,49 @@
       caps: { Chest: 10, Back: 10, Shoulders: 8, Arms: 8, Legs: 10, Core: 8 }
     }
   ];
+
+  // Custom mode's starting point when someone hasn't set their own
+  // number for a muscle yet — same caps as Regular, just editable.
+  var DEFAULT_CUSTOM_TARGETS = { Chest: 20, Back: 20, Shoulders: 15, Arms: 15, Legs: 20, Core: 15 };
+
+  // Regular's green-zone floor (greenMinSets) is a single flat number
+  // (10) applied across caps that vary (15 or 20) — works fine as fixed
+  // values, but doesn't translate directly to arbitrary custom caps.
+  // Approximating it as a percentage instead: 10/20 = 50% for most of
+  // Regular's muscles (Chest, Back, Legs), so Custom mode's green floor
+  // is 50% of whatever cap someone sets, rounded up. Below that: the
+  // "yellow" (gold) not-yet-there color; at/above it up to the cap:
+  // green; over the cap: red — same three-color logic Regular and
+  // Intensity already use, just with a computed floor instead of a
+  // fixed one.
+  var CUSTOM_GREEN_PCT = 0.5;
+
+  // Builds the currently-active profile — a real entry from
+  // MUSCLE_OVERVIEW_PROFILES for 'regular'/'intensity', or a synthetic
+  // one assembled from the user's own saved numbers for 'custom'. Every
+  // read site below (renderMuscleOverviewRows, buildMuscleVolumeInsight,
+  // the panel header) goes through this instead of reading
+  // MUSCLE_OVERVIEW_PROFILES directly, so 'custom' behaves as a real
+  // third profile everywhere without duplicating this assembly logic.
+  function getActiveProfile(){
+    var mode = ui.progressOverviewMode || 'regular';
+    if (mode === 'custom'){
+      var stored = (state.settings && state.settings.customMuscleTargets) || {};
+      var caps = {};
+      MUSCLE_GROUP_TARGETS.forEach(function(g){
+        var v = Number(stored[g.key]);
+        caps[g.key] = (v > 0) ? v : DEFAULT_CUSTOM_TARGETS[g.key];
+      });
+      return {
+        key: 'custom',
+        badge: 'CUSTOM',
+        description: 'Your own weekly set target per muscle — edit anytime from the settings icon above.',
+        isCustom: true,
+        caps: caps
+      };
+    }
+    return MUSCLE_OVERVIEW_PROFILES.filter(function(p){ return p.key === mode; })[0] || MUSCLE_OVERVIEW_PROFILES[0];
+  }
 
   // A handful of well-known compounds load a clear second bucket beyond
   // their primary EXERCISE_LIBRARY category — e.g. Deadlift is Back-
@@ -8307,8 +8394,12 @@
       // under the green floor: default dim bar (no class). good: at or
       // above the floor, at or under cap — green. over: past the cap —
       // red overtraining flag. The number itself is never capped, so
-      // going over still reads honestly as e.g. "21 / 20".
-      var stateClass = g.sets > cap ? ' mg-over' : (g.sets >= profile.greenMinSets ? ' mg-good' : '');
+      // going over still reads honestly as e.g. "21 / 20". Custom mode
+      // has no fixed greenMinSets (caps vary per person) — floor is
+      // computed as a percentage of that muscle's own cap instead (see
+      // CUSTOM_GREEN_PCT).
+      var greenFloor = profile.isCustom ? Math.ceil(cap * CUSTOM_GREEN_PCT) : profile.greenMinSets;
+      var stateClass = g.sets > cap ? ' mg-over' : (g.sets >= greenFloor ? ' mg-good' : '');
       // Whole row toggles the exercise list open/closed now — tapping
       // anywhere on it, not just the small arrow text. Used to navigate
       // to the muscle-filtered Exercise Progression list instead
@@ -8360,8 +8451,9 @@
       var cap = profile.caps[g.key];
       if (cap === undefined) return;
       tracked++;
+      var greenFloor = profile.isCustom ? Math.ceil(cap * CUSTOM_GREEN_PCT) : profile.greenMinSets;
       if (g.sets > cap) over.push(g.label);
-      else if (g.sets < profile.greenMinSets) under.push(g.label);
+      else if (g.sets < greenFloor) under.push(g.label);
     });
 
     function joinNames(names){
@@ -8433,12 +8525,106 @@
     }
     overlay.classList.remove('hidden');
     var weeklyData = computeWeeklyMuscleVolume();
-    var activeProfile = MUSCLE_OVERVIEW_PROFILES.filter(function(p){ return p.key === (ui.progressOverviewMode || 'regular'); })[0] || MUSCLE_OVERVIEW_PROFILES[0];
+    var activeProfile = getActiveProfile();
     panel.innerHTML =
       '<div class="pro-panel-header"><h3>Weekly Volume Insight</h3>' +
         '<button class="pro-panel-close" data-action="close-muscle-volume-insight" aria-label="Close">&#10005;</button>' +
       '</div>' +
       '<div class="pro-panel-body">' + renderMuscleVolumeInsightHtml(activeProfile, weeklyData) + '</div>';
+  }
+
+  /* =========================================================
+     MUSCLE VOLUME OVERVIEW — SETTINGS OVERLAY
+     Mode picker (Regular / Intensity / Custom) +, when Custom is
+     selected, a weekly set-target input per muscle. Picking Regular or
+     Intensity here applies immediately and closes the panel — there's
+     nothing further to configure for either. Picking Custom keeps the
+     panel open to reveal the number inputs, prefilled from whatever's
+     already saved (or DEFAULT_CUSTOM_TARGETS the first time); nothing
+     is written to state.settings until "Save" is tapped, so backing out
+     without saving leaves any previously-saved custom numbers untouched.
+     ========================================================= */
+  function openMgSettings(){
+    ui.showMgSettings = true;
+    renderMgSettingsOverlay();
+  }
+  function closeMgSettings(){
+    ui.showMgSettings = false;
+    renderMgSettingsOverlay();
+  }
+  // Called when Regular or Intensity is picked inside the panel —
+  // applies immediately (no separate save step) and closes.
+  function pickMgOverlayMode(mode){
+    ui.progressOverviewMode = mode;
+    if (mode === 'custom'){
+      // Stay open, re-render just the panel to reveal the inputs.
+      renderMgSettingsOverlay();
+    } else {
+      ui.showMgSettings = false;
+      renderMgSettingsOverlay();
+      renderApp(); // refreshes the dashboard behind the (now-closed) panel
+    }
+  }
+  function saveMgCustomTargets(){
+    var targets = {};
+    var invalid = false;
+    MUSCLE_GROUP_TARGETS.forEach(function(g){
+      var input = document.getElementById('mgCustomInput_' + g.key);
+      var v = input ? parseInt(input.value, 10) : NaN;
+      if (!Number.isInteger(v) || v < 1 || v > 99) invalid = true;
+      targets[g.key] = v;
+    });
+    if (invalid){
+      showToast('Enter a number 1\u201399 for every muscle');
+      return;
+    }
+    state.settings.customMuscleTargets = targets;
+    saveSettings();
+    ui.showMgSettings = false;
+    renderMgSettingsOverlay();
+    renderApp();
+    showToast('Custom targets saved');
+  }
+  function renderMgSettingsOverlay(){
+    var overlay = document.getElementById('mgSettingsOverlay');
+    var panel = document.getElementById('mgSettingsPanel');
+    if (!ui.showMgSettings){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var mode = ui.progressOverviewMode || 'regular';
+    var body = '<div class="mg-settings-mode-toggle">';
+    var pickable = MUSCLE_OVERVIEW_PROFILES.concat([{ key: 'custom', badge: 'CUSTOM' }]);
+    pickable.forEach(function(p){
+      var active = p.key === mode;
+      body += '<button type="button" class="mg-settings-mode-btn'+(active ? ' active' : '')+'" data-action="pick-mg-overlay-mode" data-mode="'+esc(p.key)+'">'+esc(p.badge)+'</button>';
+    });
+    body += '</div>';
+
+    if (mode === 'custom'){
+      var stored = (state.settings && state.settings.customMuscleTargets) || {};
+      body += '<div class="mg-custom-hint">Set your own weekly set target per muscle. Green starts at half your target; past 100% flags as over.</div>';
+      MUSCLE_GROUP_TARGETS.forEach(function(g){
+        var v = Number(stored[g.key]);
+        var val = (v > 0) ? v : DEFAULT_CUSTOM_TARGETS[g.key];
+        body += '<div class="mg-custom-row"><span class="mg-custom-label">'+esc(g.label)+'</span>' +
+                  '<input type="number" inputmode="numeric" min="1" max="99" step="1" class="mg-custom-input" id="mgCustomInput_'+esc(g.key)+'" value="'+val+'"></div>';
+      });
+      body += '<button type="button" class="mg-custom-save-btn" data-action="save-mg-custom-targets">Save</button>';
+    } else {
+      var descProfile = MUSCLE_OVERVIEW_PROFILES.filter(function(p){ return p.key === mode; })[0];
+      if (descProfile && descProfile.description){
+        body += '<div class="mg-mode-desc" style="margin-top:2px;">'+esc(descProfile.description)+'</div>';
+      }
+    }
+
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Volume Settings</h3>' +
+        '<button class="pro-panel-close" data-action="close-mg-settings" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' + body + '</div>';
   }
 
   /* =========================================================
@@ -8534,27 +8720,21 @@
     sunday.setDate(sunday.getDate() + 6);
 
     if (!ui.progressOverviewMode) ui.progressOverviewMode = 'regular';
-    var activeProfile = MUSCLE_OVERVIEW_PROFILES.filter(function(p){ return p.key === ui.progressOverviewMode; })[0] || MUSCLE_OVERVIEW_PROFILES[0];
+    var activeProfile = getActiveProfile();
 
     var html = '<div class="mg-panel'+(activeProfile.key === 'intensity' ? ' mg-panel-intensity' : '')+'">';
     html += '<div class="mg-panel-header">' +
               '<div class="mg-panel-title-row"><h3>Muscle Volume Overview</h3>' +
-                '<button type="button" class="mg-insight-btn" data-action="open-muscle-volume-insight" aria-label="Weekly volume insight">' +
-                  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>' +
-                '</button>' +
+                '<div class="mg-header-btns">' +
+                  '<button type="button" class="mg-settings-btn" data-action="open-mg-settings" aria-label="Volume settings">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/></svg>' +
+                  '</button>' +
+                  '<button type="button" class="mg-insight-btn" data-action="open-muscle-volume-insight" aria-label="Weekly volume insight">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>' +
+                  '</button>' +
+                '</div>' +
               '</div>' +
-              '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+'</span></div>';
-
-    html += '<div class="mg-mode-toggle">';
-    MUSCLE_OVERVIEW_PROFILES.forEach(function(p){
-      var active = p.key === activeProfile.key;
-      html += '<button type="button" class="mg-mode-btn'+(active ? ' active' : '')+'" data-action="set-progress-overview-mode" data-mode="'+esc(p.key)+'">'+esc(p.badge)+'</button>';
-    });
-    html += '</div>';
-
-    if (activeProfile.description){
-      html += '<div class="mg-mode-desc">'+esc(activeProfile.description)+'</div>';
-    }
+              '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+' \u00b7 '+esc(activeProfile.badge)+'</span></div>';
 
     html += renderMuscleOverviewRows(activeProfile, weeklyData);
 
@@ -11735,9 +11915,12 @@
       renderApp();
     } else if (action === 'open-history-date-range'){
       openHistoryDateRange();
-    } else if (action === 'set-progress-overview-mode'){
-      ui.progressOverviewMode = el.dataset.mode;
-      renderApp();
+    } else if (action === 'open-mg-settings'){
+      openMgSettings();
+    } else if (action === 'pick-mg-overlay-mode'){
+      pickMgOverlayMode(el.dataset.mode);
+    } else if (action === 'save-mg-custom-targets'){
+      saveMgCustomTargets();
     } else if (action === 'toggle-mg-exercises'){
       var mKey = el.dataset.muscle;
       ui.mgExpandedGroups[mKey] = !ui.mgExpandedGroups[mKey];
@@ -12459,6 +12642,24 @@
     if (e.key === 'Escape'){
       e.preventDefault();
       closeMuscleVolumeInsight();
+    }
+  });
+
+  var mgSettingsOverlayEl = document.getElementById('mgSettingsOverlay');
+  mgSettingsOverlayEl.addEventListener('click', function(e){
+    if (e.target === mgSettingsOverlayEl){
+      closeMgSettings();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (el && el.dataset.action === 'close-mg-settings'){
+      closeMgSettings();
+    }
+  });
+  mgSettingsOverlayEl.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){
+      e.preventDefault();
+      closeMgSettings();
     }
   });
 
