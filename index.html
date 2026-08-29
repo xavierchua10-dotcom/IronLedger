@@ -7526,19 +7526,38 @@
     ui.openingPortal = true;
     renderPricingPanel();
     renderApp();
+    // Popup blockers require window.open() to fire in the same tick as
+    // the user's tap. createPortalSession is a network round-trip, so
+    // calling window.open() only after it resolves (the old code) loses
+    // that "direct user gesture" status on most mobile browsers and gets
+    // silently blocked. Fix: open the window right now, synchronously,
+    // pointed at blank — then redirect THAT window once the real portal
+    // URL comes back. Deliberately no 'noopener' here (unlike
+    // startCheckout above) since noopener nulls the window reference
+    // this needs to redirect later; low-risk since the destination is
+    // Stripe's own billing portal, not third-party/user content.
+    var portalWindow = window.open('about:blank', '_blank');
     window.SaviorFirebase.callPortalSession(window.location.href).then(function(data){
       ui.openingPortal = false;
       renderPricingPanel();
       renderApp();
       if (data && data.url){
-        window.open(data.url, '_blank', 'noopener');
+        if (portalWindow && !portalWindow.closed){
+          portalWindow.location.href = data.url;
+        } else {
+          // Blocked or user closed the blank tab before this resolved —
+          // fall back to a fresh open attempt.
+          window.open(data.url, '_blank', 'noopener');
+        }
       } else {
+        if (portalWindow && !portalWindow.closed) portalWindow.close();
         showToast('Couldn\u2019t open subscription management \u2014 try again shortly');
       }
     }).catch(function(err){
       ui.openingPortal = false;
       renderPricingPanel();
       renderApp();
+      if (portalWindow && !portalWindow.closed) portalWindow.close();
       showToast('Couldn\u2019t open subscription management \u2014 try again shortly');
       console.error('openManageSubscription failed:', err);
     });
