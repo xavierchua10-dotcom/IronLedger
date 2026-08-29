@@ -11917,10 +11917,6 @@
       openHistoryDateRange();
     } else if (action === 'open-mg-settings'){
       openMgSettings();
-    } else if (action === 'pick-mg-overlay-mode'){
-      pickMgOverlayMode(el.dataset.mode);
-    } else if (action === 'save-mg-custom-targets'){
-      saveMgCustomTargets();
     } else if (action === 'toggle-mg-exercises'){
       var mKey = el.dataset.muscle;
       ui.mgExpandedGroups[mKey] = !ui.mgExpandedGroups[mKey];
@@ -12652,8 +12648,13 @@
       return;
     }
     var el = e.target.closest('[data-action]');
-    if (el && el.dataset.action === 'close-mg-settings'){
+    if (!el) return;
+    if (el.dataset.action === 'close-mg-settings'){
       closeMgSettings();
+    } else if (el.dataset.action === 'pick-mg-overlay-mode'){
+      pickMgOverlayMode(el.dataset.mode);
+    } else if (el.dataset.action === 'save-mg-custom-targets'){
+      saveMgCustomTargets();
     }
   });
   mgSettingsOverlayEl.addEventListener('keydown', function(e){
