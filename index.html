@@ -3966,6 +3966,13 @@
     callTrialEmail: function(){
       return httpsCallable(cloudFunctions, 'sendTrialEmail')().then(function(res){ return res.data; });
     },
+    // Fired on every rating submission — stars alone or with typed
+    // feedback, doesn't matter — so it reaches the admin's inbox
+    // unconditionally rather than only when someone happens to type
+    // something and then manually send a mailto: draft.
+    callRatingNotification: function(stars, feedback){
+      return httpsCallable(cloudFunctions, 'sendRatingNotification')({ stars: stars, feedback: feedback || '' }).then(function(res){ return res.data; });
+    },
     callPortalSession: function(returnUrl){
       return httpsCallable(cloudFunctions, 'createPortalSession')({ returnUrl: returnUrl }).then(function(res){ return res.data; });
     },
@@ -8435,13 +8442,15 @@
     state.settings.ratingPromptShown = true; // covers submitting via Settings before the auto-prompt would have fired
     saveSettings();
     logActivity('Rated the app ' + stars + ' star' + (stars === 1 ? '' : 's'), 'Settings');
-    if (feedback){
-      // No in-app feedback inbox exists — reusing the same support email
-      // already listed in Settings is the honest way to actually get this
-      // read, rather than silently storing text nobody will see.
-      var subject = encodeURIComponent('SaviorFit Logger feedback (' + stars + '\u2605)');
-      var body = encodeURIComponent(feedback);
-      window.location.href = 'mailto:xavierchua10@gmail.com?subject=' + subject + '&body=' + body;
+    // Fire-and-forget, server-side — reaches the admin's inbox every
+    // time, stars-only or with feedback, no dependency on this device
+    // having a mail app or the person manually hitting send (the old
+    // mailto: approach only fired when feedback was typed, AND still
+    // needed the rater to complete that send themselves).
+    if (window.SaviorFirebase && window.SaviorFirebase.callRatingNotification){
+      window.SaviorFirebase.callRatingNotification(stars, feedback).catch(function(err){
+        console.error('Rating notification failed:', err);
+      });
     }
     ui.showRatingPanel = false;
     renderRatingOverlay();
