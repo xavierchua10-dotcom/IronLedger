@@ -7017,10 +7017,10 @@
   }
 
   /* =========================================================
-     REST TIMER  (manual trigger, tunable duration 1:00–5:00)
+     REST TIMER  (manual trigger, tunable duration 0:15–5:00)
      Nothing auto-prompts this — it only ever opens when the watch icon
      next to "Add Exercise" is tapped. From there: a duration picker
-     (15s steps, clamped 1:00–5:00) with a Start button acting as the
+     (15s steps, clamped 0:15–5:00) with a Start button acting as the
      confirmation step, then a countdown running in the bar between the
      exercise list and the Finish/Add Set bar. Ticks off a wall-clock
      endsAt timestamp rather than a naive counter, so it stays accurate
@@ -7046,7 +7046,7 @@
 
   function adjustRestTimerDraft(deltaSeconds){
     var v = (ui.restTimerDraftSeconds || 90) + deltaSeconds;
-    ui.restTimerDraftSeconds = Math.max(60, Math.min(300, v));
+    ui.restTimerDraftSeconds = Math.max(15, Math.min(300, v));
     renderRestTimerPickerOverlay();
   }
 
@@ -7066,11 +7066,11 @@
       '</div>' +
       '<div class="pro-panel-body">' +
         '<div class="rest-timer-picker-display">' +
-          '<button class="rest-timer-adjust-btn" data-action="rest-timer-adjust" data-delta="-15" aria-label="Decrease 15 seconds"'+(secs<=60?' disabled':'')+'>&#8722;</button>' +
+          '<button class="rest-timer-adjust-btn" data-action="rest-timer-adjust" data-delta="-15" aria-label="Decrease 15 seconds"'+(secs<=15?' disabled':'')+'>&#8722;</button>' +
           '<span class="rest-timer-picker-time">'+fmtMMSS(secs)+'</span>' +
           '<button class="rest-timer-adjust-btn" data-action="rest-timer-adjust" data-delta="15" aria-label="Increase 15 seconds"'+(secs>=300?' disabled':'')+'>&#43;</button>' +
         '</div>' +
-        '<div class="rest-timer-picker-sub">1:00 \u2013 5:00</div>' +
+        '<div class="rest-timer-picker-sub">0:15 \u2013 5:00</div>' +
       '</div>' +
       '<div class="pro-panel-footer">' +
         '<button class="rest-timer-start-btn" data-action="start-rest-timer">Start</button>' +
