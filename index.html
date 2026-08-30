@@ -9121,7 +9121,7 @@
     var restDefaultSecs = (state.settings && state.settings.restTimerDefaultSeconds) || 90;
     html += '<div class="settings-row"><div><div class="sr-label">Rest timer duration</div><div class="sr-sub">Starting time each time you open the rest timer</div></div></div>';
     html += '<div class="rest-preset-row">';
-    [60,90,120,150,180].forEach(function(s){
+    [15,30,60,90,120,150,180].forEach(function(s){
       html += '<button type="button" class="rest-preset-chip'+(restDefaultSecs===s?' active':'')+'" data-action="set-rest-timer-default" data-seconds="'+s+'">'+fmtMMSS(s)+'</button>';
     });
     html += '</div>';
