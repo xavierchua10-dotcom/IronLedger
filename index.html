@@ -3205,6 +3205,18 @@
     color:var(--accent-2);
     border-color:var(--accent-2-dim);
   }
+  .settings-row button.sr-action-swatch{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+  }
+  .sr-swatch-dot{
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    flex-shrink:0;
+    display:inline-block;
+  }
   .settings-row .seg{
     display:flex;
     background:var(--panel-2);
@@ -3853,6 +3865,9 @@
 <div class="confirm-overlay hidden" id="mgSettingsOverlay">
   <div class="pro-panel" id="mgSettingsPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="settingsPickerOverlay">
+  <div class="pro-panel" id="settingsPickerPanel"></div>
+</div>
 <div class="confirm-overlay hidden" id="ratingOverlay">
   <div class="pro-panel" id="ratingPanel"></div>
 </div>
@@ -4345,6 +4360,8 @@
     mgExpandedGroups: {},  // muscle key -> bool; whether that row's exercise chips are expanded. Collapsed by default — see renderMuscleOverviewRows.
     showMgSettings: false, // whether the Muscle Volume Overview settings overlay (mode picker + custom targets) is open
     mgDraftMode: null,     // mode picked inside the panel but not yet applied — see openMgSettings/applyMgSettings. null when panel's closed.
+    settingsPickerKind: null,  // 'restTimer' | 'accentColor' | 'cardBg' | null — which generic Settings picker overlay is open, if any
+    settingsPickerDraft: null, // value picked inside that panel but not yet applied — see openSettingsPicker/applySettingsPicker
     showMuscleVolumeInsight: false,  // whether the weekly volume-balance insight callout is expanded
     showRatingPanel: false,    // whether the "Rate SaviorFit Logger" overlay is open
     ratingDraftStars: 0,       // star count picked in the rating overlay before it's submitted
@@ -8664,6 +8681,105 @@
   }
 
   /* =========================================================
+     GENERIC SETTINGS PICKER OVERLAY
+     One shared overlay for the three appearance/behavior pickers that
+     used to sit as long inline chip/swatch/thumbnail rows directly in
+     Settings (Rest timer duration, Accent color, Card background) —
+     moved here to cut down how long that page scrolls. Same
+     draft-until-Apply pattern as Volume Settings above: picking an
+     option only updates ui.settingsPickerDraft and re-renders the
+     panel; nothing touches state.settings until "Apply" is tapped.
+     Closing any other way (X, tap outside, Escape) discards the draft.
+     ========================================================= */
+  var SETTINGS_PICKER_TITLES = {
+    restTimer: 'Rest Timer Duration',
+    accentColor: 'Accent Color',
+    cardBg: 'Card Background'
+  };
+  function openSettingsPicker(kind){
+    ui.settingsPickerKind = kind;
+    if (kind === 'restTimer'){
+      ui.settingsPickerDraft = (state.settings && state.settings.restTimerDefaultSeconds) || 90;
+    } else if (kind === 'accentColor'){
+      ui.settingsPickerDraft = (state.settings && state.settings.accentTheme) || 'gold';
+    } else if (kind === 'cardBg'){
+      ui.settingsPickerDraft = (state.settings && state.settings.cardBg) || 'default';
+    }
+    renderSettingsPickerOverlay();
+  }
+  function closeSettingsPicker(){
+    ui.settingsPickerKind = null;
+    ui.settingsPickerDraft = null;
+    renderSettingsPickerOverlay();
+  }
+  function pickSettingsPickerValue(value){
+    // Rest timer values arrive as a numeric seconds count (from a data-
+    // value like "90") — the other two kinds are id strings ("gold",
+    // "default") and should pass through untouched, so only coerce when
+    // the draft so far is already numeric-flavored (i.e. restTimer).
+    ui.settingsPickerDraft = (ui.settingsPickerKind === 'restTimer') ? (parseInt(value, 10) || 90) : value;
+    renderSettingsPickerOverlay();
+  }
+  function applySettingsPicker(){
+    var kind = ui.settingsPickerKind;
+    var val = ui.settingsPickerDraft;
+    if (kind === 'restTimer'){
+      state.settings.restTimerDefaultSeconds = val;
+    } else if (kind === 'accentColor'){
+      state.settings.accentTheme = val;
+      applyAccentTheme(val);
+    } else if (kind === 'cardBg'){
+      state.settings.cardBg = val;
+    }
+    saveSettings();
+    ui.settingsPickerKind = null;
+    ui.settingsPickerDraft = null;
+    renderSettingsPickerOverlay();
+    renderApp();
+  }
+  function renderSettingsPickerOverlay(){
+    var overlay = document.getElementById('settingsPickerOverlay');
+    var panel = document.getElementById('settingsPickerPanel');
+    var kind = ui.settingsPickerKind;
+    if (!kind){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var draft = ui.settingsPickerDraft;
+    var body = '';
+    if (kind === 'restTimer'){
+      body += '<div class="rest-preset-row">';
+      [15,30,60,90,120,150,180].forEach(function(s){
+        body += '<button type="button" class="rest-preset-chip'+(draft===s?' active':'')+'" data-action="pick-settings-value" data-value="'+s+'">'+fmtMMSS(s)+'</button>';
+      });
+      body += '</div>';
+    } else if (kind === 'accentColor'){
+      body += '<div class="accent-theme-picker">';
+      ACCENT_THEME_OPTIONS.forEach(function(t){
+        body += '<button type="button" class="accent-theme-swatch'+(draft===t.id?' active':'')+'" data-action="pick-settings-value" data-value="'+t.id+'" style="background:'+t.accent+'" aria-label="'+esc(t.label)+'"></button>';
+      });
+      body += '</div>';
+    } else if (kind === 'cardBg'){
+      body += '<div class="card-bg-picker">';
+      CARD_BG_OPTIONS.forEach(function(opt){
+        body += '<button type="button" class="card-bg-swatch'+(draft===opt.id?' active':'')+'" data-action="pick-settings-value" data-value="'+opt.id+'" aria-label="'+esc(opt.label)+'">' +
+          '<span class="card-bg-swatch-label">'+esc(opt.label)+'</span>' +
+        '</button>';
+      });
+      body += '</div>';
+    }
+    body += '<button type="button" class="mg-custom-save-btn" data-action="apply-settings-picker">Apply</button>';
+
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>'+esc(SETTINGS_PICKER_TITLES[kind] || 'Settings')+'</h3>' +
+        '<button class="pro-panel-close" data-action="close-settings-picker" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' + body + '</div>';
+  }
+
+  /* =========================================================
      RATE SAVIORFIT LOGGER OVERLAY
      Two entry points: automatically once, after a user's very first
      finished session (see finishSession), and any time afterward via
@@ -9119,12 +9235,8 @@
                 '<button data-action="set-rest-timer-mode" data-mode="auto" class="'+(restAutoStart ? 'active' : '')+'">Auto</button>' +
               '</div></div>';
     var restDefaultSecs = (state.settings && state.settings.restTimerDefaultSeconds) || 90;
-    html += '<div class="settings-row"><div><div class="sr-label">Rest timer duration</div><div class="sr-sub">Starting time each time you open the rest timer</div></div></div>';
-    html += '<div class="rest-preset-row">';
-    [15,30,60,90,120,150,180].forEach(function(s){
-      html += '<button type="button" class="rest-preset-chip'+(restDefaultSecs===s?' active':'')+'" data-action="set-rest-timer-default" data-seconds="'+s+'">'+fmtMMSS(s)+'</button>';
-    });
-    html += '</div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Rest timer duration</div><div class="sr-sub">Starting time each time you open the rest timer</div></div>' +
+              '<button class="sr-action" data-action="open-settings-picker" data-kind="restTimer">'+fmtMMSS(restDefaultSecs)+'</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Rest timer sound</div><div class="sr-sub">Chime when rest ends</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-rest-timer-sound" data-val="on" class="'+(state.settings.restTimerSound !== false ? 'active' : '')+'">ON</button>' +
@@ -9167,23 +9279,17 @@
 
     html += '<div class="section-label">Appearance</div>';
     html += '<div class="settings-group">';
-    html += '<div class="settings-row"><div><div class="sr-label">Accent color</div><div class="sr-sub">Changes the accent color throughout the app</div></div></div>';
-    html += '<div class="accent-theme-picker">';
     var chosenAccentTheme = (state.settings && state.settings.accentTheme) || 'gold';
-    ACCENT_THEME_OPTIONS.forEach(function(t){
-      html += '<button type="button" class="accent-theme-swatch'+(chosenAccentTheme===t.id?' active':'')+'" data-action="set-accent-theme" data-theme="'+t.id+'" style="background:'+t.accent+'" aria-label="'+esc(t.label)+'"></button>';
-    });
-    html += '</div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Card background</div>' +
-              '<div class="sr-sub">Applies consistently to every exercise card in Log</div></div></div>';
-    html += '<div class="card-bg-picker">';
+    var accentThemeObj = ACCENT_THEME_OPTIONS.filter(function(t){ return t.id === chosenAccentTheme; })[0] || ACCENT_THEME_OPTIONS[0];
+    html += '<div class="settings-row"><div><div class="sr-label">Accent color</div><div class="sr-sub">Changes the accent color throughout the app</div></div>' +
+              '<button class="sr-action sr-action-swatch" data-action="open-settings-picker" data-kind="accentColor">' +
+                '<span class="sr-swatch-dot" style="background:'+accentThemeObj.accent+'"></span>'+esc(accentThemeObj.label) +
+              '</button></div>';
     var chosenCardBg = (state.settings && state.settings.cardBg) || 'default';
-    CARD_BG_OPTIONS.forEach(function(opt){
-      html += '<button type="button" class="card-bg-swatch'+(chosenCardBg===opt.id?' active':'')+'" data-action="set-card-bg" data-bg="'+opt.id+'" aria-label="'+esc(opt.label)+'">' +
-        '<span class="card-bg-swatch-label">'+esc(opt.label)+'</span>' +
-      '</button>';
-    });
-    html += '</div>';
+    var cardBgObj = CARD_BG_OPTIONS.filter(function(o){ return o.id === chosenCardBg; })[0] || CARD_BG_OPTIONS[0];
+    html += '<div class="settings-row"><div><div class="sr-label">Card background</div>' +
+              '<div class="sr-sub">Applies consistently to every exercise card in Log</div></div>' +
+              '<button class="sr-action" data-action="open-settings-picker" data-kind="cardBg">'+esc(cardBgObj.label)+'</button></div>';
     var chosenDensity = (state.settings && state.settings.density) || 'comfortable';
     html += '<div class="settings-row"><div><div class="sr-label">Density</div><div class="sr-sub">Fit more sets per screen in Log</div></div>' +
               '<div class="seg">' +
@@ -11399,8 +11505,8 @@
     { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Tap the \u22ee on any session to edit, repeat, or delete it.' },
     { tab: 'progress', selector: '.mg-panel', fallback: '#view', title: 'Progress', text: 'See your weekly set volume per muscle group at a glance \u2014 tap a bar to drill into 1RM trend lines for exercises in that group.' },
     { tab: 'settings', selector: '[data-action="open-bodyweight-picker"]', fallback: '#view', title: 'Bodyweight & goal', text: 'Set these once \u2014 they power real load tracking on bodyweight exercises and shape how Pro Tips suggests your next set.' },
-    { tab: 'settings', selector: '.accent-theme-picker', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
-    { tab: 'settings', selector: '.card-bg-picker', fallback: '#view', title: 'Card style', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
+    { tab: 'settings', selector: '[data-action="open-settings-picker"][data-kind="accentColor"]', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
+    { tab: 'settings', selector: '[data-action="open-settings-picker"][data-kind="cardBg"]', fallback: '#view', title: 'Card style', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
     { tab: 'settings', selector: '.settings-row .seg', fallback: '#view', title: 'Units', text: 'Switch between kg and lb any time. Your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.' }
   ];
 
@@ -12035,15 +12141,8 @@
       state.settings.unit = el.dataset.unit;
       saveSettings();
       renderApp();
-    } else if (action === 'set-card-bg'){
-      state.settings.cardBg = el.dataset.bg;
-      saveSettings();
-      renderApp();
-    } else if (action === 'set-accent-theme'){
-      state.settings.accentTheme = el.dataset.theme;
-      saveSettings();
-      applyAccentTheme(state.settings.accentTheme);
-      renderApp();
+    } else if (action === 'open-settings-picker'){
+      openSettingsPicker(el.dataset.kind);
     } else if (action === 'set-density'){
       state.settings.density = el.dataset.density;
       saveSettings();
@@ -12056,10 +12155,6 @@
       renderApp();
     } else if (action === 'toggle-danger-zone'){
       ui.dangerZoneOpen = !ui.dangerZoneOpen;
-      renderApp();
-    } else if (action === 'set-rest-timer-default'){
-      state.settings.restTimerDefaultSeconds = parseInt(el.dataset.seconds, 10) || 90;
-      saveSettings();
       renderApp();
     } else if (action === 'set-rest-timer-mode'){
       state.settings.restTimerAutoStart = (el.dataset.mode === 'auto');
@@ -12699,6 +12794,29 @@
     if (e.key === 'Escape'){
       e.preventDefault();
       closeMgSettings();
+    }
+  });
+
+  var settingsPickerOverlayEl = document.getElementById('settingsPickerOverlay');
+  settingsPickerOverlayEl.addEventListener('click', function(e){
+    if (e.target === settingsPickerOverlayEl){
+      closeSettingsPicker();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-settings-picker'){
+      closeSettingsPicker();
+    } else if (el.dataset.action === 'pick-settings-value'){
+      pickSettingsPickerValue(el.dataset.value);
+    } else if (el.dataset.action === 'apply-settings-picker'){
+      applySettingsPicker();
+    }
+  });
+  settingsPickerOverlayEl.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){
+      e.preventDefault();
+      closeSettingsPicker();
     }
   });
 
