@@ -8764,7 +8764,7 @@
     } else if (kind === 'cardBg'){
       body += '<div class="card-bg-picker">';
       CARD_BG_OPTIONS.forEach(function(opt){
-        body += '<button type="button" class="card-bg-swatch'+(draft===opt.id?' active':'')+'" data-action="pick-settings-value" data-value="'+opt.id+'" aria-label="'+esc(opt.label)+'">' +
+        body += '<button type="button" class="card-bg-swatch'+(draft===opt.id?' active':'')+'" data-action="pick-settings-value" data-value="'+opt.id+'" data-bg="'+opt.id+'" aria-label="'+esc(opt.label)+'">' +
           '<span class="card-bg-swatch-label">'+esc(opt.label)+'</span>' +
         '</button>';
       });
