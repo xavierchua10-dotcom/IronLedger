@@ -9149,20 +9149,27 @@
       return (i===0?'M':'L') + xAt(i).toFixed(1) + ',' + yAt(p.e1rm).toFixed(1);
     }).join(' ');
 
-    var accentHex = currentAccentTheme().accent;
+    // Trend color: green if the estimated 1RM increased from the first
+    // plotted point to the latest, red if it dropped, accent color if
+    // unchanged. Compares first vs last (not every point in between) —
+    // matches what the line visually shows: net direction across the
+    // plotted window. Same green/red as the Muscle Volume Overview bars
+    // (--success / --accent-2) for consistency across the app.
+    var trendHex = points[n-1].e1rm > points[0].e1rm ? '#5fb86a'
+      : (points[n-1].e1rm < points[0].e1rm ? '#c1443c' : currentAccentTheme().accent);
     var dots = points.map(function(p,i){
-      return '<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(p.e1rm).toFixed(1)+'" r="3" fill="'+accentHex+'"/>';
+      return '<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(p.e1rm).toFixed(1)+'" r="3" fill="'+trendHex+'"/>';
     }).join('');
 
     var areaPath = path + ' L' + xAt(n-1).toFixed(1) + ',' + (h-pad) + ' L' + xAt(0).toFixed(1) + ',' + (h-pad) + ' Z';
 
     var svg = '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="140" preserveAspectRatio="none">';
     svg += '<defs><linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">' +
-             '<stop offset="0%" stop-color="'+accentHex+'" stop-opacity="0.28"/>' +
-             '<stop offset="100%" stop-color="'+accentHex+'" stop-opacity="0"/>' +
+             '<stop offset="0%" stop-color="'+trendHex+'" stop-opacity="0.28"/>' +
+             '<stop offset="100%" stop-color="'+trendHex+'" stop-opacity="0"/>' +
            '</linearGradient></defs>';
     svg += '<path d="'+areaPath+'" fill="url(#grad)" stroke="none"/>';
-    svg += '<path d="'+path+'" fill="none" stroke="'+accentHex+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    svg += '<path d="'+path+'" fill="none" stroke="'+trendHex+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
     svg += dots;
     svg += '</svg>';
     return svg;
