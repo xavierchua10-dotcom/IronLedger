@@ -8596,9 +8596,12 @@
     renderMgSettingsOverlay();
   }
   // The Apply button, for a Regular/Intensity draft — nothing to
-  // validate or save, just commit the draft and close.
+  // validate, just commit the draft, persist it so it survives a fresh
+  // app load (see bootAccountData), and close.
   function applyMgMode(){
     ui.progressOverviewMode = ui.mgDraftMode || 'regular';
+    state.settings.progressOverviewMode = ui.progressOverviewMode;
+    saveSettings();
     ui.showMgSettings = false;
     ui.mgDraftMode = null;
     renderMgSettingsOverlay();
@@ -8632,8 +8635,9 @@
     }
     state.settings.customMuscleTargets = targets;
     state.settings.customMuscleGroupsEnabled = enabled;
-    saveSettings();
     ui.progressOverviewMode = 'custom';
+    state.settings.progressOverviewMode = 'custom';
+    saveSettings();
     ui.showMgSettings = false;
     ui.mgDraftMode = null;
     renderMgSettingsOverlay();
@@ -9569,6 +9573,12 @@
     applyAccentTheme(state.settings.accentTheme || 'gold');
     applyCornerStyle(state.settings.cornerStyle || 'rounded');
     applyDensity(state.settings.density || 'comfortable');
+    // Restored here so it survives a fresh app load instead of always
+    // starting back on Regular — mirrors into ui.progressOverviewMode
+    // since that's what every read site already checks; only the
+    // initial value comes from settings, the live session value still
+    // lives in ui.* same as before.
+    ui.progressOverviewMode = state.settings.progressOverviewMode || 'regular';
     state.activityLog = loadActivityLog();
     state.progressAccess = loadProgressAccessLocal();
     purgeStaleActivity();
