@@ -4774,7 +4774,16 @@
     if (reps > MAX_LOGGABLE_REPS) return 'That\u2019s over ' + MAX_LOGGABLE_REPS + ' reps \u2014 double check the number';
     var priorBest = exerciseName ? bestLoggedWeightKg(exerciseName) : 0;
     if (priorBest > 0){
-      var cap = priorBest * HISTORY_CAP_MULTIPLIER;
+      // Never let the relative multiplier be MORE restrictive than the
+      // muscle-appropriate absolute ceiling below — a low prior best (an
+      // early or first light set) shouldn't make a genuinely realistic
+      // heavier weight look like a typo just because it's a big jump in
+      // ratio terms (e.g. 10kg -> 50kg on a shrug is a real, normal
+      // weight, not a typo, even though it's 5x their one light set so
+      // far). The multiplier still catches typos relative to an
+      // established baseline; this floor is what stops a low starting
+      // point from flagging every legitimate heavier lift after it.
+      var cap = Math.max(priorBest * HISTORY_CAP_MULTIPLIER, maxLoggableWeightKg(muscle));
       if (weightKg > cap) return 'That\u2019s way past your best here (' + fmtWeight(priorBest) + ' ' + unitLabel() + ') \u2014 double check the number';
     } else {
       var flatCap = maxLoggableWeightKg(muscle);
