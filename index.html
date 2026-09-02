@@ -6393,7 +6393,7 @@
     s.exercises.forEach(function(ex){
       html += '<div class="pr-ex-name">'+esc(ex.name)+(ex.muscle ? ' <span class="pr-ex-muscle">('+esc(ex.muscle)+')</span>' : '')+'</div>';
       ex.sets.forEach(function(st, i){
-        html += '<div class="pr-set"><span>'+(i+1)+'. '+fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps+'</span>' +
+        html += '<div class="pr-set"><span>'+(i+1)+'. '+fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
                   '<span class="pr-pr">'+(st.isPR ? 'PR' : '')+'</span></div>';
       });
     });
@@ -6753,7 +6753,7 @@
                 (ex.muscle ? '<span class="prc-ex-muscle">'+esc(ex.muscle)+'</span>' : '') +
                 '</div>';
       ex.sets.forEach(function(st, i){
-        html += '<div class="prc-set"><span>'+(i+1)+'. '+fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps+'</span>' +
+        html += '<div class="prc-set"><span>'+(i+1)+'. '+fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
                   '<span>' +
                     (st.timestamp ? '<span class="prc-set-time">'+fmtTime(st.timestamp)+'</span>' : '') +
                     (st.isPR ? ' <span class="prc-pr">PR</span>' : '') +
@@ -10685,7 +10685,7 @@
     ui.confirmModal = {
       kind: 'edit-set-open-confirm',
       title: 'Edit this set?',
-      message: 'Opens set ' + idx + ' (' + fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps + ') of ' + ex.name + ' for editing.',
+      message: 'Opens set ' + idx + ' (' + fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps + (isHoldExercise(ex.name) ? 's' : '') + ') of ' + ex.name + ' for editing.',
       confirmLabel: 'Edit',
       variant: 'primary',
       exId: exId,
@@ -10987,7 +10987,7 @@
     ui.confirmModal = {
       kind: 'draft-delete-set-confirm',
       title: 'Delete this set?',
-      message: 'Removes ' + fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps + ' from ' + ex.name + ' in this draft. Nothing is saved until you tap Save on the whole session.',
+      message: 'Removes ' + fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps + (isHoldExercise(ex.name) ? 's' : '') + ' from ' + ex.name + ' in this draft. Nothing is saved until you tap Save on the whole session.',
       confirmLabel: 'Delete',
       variant: 'danger',
       exId: exId,
