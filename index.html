@@ -5532,11 +5532,11 @@
       { name: 'Cable Wrist Curl', equipment: 'Cable' },
       { name: 'Reverse Wrist Curl', equipment: 'Barbell' },
       { name: "Farmer's Carry", equipment: 'Dumbbell' },
-      { name: 'Dead Hang', equipment: 'Bodyweight' }
+      { name: 'Dead Hang', equipment: 'Bodyweight', isHold: true }
     ],
     Abs: [
       { name: 'Crunches', equipment: 'Bodyweight' },
-      { name: 'Plank', equipment: 'Bodyweight' },
+      { name: 'Plank', equipment: 'Bodyweight', isHold: true },
       { name: 'Hanging Leg Raise', equipment: 'Bodyweight' },
       { name: 'Cable Crunch', equipment: 'Cable' },
       { name: 'Pallof Press', equipment: 'Cable' },
@@ -5584,14 +5584,14 @@
     ]
   };
 
-  // Flattened once at load — { name, muscle, equipment } — so the
+  // Flattened once at load — { name, muscle, equipment, isHold } — so the
   // autocomplete doesn't have to re-walk EXERCISE_LIBRARY on every
   // keystroke. See exerciseSuggestions() below.
   var EXERCISE_LIBRARY_FLAT = (function(){
     var flat = [];
     Object.keys(EXERCISE_LIBRARY).forEach(function(muscle){
       EXERCISE_LIBRARY[muscle].forEach(function(item){
-        flat.push({ name: item.name, muscle: item.muscle || muscle, equipment: item.equipment });
+        flat.push({ name: item.name, muscle: item.muscle || muscle, equipment: item.equipment, isHold: !!item.isHold });
       });
     });
     return flat;
@@ -5748,10 +5748,27 @@
       if (secondary){
         secondary.forEach(function(m){ if (muscles.indexOf(m) === -1) muscles.push(m); });
       }
-      byName[key] = { name: item.name, muscle: item.muscle, equipment: item.equipment, muscles: muscles };
+      byName[key] = { name: item.name, muscle: item.muscle, equipment: item.equipment, muscles: muscles, isHold: !!item.isHold };
     });
     return byName;
   })();
+
+  // True for isometric hold exercises (Plank, Dead Hang, etc.) — these
+  // log a HOLD DURATION in the "reps" field rather than a rep count, so
+  // every place that field is shown or entered swaps its label to
+  // seconds for these specific exercises. The underlying data (still
+  // just a number in st.reps) and everything built on top of it — PR
+  // tracking, volume counts — are untouched; only labeling changes.
+  // Note: the Pro Tips progression suggestions and the estimated-1RM
+  // math elsewhere still talk in terms of "reps" for these exercises —
+  // deliberately not touched here, since a real time-based progression
+  // model (e.g. suggesting a longer hold vs. added weight) is a bigger
+  // design question than swapping a label, left for its own decision.
+  function isHoldExercise(name){
+    var key = String(name || '').trim().toLowerCase();
+    var entry = EXERCISE_LIBRARY_BY_NAME[key];
+    return !!(entry && entry.isHold);
+  }
 
   // Resolves the dashboard bucket(s) a *logged* exercise's sets should
   // count toward. Trusts the fine-grained muscle string already stored
@@ -8084,7 +8101,7 @@
         html += '<div class="set-row'+(isEditingRow ? ' editing' : '')+'">' +
                   '<span class="set-idx'+(isFreshSet ? ' flash' : '')+'">'+(i+1)+'</span>' +
                   '<span class="set-detail">' +
-                    '<span class="set-wr'+(isFreshSet ? ' flash' : '')+'">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
+                    '<span class="set-wr'+(isFreshSet ? ' flash' : '')+'">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
                     (st.timestamp ? '<span class="set-time'+(isFreshSet ? ' flash' : '')+'"> &middot; '+tsOrLock(st.timestamp, null, isFreshSet)+'</span>' : '') +
                     (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
                   '</span>' +
@@ -8124,7 +8141,7 @@
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="10.5" x2="12" y2="16"></line><line x1="12" y1="7.5" x2="12.01" y2="7.5"></line></svg>' +
                   '</button>' : '') +
                   '<input type="number" inputmode="decimal" step="0.5" placeholder="'+(isBW ? '+' + unitLabel() : unitLabel())+'" class="set-weight-input" data-ex="'+ex.id+'" value="'+(draft && draft.weight != null ? esc(draft.weight) : '')+'">' +
-                  '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="set-reps-input" data-ex="'+ex.id+'" value="'+(draft && draft.reps != null ? esc(draft.reps) : '')+'">' +
+                  '<input type="number" inputmode="numeric" step="1" placeholder="'+(isHoldExercise(ex.name) ? 'sec' : 'reps')+'" class="set-reps-input" data-ex="'+ex.id+'" value="'+(draft && draft.reps != null ? esc(draft.reps) : '')+'">' +
                   '<div class="add-set-btn-group">' +
                     '<button class="add-set-btn" data-action="add-set-row" data-ex="'+ex.id+'" aria-label="Add set"'+(rowReady?'':' disabled')+'>&#10003;</button>' +
                     '<button class="cancel-edit-btn" data-action="close-add-set" data-ex="'+ex.id+'" aria-label="Cancel">&#10005;</button>' +
@@ -9054,7 +9071,7 @@
       html += '<div style="color:var(--text-faint);font-size:12px;">No PRs logged yet — your first set of this exercise counts!</div>';
     } else {
       prSets.slice().reverse().slice(0, 8).forEach(function(p){
-        html += '<div class="pr-list-item"><span>'+fmtDateShort(p.date)+'</span><span class="pl-w">'+fmtWeight(p.weightKg)+' '+unitLabel()+' &times; '+p.reps+'</span></div>';
+        html += '<div class="pr-list-item"><span>'+fmtDateShort(p.date)+'</span><span class="pl-w">'+fmtWeight(p.weightKg)+' '+unitLabel()+' &times; '+p.reps+(isHoldExercise(ui.progressExercise) ? 's' : '')+'</span></div>';
       });
     }
 
@@ -11230,7 +11247,7 @@
     var rowsHtml = sets.map(function(st, i){
       return '<div class="ref-set-row">' +
                '<span class="ref-set-idx">'+(i+1)+'</span>' +
-               '<span class="ref-set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
+               '<span class="ref-set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+(isHoldExercise(ui.referenceExerciseName) ? 's' : '')+'</span>' +
                (st.isPR ? '<span class="pr-tag">PR</span>' : '') +
              '</div>';
     }).join('');
@@ -11467,7 +11484,7 @@
             var rReady = draftRowReady(ex.name);
             html += '<div class="add-set-row">' +
                 '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="he-set-weight-input" value="'+(ui.historyEditRowDraft.weight != null ? esc(ui.historyEditRowDraft.weight) : '')+'">' +
-                '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="he-set-reps-input" value="'+(ui.historyEditRowDraft.reps != null ? esc(ui.historyEditRowDraft.reps) : '')+'">' +
+                '<input type="number" inputmode="numeric" step="1" placeholder="'+(isHoldExercise(ex.name) ? 'sec' : 'reps')+'" class="he-set-reps-input" value="'+(ui.historyEditRowDraft.reps != null ? esc(ui.historyEditRowDraft.reps) : '')+'">' +
                 '<div class="add-set-btn-group">' +
                   '<button class="add-set-btn" data-action="draft-confirm-edit-set" data-ex="'+ex.id+'" data-set="'+st.id+'"'+(rReady?'':' disabled')+'>&#10003;</button>' +
                   '<button class="cancel-edit-btn" data-action="draft-cancel-row" aria-label="Cancel">&#10005;</button>' +
@@ -11477,7 +11494,7 @@
             html += '<div class="set-row">' +
                 '<span class="set-idx">'+(i+1)+'</span>' +
                 '<span class="set-detail" data-action="draft-open-edit-set" data-ex="'+ex.id+'" data-set="'+st.id+'">' +
-                  '<span class="set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+'</span>' +
+                  '<span class="set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
                   (st.isPR ? '<span class="pr-tag">PR</span>' : '') +
                 '</span>' +
                 '<span class="set-actions">' +
@@ -11492,7 +11509,7 @@
           var addReady = draftRowReady(ex.name);
           html += '<div class="add-set-row">' +
               '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="he-set-weight-input" value="'+(ui.historyEditRowDraft.weight != null ? esc(ui.historyEditRowDraft.weight) : '')+'">' +
-              '<input type="number" inputmode="numeric" step="1" placeholder="reps" class="he-set-reps-input" value="'+(ui.historyEditRowDraft.reps != null ? esc(ui.historyEditRowDraft.reps) : '')+'">' +
+              '<input type="number" inputmode="numeric" step="1" placeholder="'+(isHoldExercise(ex.name) ? 'sec' : 'reps')+'" class="he-set-reps-input" value="'+(ui.historyEditRowDraft.reps != null ? esc(ui.historyEditRowDraft.reps) : '')+'">' +
               '<div class="add-set-btn-group">' +
                 '<button class="add-set-btn" data-action="draft-confirm-add-set" data-ex="'+ex.id+'"'+(addReady?'':' disabled')+'>&#10003;</button>' +
                 '<button class="cancel-edit-btn" data-action="draft-cancel-row" aria-label="Cancel">&#10005;</button>' +
