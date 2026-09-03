@@ -677,6 +677,41 @@
     padding:var(--density-card-pad);
     margin-bottom:var(--density-card-gap);
   }
+  .exercise-card.superset-linked{
+    border-color:var(--accent);
+    border-left-width:3px;
+  }
+  .superset-badge{
+    background:rgba(var(--accent-rgb),0.14);
+    color:var(--accent);
+    border:1px solid var(--accent-dim);
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:var(--radius);
+    white-space:nowrap;
+  }
+  .superset-picker-list{display:flex;flex-direction:column;gap:8px;}
+  .superset-picker-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:12px 14px;
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    font-weight:600;
+    text-align:left;
+    cursor:pointer;
+  }
+  .superset-picker-item:active{background:var(--panel-3);}
   /* This card repeats once per exercise (dense text: set rows, timestamps,
      icon buttons), so it needs a heavier darkening gradient than the
      single-block cards elsewhere, plus these targeted brightness bumps for
@@ -3869,6 +3904,9 @@
 <div class="confirm-overlay hidden" id="settingsPickerOverlay">
   <div class="pro-panel" id="settingsPickerPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="supersetPickerOverlay">
+  <div class="pro-panel" id="supersetPickerPanel"></div>
+</div>
 <div class="confirm-overlay hidden" id="ratingOverlay">
   <div class="pro-panel" id="ratingPanel"></div>
 </div>
@@ -4363,6 +4401,7 @@
     mgDraftMode: null,     // mode picked inside the panel but not yet applied — see openMgSettings/applyMgSettings. null when panel's closed.
     settingsPickerKind: null,  // 'restTimer' | 'accentColor' | 'cardBg' | null — which generic Settings picker overlay is open, if any
     settingsPickerDraft: null, // value picked inside that panel but not yet applied — see openSettingsPicker/applySettingsPicker
+    supersetPickerExId: null,  // which exercise's "Link as Superset" was tapped — null when that overlay's closed
     showMuscleVolumeInsight: false,  // whether the weekly volume-balance insight callout is expanded
     showRatingPanel: false,    // whether the "Rate SaviorFit Logger" overlay is open
     ratingDraftStars: 0,       // star count picked in the rating overlay before it's submitted
@@ -7490,8 +7529,12 @@
     var m = ui.openRowMenu;
     var items;
     if (m.type === 'exercise'){
+      var menuEx = findExercise(getActiveSession(), m.exId);
       items = [
         { label: 'Rename', action: 'edit-exercise-name' },
+        (menuEx && menuEx.supersetWith)
+          ? { label: 'Unlink Superset', action: 'unlink-superset' }
+          : { label: 'Link as Superset', action: 'open-superset-picker' },
         { label: 'Delete', action: 'delete-exercise', danger: true }
       ];
     } else if (m.type === 'session'){
@@ -8072,9 +8115,11 @@
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
     var refSets = getReferenceSets(session, ex.name);
-    var html = '<div class="exercise-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
+    var supersetPartner = ex.supersetWith ? findExercise(session, ex.supersetWith) : null;
+    var html = '<div class="exercise-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+(supersetPartner ? ' superset-linked' : '')+'" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
     html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
             '<div class="eh-badges">' +
+            (supersetPartner ? '<span class="superset-badge">SUPERSET \u00b7 '+esc(supersetPartner.name)+'</span>' : '') +
             (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
             (ex.sets.length > 0 ? '<span class="volume-badge">VOL '+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</span>' : '') +
             '</div>' +
@@ -10115,6 +10160,13 @@
     var session = getActiveSession();
     var ex = findExercise(session, exId);
     var name = ex ? ex.name : null;
+    // Deleting one half of a superset pair leaves the other half's
+    // supersetWith pointing at an exercise that no longer exists —
+    // clear it so it doesn't dangle.
+    if (ex && ex.supersetWith){
+      var partnerOnDelete = findExercise(session, ex.supersetWith);
+      if (partnerOnDelete) partnerOnDelete.supersetWith = null;
+    }
     session.exercises = session.exercises.filter(function(e){ return e.id !== exId; });
     if (name) recomputeExercisePRs(name);
     saveSessions();
@@ -10122,6 +10174,83 @@
     if (ui.editingSet && ui.editingSet.exId === exId) ui.editingSet = null;
     delete ui.draftSets[exId];
     renderApp();
+  }
+
+  /* =========================================================
+     SUPERSETS
+     Two exercises linked as a pair via mutual ex.supersetWith pointers
+     (each stores the other's id) — v1 supports pairs only, not longer
+     chains. The picker below only ever offers exercises that aren't
+     already linked to someone else, so a link is always a clean pair;
+     nothing here needs to handle a 3-way link existing.
+     The actual point of linking them — skipping the rest timer between
+     the two paired exercises and only starting it once both have done
+     equal sets — lives in commitSet(), not here; this section is just
+     the linking/unlinking mechanics and the picker UI.
+     ========================================================= */
+  function openSupersetPicker(exId){
+    ui.supersetPickerExId = exId;
+    closeRowActionMenu();
+    renderSupersetPickerOverlay();
+  }
+  function closeSupersetPicker(){
+    ui.supersetPickerExId = null;
+    renderSupersetPickerOverlay();
+  }
+  function linkSuperset(partnerExId){
+    var session = getActiveSession();
+    var ex = findExercise(session, ui.supersetPickerExId);
+    var partner = findExercise(session, partnerExId);
+    if (!ex || !partner) { closeSupersetPicker(); return; }
+    ex.supersetWith = partner.id;
+    partner.supersetWith = ex.id;
+    saveSessions();
+    closeSupersetPicker();
+    renderApp();
+    showToast('Linked ' + ex.name + ' + ' + partner.name + ' as a superset');
+  }
+  function unlinkSuperset(exId){
+    var session = getActiveSession();
+    var ex = findExercise(session, exId);
+    if (!ex || !ex.supersetWith) return;
+    var partner = findExercise(session, ex.supersetWith);
+    if (partner) partner.supersetWith = null;
+    ex.supersetWith = null;
+    saveSessions();
+    renderApp();
+  }
+  function renderSupersetPickerOverlay(){
+    var overlay = document.getElementById('supersetPickerOverlay');
+    var panel = document.getElementById('supersetPickerPanel');
+    if (!ui.supersetPickerExId){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var session = getActiveSession();
+    var self = findExercise(session, ui.supersetPickerExId);
+    var candidates = (session ? session.exercises : []).filter(function(e){
+      return e.id !== ui.supersetPickerExId && !e.supersetWith;
+    });
+    var body;
+    if (!self || candidates.length === 0){
+      body = '<div class="mg-scope-empty">No other unlinked exercises in this session yet \u2014 add one first, or unlink an existing pair.</div>';
+    } else {
+      body = '<div class="superset-picker-list">';
+      candidates.forEach(function(c){
+        body += '<button type="button" class="superset-picker-item" data-action="pick-superset-partner" data-ex="'+c.id+'">' +
+                  '<span>'+esc(c.name)+'</span>' +
+                  (c.muscle ? '<span class="muscle-badge">'+esc(c.muscle)+'</span>' : '') +
+                '</button>';
+      });
+      body += '</div>';
+    }
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Link as Superset'+(self ? ' \u2014 '+esc(self.name) : '')+'</h3>' +
+        '<button class="pro-panel-close" data-action="close-superset-picker" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' + body + '</div>';
   }
 
   function openAddExerciseConfirm(muscle){
@@ -10413,9 +10542,23 @@
       var joke = susWeightJoke(ex.name, weightKg, prevBest);
       showToast(joke || ('New PR on ' + ex.name + '!'));
     }
-    if (state.settings.restTimerAutoStart && !ui.restTimer){
+    if (state.settings.restTimerAutoStart && !ui.restTimer && shouldAutoStartRestAfterSet(ex)){
       autoStartRestTimer();
     }
+  }
+
+  // For a superset pair: only auto-starts rest once BOTH exercises have
+  // logged the same number of sets — i.e. this round is actually done.
+  // If this exercise just moved AHEAD of its partner (its set count is
+  // now higher), the expected next move is straight into the partner
+  // exercise, not resting, so this skips the timer entirely for that
+  // case. Not linked to anything -> always true, unchanged behavior.
+  function shouldAutoStartRestAfterSet(ex){
+    if (!ex.supersetWith) return true;
+    var session = getActiveSession();
+    var partner = session && findExercise(session, ex.supersetWith);
+    if (!partner) return true;
+    return ex.sets.length <= partner.sets.length;
   }
 
   function activeAddSetTarget(){
@@ -12019,6 +12162,11 @@
       openAddExerciseConfirm();
     } else if (action === 'delete-exercise'){
       openDeleteExerciseConfirm(el.dataset.ex);
+    } else if (action === 'open-superset-picker'){
+      openSupersetPicker(el.dataset.ex);
+    } else if (action === 'unlink-superset'){
+      unlinkSuperset(el.dataset.ex);
+      closeRowActionMenu();
     } else if (action === 'toggle-exercise-done'){
       toggleExerciseDone(el.dataset.ex);
     } else if (action === 'add-set'){
@@ -12861,6 +13009,27 @@
     if (e.key === 'Escape'){
       e.preventDefault();
       closeSettingsPicker();
+    }
+  });
+
+  var supersetPickerOverlayEl = document.getElementById('supersetPickerOverlay');
+  supersetPickerOverlayEl.addEventListener('click', function(e){
+    if (e.target === supersetPickerOverlayEl){
+      closeSupersetPicker();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-superset-picker'){
+      closeSupersetPicker();
+    } else if (el.dataset.action === 'pick-superset-partner'){
+      linkSuperset(el.dataset.ex);
+    }
+  });
+  supersetPickerOverlayEl.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){
+      e.preventDefault();
+      closeSupersetPicker();
     }
   });
 
