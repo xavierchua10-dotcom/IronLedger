@@ -4085,6 +4085,11 @@
     callWelcomePush: function(){
       return httpsCallable(cloudFunctions, 'sendWelcomePush')().then(function(res){ return res.data; });
     },
+    // Only ever called from inside the TWA (see startPlayCheckout) —
+    // sends the Play purchaseToken to be verified server-side.
+    callVerifyPlayPurchase: function(sku, purchaseToken){
+      return httpsCallable(cloudFunctions, 'verifyPlayPurchase')({ sku: sku, purchaseToken: purchaseToken }).then(function(res){ return res.data; });
+    },
     // NOTE: merge:true is essential here — this doc also holds tier/
     // subscription/trial fields (see ensureUserDoc below). A plain
     // (non-merge) setDoc on every workout save would silently wipe
@@ -4324,6 +4329,14 @@
   // callable protocol handles auth automatically.
   var STRIPE_LINK_MONTHLY = 'https://buy.stripe.com/5kQ00lbrDbsD9Jl0gO4wM09';
   var STRIPE_LINK_ANNUAL = 'https://buy.stripe.com/14A6oJ3Zb40b4p1gfM4wM0a';
+  // ---- Play Console subscription product IDs ----
+  // Two separate subscription products (not base plans on one product)
+  // — the Digital Goods API purchase flow below (startPlayCheckout)
+  // expects a single flat product ID per SKU, so this must match
+  // exactly what's created under Monetize > Products > Subscriptions
+  // in Play Console. Only used inside the TWA — see isTWA() below.
+  var PLAY_SKU_MONTHLY = 'pro_monthly';
+  var PLAY_SKU_ANNUAL = 'pro_annual';
   // Firebase console → Project settings → Cloud Messaging → Web Push
   // certificates → generate/copy the key pair. Required before push
   // notifications can be enabled; requestPushToken() silently resolves
@@ -7644,14 +7657,33 @@
     renderAuthGate();
   }
 
+  // True when running inside the Play Store-listed Android app (a
+  // Trusted Web Activity) rather than a normal mobile/desktop browser
+  // tab or home-screen PWA install. TWAs launch with a distinctive
+  // android-app:// referrer that regular browser navigation never
+  // sets — this is the standard, Google-documented way to detect it.
+  // Used to route billing to Google Play (required by Play policy for
+  // digital subscriptions sold from an app listed on the Store) while
+  // leaving the regular web/GitHub Pages install on Stripe.
+  function isTWA(){
+    try { return document.referrer.indexOf('android-app://') === 0; }
+    catch(e){ return false; }
+  }
+
   // Opens the appropriate Stripe Payment Link in a new tab, tagging it
   // with client_reference_id so a webhook can tie the payment back to
   // this Firebase uid. Actually marking the account Pro after payment
   // has to happen server-side (see the note by STRIPE_LINK_* above) —
   // this call only launches checkout, it never grants Pro itself.
+  // Inside the TWA this defers entirely to startPlayCheckout() instead
+  // — Google Play Billing, not Stripe, per Play's payments policy.
   function startCheckout(plan){
     if (state.currentAccount === 'guest'){
       showToast('Create a free account first \u2014 Guest data can\u2019t hold a subscription');
+      return;
+    }
+    if (isTWA()){
+      startPlayCheckout(plan);
       return;
     }
     var link = plan === 'annual' ? STRIPE_LINK_ANNUAL : STRIPE_LINK_MONTHLY;
@@ -7662,6 +7694,53 @@
     var sep = link.indexOf('?') === -1 ? '?' : '&';
     var url = link + sep + 'client_reference_id=' + encodeURIComponent(state.currentAccount);
     window.open(url, '_blank', 'noopener');
+  }
+
+  // Google Play Billing purchase flow via the Digital Goods API +
+  // Payment Request API — the Google-documented way for a TWA-wrapped
+  // PWA to sell subscriptions without a native rewrite. Like
+  // startCheckout, this only launches the purchase and never grants
+  // Pro itself: the purchaseToken goes to verifyPlayPurchase (Iron-
+  // Ledge-Webhook/functions/index.js), which confirms it with Google
+  // server-side before writing subscription.* to Firestore. Renewals
+  // and cancellations are then kept in sync by playRtdn (same file),
+  // Play's real-time notification webhook.
+  function startPlayCheckout(plan){
+    if (!window.getDigitalGoodsService || typeof PaymentRequest === 'undefined'){
+      showToast('Play Billing isn\u2019t available on this device');
+      return;
+    }
+    var sku = plan === 'annual' ? PLAY_SKU_ANNUAL : PLAY_SKU_MONTHLY;
+    window.getDigitalGoodsService('https://play.google.com/billing').then(function(){
+      var paymentMethods = [{ supportedMethods: 'https://play.google.com/billing', data: { sku: sku } }];
+      // The "total" here is required by the Payment Request API spec but
+      // ignored by Google Play Billing — the real price shown to the
+      // user comes from what was configured for this SKU in Play Console.
+      var paymentDetails = { total: { label: 'Total', amount: { currency: 'USD', value: '0' } } };
+      var request = new PaymentRequest(paymentMethods, paymentDetails);
+      return request.show().then(function(paymentResponse){
+        var purchaseToken = paymentResponse.details.purchaseToken;
+        return window.SaviorFirebase.callVerifyPlayPurchase(sku, purchaseToken).then(function(result){
+          paymentResponse.complete('success');
+          if (result && result.ok){
+            state.userDoc = Object.assign({}, state.userDoc, { subscription: result.subscription });
+            renderApp();
+            renderPricingPanel();
+            showToast('Welcome to Pro!');
+          } else {
+            showToast('Purchase completed but activation failed \u2014 contact support');
+          }
+        }).catch(function(err){
+          paymentResponse.complete('fail');
+          showToast('Couldn\u2019t verify purchase \u2014 contact support if you were charged');
+          console.error('verifyPlayPurchase failed:', err);
+        });
+      });
+    }).catch(function(err){
+      if (err && err.name === 'AbortError') return; // user canceled — not an error
+      showToast('Couldn\u2019t start Play purchase \u2014 try again shortly');
+      console.error('startPlayCheckout failed:', err);
+    });
   }
 
   // True only for a real (non-guest) account that has never started its
@@ -7723,6 +7802,16 @@
   // accounts have no Stripe customer to manage, so this isn't shown to
   // them at all (see renderPricingPanel/renderSettings).
   function openManageSubscription(){
+    // Play-billed subscriptions (subscription.source === 'play') have no
+    // Stripe customer to manage — Google is the merchant of record, so
+    // cancellation/plan changes happen in Play Store's own subscription
+    // management page, not Stripe's portal.
+    var u = state.userDoc;
+    if (u && u.subscription && u.subscription.source === 'play'){
+      var sku = u.subscription.plan === 'annual' ? PLAY_SKU_ANNUAL : PLAY_SKU_MONTHLY;
+      window.open('https://play.google.com/store/account/subscriptions?sku=' + encodeURIComponent(sku) + '&package=com.saviorfitlogger.app', '_blank', 'noopener');
+      return;
+    }
     if (!window.SaviorFirebase || !window.SaviorFirebase.callPortalSession) return;
     if (ui.openingPortal) return;
     ui.openingPortal = true;
