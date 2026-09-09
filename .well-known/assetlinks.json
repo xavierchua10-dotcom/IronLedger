@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.saviorfitlogger.app",
+        "sha256_cert_fingerprints": ["41:0F:FD:2C:F2:38:E3:5D:A6:F5:DB:62:D8:A9:1D:52:0C:73:F9:94:71:F5:D6:63:89:FE:AC:A1:C9:74:61:3C"]
+      }
+    }]
