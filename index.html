@@ -7665,7 +7665,48 @@
   // Used to route billing to Google Play (required by Play policy for
   // digital subscriptions sold from an app listed on the Store) while
   // leaving the regular web/GitHub Pages install on Stripe.
-  function isTWA(){
+  // Recovery path for purchases that succeeded on Google's side but
+  // never made it through verifyPlayPurchase — a network drop, an
+  // app kill mid-flow, or (as happened tonight) a backend error
+  // during verification. The purchaseToken in startPlayCheckout()
+  // above only ever lives in that one call's memory, so without this,
+  // an interrupted purchase is gone for good from the app's
+  // perspective even though Google still has it charged and
+  // unacknowledged. listPurchases() asks Google directly what this
+  // user actually owns, independent of what happened client-side.
+  // Runs quietly on every app open inside the TWA (see enterAccount);
+  // no-ops if there's nothing to restore.
+  function restorePlayPurchases(){
+    if (!isTWA() || !window.getDigitalGoodsService) return;
+    window.getDigitalGoodsService('https://play.google.com/billing').then(function(service){
+      return service.listPurchases();
+    }).then(function(purchases){
+      if (!purchases || !purchases.length) return;
+      purchases.forEach(function(purchase){
+        var sku = purchase.itemId;
+        var purchaseToken = purchase.purchaseToken;
+        if (sku !== PLAY_SKU_MONTHLY && sku !== PLAY_SKU_ANNUAL) return;
+        if (!purchaseToken) return;
+        window.SaviorFirebase.callVerifyPlayPurchase(sku, purchaseToken).then(function(result){
+          if (result && result.ok){
+            state.userDoc = Object.assign({}, state.userDoc, { subscription: result.subscription });
+            renderApp();
+            renderPricingPanel();
+          }
+        }).catch(function(err){
+          // Silent by design — this runs on every app open and most
+          // calls find nothing to restore. Logged for our own
+          // debugging only, no user-facing toast.
+          console.error('restorePlayPurchases: verify failed for', sku, err);
+        });
+      });
+    }).catch(function(err){
+      // Digital Goods service unavailable — nothing to restore either way.
+      console.error('restorePlayPurchases failed:', err);
+    });
+  }
+
+
     try { return document.referrer.indexOf('android-app://') === 0; }
     catch(e){ return false; }
   }
@@ -9828,6 +9869,7 @@
       firestorePullSettled = true;
       bootAccountData();
       subscribeUserDoc(uidVal);
+      restorePlayPurchases();
       // Marks "last opened the app" for the 2-day inactivity push job
       // (a Netlify scheduled function — see send-inactivity-push.js).
       // Clearing inactivityPushSentAt here re-arms it: once this account
