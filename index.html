@@ -9869,7 +9869,7 @@
       firestorePullSettled = true;
       bootAccountData();
       subscribeUserDoc(uidVal);
-      restorePlayPurchases();
+      try { restorePlayPurchases(); } catch (err) { console.error('restorePlayPurchases threw:', err); }
       // Marks "last opened the app" for the 2-day inactivity push job
       // (a Netlify scheduled function — see send-inactivity-push.js).
       // Clearing inactivityPushSentAt here re-arms it: once this account
