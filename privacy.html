@@ -57,7 +57,7 @@
   <ul>
     <li>Your email address (for login)</li>
     <li>Your workout data — sessions, sets, routines, bodyweight, training goals, and app preferences — so it syncs across your devices</li>
-    <li>Basic subscription status (Pro/trial/free), managed through Stripe</li>
+    <li>Basic subscription status (Pro/trial/free), managed through Stripe (web) or Google Play Billing (Android app)</li>
   </ul>
 
   <h2>2. Who we share it with</h2>
@@ -66,6 +66,7 @@
     <tr><th>Service</th><th>What it handles</th></tr>
     <tr><td>Firebase (Google)</td><td>Account login, storing/syncing your workout data, and running backend functions for payments and notifications</td></tr>
     <tr><td>Stripe</td><td>Payment processing — we never see or store your card details</td></tr>
+    <tr><td>Google Play Billing</td><td>Payment processing for purchases made in the Android app — we verify your subscription status with Google but never see or store your card details</td></tr>
     <tr><td>Resend</td><td>Delivers transactional emails (verification, trial started, receipt)</td></tr>
   </table>
 
