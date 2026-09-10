@@ -5,7 +5,8 @@
         "package_name": "com.saviorfitlogger.app",
         "sha256_cert_fingerprints": [
           "41:0F:FD:2C:F2:38:E3:5D:A6:F5:DB:62:D8:A9:1D:52:0C:73:F9:94:71:F5:D6:63:89:FE:AC:A1:C9:74:61:3C",
-          "5D:A2:92:4B:8C:BC:E2:5C:4D:D9:F0:98:E8:0C:18:19:A3:F9:21:92:E3:7E:E2:03:AE:B5:B4:99:86:B0:A3:83"
+          "5D:A2:92:4B:8C:BC:E2:5C:4D:D9:F0:98:E8:0C:18:19:A3:F9:21:92:E3:7E:E2:03:AE:B5:B4:99:86:B0:A3:83",
+          "C4:D7:36:41:13:E4:D7:BE:B4:1D:23:65:2D:B2:A4:4D:BD:ED:7D:B8:32:3A:90:7A:DA:F4:2F:18:D6:DA:38:9E"
         ]
       }
     }]
