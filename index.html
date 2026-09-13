@@ -3568,6 +3568,20 @@
   .progress-subtabbar button.active{color:var(--accent);background:var(--panel-3);}
   .progress-subtabbar button:active{opacity:0.85;}
 
+  /* Fade+shift transition for switching between the Progress sub-tab
+     panels (Volume overview / Exercise progression) — see
+     switchProgressViewWithFade(). Out: 140ms, in: 160ms, per spec. */
+  #view.subtab-fade-out{
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 140ms ease, transform 140ms ease;
+  }
+  #view.subtab-fade-in{
+    opacity:1;
+    transform:translateY(0);
+    transition:opacity 160ms ease, transform 160ms ease;
+  }
+
   .toast{
     position:fixed;
     bottom:calc(90px + var(--safe-bottom));
@@ -9599,6 +9613,34 @@
   // as any other in-memory UI state.
   var tabScrollPositions = {};
 
+  // Fades the current Progress sub-tab panel out (opacity+translateY,
+  // 140ms), swaps to the new panel via the normal render, then fades it
+  // in from the same offset (160ms). `mutate` should just set the
+  // ui.progressView/filter state — the render + fade is handled here.
+  // Skips the animation entirely under reduced-motion or if a main-tab
+  // slide is already in flight, same guard as switchTabWithSlide.
+  function switchProgressViewWithFade(mutate){
+    var viewEl = document.getElementById('view');
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion || ui.tabAnimating){
+      mutate();
+      renderApp();
+      return;
+    }
+    viewEl.classList.remove('subtab-fade-in');
+    viewEl.classList.add('subtab-fade-out');
+    setTimeout(function(){
+      mutate();
+      renderApp();
+      var v = document.getElementById('view');
+      v.classList.remove('subtab-fade-out');
+      v.classList.add('subtab-fade-in');
+      setTimeout(function(){
+        v.classList.remove('subtab-fade-in');
+      }, 170);
+    }, 140);
+  }
+
   function switchTabWithSlide(newTab){
     if (newTab === state.tab){
       renderApp();
@@ -12408,19 +12450,21 @@
       ui.progressView = 'exercise';
       renderApp();
     } else if (action === 'back-to-muscle-dashboard'){
-      ui.progressView = 'dashboard';
-      ui.progressMuscleFilters = [];
-      renderApp();
+      switchProgressViewWithFade(function(){
+        ui.progressView = 'dashboard';
+        ui.progressMuscleFilters = [];
+      });
     } else if (action === 'open-exercise-progression'){
       // Entry point from the sticky sub-tab bar — a general "see exercise
       // trends" landing, not a muscle-scoped drill-down, so it clears any
       // filters left over from a muscle-bar tap the same way the
       // dashboard button clears them going the other direction, and
       // lands on whichever exercise's chart rather than the browse list.
-      ui.progressView = 'exercise';
-      ui.progressMuscleFilters = [];
-      ui.progressExerciseListOpen = false;
-      renderApp();
+      switchProgressViewWithFade(function(){
+        ui.progressView = 'exercise';
+        ui.progressMuscleFilters = [];
+        ui.progressExerciseListOpen = false;
+      });
     } else if (action === 'select-progress-exercise-row'){
       ui.progressExercise = el.dataset.name;
       ui.progressExerciseListOpen = false;
