@@ -547,19 +547,6 @@
     padding-bottom:calc(148px + var(--safe-bottom));
   }
 
-  .view-slide-track{
-    display:flex;
-    width:200%;
-    pointer-events:none;
-    will-change:transform;
-    backface-visibility:hidden;
-  }
-  .view-slide-pane{
-    width:50%;
-    flex-shrink:0;
-    min-width:0;
-  }
-
   .section-label{
     font-family:'Oswald',sans-serif;
     font-size:12px;
@@ -9618,7 +9605,7 @@
   // in from the same offset (160ms). `mutate` should just set the
   // ui.progressView/filter state — the render + fade is handled here.
   // Skips the animation entirely under reduced-motion or if a main-tab
-  // slide is already in flight, same guard as switchTabWithSlide.
+  // slide is already in flight, same guard as switchTabWithFade.
   function switchProgressViewWithFade(mutate){
     var viewEl = document.getElementById('view');
     var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -9641,7 +9628,7 @@
     }, 140);
   }
 
-  function switchTabWithSlide(newTab){
+  function switchTabWithFade(newTab){
     if (newTab === state.tab){
       renderApp();
       return;
@@ -9660,58 +9647,22 @@
       return;
     }
 
-    var dir = newIndex > oldIndex ? 1 : -1; // 1: slide leftward (new enters from right), -1: slide rightward
-    var oldHTML = viewEl.innerHTML;
-
-    state.tab = newTab;
-    renderApp();
-    var newHTML = viewEl.innerHTML;
-    var viewHeight = viewEl.scrollHeight;
-
     ui.tabAnimating = true;
+    viewEl.classList.remove('subtab-fade-in');
+    viewEl.classList.add('subtab-fade-out');
 
-    var track = document.createElement('div');
-    track.className = 'view-slide-track';
-    track.style.minHeight = viewHeight + 'px';
-
-    var oldPane = document.createElement('div');
-    oldPane.className = 'view-slide-pane';
-    oldPane.innerHTML = oldHTML;
-
-    var newPane = document.createElement('div');
-    newPane.className = 'view-slide-pane';
-    newPane.innerHTML = newHTML;
-
-    if (dir === 1){
-      track.appendChild(oldPane);
-      track.appendChild(newPane);
-      track.style.transform = 'translateX(0%) translateZ(0)';
-    } else {
-      track.appendChild(newPane);
-      track.appendChild(oldPane);
-      track.style.transform = 'translateX(-100%) translateZ(0)';
-    }
-
-    viewEl.innerHTML = '';
-    viewEl.appendChild(track);
-    viewEl.scrollTop = 0;
-
-    void track.offsetWidth; // force reflow so the transition below actually animates
-
-    track.style.transition = 'transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1)';
-    track.style.transform = (dir === 1 ? 'translateX(-100%)' : 'translateX(0%)') + ' translateZ(0)';
-
-    var finished = false;
-    var cleanup = function(){
-      if (finished) return;
-      finished = true;
-      ui.tabAnimating = false;
-      renderApp(); // re-render for real: reattaches any tab-specific listeners (e.g. Settings' import input)
+    setTimeout(function(){
+      state.tab = newTab;
+      renderApp(); // reattaches any tab-specific listeners (e.g. Settings' import input)
       var freshView = document.getElementById('view');
-      if (freshView) freshView.scrollTop = tabScrollPositions[newTab] || 0;
-    };
-    track.addEventListener('transitionend', cleanup);
-    setTimeout(cleanup, 400); // fallback in case transitionend doesn't fire
+      freshView.scrollTop = tabScrollPositions[newTab] || 0;
+      freshView.classList.remove('subtab-fade-out');
+      freshView.classList.add('subtab-fade-in');
+      setTimeout(function(){
+        freshView.classList.remove('subtab-fade-in');
+        ui.tabAnimating = false;
+      }, 170);
+    }, 140);
   }
 
   function renderApp(){
@@ -12299,7 +12250,7 @@
       ui.confirmModal = null;
       ui.savingRoutine = false;
       ui.pendingDeleteAccount = false;
-      switchTabWithSlide(targetTab);
+      switchTabWithFade(targetTab);
     } else if (action === 'open-notifications'){
       ui.showAccountMenu = false;
       openNotifications();
