@@ -46,8 +46,6 @@
     --text:#e9e6df;
     --text-dim:#8b9098;
     --text-faint:#82878f;
-    --mm-body:#4a5262;
-    --mm-body-line:#8b93a3;
     --accent:#f2b134;
     --accent-dim:#7a6224;
     --accent-rgb:242,177,52;
@@ -1821,49 +1819,40 @@
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
   }
-  .mm-viewtabs{
+  /* Grid of muscle-highlighted illustrations, one per muscle group —
+     replaces the old tappable front/back SVG body diagram. Same
+     mm-select-muscle action either way, so the rest of the picker
+     (exercise list below, add-exercise flow) is unchanged. */
+  .mm-grid{
     display:flex;
-    background:var(--panel-3);
-    border-radius:var(--radius-sm);
-    padding:3px;
-    margin-bottom:6px;
-    width:fit-content;
+    flex-wrap:wrap;
+    gap:8px;
   }
-  .mm-viewtabs button{
-    background:none;
-    border:none;
-    color:var(--text-faint);
-    padding:6px 12px;
-    border-radius:var(--radius-xs);
-    font-family:'Oswald',sans-serif;
-    font-size:10px;
-    letter-spacing:0.04em;
-    text-transform:uppercase;
-    font-weight:600;
+  .mm-grid-item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    flex:1 1 calc(33.333% - 6px);
+    min-width:calc(33.333% - 6px);
+    background:var(--panel-3);
+    border:1.5px solid var(--line);
+    border-radius:var(--radius-sm);
+    padding:6px 4px 8px;
     cursor:pointer;
   }
-  .mm-viewtabs button.active{background:var(--accent);color:#1c1500;}
-  .mm-svg-wrap{
-    display:flex;
-    justify-content:center;
-    background:radial-gradient(ellipse 70% 65% at center, rgba(255,255,255,0.05), transparent 72%);
-    border-radius:var(--radius-md);
-    padding:6px 0;
+  .mm-grid-item img{width:100%;max-width:64px;height:auto;display:block;}
+  .mm-grid-item span{
+    font-family:'Oswald',sans-serif;
+    font-size:9.5px;
+    font-weight:700;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    color:var(--text-faint);
   }
-  .mm-svg-wrap svg{
-    display:block;
-    width:100%;
-    max-width:130px;
-    height:auto;
-    filter:drop-shadow(0 2px 8px rgba(0,0,0,0.4));
-  }
-  .mm-shape{cursor:pointer;transition:fill 0.15s ease, fill-opacity 0.15s ease, filter 0.15s ease;}
-  .mm-shape:active{fill-opacity:1 !important;}
-  .mm-shape.selected{filter:drop-shadow(0 0 5px rgba(var(--accent-rgb),0.75));}
-  .mm-shape-static{pointer-events:none;}
-  @media (prefers-reduced-motion: reduce){
-    .mm-shape{transition:none;}
-  }
+  .mm-grid-item.selected{border-color:var(--accent);}
+  .mm-grid-item.selected span{color:var(--accent);}
+  .mm-grid-item:active{background:var(--panel);}
   .mm-list-empty{
     height:100%;
     min-height:180px;
@@ -1999,8 +1988,8 @@
   .ex-suggest-item{
     width:100%;
     display:flex;
-    flex-direction:column;
-    gap:5px;
+    align-items:center;
+    gap:12px;
     text-align:left;
     background:var(--panel-3);
     border:1px solid var(--line);
@@ -2011,6 +2000,21 @@
     padding:13px 14px;
     border-radius:var(--radius);
     cursor:pointer;
+  }
+  .ex-suggest-img{
+    width:52px;
+    height:52px;
+    flex-shrink:0;
+    border-radius:var(--radius-sm);
+    background:var(--panel);
+    object-fit:cover;
+  }
+  .ex-suggest-content{
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
   }
   .ex-suggest-top{
     width:100%;
@@ -4436,7 +4440,6 @@
     showBwHelp: false,        // same idea, for the "i" icon on a bodyweight exercise's weight input
     showReferenceOverlay: false, // gold reference button on repeated-session exercise cards
     referenceExerciseName: null,
-    muscleMapView: 'front',
     selectedMuscle: null,
     pendingMuscle: null,
     editingSet: null,      // { exId, setId } or null
@@ -5116,12 +5119,16 @@
   }
 
   function exerciseSuggestItemHtml(name, muscle, equipment, how){
+    var img = muscle ? MUSCLE_IMG[muscle] : null;
     return '<button type="button" class="ex-suggest-item" data-action="pick-ex-suggestion" data-name="'+esc(name)+'" data-muscle="'+esc(muscle || '')+'">' +
-      '<div class="ex-suggest-top">' +
-        '<span class="ex-suggest-name">'+esc(name)+'</span>' +
-        (equipment ? '<span class="ex-suggest-tag">'+esc(equipment)+'</span>' : '') +
+      (img ? '<img class="ex-suggest-img" src="'+img+'" alt="" loading="lazy">' : '') +
+      '<div class="ex-suggest-content">' +
+        '<div class="ex-suggest-top">' +
+          '<span class="ex-suggest-name">'+esc(name)+'</span>' +
+          (equipment ? '<span class="ex-suggest-tag">'+esc(equipment)+'</span>' : '') +
+        '</div>' +
+        (how ? '<div class="ex-suggest-how">'+esc(how)+'</div>' : '') +
       '</div>' +
-      (how ? '<div class="ex-suggest-how">'+esc(how)+'</div>' : '') +
     '</button>';
   }
 
@@ -5464,43 +5471,7 @@
   /* =========================================================
      MUSCLE MAP  (body diagram for exercise selection)
      ========================================================= */
-  var MUSCLE_SHAPES = {
-    front: [
-      { type:'circle', cx:100, cy:24, r:18, muscle:null },
-      { type:'rect', x:92, y:42, w:16, h:10, rx:3, muscle:null },
-      { type:'ellipse', cx:56, cy:64, rx:18, ry:15, muscle:'Shoulders' },
-      { type:'ellipse', cx:144, cy:64, rx:18, ry:15, muscle:'Shoulders' },
-      { type:'rect', x:76, y:54, w:48, h:44, rx:10, muscle:'Chest' },
-      { type:'rect', x:32, y:80, w:20, h:60, rx:8, muscle:'Biceps' },
-      { type:'rect', x:148, y:80, w:20, h:60, rx:8, muscle:'Biceps' },
-      { type:'rect', x:28, y:142, w:18, h:58, rx:8, muscle:'Forearms' },
-      { type:'rect', x:154, y:142, w:18, h:58, rx:8, muscle:'Forearms' },
-      { type:'rect', x:78, y:100, w:44, h:56, rx:10, muscle:'Abs' },
-      { type:'rect', x:72, y:158, w:24, h:95, rx:12, muscle:'Quads' },
-      { type:'rect', x:104, y:158, w:24, h:95, rx:12, muscle:'Quads' },
-      { type:'rect', x:74, y:255, w:22, h:85, rx:12, muscle:'Calves' },
-      { type:'rect', x:104, y:255, w:22, h:85, rx:12, muscle:'Calves' }
-    ],
-    back: [
-      { type:'circle', cx:100, cy:24, r:18, muscle:null },
-      { type:'rect', x:92, y:42, w:16, h:10, rx:3, muscle:null },
-      { type:'ellipse', cx:56, cy:64, rx:18, ry:15, muscle:'Shoulders' },
-      { type:'ellipse', cx:144, cy:64, rx:18, ry:15, muscle:'Shoulders' },
-      { type:'rect', x:80, y:52, w:40, h:28, rx:8, muscle:'Traps' },
-      { type:'rect', x:74, y:82, w:52, h:70, rx:10, muscle:'Back' },
-      { type:'rect', x:32, y:80, w:20, h:60, rx:8, muscle:'Triceps' },
-      { type:'rect', x:148, y:80, w:20, h:60, rx:8, muscle:'Triceps' },
-      { type:'rect', x:28, y:142, w:18, h:58, rx:8, muscle:'Forearms' },
-      { type:'rect', x:154, y:142, w:18, h:58, rx:8, muscle:'Forearms' },
-      { type:'rect', x:74, y:154, w:52, h:45, rx:12, muscle:'Glutes' },
-      { type:'rect', x:72, y:201, w:24, h:80, rx:12, muscle:'Hamstrings' },
-      { type:'rect', x:104, y:201, w:24, h:80, rx:12, muscle:'Hamstrings' },
-      { type:'rect', x:74, y:283, w:22, h:75, rx:12, muscle:'Calves' },
-      { type:'rect', x:104, y:283, w:22, h:75, rx:12, muscle:'Calves' }
-    ]
-  };
-
-  // Equipment tag is only added to a name when the SAME movement genuinely
+    // Equipment tag is only added to a name when the SAME movement genuinely
   // exists across more than one equipment in real gyms (Barbell Bench Press
   // vs Dumbbell Bench Press vs Machine Bench Press) — that's the whole
   // point: picking "Dumbbell Bench Press" from the list (instead of typing
@@ -6253,38 +6224,36 @@
     return order.map(function(m){ return m + ' ' + counts[m]; }).join(' \u00b7 ');
   }
 
-  function muscleMapSVG(view, selected){
-    var shapes = MUSCLE_SHAPES[view];
-    var svg = '<svg viewBox="0 0 200 370" preserveAspectRatio="xMidYMid meet">';
-    shapes.forEach(function(s){
-      var isMuscle = !!s.muscle;
-      var isSel = isMuscle && s.muscle === selected;
-      var fill = isSel ? 'var(--accent)' : 'var(--mm-body)';
-      var fillOpacity = !isMuscle ? '0.85' : (isSel ? '1' : '0.9');
-      var stroke = isSel ? 'var(--accent)' : 'var(--mm-body-line)';
-      var strokeWidth = isSel ? '2' : '1.5';
-      var extra = isMuscle
-        ? ' class="mm-shape'+(isSel?' selected':'')+'" data-action="mm-select-muscle" data-muscle="'+esc(s.muscle)+'"'
-        : ' class="mm-shape-static"';
-      var common = 'fill="'+fill+'" fill-opacity="'+fillOpacity+'" stroke="'+stroke+'" stroke-width="'+strokeWidth+'"'+extra;
-      if (s.type === 'circle'){
-        svg += '<circle cx="'+s.cx+'" cy="'+s.cy+'" r="'+s.r+'" '+common+'/>';
-      } else if (s.type === 'ellipse'){
-        svg += '<ellipse cx="'+s.cx+'" cy="'+s.cy+'" rx="'+s.rx+'" ry="'+s.ry+'" '+common+'/>';
-      } else {
-        svg += '<rect x="'+s.x+'" y="'+s.y+'" width="'+s.w+'" height="'+s.h+'" rx="'+(s.rx||6)+'" '+common+'/>';
-      }
-    });
-    svg += '</svg>';
-    return svg;
-  }
+  // One AI-generated illustration per muscle group (Xavier's own,
+  // not a stock/licensed source) — replaces the old tappable front/
+  // back SVG body diagram with a grid of these instead. Same
+  // mm-select-muscle action on tap either way.
+  var MUSCLE_IMG = {
+    Chest: 'images/muscles/chest.webp',
+    Back: 'images/muscles/back.webp',
+    Shoulders: 'images/muscles/shoulders.webp',
+    Traps: 'images/muscles/traps.webp',
+    Biceps: 'images/muscles/biceps.webp',
+    Triceps: 'images/muscles/triceps.webp',
+    Forearms: 'images/muscles/forearms.webp',
+    Abs: 'images/muscles/abs.webp',
+    Quads: 'images/muscles/quads.webp',
+    Hamstrings: 'images/muscles/hamstrings.webp',
+    Glutes: 'images/muscles/glutes.webp',
+    Calves: 'images/muscles/calves.webp'
+  };
 
   function renderMuscleMapDiagram(){
-    var html = '<div class="mm-viewtabs">' +
-              '<button data-action="mm-view" data-view="front" class="'+(ui.muscleMapView==='front'?'active':'')+'">Front</button>' +
-              '<button data-action="mm-view" data-view="back" class="'+(ui.muscleMapView==='back'?'active':'')+'">Back</button>' +
-            '</div>';
-    html += '<div class="mm-svg-wrap">'+muscleMapSVG(ui.muscleMapView, ui.selectedMuscle)+'</div>';
+    var html = '<div class="mm-grid">';
+    Object.keys(EXERCISE_LIBRARY).forEach(function(muscle){
+      var isSel = muscle === ui.selectedMuscle;
+      var img = MUSCLE_IMG[muscle];
+      html += '<button type="button" class="mm-grid-item'+(isSel?' selected':'')+'" data-action="mm-select-muscle" data-muscle="'+esc(muscle)+'">' +
+        (img ? '<img src="'+img+'" alt="" loading="lazy">' : '') +
+        '<span>'+esc(muscle)+'</span>' +
+      '</button>';
+    });
+    html += '</div>';
     return html;
   }
 
@@ -6324,8 +6293,7 @@
                '</div>';
     if (ui.showMuscleMapHelp){
       html += '<div class="mm-help-box">' +
-                'Tap a highlighted body part below to see matching exercises. ' +
-                'Switch <b>FRONT</b> / <b>BACK</b> to reach muscles on either side.' +
+                'Tap a muscle below to see matching exercises.' +
               '</div>';
     }
     html += '<div class="mm-columns">';
@@ -12384,10 +12352,6 @@
         }, 3500);
       }
       renderMuscleMapOverlay();
-    } else if (action === 'mm-view'){
-      ui.muscleMapView = el.dataset.view;
-      ui.selectedMuscle = null;
-      renderApp();
     } else if (action === 'mm-select-muscle'){
       ui.selectedMuscle = el.dataset.muscle;
       if (ui.showMuscleMapHelp){
