@@ -3835,9 +3835,11 @@
      Deliberately excludes .notif-dropdown and .row-action-menu, which
      already have their own entrance animation (notifSlideDown); the
      animation shorthand would silently replace it rather than combine,
-     so those two keep the sheen's color tint but not the drift. */
+     so those two keep the sheen's color tint but not the drift. Also
+     excludes .pro-panel (the Template picker, among others) by request
+     -- keeps the tint, static rather than moving. */
   .help-panel, .brief-panel, .mm-toggle-btn, .template-card, .notif-card,
-  .history-item, .pro-panel, .settings-group, .toast{
+  .history-item, .settings-group, .toast{
     background-size:var(--card-sheen-size);
     animation:var(--card-sheen-anim);
   }
