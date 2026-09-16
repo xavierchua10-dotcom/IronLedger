@@ -1827,6 +1827,7 @@
     border-radius:var(--radius-sm);
     padding:6px 4px 8px;
     cursor:pointer;
+    transition:border-color 0.12s ease, background 0.12s ease;
   }
   .mm-grid-item img{width:100%;max-width:130px;height:auto;display:block;}
   .mm-grid-item span{
@@ -1837,7 +1838,8 @@
     text-transform:uppercase;
     color:var(--text-faint);
   }
-  .mm-grid-item:active{background:var(--panel);border-color:var(--accent);}
+  .mm-grid-item:active,
+  .mm-grid-item.tapped{background:var(--panel);border-color:var(--accent);}
   .mm-exercise-list{
     display:flex;
     flex-direction:column;
@@ -12319,12 +12321,19 @@
       }
       renderMuscleMapOverlay();
     } else if (action === 'mm-select-muscle'){
-      ui.selectedMuscle = el.dataset.muscle;
+      // Brief tap-feedback delay before navigating to the exercise list —
+      // .tapped is a real class (not just :active) so the gold outline
+      // stays visible for the full delay regardless of exactly when the
+      // finger lifts, rather than disappearing the instant the tap ends.
+      el.classList.add('tapped');
       if (ui.showMuscleMapHelp){
         ui.showMuscleMapHelp = false;
         if (mmHelpTimer){ clearTimeout(mmHelpTimer); mmHelpTimer = null; }
       }
-      renderApp();
+      setTimeout(function(){
+        ui.selectedMuscle = el.dataset.muscle;
+        renderApp();
+      }, 160);
     } else if (action === 'mm-back-to-grid'){
       ui.selectedMuscle = null;
       renderApp();
