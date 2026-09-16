@@ -44,7 +44,7 @@
     --panel-3:#2a2f38;
     --line:#2e333b;
     --glass-blur:none;
-    --card-sheen:none;
+    --card-sheen:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0));
     --text:#e9e6df;
     --text-dim:#8b9098;
     --text-faint:#82878f;
@@ -1535,6 +1535,7 @@
     border-radius:var(--radius);
     border:2px solid var(--accent);
     background:var(--accent-dim);
+    background-image:var(--card-sheen);
     color:var(--accent);
     padding:0;
     cursor:pointer;
@@ -2273,6 +2274,7 @@
   .history-item.hidden{display:none;}
   .history-item{
     background:var(--panel);
+    background-image:var(--card-sheen);
     border:1px solid var(--line);
     border-radius:var(--radius);
     margin-bottom:10px;
@@ -3625,7 +3627,7 @@
     width:100%;
     max-width:340px;
     background-color:var(--panel-2);
-    background-image:linear-gradient(180deg, rgba(36,40,48,0.90), rgba(36,40,48,0.96)), url('images/confirm-bg.jpg');
+    background-image:var(--card-sheen), linear-gradient(180deg, rgba(36,40,48,0.90), rgba(36,40,48,0.96)), url('images/confirm-bg.jpg');
     background-size:cover;
     background-position:center;
     border:1px solid var(--line);
@@ -6046,8 +6048,8 @@
   // cards, confirm dialogs, muscle picker, pricing/tips panels), since
   // those already have deliberately strong contrast for dense content.
   var CARD_STYLE_DEFAULTS = {
-    default: { '--panel':'#1c1f24', '--panel-2':'#242830', '--panel-3':'#2a2f38', '--line':'#2e333b', '--glass-blur':'none', '--card-sheen':'none' },
-    glass:   { '--panel':'rgba(28,31,36,0.58)', '--panel-2':'rgba(36,40,48,0.58)', '--panel-3':'rgba(42,47,56,0.58)', '--line':'rgba(255,255,255,0.09)', '--glass-blur':'blur(18px)', '--card-sheen':'none' },
+    default: { '--panel':'#1c1f24', '--panel-2':'#242830', '--panel-3':'#2a2f38', '--line':'#2e333b', '--glass-blur':'none', '--card-sheen':'linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0))' },
+    glass:   { '--panel':'rgba(28,31,36,0.58)', '--panel-2':'rgba(36,40,48,0.58)', '--panel-3':'rgba(42,47,56,0.58)', '--line':'rgba(255,255,255,0.09)', '--glass-blur':'blur(18px)', '--card-sheen':'linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0))' },
     sheen:   { '--panel':'#1c1f24', '--panel-2':'#242830', '--panel-3':'#2a2f38', '--line':'#2e333b', '--glass-blur':'none', '--card-sheen':'radial-gradient(circle at 22% 18%, rgba(var(--accent-rgb),0.18), transparent 52%), linear-gradient(160deg, rgba(255,255,255,0.06), transparent 58%)' }
   };
   function applyCardStyle(styleId){
