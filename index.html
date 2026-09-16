@@ -1231,6 +1231,38 @@
   .exercise-volume span,.exercise-volume b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .exercise-volume b{color:var(--accent);font-weight:700;letter-spacing:normal;text-transform:none;}
 
+  .set-row-swipe{
+    position:relative;
+    overflow:hidden;
+    border-radius:var(--radius-xs);
+  }
+  .set-row-swipe .set-row{
+    position:relative;
+    transition:transform 0.2s ease;
+    touch-action:pan-y;
+  }
+  .set-row-swipe.swipe-open .set-row{transform:translateX(-76px);}
+  .set-row-swipe.swiping .set-row{transition:none;}
+  .set-row-delete-btn{
+    position:absolute;
+    top:0;
+    right:0;
+    bottom:0;
+    width:76px;
+    background:var(--accent-2);
+    color:#fff;
+    border:none;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    cursor:pointer;
+    transform:translateX(76px);
+    transition:transform 0.2s ease;
+  }
+  .set-row-swipe.swiping .set-row-delete-btn{transition:none;}
+  .set-row-swipe.swipe-open .set-row-delete-btn{transform:translateX(0);}
   .set-row{
     display:grid;
     grid-template-columns:20px 1fr 44px;
@@ -3740,6 +3772,27 @@
     100%{transform:scale(1);}
   }
   .pr-tag.fresh{animation:prpulse 0.4s ease;}
+  .pr-tag-wrap{position:relative;display:inline-flex;flex-shrink:0;margin-left:6px;}
+  .pr-tag-wrap .pr-tag{margin-left:0;}
+  .set-row.pr-fresh{position:relative;animation:prRowGlow 1s ease-out;}
+  @keyframes prRowGlow{
+    0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0);}
+    25%{box-shadow:0 0 22px 3px rgba(var(--accent-rgb),0.5);}
+    100%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0);}
+  }
+  .pr-burst{position:absolute;top:50%;left:50%;width:0;height:0;pointer-events:none;}
+  .pr-burst-dot{
+    position:absolute;top:0;left:0;
+    width:5px;height:5px;margin:-2.5px;
+    border-radius:50%;
+    background:var(--accent);
+    opacity:0;
+    animation:prBurstDot 0.55s ease-out forwards;
+  }
+  @keyframes prBurstDot{
+    0%{transform:translate(0,0) scale(1);opacity:1;}
+    100%{transform:translate(var(--tx), var(--ty)) scale(0.2);opacity:0;}
+  }
   @keyframes setCountPulse{
     0%{transform:scale(1);}
     35%{transform:scale(1.3);}
@@ -6422,6 +6475,105 @@
     toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1800);
   }
 
+  // Small gold particle burst for a fresh PR (see commitSet) — 8 dots
+  // radiating outward from the PR tag. Offsets are precomputed in JS
+  // (not CSS trig functions like cos()/sin() in calc(), which aren't
+  // reliably supported across the Android WebView versions this PWA
+  // needs to run on) and passed per-dot as inline --tx/--ty custom
+  // properties for the prBurstDot keyframe animation to read.
+  var PR_BURST_OFFSETS = (function(){
+    var offsets = [];
+    for (var i = 0; i < 8; i++){
+      var angle = (i / 8) * Math.PI * 2;
+      offsets.push({ tx: Math.round(Math.cos(angle) * 22), ty: Math.round(Math.sin(angle) * 22) });
+    }
+    return offsets;
+  })();
+  function prBurstHtml(){
+    var html = '<span class="pr-burst" aria-hidden="true">';
+    PR_BURST_OFFSETS.forEach(function(o, i){
+      html += '<span class="pr-burst-dot" style="--tx:'+o.tx+'px;--ty:'+o.ty+'px;animation-delay:'+(i*8)+'ms;"></span>';
+    });
+    html += '</span>';
+    return html;
+  }
+
+  // Swipe-to-delete for set rows. Delegated touch listeners on the
+  // document (matching this file's existing click-delegation pattern)
+  // rather than per-row listeners, since rows come and go on every
+  // render. SWIPE_REVEAL_PX must match the CSS (.set-row-delete-btn
+  // width, the translateX distance in .swipe-open) -- kept as one
+  // constant here rather than duplicated as a magic number in both
+  // places.
+  var SWIPE_REVEAL_PX = 76;
+  var SWIPE_OPEN_THRESHOLD_PX = SWIPE_REVEAL_PX / 2;
+  var openSwipeRow = null; // the .set-row-swipe element currently revealed, if any
+  var swipeGesture = null; // { rowEl, startX, startY, startedOpen, axis, dragX }
+  function closeOpenSwipeRow(){
+    if (openSwipeRow){
+      openSwipeRow.classList.remove('swipe-open');
+      openSwipeRow = null;
+    }
+  }
+  document.addEventListener('touchstart', function(e){
+    var swipeEl = e.target.closest('.set-row-swipe');
+    // Starting a touch anywhere else (including on a different row)
+    // closes whatever's currently open -- only one row open at a time.
+    if (openSwipeRow && openSwipeRow !== swipeEl) closeOpenSwipeRow();
+    if (!swipeEl) return;
+    var t = e.touches[0];
+    swipeGesture = {
+      rowEl: swipeEl,
+      startX: t.clientX,
+      startY: t.clientY,
+      startedOpen: swipeEl.classList.contains('swipe-open'),
+      axis: null, // 'x' | 'y' | null (undetermined until past a small threshold)
+      dragX: 0
+    };
+  }, { passive: true });
+  document.addEventListener('touchmove', function(e){
+    if (!swipeGesture) return;
+    var t = e.touches[0];
+    var dx = t.clientX - swipeGesture.startX;
+    var dy = t.clientY - swipeGesture.startY;
+    if (swipeGesture.axis === null){
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; // too small to tell yet
+      swipeGesture.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (swipeGesture.axis === 'x') swipeGesture.rowEl.classList.add('swiping');
+    }
+    if (swipeGesture.axis !== 'x') return; // vertical scroll -- let the page handle it
+    e.preventDefault(); // stop the page scrolling while actively swiping a row
+    var base = swipeGesture.startedOpen ? -SWIPE_REVEAL_PX : 0;
+    var dragX = Math.max(-SWIPE_REVEAL_PX, Math.min(0, base + dx));
+    swipeGesture.dragX = dragX;
+    var rowInner = swipeGesture.rowEl.querySelector('.set-row');
+    var delBtn = swipeGesture.rowEl.querySelector('.set-row-delete-btn');
+    if (rowInner) rowInner.style.transform = 'translateX('+dragX+'px)';
+    if (delBtn) delBtn.style.transform = 'translateX('+(SWIPE_REVEAL_PX + dragX)+'px)';
+  }, { passive: false });
+  document.addEventListener('touchend', function(){
+    if (!swipeGesture) return;
+    var rowEl = swipeGesture.rowEl;
+    var wasSwiping = swipeGesture.axis === 'x';
+    if (wasSwiping){
+      var rowInner = rowEl.querySelector('.set-row');
+      var delBtn = rowEl.querySelector('.set-row-delete-btn');
+      if (rowInner) rowInner.style.transform = '';
+      if (delBtn) delBtn.style.transform = '';
+      rowEl.classList.remove('swiping');
+      var shouldOpen = swipeGesture.dragX <= -SWIPE_OPEN_THRESHOLD_PX;
+      if (shouldOpen){
+        if (openSwipeRow && openSwipeRow !== rowEl) openSwipeRow.classList.remove('swipe-open');
+        rowEl.classList.add('swipe-open');
+        openSwipeRow = rowEl;
+      } else {
+        rowEl.classList.remove('swipe-open');
+        if (openSwipeRow === rowEl) openSwipeRow = null;
+      }
+    }
+    swipeGesture = null;
+  });
+
   function esc(str){
     return String(str == null ? '' : str).replace(/[&<>"']/g, function(c){
       return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
@@ -8354,17 +8506,21 @@
         var isEditingRow = st.id === editingSetId;
         if (isEditingRow) editingSetObj = st;
         var isFreshSet = st.id === ui.freshSetId;
-        html += '<div class="set-row'+(isEditingRow ? ' editing' : '')+'">' +
+        var isFreshPR = st.id === ui.freshPRSetId;
+        html += '<div class="set-row-swipe" data-ex="'+ex.id+'" data-set="'+st.id+'">' +
+                '<button class="set-row-delete-btn" data-action="delete-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Delete set">Delete</button>' +
+                '<div class="set-row'+(isEditingRow ? ' editing' : '')+(isFreshPR ? ' pr-fresh' : '')+'">' +
                   '<span class="set-idx'+(isFreshSet ? ' flash' : '')+'">'+(i+1)+'</span>' +
                   '<span class="set-detail">' +
                     '<span class="set-wr'+(isFreshSet ? ' flash' : '')+'">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
                     (st.timestamp ? '<span class="set-time'+(isFreshSet ? ' flash' : '')+'"> &middot; '+tsOrLock(st.timestamp, null, isFreshSet)+'</span>' : '') +
-                    (st.isPR ? '<span class="pr-tag'+(st.id===ui.freshPRSetId?' fresh':'')+'">PR</span>' : '') +
+                    (st.isPR ? '<span class="pr-tag-wrap"><span class="pr-tag'+(isFreshPR?' fresh':'')+'">PR</span>'+(isFreshPR ? prBurstHtml() : '')+'</span>' : '') +
                   '</span>' +
                   '<span class="set-actions">' +
                     '<button class="set-act-btn" data-action="open-set-menu" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Set options">&#8942;</button>' +
                   '</span>' +
-                '</div>';
+                '</div>' +
+              '</div>';
       });
     }
 
@@ -9758,6 +9914,12 @@
   }
 
   function renderApp(){
+    // renderLog() below replaces the Log view's DOM wholesale, which
+    // would leave openSwipeRow pointing at a detached element (and the
+    // fresh markup never includes .swipe-open in the first place) --
+    // reset so a swiped-open row doesn't get "stuck" open in tracking
+    // after whatever triggered this render.
+    openSwipeRow = null;
     document.querySelectorAll('.tabbar button').forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.tab === state.tab);
     });
