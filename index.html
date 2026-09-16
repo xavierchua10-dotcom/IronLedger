@@ -1752,11 +1752,9 @@
   /* Scoped to this panel's own id (unique to the muscle-group picker, not
      the shared .pro-panel other overlays use). The image
      (images/muscle-picker-bg.jpg) ships as a separate file uploaded alongside
-     this index.html, not baked in. Everything else in here (view tabs,
-     exercise-list items, the equipment tag) already sits on its own solid
-     pill background and needs no change — only the empty-state hint text
-     sits directly on the photo. */
-  #mmOverlayPanel .mm-list-empty{color:#c7ccd3;}
+     this index.html, not baked in. Everything else in here (grid items,
+     exercise-list items, the equipment tag) sits on its own solid pill
+     background, so nothing needs a text-color override against the photo. */
   .mm-overlay-head{
     display:flex;
     align-items:center;
@@ -1796,26 +1794,15 @@
   }
   @keyframes mmHelpFadeIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
   .mm-help-box b{color:var(--accent);}
-  .mm-columns{
-    display:flex;
-    flex-direction:column;
+  .mm-diagram-col-full{
     flex:1;
     min-height:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
   }
-  .mm-diagram-col{
-    flex:0 0 auto;
-    width:100%;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-  }
-  .mm-list-col{
+  .mm-list-col-full{
     flex:1;
-    min-width:0;
     min-height:0;
-    margin-top:10px;
-    padding-top:12px;
-    border-top:1px solid var(--line);
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
   }
@@ -1853,27 +1840,6 @@
   .mm-grid-item.selected{border-color:var(--accent);}
   .mm-grid-item.selected span{color:var(--accent);}
   .mm-grid-item:active{background:var(--panel);}
-  .mm-list-empty{
-    height:100%;
-    min-height:180px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    color:var(--text-faint);
-    font-size:12px;
-    line-height:1.5;
-    padding:0 4px;
-  }
-  .mm-selected-label{
-    font-family:'Oswald',sans-serif;
-    font-size:11px;
-    font-weight:600;
-    letter-spacing:0.04em;
-    text-transform:uppercase;
-    color:var(--accent);
-    margin:0 0 8px;
-  }
   .mm-exercise-list{
     display:flex;
     flex-direction:column;
@@ -6259,8 +6225,7 @@
 
   function renderMuscleExerciseList(muscle){
     var opts = EXERCISE_LIBRARY[muscle] || [];
-    var html = '<div class="mm-selected-label">'+esc(muscle)+'</div>';
-    html += '<div class="mm-exercise-list">';
+    var html = '<div class="mm-exercise-list">';
     opts.forEach(function(item){
       html += '<button class="mm-exercise-item" data-action="mm-add-exercise" data-name="'+esc(item.name)+'" data-muscle="'+esc(muscle)+'">' +
                 '<span class="mm-exercise-item-name">'+esc(item.name)+'</span>' +
@@ -6280,10 +6245,22 @@
       panel.innerHTML = '';
       return;
     }
-    // Diagram sits stacked at the top; below it the list shows either
-    // a hint or the exercise list for whatever's currently selected,
-    // filling and scrolling within the remaining panel height.
-    var html = '<div class="mm-overlay-head"><h2>Pick by Muscle Group</h2>' +
+    // Two-step flow: pick a muscle from the grid, then a dedicated
+    // full-height list of exercises for it — not stacked together, so
+    // picking a muscle doesn't leave the whole grid still taking up
+    // most of the screen above a cramped sliver of list.
+    var html;
+    if (ui.selectedMuscle){
+      html = '<div class="mm-overlay-head">' +
+               '<button class="icon-btn" data-action="mm-back-to-grid" aria-label="Back to muscle groups">' +
+                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>' +
+               '</button>' +
+               '<h2>'+esc(ui.selectedMuscle)+'</h2>' +
+               '<button class="icon-btn" data-action="toggle-muscle-map" aria-label="Close">&#10005;</button>' +
+             '</div>';
+      html += '<div class="mm-list-col-full">'+renderMuscleExerciseList(ui.selectedMuscle)+'</div>';
+    } else {
+      html = '<div class="mm-overlay-head"><h2>Pick by Muscle Group</h2>' +
                  '<div class="mm-head-actions">' +
                    '<button class="icon-btn mm-help-btn" data-action="toggle-muscle-map-help" aria-label="How this works">' +
                      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
@@ -6291,21 +6268,13 @@
                    '<button class="icon-btn" data-action="toggle-muscle-map" aria-label="Close">&#10005;</button>' +
                  '</div>' +
                '</div>';
-    if (ui.showMuscleMapHelp){
-      html += '<div class="mm-help-box">' +
-                'Tap a muscle below to see matching exercises.' +
-              '</div>';
+      if (ui.showMuscleMapHelp){
+        html += '<div class="mm-help-box">' +
+                  'Tap a muscle below to see matching exercises.' +
+                '</div>';
+      }
+      html += '<div class="mm-diagram-col-full">'+renderMuscleMapDiagram()+'</div>';
     }
-    html += '<div class="mm-columns">';
-    html += '<div class="mm-diagram-col">'+renderMuscleMapDiagram()+'</div>';
-    html += '<div class="mm-list-col">';
-    if (ui.selectedMuscle){
-      html += renderMuscleExerciseList(ui.selectedMuscle);
-    } else {
-      html += '<div class="mm-list-empty">No body part selected yet — tap a region above</div>';
-    }
-    html += '</div>';
-    html += '</div>';
     panel.innerHTML = html;
   }
 
@@ -12358,6 +12327,9 @@
         ui.showMuscleMapHelp = false;
         if (mmHelpTimer){ clearTimeout(mmHelpTimer); mmHelpTimer = null; }
       }
+      renderApp();
+    } else if (action === 'mm-back-to-grid'){
+      ui.selectedMuscle = null;
       renderApp();
     } else if (action === 'mm-add-exercise'){
       openAddNamedExerciseConfirm(el.dataset.name, el.dataset.muscle);
