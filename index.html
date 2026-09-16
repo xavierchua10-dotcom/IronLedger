@@ -3349,6 +3349,7 @@
     cursor:pointer;padding:0;flex-shrink:0;
   }
   .accent-theme-swatch.active{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text);}
+  .accent-auto-note{color:var(--text-faint);font-size:12px;line-height:1.4;padding:0 0 14px;margin-top:-6px;}
   /* Rest timer default-duration presets (Settings > Rest Timer) */
   .rest-preset-row{display:flex;flex-wrap:wrap;gap:8px;padding:0 0 14px;}
   .rest-preset-chip{
@@ -5931,6 +5932,7 @@
   }
   function currentAccentTheme(){
     var id = (state.settings && state.settings.accentTheme) || 'gold';
+    if (id === 'auto' && currentAutoAccentColors) return currentAutoAccentColors;
     return ACCENT_THEME_OPTIONS.filter(function(t){ return t.id === id; })[0] || ACCENT_THEME_OPTIONS[0];
   }
   // Applies a theme's colors as inline custom-property overrides on the
@@ -5939,12 +5941,87 @@
   // (bootAccountData) and again immediately whenever the user picks a
   // new theme, so the change is instant with no re-render flicker.
   function applyAccentTheme(themeId){
+    if (themeId === 'auto'){
+      startAccentAutoShift();
+      return;
+    }
+    stopAccentAutoShift();
     var theme = ACCENT_THEME_OPTIONS.filter(function(t){ return t.id === themeId; })[0] || ACCENT_THEME_OPTIONS[0];
     var root = document.documentElement.style;
     root.setProperty('--accent', theme.accent);
     root.setProperty('--accent-dim', theme.accentDim);
     root.setProperty('--accent-rgb', hexToRgbString(theme.accent));
   }
+
+  // Accent auto-shift (Settings > Accent Color > Auto) — continuously
+  // cycles through the same 4 curated colors above instead of holding
+  // one fixed color, so it never passes through an unvetted hue (unlike
+  // a raw hue-rotate, which can wander into muddy or low-contrast
+  // colors this app's palette was never checked against). One full
+  // loop through all 4 colors takes ACCENT_AUTO_CYCLE_MS; a 10fps
+  // interval is plenty smooth for a shift this gradual and far cheaper
+  // than a full requestAnimationFrame loop.
+  var ACCENT_AUTO_CYCLE_MS = 60000;
+  var accentAutoTimer = null;
+  var accentAutoStartTime = null;
+  var currentAutoAccentColors = null; // read by currentAccentTheme() while auto is active
+  function hexToRgbArray(hex){
+    var h = hex.replace('#','');
+    return [parseInt(h.substring(0,2),16), parseInt(h.substring(2,4),16), parseInt(h.substring(4,6),16)];
+  }
+  function rgbArrayToHex(rgb){
+    return '#' + rgb.map(function(v){ var s = Math.round(v).toString(16); return s.length < 2 ? '0'+s : s; }).join('');
+  }
+  function lerpRgbArray(a, b, t){
+    return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+  }
+  function computeAutoAccentColors(elapsedMs){
+    var segMs = ACCENT_AUTO_CYCLE_MS / ACCENT_THEME_OPTIONS.length;
+    var pos = (elapsedMs % ACCENT_AUTO_CYCLE_MS) / segMs;
+    var idx = Math.floor(pos);
+    var t = pos - idx;
+    var from = ACCENT_THEME_OPTIONS[idx];
+    var to = ACCENT_THEME_OPTIONS[(idx+1) % ACCENT_THEME_OPTIONS.length];
+    var accentRgb = lerpRgbArray(hexToRgbArray(from.accent), hexToRgbArray(to.accent), t);
+    var dimRgb = lerpRgbArray(hexToRgbArray(from.accentDim), hexToRgbArray(to.accentDim), t);
+    return {
+      accent: rgbArrayToHex(accentRgb),
+      accentDim: rgbArrayToHex(dimRgb),
+      accentRgbStr: accentRgb.map(function(v){ return Math.round(v); }).join(',')
+    };
+  }
+  function stopAccentAutoShift(){
+    if (accentAutoTimer){ clearInterval(accentAutoTimer); accentAutoTimer = null; }
+  }
+  function accentAutoTick(){
+    var colors = computeAutoAccentColors(Date.now() - accentAutoStartTime);
+    currentAutoAccentColors = colors;
+    var root = document.documentElement.style;
+    root.setProperty('--accent', colors.accent);
+    root.setProperty('--accent-dim', colors.accentDim);
+    root.setProperty('--accent-rgb', colors.accentRgbStr);
+  }
+  function startAccentAutoShift(){
+    stopAccentAutoShift(); // never allow two loops running at once
+    accentAutoStartTime = Date.now(); // fresh start -> cycle begins at Gold
+    accentAutoTick(); // apply immediately, don't wait for the first interval tick
+    accentAutoTimer = setInterval(accentAutoTick, 100);
+  }
+  // Pauses the interval (not the underlying elapsed-time tracking) when
+  // the tab/app is backgrounded, so it isn't silently burning battery
+  // updating CSS variables nobody can see. Resuming does NOT reset
+  // accentAutoStartTime, so the cycle picks back up from wherever real
+  // wall-clock time says it should be, rather than jumping back to Gold.
+  document.addEventListener('visibilitychange', function(){
+    if (state.settings && state.settings.accentTheme === 'auto'){
+      if (document.hidden){
+        stopAccentAutoShift();
+      } else if (accentAutoStartTime){
+        accentAutoTick();
+        accentAutoTimer = setInterval(accentAutoTick, 100);
+      }
+    }
+  });
 
   // Corner style (Settings > Appearance). Reuses the existing --radius-*
   // tokens rather than introducing new ones — "sharp" just zeroes every
@@ -8968,7 +9045,12 @@
       ACCENT_THEME_OPTIONS.forEach(function(t){
         body += '<button type="button" class="accent-theme-swatch'+(draft===t.id?' active':'')+'" data-action="pick-settings-value" data-value="'+t.id+'" style="background:'+t.accent+'" aria-label="'+esc(t.label)+'"></button>';
       });
+      var autoGradient = 'conic-gradient(' + ACCENT_THEME_OPTIONS.map(function(t){ return t.accent; }).concat(ACCENT_THEME_OPTIONS[0].accent).join(', ') + ')';
+      body += '<button type="button" class="accent-theme-swatch accent-theme-swatch-auto'+(draft==='auto'?' active':'')+'" data-action="pick-settings-value" data-value="auto" style="background:'+autoGradient+'" aria-label="Auto-shift"></button>';
       body += '</div>';
+      if (draft === 'auto'){
+        body += '<div class="accent-auto-note">Slowly cycles through all four colors while you use the app.</div>';
+      }
     } else if (kind === 'cardBg'){
       body += '<div class="card-bg-picker">';
       CARD_BG_OPTIONS.forEach(function(opt){
@@ -9495,7 +9577,9 @@
     html += '<div class="section-label">Appearance</div>';
     html += '<div class="settings-group">';
     var chosenAccentTheme = (state.settings && state.settings.accentTheme) || 'gold';
-    var accentThemeObj = ACCENT_THEME_OPTIONS.filter(function(t){ return t.id === chosenAccentTheme; })[0] || ACCENT_THEME_OPTIONS[0];
+    var accentThemeObj = chosenAccentTheme === 'auto'
+      ? { accent: (currentAutoAccentColors && currentAutoAccentColors.accent) || ACCENT_THEME_OPTIONS[0].accent, label: 'Auto' }
+      : (ACCENT_THEME_OPTIONS.filter(function(t){ return t.id === chosenAccentTheme; })[0] || ACCENT_THEME_OPTIONS[0]);
     html += '<div class="settings-row"><div><div class="sr-label">Accent color</div><div class="sr-sub">Changes the accent color throughout the app</div></div>' +
               '<button class="sr-action sr-action-swatch" data-action="open-settings-picker" data-kind="accentColor">' +
                 '<span class="sr-swatch-dot" style="background:'+accentThemeObj.accent+'"></span>'+esc(accentThemeObj.label) +
