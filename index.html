@@ -1999,8 +1999,8 @@
   .ex-suggest-item{
     width:100%;
     display:flex;
-    align-items:center;
-    gap:12px;
+    flex-direction:column;
+    gap:5px;
     text-align:left;
     background:var(--panel-3);
     border:1px solid var(--line);
@@ -2011,21 +2011,6 @@
     padding:13px 14px;
     border-radius:var(--radius);
     cursor:pointer;
-  }
-  .ex-suggest-img{
-    width:52px;
-    height:52px;
-    flex-shrink:0;
-    border-radius:var(--radius-sm);
-    background:var(--panel);
-    object-fit:contain;
-  }
-  .ex-suggest-content{
-    flex:1;
-    min-width:0;
-    display:flex;
-    flex-direction:column;
-    gap:5px;
   }
   .ex-suggest-top{
     width:100%;
@@ -5118,28 +5103,25 @@
       var equipment = libMatch ? libMatch.equipment : null;
       if (!passesExFilters(muscle, equipment)) return;
       seen[key] = true;
-      results.push({ name: name, muscle: muscle, equipment: equipment, how: libMatch ? libMatch.how : null, img: libMatch ? libMatch.img : null });
+      results.push({ name: name, muscle: muscle, equipment: equipment, how: libMatch ? libMatch.how : null });
     });
     EXERCISE_LIBRARY_FLAT.forEach(function(item){
       var key = item.name.toLowerCase();
       if (seen[key] || !matchesAllTokens(key)) return;
       if (!passesExFilters(item.muscle, item.equipment)) return;
       seen[key] = true;
-      results.push({ name: item.name, muscle: item.muscle, equipment: item.equipment, how: item.how, img: item.img });
+      results.push({ name: item.name, muscle: item.muscle, equipment: item.equipment, how: item.how });
     });
     return results;
   }
 
-  function exerciseSuggestItemHtml(name, muscle, equipment, how, img){
+  function exerciseSuggestItemHtml(name, muscle, equipment, how){
     return '<button type="button" class="ex-suggest-item" data-action="pick-ex-suggestion" data-name="'+esc(name)+'" data-muscle="'+esc(muscle || '')+'">' +
-      (img ? '<img class="ex-suggest-img" src="'+esc(img)+'" alt="" loading="lazy">' : '') +
-      '<div class="ex-suggest-content">' +
-        '<div class="ex-suggest-top">' +
-          '<span class="ex-suggest-name">'+esc(name)+'</span>' +
-          (equipment ? '<span class="ex-suggest-tag">'+esc(equipment)+'</span>' : '') +
-        '</div>' +
-        (how ? '<div class="ex-suggest-how">'+esc(how)+'</div>' : '') +
+      '<div class="ex-suggest-top">' +
+        '<span class="ex-suggest-name">'+esc(name)+'</span>' +
+        (equipment ? '<span class="ex-suggest-tag">'+esc(equipment)+'</span>' : '') +
       '</div>' +
+      (how ? '<div class="ex-suggest-how">'+esc(how)+'</div>' : '') +
     '</button>';
   }
 
@@ -5164,7 +5146,7 @@
           // under the Traps section but tagged 'Shoulder/Trap') — must win
           // over the section's own category key, or the exercise gets
           // logged with the wrong muscle and buckets wrong on Progress.
-          return exerciseSuggestItemHtml(item.name, item.muscle || muscle, item.equipment, item.how, item.img);
+          return exerciseSuggestItemHtml(item.name, item.muscle || muscle, item.equipment, item.how);
         }).join('');
     }).join('');
     if (!html && f && (f.muscles.length || f.equipment.length)){
@@ -5266,7 +5248,7 @@
       html += '<button type="button" class="ex-suggest-custom" data-action="pick-ex-custom" data-name="'+esc(trimmed)+'">Use \u201c'+esc(trimmed)+'\u201d</button>';
     }
     html += matches.map(function(m){
-      return exerciseSuggestItemHtml(m.name, m.muscle, m.equipment, m.how, m.img);
+      return exerciseSuggestItemHtml(m.name, m.muscle, m.equipment, m.how);
     }).join('');
 
     el.classList.remove('hidden');
@@ -5529,145 +5511,145 @@
   // tag on Push-ups wouldn't disambiguate anything, just add noise.
   var EXERCISE_LIBRARY = {
     Chest: [
-      { name: 'Barbell Bench Press', equipment: 'Barbell', how: 'Lie on a flat bench, lower the bar to your chest, press it back up.', img: 'images/exercise-poses/bench_press.png' },
-      { name: 'Dumbbell Bench Press', equipment: 'Dumbbell', how: 'Press dumbbells up from chest height until your arms are straight, slightly angled in.', img: 'images/exercise-poses/bench_press.png' },
-      { name: 'Machine Bench Press', equipment: 'Machine', how: 'Sit at the machine, push the handles forward and together at chest height.', img: 'images/exercise-poses/bench_press.png' },
-      { name: 'Barbell Incline Bench Press', equipment: 'Barbell', how: 'Same as flat bench, on an inclined bench — targets the upper chest.', img: 'images/exercise-poses/bench_press.png' },
-      { name: 'Dumbbell Incline Bench Press', equipment: 'Dumbbell', how: 'Dumbbell press on an inclined bench, pressing up and slightly in.', img: 'images/exercise-poses/bench_press.png' },
-      { name: 'Barbell Decline Bench Press', equipment: 'Barbell', how: 'Bench press on a declined bench, targeting the lower chest.', img: 'images/exercise-poses/bench_press.png' },
-      { name: 'Dumbbell Decline Bench Press', equipment: 'Dumbbell', how: 'Dumbbell press on a declined bench, pressing up and slightly in.', img: 'images/exercise-poses/bench_press.png' },
-      { name: 'Dumbbell Chest Fly', equipment: 'Dumbbell', how: 'Lie on a bench, arms slightly bent, lower dumbbells out to the sides then bring them together above your chest.', img: 'images/exercise-poses/chest_fly.png' },
-      { name: 'Cable Chest Fly (Centered)', equipment: 'Cable', how: 'Stand between cable towers, pull both handles together in front of your chest in an arc.', img: 'images/exercise-poses/chest_fly.png' },
-      { name: 'Cable Chest Fly (Incline)', equipment: 'Cable', how: 'Same fly motion, cables set low, pulling up and in to target upper chest.', img: 'images/exercise-poses/chest_fly.png' },
-      { name: 'Cable Chest Fly (Decline)', equipment: 'Cable', how: 'Same fly motion, cables set high, pulling down and in to target lower chest.', img: 'images/exercise-poses/chest_fly.png' },
-      { name: 'Machine Chest Fly', equipment: 'Machine', how: 'Sit at the machine, bring the handles together in front of your chest in an arc.', img: 'images/exercise-poses/chest_fly.png' },
-      { name: 'Push-ups', equipment: 'Bodyweight', how: 'Hands under shoulders, lower your chest to the floor, press back up keeping your body straight.', img: 'images/exercise-poses/pushup.png' },
-      { name: 'Dips', equipment: 'Bodyweight', how: 'Support yourself on parallel bars, lower until your shoulders dip below your elbows, press back up.', img: 'images/exercise-poses/dips.png' },
-      { name: 'Cable Chest Press', equipment: 'Cable', how: 'Stand facing away from the cable tower, press the handles forward at chest height.', img: 'images/exercise-poses/standing_chest_press.png' }
+      { name: 'Barbell Bench Press', equipment: 'Barbell', how: 'Lie on a flat bench, lower the bar to your chest, press it back up.' },
+      { name: 'Dumbbell Bench Press', equipment: 'Dumbbell', how: 'Press dumbbells up from chest height until your arms are straight, slightly angled in.' },
+      { name: 'Machine Bench Press', equipment: 'Machine', how: 'Sit at the machine, push the handles forward and together at chest height.' },
+      { name: 'Barbell Incline Bench Press', equipment: 'Barbell', how: 'Same as flat bench, on an inclined bench — targets the upper chest.' },
+      { name: 'Dumbbell Incline Bench Press', equipment: 'Dumbbell', how: 'Dumbbell press on an inclined bench, pressing up and slightly in.' },
+      { name: 'Barbell Decline Bench Press', equipment: 'Barbell', how: 'Bench press on a declined bench, targeting the lower chest.' },
+      { name: 'Dumbbell Decline Bench Press', equipment: 'Dumbbell', how: 'Dumbbell press on a declined bench, pressing up and slightly in.' },
+      { name: 'Dumbbell Chest Fly', equipment: 'Dumbbell', how: 'Lie on a bench, arms slightly bent, lower dumbbells out to the sides then bring them together above your chest.' },
+      { name: 'Cable Chest Fly (Centered)', equipment: 'Cable', how: 'Stand between cable towers, pull both handles together in front of your chest in an arc.' },
+      { name: 'Cable Chest Fly (Incline)', equipment: 'Cable', how: 'Same fly motion, cables set low, pulling up and in to target upper chest.' },
+      { name: 'Cable Chest Fly (Decline)', equipment: 'Cable', how: 'Same fly motion, cables set high, pulling down and in to target lower chest.' },
+      { name: 'Machine Chest Fly', equipment: 'Machine', how: 'Sit at the machine, bring the handles together in front of your chest in an arc.' },
+      { name: 'Push-ups', equipment: 'Bodyweight', how: 'Hands under shoulders, lower your chest to the floor, press back up keeping your body straight.' },
+      { name: 'Dips', equipment: 'Bodyweight', how: 'Support yourself on parallel bars, lower until your shoulders dip below your elbows, press back up.' },
+      { name: 'Cable Chest Press', equipment: 'Cable', how: 'Stand facing away from the cable tower, press the handles forward at chest height.' }
     ],
     Back: [
-      { name: 'Pull-ups', equipment: 'Bodyweight', how: 'Hang from a bar, pull your chin above it, lower with control.', img: 'images/exercise-poses/pullup.png' },
-      { name: 'Lat Pulldown', equipment: 'Cable', how: 'Sit at the machine, pull the bar down to your upper chest, control it back up.', img: 'images/exercise-poses/lat_pulldown.png' },
-      { name: 'Machine Lat Pulldown', equipment: 'Machine', how: 'Same motion as lat pulldown, on a fixed machine path.', img: 'images/exercise-poses/lat_pulldown.png' },
-      { name: 'Undergrip Lat Pulldown', equipment: 'Cable', how: 'Lat pulldown with palms facing you — more biceps and lower-lat emphasis.', img: 'images/exercise-poses/lat_pulldown.png' },
-      { name: 'Barbell Row', equipment: 'Barbell', how: 'Hinge at the hips, pull the bar to your lower ribs, squeeze your shoulder blades.', img: 'images/exercise-poses/row_bent_over.png' },
-      { name: 'Overgrip Barbell Row', equipment: 'Barbell', how: 'Barbell row with palms facing down — more upper-back and rear-delt emphasis.', img: 'images/exercise-poses/row_bent_over.png' },
-      { name: 'Undergrip Barbell Row', equipment: 'Barbell', how: 'Barbell row with palms facing up — more lat and bicep emphasis.', img: 'images/exercise-poses/row_bent_over.png' },
-      { name: 'Dumbbell Row', equipment: 'Dumbbell', how: 'One knee and hand on a bench, pull the dumbbell up to your hip.', img: 'images/exercise-poses/row_bent_over.png' },
-      { name: 'Undergrip Dumbbell Row', equipment: 'Dumbbell', how: 'Dumbbell row with palm facing in — shifts emphasis toward the lats.', img: 'images/exercise-poses/row_bent_over.png' },
-      { name: 'Close Grip Barbell Row', equipment: 'Barbell', how: 'Barbell row with hands closer together — more lat and mid-back focus.', img: 'images/exercise-poses/row_bent_over.png' },
-      { name: 'Close Grip Dumbbell Row', equipment: 'Dumbbell', how: 'Dumbbell row with a neutral, close grip — more lat and mid-back focus.', img: 'images/exercise-poses/row_bent_over.png' },
-      { name: 'Machine Row', equipment: 'Machine', how: 'Sit at the machine, pull the handles to your torso, squeeze your shoulder blades together.', img: 'images/exercise-poses/row_bent_over.png' },
-      { name: 'Seated Cable Row', equipment: 'Cable', how: 'Sit at the cable station, pull the handle to your torso, keep your back straight.', img: 'images/exercise-poses/row_bent_over.png' },
-      { name: 'Single-Arm Cable Row', equipment: 'Cable', how: 'Same as seated cable row, one arm at a time for a deeper stretch and rotation.', img: 'images/exercise-poses/row_bent_over.png' },
-      { name: 'Cable Pullover', equipment: 'Cable', how: 'Facing the cable tower, pull the bar down and back in an arc to your thighs.', img: 'images/exercise-poses/lat_pulldown.png' },
-      { name: 'T-Bar Row', equipment: 'Barbell', how: 'Straddle the bar, hinge forward, pull the handle to your chest.', img: 'images/exercise-poses/row_bent_over.png' },
-      { name: 'Deadlift', equipment: 'Barbell', how: 'Grip the bar just outside your legs, drive through your heels and stand tall, bar close to your body.', img: 'images/exercise-poses/deadlift_hinge.png' }
+      { name: 'Pull-ups', equipment: 'Bodyweight', how: 'Hang from a bar, pull your chin above it, lower with control.' },
+      { name: 'Lat Pulldown', equipment: 'Cable', how: 'Sit at the machine, pull the bar down to your upper chest, control it back up.' },
+      { name: 'Machine Lat Pulldown', equipment: 'Machine', how: 'Same motion as lat pulldown, on a fixed machine path.' },
+      { name: 'Undergrip Lat Pulldown', equipment: 'Cable', how: 'Lat pulldown with palms facing you — more biceps and lower-lat emphasis.' },
+      { name: 'Barbell Row', equipment: 'Barbell', how: 'Hinge at the hips, pull the bar to your lower ribs, squeeze your shoulder blades.' },
+      { name: 'Overgrip Barbell Row', equipment: 'Barbell', how: 'Barbell row with palms facing down — more upper-back and rear-delt emphasis.' },
+      { name: 'Undergrip Barbell Row', equipment: 'Barbell', how: 'Barbell row with palms facing up — more lat and bicep emphasis.' },
+      { name: 'Dumbbell Row', equipment: 'Dumbbell', how: 'One knee and hand on a bench, pull the dumbbell up to your hip.' },
+      { name: 'Undergrip Dumbbell Row', equipment: 'Dumbbell', how: 'Dumbbell row with palm facing in — shifts emphasis toward the lats.' },
+      { name: 'Close Grip Barbell Row', equipment: 'Barbell', how: 'Barbell row with hands closer together — more lat and mid-back focus.' },
+      { name: 'Close Grip Dumbbell Row', equipment: 'Dumbbell', how: 'Dumbbell row with a neutral, close grip — more lat and mid-back focus.' },
+      { name: 'Machine Row', equipment: 'Machine', how: 'Sit at the machine, pull the handles to your torso, squeeze your shoulder blades together.' },
+      { name: 'Seated Cable Row', equipment: 'Cable', how: 'Sit at the cable station, pull the handle to your torso, keep your back straight.' },
+      { name: 'Single-Arm Cable Row', equipment: 'Cable', how: 'Same as seated cable row, one arm at a time for a deeper stretch and rotation.' },
+      { name: 'Cable Pullover', equipment: 'Cable', how: 'Facing the cable tower, pull the bar down and back in an arc to your thighs.' },
+      { name: 'T-Bar Row', equipment: 'Barbell', how: 'Straddle the bar, hinge forward, pull the handle to your chest.' },
+      { name: 'Deadlift', equipment: 'Barbell', how: 'Grip the bar just outside your legs, drive through your heels and stand tall, bar close to your body.' }
     ],
     Shoulders: [
-      { name: 'Barbell Shoulder Press', equipment: 'Barbell', how: 'Press the bar overhead from shoulder height until your arms are straight.', img: 'images/exercise-poses/standing_press_overhead.png' },
-      { name: 'Dumbbell Shoulder Press', equipment: 'Dumbbell', how: 'Press dumbbells overhead from shoulder height until your arms are straight.', img: 'images/exercise-poses/standing_press_overhead.png' },
-      { name: 'Machine Shoulder Press', equipment: 'Machine', how: 'Sit at the machine, press the handles straight overhead.', img: 'images/exercise-poses/standing_press_overhead.png' },
-      { name: 'Cable Shoulder Press', equipment: 'Cable', how: 'Press the cable handles overhead from shoulder height.', img: 'images/exercise-poses/standing_press_overhead.png' },
-      { name: 'Dumbbell Lateral Raise', equipment: 'Dumbbell', how: 'Raise dumbbells out to your sides to shoulder height, slight bend in the elbows.', img: 'images/exercise-poses/lateral_raise.png' },
-      { name: 'Cable Lateral Raise', equipment: 'Cable', how: 'Same motion as the dumbbell version, using a low cable for constant tension.', img: 'images/exercise-poses/lateral_raise.png' },
-      { name: 'Machine Lateral Raise', equipment: 'Machine', how: 'Sit at the machine, raise the pads out to shoulder height.', img: 'images/exercise-poses/lateral_raise.png' },
-      { name: 'Dumbbell Front Raise', equipment: 'Dumbbell', how: 'Raise dumbbells straight out in front of you to shoulder height.', img: 'images/exercise-poses/front_raise.png' },
-      { name: 'Cable Front Raise', equipment: 'Cable', how: 'Same motion as the dumbbell version, using a low cable for constant tension.', img: 'images/exercise-poses/front_raise.png' },
-      { name: 'Dumbbell Rear Delt Fly', equipment: 'Dumbbell', how: 'Hinge forward, raise dumbbells out to the sides, squeezing your shoulder blades together.', img: 'images/exercise-poses/rear_delt_fly.png' },
-      { name: 'Cable Rear Delt Fly', equipment: 'Cable', how: 'Cross cables in front of you, pull them out and back to target the rear delts.', img: 'images/exercise-poses/rear_delt_fly.png' },
-      { name: 'Arnold Press', equipment: 'Dumbbell', how: 'Dumbbell press that rotates from palms-in at the bottom to palms-forward at the top.', img: 'images/exercise-poses/standing_press_overhead.png' },
-      { name: 'Face Pull', equipment: 'Cable', how: 'Pull a rope attachment toward your face, elbows high, squeezing your shoulder blades together.', img: 'images/exercise-poses/rear_delt_fly.png' }
+      { name: 'Barbell Shoulder Press', equipment: 'Barbell', how: 'Press the bar overhead from shoulder height until your arms are straight.' },
+      { name: 'Dumbbell Shoulder Press', equipment: 'Dumbbell', how: 'Press dumbbells overhead from shoulder height until your arms are straight.' },
+      { name: 'Machine Shoulder Press', equipment: 'Machine', how: 'Sit at the machine, press the handles straight overhead.' },
+      { name: 'Cable Shoulder Press', equipment: 'Cable', how: 'Press the cable handles overhead from shoulder height.' },
+      { name: 'Dumbbell Lateral Raise', equipment: 'Dumbbell', how: 'Raise dumbbells out to your sides to shoulder height, slight bend in the elbows.' },
+      { name: 'Cable Lateral Raise', equipment: 'Cable', how: 'Same motion as the dumbbell version, using a low cable for constant tension.' },
+      { name: 'Machine Lateral Raise', equipment: 'Machine', how: 'Sit at the machine, raise the pads out to shoulder height.' },
+      { name: 'Dumbbell Front Raise', equipment: 'Dumbbell', how: 'Raise dumbbells straight out in front of you to shoulder height.' },
+      { name: 'Cable Front Raise', equipment: 'Cable', how: 'Same motion as the dumbbell version, using a low cable for constant tension.' },
+      { name: 'Dumbbell Rear Delt Fly', equipment: 'Dumbbell', how: 'Hinge forward, raise dumbbells out to the sides, squeezing your shoulder blades together.' },
+      { name: 'Cable Rear Delt Fly', equipment: 'Cable', how: 'Cross cables in front of you, pull them out and back to target the rear delts.' },
+      { name: 'Arnold Press', equipment: 'Dumbbell', how: 'Dumbbell press that rotates from palms-in at the bottom to palms-forward at the top.' },
+      { name: 'Face Pull', equipment: 'Cable', how: 'Pull a rope attachment toward your face, elbows high, squeezing your shoulder blades together.' }
     ],
     Traps: [
-      { name: 'Barbell Shrug', equipment: 'Barbell', how: 'Hold the bar at your hips, shrug your shoulders straight up toward your ears.', img: 'images/exercise-poses/shrug.png' },
-      { name: 'Dumbbell Shrug', equipment: 'Dumbbell', how: 'Hold dumbbells at your sides, shrug your shoulders straight up.', img: 'images/exercise-poses/shrug.png' },
-      { name: 'Cable Shrug', equipment: 'Cable', how: 'Same shrugging motion using a low cable for constant tension.', img: 'images/exercise-poses/shrug.png' },
-      { name: 'Barbell Upright Row', equipment: 'Barbell', muscle: 'Shoulder/Trap', how: 'Pull the bar straight up along your body to chest height, elbows leading.', img: 'images/exercise-poses/upright_row.png' },
-      { name: 'Dumbbell Upright Row', equipment: 'Dumbbell', muscle: 'Shoulder/Trap', how: 'Pull dumbbells straight up along your body to chest height, elbows leading.', img: 'images/exercise-poses/upright_row.png' },
-      { name: "Farmer's Carry", equipment: 'Dumbbell', how: 'Hold a heavy dumbbell in each hand, walk with your shoulders back and core braced.', img: 'images/exercise-poses/farmers_carry.png' }
+      { name: 'Barbell Shrug', equipment: 'Barbell', how: 'Hold the bar at your hips, shrug your shoulders straight up toward your ears.' },
+      { name: 'Dumbbell Shrug', equipment: 'Dumbbell', how: 'Hold dumbbells at your sides, shrug your shoulders straight up.' },
+      { name: 'Cable Shrug', equipment: 'Cable', how: 'Same shrugging motion using a low cable for constant tension.' },
+      { name: 'Barbell Upright Row', equipment: 'Barbell', muscle: 'Shoulder/Trap', how: 'Pull the bar straight up along your body to chest height, elbows leading.' },
+      { name: 'Dumbbell Upright Row', equipment: 'Dumbbell', muscle: 'Shoulder/Trap', how: 'Pull dumbbells straight up along your body to chest height, elbows leading.' },
+      { name: "Farmer's Carry", equipment: 'Dumbbell', how: 'Hold a heavy dumbbell in each hand, walk with your shoulders back and core braced.' }
     ],
     Biceps: [
-      { name: 'Barbell Bicep Curl', equipment: 'Barbell', how: 'Curl the bar up toward your shoulders, elbows pinned to your sides.', img: 'images/exercise-poses/standing_curl.png' },
-      { name: 'Dumbbell Curl', equipment: 'Dumbbell', how: 'Curl dumbbells up toward your shoulders, elbows pinned to your sides.', img: 'images/exercise-poses/standing_curl.png' },
-      { name: 'Cable Curl', equipment: 'Cable', how: 'Same curling motion using a low cable for constant tension throughout.', img: 'images/exercise-poses/standing_curl.png' },
-      { name: 'Dumbbell Hammer Curl', equipment: 'Dumbbell', how: 'Curl dumbbells with palms facing each other the whole way up.', img: 'images/exercise-poses/standing_curl.png' },
-      { name: 'Cable Hammer Curl', equipment: 'Cable', how: 'Hammer curl using a rope attachment on a low cable.', img: 'images/exercise-poses/standing_curl.png' },
-      { name: 'EZ-Bar Curl', equipment: 'EZ-Bar', how: 'Bicep curl using the angled EZ-bar grip, easier on the wrists.', img: 'images/exercise-poses/standing_curl.png' },
-      { name: 'Straight Bar Curl', equipment: 'EZ-Bar', how: 'Bicep curl using a straight bar, standard shoulder-width grip.', img: 'images/exercise-poses/standing_curl.png' },
-      { name: 'Barbell Preacher Curl', equipment: 'Barbell', how: 'Curl the bar with your arms braced on a preacher bench, isolating the biceps.', img: 'images/exercise-poses/preacher_curl.png' },
-      { name: 'Dumbbell Preacher Curl', equipment: 'Dumbbell', how: 'Same as the barbell version, one dumbbell at a time.', img: 'images/exercise-poses/preacher_curl.png' },
-      { name: 'EZ-Bar Preacher Curl', equipment: 'EZ-Bar', how: 'Preacher curl using the angled EZ-bar grip.', img: 'images/exercise-poses/preacher_curl.png' },
-      { name: 'Concentration Curl', equipment: 'Dumbbell', how: 'Seated, elbow braced against your inner thigh, curl one dumbbell with full focus on the bicep.', img: 'images/exercise-poses/preacher_curl.png' }
+      { name: 'Barbell Bicep Curl', equipment: 'Barbell', how: 'Curl the bar up toward your shoulders, elbows pinned to your sides.' },
+      { name: 'Dumbbell Curl', equipment: 'Dumbbell', how: 'Curl dumbbells up toward your shoulders, elbows pinned to your sides.' },
+      { name: 'Cable Curl', equipment: 'Cable', how: 'Same curling motion using a low cable for constant tension throughout.' },
+      { name: 'Dumbbell Hammer Curl', equipment: 'Dumbbell', how: 'Curl dumbbells with palms facing each other the whole way up.' },
+      { name: 'Cable Hammer Curl', equipment: 'Cable', how: 'Hammer curl using a rope attachment on a low cable.' },
+      { name: 'EZ-Bar Curl', equipment: 'EZ-Bar', how: 'Bicep curl using the angled EZ-bar grip, easier on the wrists.' },
+      { name: 'Straight Bar Curl', equipment: 'EZ-Bar', how: 'Bicep curl using a straight bar, standard shoulder-width grip.' },
+      { name: 'Barbell Preacher Curl', equipment: 'Barbell', how: 'Curl the bar with your arms braced on a preacher bench, isolating the biceps.' },
+      { name: 'Dumbbell Preacher Curl', equipment: 'Dumbbell', how: 'Same as the barbell version, one dumbbell at a time.' },
+      { name: 'EZ-Bar Preacher Curl', equipment: 'EZ-Bar', how: 'Preacher curl using the angled EZ-bar grip.' },
+      { name: 'Concentration Curl', equipment: 'Dumbbell', how: 'Seated, elbow braced against your inner thigh, curl one dumbbell with full focus on the bicep.' }
     ],
     Triceps: [
-      { name: 'Tricep Pushdown', equipment: 'Cable', how: 'Push a bar attachment down until your arms are straight, elbows pinned to your sides.', img: 'images/exercise-poses/tricep_pushdown.png' },
-      { name: 'Tricep Rope Pushdown', equipment: 'Cable', how: 'Same as tricep pushdown, using a rope and splitting the ends apart at the bottom.', img: 'images/exercise-poses/tricep_pushdown.png' },
-      { name: 'Barbell Skull Crushers', equipment: 'Barbell', how: 'Lying down, lower the bar toward your forehead bending only your elbows, then press back up.', img: 'images/exercise-poses/skull_crusher_v2.png' },
-      { name: 'Dumbbell Skull Crushers', equipment: 'Dumbbell', how: 'Same as the barbell version, one dumbbell in each hand.', img: 'images/exercise-poses/skull_crusher_v2.png' },
-      { name: 'EZ-Bar Skull Crushers', equipment: 'EZ-Bar', how: 'Skull crushers using the angled EZ-bar grip, easier on the wrists.', img: 'images/exercise-poses/skull_crusher_v2.png' },
-      { name: 'Close-Grip Bench Press', equipment: 'Barbell', how: 'Bench press with hands shoulder-width or closer, elbows tucked to emphasize triceps.', img: 'images/exercise-poses/bench_press.png' },
-      { name: 'Dumbbell Overhead Extension', equipment: 'Dumbbell', how: 'Hold a dumbbell overhead with both hands, lower it behind your head, then extend back up.', img: 'images/exercise-poses/overhead_extension.png' },
-      { name: 'Cable Overhead Extension', equipment: 'Cable', how: 'Same overhead extension motion using a cable behind your head.', img: 'images/exercise-poses/overhead_extension.png' },
-      { name: 'Dumbbell Tricep Kickback', equipment: 'Dumbbell', how: 'Hinge forward, upper arm still, extend the dumbbell straight back until locked out.', img: 'images/exercise-poses/tricep_kickback.png' },
-      { name: 'Cable Tricep Kickback', equipment: 'Cable', how: 'Same kickback motion using a low cable for constant tension.', img: 'images/exercise-poses/tricep_kickback.png' },
-      { name: 'Dips', equipment: 'Bodyweight', how: 'Support yourself on parallel bars, lower until your shoulders dip below your elbows, press back up.', img: 'images/exercise-poses/dips.png' }
+      { name: 'Tricep Pushdown', equipment: 'Cable', how: 'Push a bar attachment down until your arms are straight, elbows pinned to your sides.' },
+      { name: 'Tricep Rope Pushdown', equipment: 'Cable', how: 'Same as tricep pushdown, using a rope and splitting the ends apart at the bottom.' },
+      { name: 'Barbell Skull Crushers', equipment: 'Barbell', how: 'Lying down, lower the bar toward your forehead bending only your elbows, then press back up.' },
+      { name: 'Dumbbell Skull Crushers', equipment: 'Dumbbell', how: 'Same as the barbell version, one dumbbell in each hand.' },
+      { name: 'EZ-Bar Skull Crushers', equipment: 'EZ-Bar', how: 'Skull crushers using the angled EZ-bar grip, easier on the wrists.' },
+      { name: 'Close-Grip Bench Press', equipment: 'Barbell', how: 'Bench press with hands shoulder-width or closer, elbows tucked to emphasize triceps.' },
+      { name: 'Dumbbell Overhead Extension', equipment: 'Dumbbell', how: 'Hold a dumbbell overhead with both hands, lower it behind your head, then extend back up.' },
+      { name: 'Cable Overhead Extension', equipment: 'Cable', how: 'Same overhead extension motion using a cable behind your head.' },
+      { name: 'Dumbbell Tricep Kickback', equipment: 'Dumbbell', how: 'Hinge forward, upper arm still, extend the dumbbell straight back until locked out.' },
+      { name: 'Cable Tricep Kickback', equipment: 'Cable', how: 'Same kickback motion using a low cable for constant tension.' },
+      { name: 'Dips', equipment: 'Bodyweight', how: 'Support yourself on parallel bars, lower until your shoulders dip below your elbows, press back up.' }
     ],
     Forearms: [
-      { name: 'Barbell Wrist Curl', equipment: 'Barbell', how: 'Forearms on your thighs or a bench, curl the bar up using only your wrists.', img: 'images/exercise-poses/wrist_curl.png' },
-      { name: 'Dumbbell Wrist Curl', equipment: 'Dumbbell', how: 'Same wrist curl motion, one dumbbell in each hand.', img: 'images/exercise-poses/wrist_curl.png' },
-      { name: 'Cable Wrist Curl', equipment: 'Cable', how: 'Same wrist curl motion using a low cable.', img: 'images/exercise-poses/wrist_curl.png' },
-      { name: 'Reverse Wrist Curl', equipment: 'Barbell', how: 'Palms facing down, extend your wrists upward against the bar\'s weight.', img: 'images/exercise-poses/wrist_curl.png' },
-      { name: "Farmer's Carry", equipment: 'Dumbbell', how: 'Hold a heavy dumbbell in each hand, walk with your shoulders back and core braced.', img: 'images/exercise-poses/farmers_carry.png' },
-      { name: 'Dead Hang', equipment: 'Bodyweight', isHold: true, how: 'Hang from a bar with straight arms, holding your bodyweight for time.', img: 'images/exercise-poses/dead_hang.png' }
+      { name: 'Barbell Wrist Curl', equipment: 'Barbell', how: 'Forearms on your thighs or a bench, curl the bar up using only your wrists.' },
+      { name: 'Dumbbell Wrist Curl', equipment: 'Dumbbell', how: 'Same wrist curl motion, one dumbbell in each hand.' },
+      { name: 'Cable Wrist Curl', equipment: 'Cable', how: 'Same wrist curl motion using a low cable.' },
+      { name: 'Reverse Wrist Curl', equipment: 'Barbell', how: 'Palms facing down, extend your wrists upward against the bar\'s weight.' },
+      { name: "Farmer's Carry", equipment: 'Dumbbell', how: 'Hold a heavy dumbbell in each hand, walk with your shoulders back and core braced.' },
+      { name: 'Dead Hang', equipment: 'Bodyweight', isHold: true, how: 'Hang from a bar with straight arms, holding your bodyweight for time.' }
     ],
     Abs: [
-      { name: 'Crunches', equipment: 'Bodyweight', how: 'Lie on your back, knees bent, curl your shoulders up off the floor toward your knees.', img: 'images/exercise-poses/crunch.png' },
-      { name: 'Plank', equipment: 'Bodyweight', isHold: true, how: 'Hold a straight-body position on your forearms and toes, bracing your core.', img: 'images/exercise-poses/plank.png' },
-      { name: 'Hanging Leg Raise', equipment: 'Bodyweight', how: 'Hang from a bar, raise your legs up toward your chest with control.', img: 'images/exercise-poses/hanging_leg_raise_v2.png' },
-      { name: 'Cable Crunch', equipment: 'Cable', how: 'Kneel facing a high cable, curl your torso down toward your knees.', img: 'images/exercise-poses/crunch.png' },
-      { name: 'Pallof Press', equipment: 'Cable', how: 'Stand sideways to a cable, press the handle out and resist it pulling you to rotate.', img: 'images/exercise-poses/standing_chest_press.png' },
-      { name: 'Russian Twist', equipment: 'Bodyweight', how: 'Sit back slightly, feet off the floor, rotate your torso side to side.', img: 'images/exercise-poses/crunch.png' },
-      { name: 'Ab Wheel Rollout', equipment: 'Bodyweight', how: 'Kneeling, roll the wheel forward as far as you can control, then pull back in.', img: 'images/exercise-poses/plank.png' }
+      { name: 'Crunches', equipment: 'Bodyweight', how: 'Lie on your back, knees bent, curl your shoulders up off the floor toward your knees.' },
+      { name: 'Plank', equipment: 'Bodyweight', isHold: true, how: 'Hold a straight-body position on your forearms and toes, bracing your core.' },
+      { name: 'Hanging Leg Raise', equipment: 'Bodyweight', how: 'Hang from a bar, raise your legs up toward your chest with control.' },
+      { name: 'Cable Crunch', equipment: 'Cable', how: 'Kneel facing a high cable, curl your torso down toward your knees.' },
+      { name: 'Pallof Press', equipment: 'Cable', how: 'Stand sideways to a cable, press the handle out and resist it pulling you to rotate.' },
+      { name: 'Russian Twist', equipment: 'Bodyweight', how: 'Sit back slightly, feet off the floor, rotate your torso side to side.' },
+      { name: 'Ab Wheel Rollout', equipment: 'Bodyweight', how: 'Kneeling, roll the wheel forward as far as you can control, then pull back in.' }
     ],
     Quads: [
-      { name: 'Back Squat', equipment: 'Barbell', how: 'Bar on your upper back, squat down until your thighs are at least parallel, drive back up.', img: 'images/exercise-poses/squat_v2.png' },
-      { name: 'Front Squat', equipment: 'Barbell', how: 'Bar racked across the front of your shoulders, squat down keeping your torso upright.', img: 'images/exercise-poses/squat_v2.png' },
-      { name: 'Dumbbell Goblet Squat', equipment: 'Dumbbell', how: 'Hold a dumbbell at your chest, squat down keeping your torso upright.', img: 'images/exercise-poses/squat_v2.png' },
-      { name: 'Leg Press', equipment: 'Machine', how: 'Sit in the machine, push the platform away by extending your legs.', img: 'images/exercise-poses/leg_press_machine.png' },
-      { name: 'Barbell Lunges', equipment: 'Barbell', how: 'Bar on your back, step forward into a lunge, drive back to standing.', img: 'images/exercise-poses/lunge.png' },
-      { name: 'Dumbbell Lunges', equipment: 'Dumbbell', how: 'Dumbbells at your sides, step forward into a lunge, drive back to standing.', img: 'images/exercise-poses/lunge.png' },
-      { name: 'Bodyweight Lunges', equipment: 'Bodyweight', how: 'Step forward into a lunge, lower your back knee toward the floor, drive back up.', img: 'images/exercise-poses/lunge.png' },
-      { name: 'Leg Extension', equipment: 'Machine', how: 'Sit at the machine, extend your legs straight out against the pad.', img: 'images/exercise-poses/leg_press_machine.png' },
-      { name: 'Dumbbell Bulgarian Split Squat', equipment: 'Dumbbell', how: 'Rear foot elevated on a bench, lower into a lunge holding dumbbells, drive back up.', img: 'images/exercise-poses/lunge.png' },
-      { name: 'Bodyweight Bulgarian Split Squat', equipment: 'Bodyweight', how: 'Same split squat, rear foot elevated, using just bodyweight.', img: 'images/exercise-poses/lunge.png' }
+      { name: 'Back Squat', equipment: 'Barbell', how: 'Bar on your upper back, squat down until your thighs are at least parallel, drive back up.' },
+      { name: 'Front Squat', equipment: 'Barbell', how: 'Bar racked across the front of your shoulders, squat down keeping your torso upright.' },
+      { name: 'Dumbbell Goblet Squat', equipment: 'Dumbbell', how: 'Hold a dumbbell at your chest, squat down keeping your torso upright.' },
+      { name: 'Leg Press', equipment: 'Machine', how: 'Sit in the machine, push the platform away by extending your legs.' },
+      { name: 'Barbell Lunges', equipment: 'Barbell', how: 'Bar on your back, step forward into a lunge, drive back to standing.' },
+      { name: 'Dumbbell Lunges', equipment: 'Dumbbell', how: 'Dumbbells at your sides, step forward into a lunge, drive back to standing.' },
+      { name: 'Bodyweight Lunges', equipment: 'Bodyweight', how: 'Step forward into a lunge, lower your back knee toward the floor, drive back up.' },
+      { name: 'Leg Extension', equipment: 'Machine', how: 'Sit at the machine, extend your legs straight out against the pad.' },
+      { name: 'Dumbbell Bulgarian Split Squat', equipment: 'Dumbbell', how: 'Rear foot elevated on a bench, lower into a lunge holding dumbbells, drive back up.' },
+      { name: 'Bodyweight Bulgarian Split Squat', equipment: 'Bodyweight', how: 'Same split squat, rear foot elevated, using just bodyweight.' }
     ],
     Hamstrings: [
-      { name: 'Barbell Romanian Deadlift', equipment: 'Barbell', how: 'Hinge at the hips with a slight knee bend, lower the bar along your legs, stand back up.', img: 'images/exercise-poses/deadlift_hinge.png' },
-      { name: 'Dumbbell Romanian Deadlift', equipment: 'Dumbbell', how: 'Same hip-hinge motion as the barbell version, using dumbbells.', img: 'images/exercise-poses/deadlift_hinge.png' },
-      { name: 'Seated Leg Curl', equipment: 'Machine', how: 'Sit at the machine, curl your legs down and back against the pad.', img: 'images/exercise-poses/leg_curl_lying_v2.png' },
-      { name: 'Lying Leg Curl', equipment: 'Machine', how: 'Lie face down, curl your heels up toward your glutes against the pad.', img: 'images/exercise-poses/leg_curl_lying_v2.png' },
-      { name: 'Good Morning', equipment: 'Barbell', how: 'Bar on your back, hinge forward at the hips keeping your back flat, then stand back up.', img: 'images/exercise-poses/deadlift_hinge.png' },
-      { name: 'Stiff-Leg Deadlift', equipment: 'Barbell', how: 'Similar to Romanian deadlift, with straighter legs for a deeper hamstring stretch.', img: 'images/exercise-poses/deadlift_hinge.png' },
-      { name: 'Nordic Curl', equipment: 'Bodyweight', how: 'Kneeling with ankles anchored, lower your torso forward as slowly as you can control, then pull back up.', img: 'images/exercise-poses/leg_curl_lying_v2.png' }
+      { name: 'Barbell Romanian Deadlift', equipment: 'Barbell', how: 'Hinge at the hips with a slight knee bend, lower the bar along your legs, stand back up.' },
+      { name: 'Dumbbell Romanian Deadlift', equipment: 'Dumbbell', how: 'Same hip-hinge motion as the barbell version, using dumbbells.' },
+      { name: 'Seated Leg Curl', equipment: 'Machine', how: 'Sit at the machine, curl your legs down and back against the pad.' },
+      { name: 'Lying Leg Curl', equipment: 'Machine', how: 'Lie face down, curl your heels up toward your glutes against the pad.' },
+      { name: 'Good Morning', equipment: 'Barbell', how: 'Bar on your back, hinge forward at the hips keeping your back flat, then stand back up.' },
+      { name: 'Stiff-Leg Deadlift', equipment: 'Barbell', how: 'Similar to Romanian deadlift, with straighter legs for a deeper hamstring stretch.' },
+      { name: 'Nordic Curl', equipment: 'Bodyweight', how: 'Kneeling with ankles anchored, lower your torso forward as slowly as you can control, then pull back up.' }
     ],
     Glutes: [
-      { name: 'Barbell Hip Thrust', equipment: 'Barbell', how: 'Upper back on a bench, bar across your hips, drive your hips up until your body is straight.', img: 'images/exercise-poses/hip_thrust.png' },
-      { name: 'Machine Hip Thrust', equipment: 'Machine', how: 'Same hip thrust motion on a fixed machine path.', img: 'images/exercise-poses/hip_thrust.png' },
-      { name: 'Cable Hip Thrust', equipment: 'Cable', how: 'Same hip thrust motion using a cable for resistance.', img: 'images/exercise-poses/hip_thrust.png' },
-      { name: 'Glute Bridge', equipment: 'Bodyweight', how: 'Lie on your back, knees bent, drive your hips up by squeezing your glutes.', img: 'images/exercise-poses/hip_thrust.png' },
-      { name: 'Dumbbell Bulgarian Split Squat', equipment: 'Dumbbell', how: 'Rear foot elevated on a bench, lower into a lunge holding dumbbells, drive back up.', img: 'images/exercise-poses/lunge.png' },
-      { name: 'Bodyweight Bulgarian Split Squat', equipment: 'Bodyweight', how: 'Same split squat, rear foot elevated, using just bodyweight.', img: 'images/exercise-poses/lunge.png' },
-      { name: 'Cable Glute Kickback', equipment: 'Cable', how: 'Cable cuff on your ankle, kick your leg straight back, squeezing your glute.', img: 'images/exercise-poses/deadlift_hinge.png' },
-      { name: 'Cable Pull-Through', equipment: 'Cable', how: 'Facing away from a low cable, hinge forward then drive your hips through to standing.', img: 'images/exercise-poses/deadlift_hinge.png' },
-      { name: 'Sumo Deadlift', equipment: 'Barbell', how: 'Wide stance, hands inside your knees, drive through your heels to stand up.', img: 'images/exercise-poses/deadlift_hinge.png' }
+      { name: 'Barbell Hip Thrust', equipment: 'Barbell', how: 'Upper back on a bench, bar across your hips, drive your hips up until your body is straight.' },
+      { name: 'Machine Hip Thrust', equipment: 'Machine', how: 'Same hip thrust motion on a fixed machine path.' },
+      { name: 'Cable Hip Thrust', equipment: 'Cable', how: 'Same hip thrust motion using a cable for resistance.' },
+      { name: 'Glute Bridge', equipment: 'Bodyweight', how: 'Lie on your back, knees bent, drive your hips up by squeezing your glutes.' },
+      { name: 'Dumbbell Bulgarian Split Squat', equipment: 'Dumbbell', how: 'Rear foot elevated on a bench, lower into a lunge holding dumbbells, drive back up.' },
+      { name: 'Bodyweight Bulgarian Split Squat', equipment: 'Bodyweight', how: 'Same split squat, rear foot elevated, using just bodyweight.' },
+      { name: 'Cable Glute Kickback', equipment: 'Cable', how: 'Cable cuff on your ankle, kick your leg straight back, squeezing your glute.' },
+      { name: 'Cable Pull-Through', equipment: 'Cable', how: 'Facing away from a low cable, hinge forward then drive your hips through to standing.' },
+      { name: 'Sumo Deadlift', equipment: 'Barbell', how: 'Wide stance, hands inside your knees, drive through your heels to stand up.' }
     ],
     Calves: [
-      { name: 'Barbell Standing Calf Raise', equipment: 'Barbell', how: 'Bar on your back, rise up onto your toes, lower with control.', img: 'images/exercise-poses/calf_raise_v2.png' },
-      { name: 'Machine Standing Calf Raise', equipment: 'Machine', how: 'Same calf raise motion on a standing machine.', img: 'images/exercise-poses/calf_raise_v2.png' },
-      { name: 'Dumbbell Standing Calf Raise', equipment: 'Dumbbell', how: 'Hold dumbbells at your sides, rise up onto your toes.', img: 'images/exercise-poses/calf_raise_v2.png' },
-      { name: 'Seated Calf Raise', equipment: 'Machine', how: 'Sit at the machine, push through your toes to raise the weight, lower with control.', img: 'images/exercise-poses/calf_raise_v2.png' },
-      { name: 'Calf Press', equipment: 'Machine', how: 'On the leg press machine, push through your toes only, knees mostly straight.', img: 'images/exercise-poses/calf_raise_v2.png' }
+      { name: 'Barbell Standing Calf Raise', equipment: 'Barbell', how: 'Bar on your back, rise up onto your toes, lower with control.' },
+      { name: 'Machine Standing Calf Raise', equipment: 'Machine', how: 'Same calf raise motion on a standing machine.' },
+      { name: 'Dumbbell Standing Calf Raise', equipment: 'Dumbbell', how: 'Hold dumbbells at your sides, rise up onto your toes.' },
+      { name: 'Seated Calf Raise', equipment: 'Machine', how: 'Sit at the machine, push through your toes to raise the weight, lower with control.' },
+      { name: 'Calf Press', equipment: 'Machine', how: 'On the leg press machine, push through your toes only, knees mostly straight.' }
     ]
   };
 
@@ -5678,7 +5660,7 @@
     var flat = [];
     Object.keys(EXERCISE_LIBRARY).forEach(function(muscle){
       EXERCISE_LIBRARY[muscle].forEach(function(item){
-        flat.push({ name: item.name, muscle: item.muscle || muscle, equipment: item.equipment, isHold: !!item.isHold, how: item.how, img: item.img });
+        flat.push({ name: item.name, muscle: item.muscle || muscle, equipment: item.equipment, isHold: !!item.isHold, how: item.how });
       });
     });
     return flat;
