@@ -39,11 +39,11 @@
 <style>
   :root{
     --bg:#14161a;
-    --panel:rgba(28,31,36,0.58);
-    --panel-2:rgba(36,40,48,0.58);
-    --panel-3:rgba(42,47,56,0.58);
-    --line:rgba(255,255,255,0.09);
-    --glass-blur:blur(18px);
+    --panel:#1c1f24;
+    --panel-2:#242830;
+    --panel-3:#2a2f38;
+    --line:#2e333b;
+    --glass-blur:none;
     --text:#e9e6df;
     --text-dim:#8b9098;
     --text-faint:#82878f;
@@ -5948,6 +5948,28 @@
     });
   }
 
+  // Card style (Settings > Appearance) — 'default' is the original solid
+  // opaque panels; 'glass' swaps in semi-transparent panels/borders plus
+  // real backdrop blur on the app's main chrome (#app, topbar, tabbar,
+  // the shared modal class, toast, notification dropdown, floating
+  // action menu). Deliberately not applied to repeated list rows
+  // (exercise cards, history items, search results) — many blurred
+  // elements in a scrolling list risks real jank on mid-range Android —
+  // or to panels with their own dedicated photo background (exercise
+  // cards, confirm dialogs, muscle picker, pricing/tips panels), since
+  // those already have deliberately strong contrast for dense content.
+  var CARD_STYLE_DEFAULTS = {
+    default: { '--panel':'#1c1f24', '--panel-2':'#242830', '--panel-3':'#2a2f38', '--line':'#2e333b', '--glass-blur':'none' },
+    glass:   { '--panel':'rgba(28,31,36,0.58)', '--panel-2':'rgba(36,40,48,0.58)', '--panel-3':'rgba(42,47,56,0.58)', '--line':'rgba(255,255,255,0.09)', '--glass-blur':'blur(18px)' }
+  };
+  function applyCardStyle(styleId){
+    var root = document.documentElement.style;
+    var vars = CARD_STYLE_DEFAULTS[styleId] || CARD_STYLE_DEFAULTS.default;
+    Object.keys(vars).forEach(function(varName){
+      root.setProperty(varName, vars[varName]);
+    });
+  }
+
   // Density (Settings > Appearance). Scoped deliberately to just the
   // exercise-card list — the actual "how many sets fit on screen"
   // elements — rather than retrofitting every padding value in the
@@ -9484,6 +9506,12 @@
                 '<button data-action="set-corner-style" data-style="rounded" class="'+(chosenCornerStyle==='rounded'?'active':'')+'">Rounded</button>' +
                 '<button data-action="set-corner-style" data-style="sharp" class="'+(chosenCornerStyle==='sharp'?'active':'')+'">Sharp</button>' +
               '</div></div>';
+    var chosenCardStyle = (state.settings && state.settings.cardStyle) || 'default';
+    html += '<div class="settings-row"><div><div class="sr-label">Card style</div><div class="sr-sub">Glassmorphism adds blur and transparency to the app\'s main panels</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="set-card-style" data-style="default" class="'+(chosenCardStyle==='default'?'active':'')+'">Default</button>' +
+                '<button data-action="set-card-style" data-style="glass" class="'+(chosenCardStyle==='glass'?'active':'')+'">Glass</button>' +
+              '</div></div>';
     html += '</div>';
 
     html += '<div class="section-label">Routines</div>';
@@ -9726,6 +9754,7 @@
     state.settings = loadSettings();
     applyAccentTheme(state.settings.accentTheme || 'gold');
     applyCornerStyle(state.settings.cornerStyle || 'rounded');
+    applyCardStyle(state.settings.cardStyle || 'default');
     applyDensity(state.settings.density || 'comfortable');
     // Restored here so it survives a fresh app load instead of always
     // starting back on Regular — mirrors into ui.progressOverviewMode
@@ -12462,6 +12491,11 @@
       state.settings.cornerStyle = el.dataset.style;
       saveSettings();
       applyCornerStyle(state.settings.cornerStyle);
+      renderApp();
+    } else if (action === 'set-card-style'){
+      state.settings.cardStyle = el.dataset.style;
+      saveSettings();
+      applyCardStyle(state.settings.cardStyle);
       renderApp();
     } else if (action === 'toggle-danger-zone'){
       ui.dangerZoneOpen = !ui.dangerZoneOpen;
