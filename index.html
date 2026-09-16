@@ -44,6 +44,7 @@
     --panel-3:#2a2f38;
     --line:#2e333b;
     --glass-blur:none;
+    --card-sheen:none;
     --text:#e9e6df;
     --text-dim:#8b9098;
     --text-faint:#82878f;
@@ -209,6 +210,7 @@
     display:flex;
     flex-direction:column;
     background:var(--panel-2);
+    background-image:var(--card-sheen);
     backdrop-filter:var(--glass-blur);
     -webkit-backdrop-filter:var(--glass-blur);
     border:1px solid var(--line);
@@ -228,6 +230,7 @@
     position:fixed;
     min-width:140px;
     background:var(--panel-2);
+    background-image:var(--card-sheen);
     backdrop-filter:var(--glass-blur);
     -webkit-backdrop-filter:var(--glass-blur);
     border:1px solid var(--line);
@@ -971,6 +974,7 @@
     max-width:380px;
     max-height:78vh;
     background:var(--panel-2);
+    background-image:var(--card-sheen);
     border:1px solid var(--line);
     border-radius:var(--radius-lg);
     box-shadow:0 16px 48px rgba(0,0,0,0.55);
@@ -1059,6 +1063,7 @@
     max-width:400px;
     max-height:80vh;
     background:var(--panel-2);
+    background-image:var(--card-sheen);
     border:1px solid var(--line);
     border-radius:var(--radius-lg);
     box-shadow:0 16px 48px rgba(0,0,0,0.55);
@@ -1565,6 +1570,7 @@
     border-radius:var(--radius);
     border:1.5px solid var(--line);
     background:var(--panel-2);
+    background-image:var(--card-sheen);
     color:var(--text);
     cursor:pointer;
     margin-bottom:10px;
@@ -1620,6 +1626,7 @@
     border-radius:var(--radius);
     border:1.5px solid var(--line);
     background:var(--panel-2);
+    background-image:var(--card-sheen);
     margin-bottom:10px;
   }
   .notif-card:last-child{margin-bottom:0;}
@@ -2507,6 +2514,7 @@
     max-width:440px;
     max-height:84vh;
     background:var(--panel-2);
+    background-image:var(--card-sheen);
     backdrop-filter:var(--glass-blur);
     -webkit-backdrop-filter:var(--glass-blur);
     border:1px solid var(--line);
@@ -3172,6 +3180,7 @@
   /* ---------- Settings ---------- */
   .settings-group{
     background:var(--panel);
+    background-image:var(--card-sheen);
     border:1px solid var(--line);
     border-radius:var(--radius);
     padding:6px 14px;
@@ -3570,6 +3579,7 @@
     left:50%;
     transform:translateX(-50%);
     background:var(--panel-3);
+    background-image:var(--card-sheen);
     backdrop-filter:var(--glass-blur);
     -webkit-backdrop-filter:var(--glass-blur);
     border:1px solid var(--line);
@@ -5959,8 +5969,9 @@
   // cards, confirm dialogs, muscle picker, pricing/tips panels), since
   // those already have deliberately strong contrast for dense content.
   var CARD_STYLE_DEFAULTS = {
-    default: { '--panel':'#1c1f24', '--panel-2':'#242830', '--panel-3':'#2a2f38', '--line':'#2e333b', '--glass-blur':'none' },
-    glass:   { '--panel':'rgba(28,31,36,0.58)', '--panel-2':'rgba(36,40,48,0.58)', '--panel-3':'rgba(42,47,56,0.58)', '--line':'rgba(255,255,255,0.09)', '--glass-blur':'blur(18px)' }
+    default: { '--panel':'#1c1f24', '--panel-2':'#242830', '--panel-3':'#2a2f38', '--line':'#2e333b', '--glass-blur':'none', '--card-sheen':'none' },
+    glass:   { '--panel':'rgba(28,31,36,0.58)', '--panel-2':'rgba(36,40,48,0.58)', '--panel-3':'rgba(42,47,56,0.58)', '--line':'rgba(255,255,255,0.09)', '--glass-blur':'blur(18px)', '--card-sheen':'none' },
+    sheen:   { '--panel':'#1c1f24', '--panel-2':'#242830', '--panel-3':'#2a2f38', '--line':'#2e333b', '--glass-blur':'none', '--card-sheen':'radial-gradient(circle at 22% 18%, rgba(var(--accent-rgb),0.18), transparent 52%), linear-gradient(160deg, rgba(255,255,255,0.06), transparent 58%)' }
   };
   function applyCardStyle(styleId){
     var root = document.documentElement.style;
@@ -9507,9 +9518,10 @@
                 '<button data-action="set-corner-style" data-style="sharp" class="'+(chosenCornerStyle==='sharp'?'active':'')+'">Sharp</button>' +
               '</div></div>';
     var chosenCardStyle = (state.settings && state.settings.cardStyle) || 'default';
-    html += '<div class="settings-row"><div><div class="sr-label">Card style</div><div class="sr-sub">Glassmorphism adds blur and transparency to the app\'s main panels</div></div>' +
+    html += '<div class="settings-row"><div><div class="sr-label">Card style</div><div class="sr-sub">Glass adds blur and transparency; Sheen adds a soft gradient glow</div></div>' +
               '<div class="seg">' +
                 '<button data-action="set-card-style" data-style="default" class="'+(chosenCardStyle==='default'?'active':'')+'">Default</button>' +
+                '<button data-action="set-card-style" data-style="sheen" class="'+(chosenCardStyle==='sheen'?'active':'')+'">Sheen</button>' +
                 '<button data-action="set-card-style" data-style="glass" class="'+(chosenCardStyle==='glass'?'active':'')+'">Glass</button>' +
               '</div></div>';
     html += '</div>';
