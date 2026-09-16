@@ -3402,6 +3402,36 @@
     gap:9px;
     padding:4px 0 14px;
   }
+  .card-style-picker{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    padding:4px 0 14px;
+  }
+  .card-style-option{
+    display:block;
+    width:100%;
+    text-align:left;
+    background:var(--panel-2);
+    border:1.5px solid var(--line);
+    border-radius:var(--radius);
+    padding:12px 14px;
+    cursor:pointer;
+  }
+  .card-style-option.active{border-color:var(--accent);}
+  .card-style-option-label{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:14px;
+    color:var(--text);
+    margin-bottom:3px;
+  }
+  .card-style-option.active .card-style-option-label{color:var(--accent);}
+  .card-style-option-desc{
+    font-size:12px;
+    color:var(--text-faint);
+    line-height:1.4;
+  }
   .card-bg-swatch{
     position:relative;
     width:62px;
@@ -6141,6 +6171,17 @@
     });
   }
 
+  // Card style picker (Settings > Appearance > Card style) — full
+  // descriptions live here, in the picker overlay, rather than crammed
+  // into the settings row itself alongside a 3-way segmented control
+  // (that combination was wrapping to 6 lines of text next to 3 tiny
+  // buttons — moved to the same single-button-opens-picker pattern
+  // already used for Accent color and Card background).
+  var CARD_STYLE_PICKER_OPTIONS = [
+    { id: 'default', label: 'Default', desc: 'The original look — solid cards, no extra effects.' },
+    { id: 'sheen', label: 'Sheen', desc: 'Adds a soft gold gradient glow to cards.' },
+    { id: 'glass', label: 'Glass', desc: 'Adds blur and transparency to the app\'s main panels.' }
+  ];
   var CARD_BG_OPTIONS = [
     { id: 'default', label: 'Default' },
     { id: 'chest', label: 'Rack' },
@@ -9137,7 +9178,8 @@
   var SETTINGS_PICKER_TITLES = {
     restTimer: 'Rest Timer Duration',
     accentColor: 'Accent Color',
-    cardBg: 'Card Background'
+    cardBg: 'Card Background',
+    cardStyle: 'Card Style'
   };
   function openSettingsPicker(kind){
     ui.settingsPickerKind = kind;
@@ -9147,6 +9189,8 @@
       ui.settingsPickerDraft = (state.settings && state.settings.accentTheme) || 'gold';
     } else if (kind === 'cardBg'){
       ui.settingsPickerDraft = (state.settings && state.settings.cardBg) || 'default';
+    } else if (kind === 'cardStyle'){
+      ui.settingsPickerDraft = (state.settings && state.settings.cardStyle) || 'default';
     }
     renderSettingsPickerOverlay();
   }
@@ -9173,6 +9217,9 @@
       applyAccentTheme(val);
     } else if (kind === 'cardBg'){
       state.settings.cardBg = val;
+    } else if (kind === 'cardStyle'){
+      state.settings.cardStyle = val;
+      applyCardStyle(val);
     }
     saveSettings();
     ui.settingsPickerKind = null;
@@ -9214,6 +9261,15 @@
       CARD_BG_OPTIONS.forEach(function(opt){
         body += '<button type="button" class="card-bg-swatch'+(draft===opt.id?' active':'')+'" data-action="pick-settings-value" data-value="'+opt.id+'" data-bg="'+opt.id+'" aria-label="'+esc(opt.label)+'">' +
           '<span class="card-bg-swatch-label">'+esc(opt.label)+'</span>' +
+        '</button>';
+      });
+      body += '</div>';
+    } else if (kind === 'cardStyle'){
+      body += '<div class="card-style-picker">';
+      CARD_STYLE_PICKER_OPTIONS.forEach(function(opt){
+        body += '<button type="button" class="card-style-option'+(draft===opt.id?' active':'')+'" data-action="pick-settings-value" data-value="'+opt.id+'">' +
+          '<div class="card-style-option-label">'+esc(opt.label)+'</div>' +
+          '<div class="card-style-option-desc">'+esc(opt.desc)+'</div>' +
         '</button>';
       });
       body += '</div>';
@@ -9760,12 +9816,9 @@
                 '<button data-action="set-corner-style" data-style="sharp" class="'+(chosenCornerStyle==='sharp'?'active':'')+'">Sharp</button>' +
               '</div></div>';
     var chosenCardStyle = (state.settings && state.settings.cardStyle) || 'default';
-    html += '<div class="settings-row"><div><div class="sr-label">Card style</div><div class="sr-sub">Glass adds blur and transparency; Sheen adds a soft gradient glow</div></div>' +
-              '<div class="seg">' +
-                '<button data-action="set-card-style" data-style="default" class="'+(chosenCardStyle==='default'?'active':'')+'">Default</button>' +
-                '<button data-action="set-card-style" data-style="sheen" class="'+(chosenCardStyle==='sheen'?'active':'')+'">Sheen</button>' +
-                '<button data-action="set-card-style" data-style="glass" class="'+(chosenCardStyle==='glass'?'active':'')+'">Glass</button>' +
-              '</div></div>';
+    var cardStyleObj = CARD_STYLE_PICKER_OPTIONS.filter(function(o){ return o.id === chosenCardStyle; })[0] || CARD_STYLE_PICKER_OPTIONS[0];
+    html += '<div class="settings-row"><div><div class="sr-label">Card style</div><div class="sr-sub">Sheen and Glass add extra visual effects to cards</div></div>' +
+              '<button class="sr-action" data-action="open-settings-picker" data-kind="cardStyle">'+esc(cardStyleObj.label)+'</button></div>';
     html += '</div>';
 
     html += '<div class="section-label">Routines</div>';
@@ -12751,11 +12804,6 @@
       state.settings.cornerStyle = el.dataset.style;
       saveSettings();
       applyCornerStyle(state.settings.cornerStyle);
-      renderApp();
-    } else if (action === 'set-card-style'){
-      state.settings.cardStyle = el.dataset.style;
-      saveSettings();
-      applyCardStyle(state.settings.cardStyle);
       renderApp();
     } else if (action === 'toggle-danger-zone'){
       ui.dangerZoneOpen = !ui.dangerZoneOpen;
