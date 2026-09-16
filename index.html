@@ -1823,7 +1823,7 @@
     flex:1 1 calc(50% - 4px);
     min-width:calc(50% - 4px);
     background:var(--panel-3);
-    border:1.5px solid var(--accent-dim);
+    border:1.5px solid var(--line);
     border-radius:var(--radius-sm);
     padding:6px 4px 8px;
     cursor:pointer;
@@ -1837,9 +1837,7 @@
     text-transform:uppercase;
     color:var(--text-faint);
   }
-  .mm-grid-item.selected{border-color:var(--accent);}
-  .mm-grid-item.selected span{color:var(--accent);}
-  .mm-grid-item:active{background:var(--panel);}
+  .mm-grid-item:active{background:var(--panel);border-color:var(--accent);}
   .mm-exercise-list{
     display:flex;
     flex-direction:column;
@@ -6212,9 +6210,8 @@
   function renderMuscleMapDiagram(){
     var html = '<div class="mm-grid">';
     Object.keys(EXERCISE_LIBRARY).forEach(function(muscle){
-      var isSel = muscle === ui.selectedMuscle;
       var img = MUSCLE_IMG[muscle];
-      html += '<button type="button" class="mm-grid-item'+(isSel?' selected':'')+'" data-action="mm-select-muscle" data-muscle="'+esc(muscle)+'">' +
+      html += '<button type="button" class="mm-grid-item" data-action="mm-select-muscle" data-muscle="'+esc(muscle)+'">' +
         (img ? '<img src="'+img+'" alt="" loading="lazy">' : '') +
         '<span>'+esc(muscle)+'</span>' +
       '</button>';
