@@ -11480,18 +11480,36 @@
     renderApp();
   }
 
-  // Powers the gold reference button on each exercise card. Only returns
-  // something when the current session came from Repeat AND the source
-  // session actually logged that exact exercise (matched by name, since
-  // repeated exercises get fresh ids) AND it has at least one set —
-  // otherwise the button doesn't render at all rather than opening to
-  // an empty panel.
+  // Powers the gold reference button on each exercise card — for any
+  // exercise added to any session, not just one started via Repeat
+  // Session. Prefers the exact Repeat-Session source when there is one
+  // (existing behavior, unchanged); otherwise falls back to the most
+  // recent OTHER session that logged this exact exercise name at all
+  // (matched by name, since repeated exercises get fresh ids), so
+  // picking something from search on a brand new log still shows what
+  // you did last time. Returns null either way when there's nothing to
+  // show, so the button simply doesn't render rather than opening to an
+  // empty panel.
   function getReferenceSets(session, exerciseName){
-    if (!session || !session.repeatedFromId) return null;
-    var source = state.sessions.find(function(s){ return s.id === session.repeatedFromId; });
-    if (!source) return null;
-    var match = source.exercises.find(function(e){ return e.name === exerciseName; });
-    return (match && match.sets && match.sets.length > 0) ? match.sets : null;
+    if (session && session.repeatedFromId){
+      var source = state.sessions.find(function(s){ return s.id === session.repeatedFromId; });
+      if (source){
+        var match = source.exercises.find(function(e){ return e.name === exerciseName; });
+        if (match && match.sets && match.sets.length > 0) return match.sets;
+      }
+    }
+    var name = exerciseName.trim().toLowerCase();
+    var best = null; // { sets, dateMs }
+    state.sessions.forEach(function(s){
+      if (session && s.id === session.id) return; // never reference the session currently being built
+      var dateMs = new Date(s.date).getTime();
+      s.exercises.forEach(function(ex){
+        if (ex.name.trim().toLowerCase() !== name) return;
+        if (!ex.sets || !ex.sets.length) return;
+        if (!best || dateMs > best.dateMs) best = { sets: ex.sets, dateMs: dateMs };
+      });
+    });
+    return best ? best.sets : null;
   }
   function openExerciseReference(exerciseName){
     ui.referenceExerciseName = exerciseName;
