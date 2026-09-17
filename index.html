@@ -4119,9 +4119,9 @@
 <div class="confirm-overlay hidden" id="ratingOverlay">
   <div class="pro-panel" id="ratingPanel"></div>
 </div>
-<div class="img-preview-overlay hidden" id="imgPreviewOverlay" data-action="close-img-preview">
+<div class="img-preview-overlay hidden" id="imgPreviewOverlay">
   <img class="img-preview-img" id="imgPreviewImg" alt="">
-  <button class="img-preview-close" data-action="close-img-preview" aria-label="Close">&times;</button>
+  <button class="img-preview-close" aria-label="Close">&times;</button>
 </div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
@@ -12873,8 +12873,6 @@
       imgPreviewImgEl.src = el.dataset.img;
       imgPreviewImgEl.alt = el.dataset.exName || '';
       imgPreviewOverlayEl.classList.remove('hidden');
-    } else if (action === 'close-img-preview'){
-      document.getElementById('imgPreviewOverlay').classList.add('hidden');
     } else if (action === 'open-set-menu'){
       if (ui.openRowMenu && ui.openRowMenu.type === 'set' && ui.openRowMenu.setId === el.dataset.set){
         closeRowActionMenu();
@@ -13854,6 +13852,17 @@
     } else if (el.dataset.action === 'submit-rating'){
       submitRating();
     }
+  });
+
+  // #imgPreviewOverlay sits outside #app in the DOM (same as
+  // #confirmOverlay, #ratingOverlay, etc above) -- the #app-scoped
+  // delegated click handler never sees clicks that originate here, so
+  // the close-img-preview branch already in that handler is unreachable
+  // for taps on this overlay's own close button or backdrop. Needs its
+  // own dedicated listener, same as every other standalone overlay.
+  var imgPreviewOverlayEl2 = document.getElementById('imgPreviewOverlay');
+  imgPreviewOverlayEl2.addEventListener('click', function(){
+    imgPreviewOverlayEl2.classList.add('hidden');
   });
   ratingOverlayEl.addEventListener('keydown', function(e){
     if (e.key === 'Escape'){
