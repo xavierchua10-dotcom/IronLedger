@@ -4904,6 +4904,31 @@
   function roundNice(v){
     return Math.round(v * 100) / 100;
   }
+  // Animates a stat's displayed value counting up from 0 to its real
+  // value, rather than just appearing -- reuses whatever formatter the
+  // caller already uses for the final value (fmtWeight, String, etc.)
+  // so every intermediate frame follows the exact same rounding/decimal
+  // rules as the real thing, not a separately-formatted raw number.
+  // Respects prefers-reduced-motion by just setting the final value
+  // immediately, same as every other animation in this file.
+  function animateStatCounter(el, targetValue, formatter, suffix){
+    if (!el) return;
+    suffix = suffix || '';
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      el.textContent = formatter(targetValue) + suffix;
+      return;
+    }
+    var duration = 700;
+    var startTime = null;
+    function tick(now){
+      if (startTime === null) startTime = now;
+      var t = Math.min(1, (now - startTime) / duration);
+      var eased = 1 - Math.pow(1 - t, 3); // ease-out cubic -- fast start, gentle settle
+      el.textContent = formatter(targetValue * eased) + suffix;
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
   function fmtWeight(kg){
     var v = toDisplay(kg);
     var rounded = Math.round(v * 10) / 10;
@@ -9697,8 +9722,8 @@
 
     html += '<div class="chart-wrap">';
     html += '<div class="chart-stats">' +
-              '<div class="cs-block"><div class="cs-label">Est. best 1RM</div><div class="cs-val">'+fmtWeight(best.e1rm)+' '+unitLabel()+'</div></div>' +
-              '<div class="cs-block"><div class="cs-label">Latest top set</div><div class="cs-val">'+fmtWeight(latest.topKg)+' '+unitLabel()+'</div></div>' +
+              '<div class="cs-block"><div class="cs-label">Est. best 1RM</div><div class="cs-val" id="csValBest1RM" data-target="'+best.e1rm+'">0 '+unitLabel()+'</div></div>' +
+              '<div class="cs-block"><div class="cs-label">Latest top set</div><div class="cs-val" id="csValLatestTop" data-target="'+latest.topKg+'">0 '+unitLabel()+'</div></div>' +
             '</div>';
     if (points.length >= 2){
       html += buildChartSVG(points);
@@ -9783,6 +9808,12 @@
     }
 
     document.getElementById('view').innerHTML = html;
+    if (ui.progressView === 'exercise'){
+      var best1RMEl = document.getElementById('csValBest1RM');
+      var latestTopEl = document.getElementById('csValLatestTop');
+      if (best1RMEl) animateStatCounter(best1RMEl, parseFloat(best1RMEl.dataset.target), fmtWeight, ' ' + unitLabel());
+      if (latestTopEl) animateStatCounter(latestTopEl, parseFloat(latestTopEl.dataset.target), fmtWeight, ' ' + unitLabel());
+    }
   }
 
   // one point per session for this exercise: best e1rm set in that session + top weight
