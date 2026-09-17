@@ -9693,7 +9693,10 @@
         grouped[fm].forEach(function(n){
           var selected = n === ui.progressExercise;
           var libMatch = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === n; })[0];
-          html += exerciseSuggestItemHtml(n, fm, libMatch ? libMatch.equipment : null, libMatch ? libMatch.how : null,
+          // No how-cue here on purpose -- this list is for picking which
+          // exercise's progress chart to view, not learning the exercise,
+          // so the extra description line is just noise in this context.
+          html += exerciseSuggestItemHtml(n, fm, libMatch ? libMatch.equipment : null, null,
             { action: 'select-progress-exercise-row', selected: selected });
         });
         html += '</div>';
