@@ -3713,6 +3713,22 @@
     line-height:1.5;
     margin-bottom:20px;
   }
+  .confirm-preview-img{
+    display:block;
+    width:100%;
+    aspect-ratio:1/1;
+    object-fit:cover;
+    border-radius:var(--radius-md);
+    margin-bottom:14px;
+    background:var(--panel);
+  }
+  .confirm-how{
+    font-size:12.5px;
+    color:var(--text-faint);
+    line-height:1.5;
+    margin-top:-12px;
+    margin-bottom:20px;
+  }
   .confirm-buttons{display:flex;gap:10px;}
   .confirm-btn-cancel{
     flex:1;
@@ -10836,8 +10852,20 @@
     renderApp();
   }
 
+  // Looks up the same photo + how-to-cue shown in the search picker, for
+  // the "Add this exercise?" confirm dialog -- checks EXERCISE_IMG first
+  // (the specific per-exercise photo), falling back to MUSCLE_IMG the
+  // same way exerciseSuggestItemHtml does. how-cue comes from the
+  // library's flat list, matched by exact name.
+  function exerciseInfoForConfirm(name, muscle){
+    var libMatch = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === name; })[0];
+    var resolvedMuscle = muscle || (libMatch ? libMatch.muscle : null);
+    var img = EXERCISE_IMG[name] || (resolvedMuscle ? MUSCLE_IMG[resolvedMuscle] : null);
+    return { img: img, how: libMatch ? libMatch.how : null };
+  }
   function openAddNamedExerciseConfirm(name, muscle){
     ui.showMuscleMap = false;
+    var info = exerciseInfoForConfirm(name, muscle);
     ui.confirmModal = {
       kind: 'add-named-exercise',
       title: 'Add this exercise?',
@@ -10845,7 +10873,9 @@
       confirmLabel: 'Add',
       variant: 'primary',
       name: name,
-      muscle: muscle || null
+      muscle: muscle || null,
+      img: info.img,
+      how: info.how
     };
     renderApp();
   }
@@ -10863,6 +10893,7 @@
     var ex = findExercise(session, exId);
     if (!ex) return;
     var isNew = ui.newExerciseId === exId;
+    var info = isNew ? exerciseInfoForConfirm(name, muscle) : { img: null, how: null };
     ui.confirmModal = {
       kind: 'pick-exercise-name',
       title: isNew ? 'Add this exercise?' : 'Rename exercise?',
@@ -10873,7 +10904,9 @@
       variant: 'primary',
       exId: exId,
       name: name,
-      muscle: muscle || null
+      muscle: muscle || null,
+      img: info.img,
+      how: info.how
     };
     renderApp();
   }
@@ -12109,8 +12142,10 @@
     var confirmLabel = m.confirmLabel || 'Delete';
     var counting = typeof m.countdown === 'number' && m.countdown > 0;
     panel.innerHTML =
+      (m.img ? '<img class="confirm-preview-img" src="'+esc(m.img)+'" alt="" loading="lazy">' : '') +
       '<div class="confirm-title">' + esc(m.title) + '</div>' +
       '<div class="confirm-message">' + esc(m.message) + '</div>' +
+      (m.how ? '<div class="confirm-how">' + esc(m.how) + '</div>' : '') +
       '<div class="confirm-buttons">' +
         '<button class="confirm-btn-cancel" data-action="cancel-confirm">Cancel</button>' +
         '<button class="'+confirmClass+'" id="confirmActionBtn" data-action="confirm-modal-action"'+(counting?' disabled':'')+'>'+esc(counting ? confirmLabel + ' (' + m.countdown + ')' : confirmLabel)+'</button>' +
