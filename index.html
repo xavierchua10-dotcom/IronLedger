@@ -2017,6 +2017,7 @@
     padding:13px 14px;
     border-radius:var(--radius);
     cursor:pointer;
+    transition:border-color 0.12s ease, background 0.12s ease;
   }
   .ex-suggest-img{
     width:52px;
@@ -2046,7 +2047,8 @@
     line-height:1.4;
     color:var(--text-faint);
   }
-  .ex-suggest-item:active{background:var(--panel);border-color:var(--accent-dim);}
+  .ex-suggest-item:active,
+  .ex-suggest-item.tapped{background:var(--panel);border-color:var(--accent);}
   .ex-suggest-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ex-suggest-tag{
     flex-shrink:0;
@@ -2072,8 +2074,10 @@
     padding:13px 14px;
     border-radius:var(--radius);
     cursor:pointer;
+    transition:background 0.12s ease;
   }
-  .ex-suggest-custom:active{background:var(--accent-dim);}
+  .ex-suggest-custom:active,
+  .ex-suggest-custom.tapped{background:var(--accent-dim);}
 
   /* ---------- Exercise-search filter (muscle group / equipment) ---------- */
   .ex-search-filter{
@@ -12941,9 +12945,17 @@
     } else if (action === 'cancel-exercise-name'){
       cancelExerciseNameEdit();
     } else if (action === 'pick-ex-suggestion'){
-      openExerciseNamePickConfirm(ui.editingExerciseName, el.dataset.name, el.dataset.muscle || null);
+      var pickedName = el.dataset.name, pickedMuscle = el.dataset.muscle || null;
+      el.classList.add('tapped');
+      setTimeout(function(){
+        openExerciseNamePickConfirm(ui.editingExerciseName, pickedName, pickedMuscle);
+      }, 160);
     } else if (action === 'pick-ex-custom'){
-      openExerciseNamePickConfirm(ui.editingExerciseName, el.dataset.name, null);
+      var customName = el.dataset.name;
+      el.classList.add('tapped');
+      setTimeout(function(){
+        openExerciseNamePickConfirm(ui.editingExerciseName, customName, null);
+      }, 160);
     } else if (action === 'toggle-ex-filter-panel'){
       ui.exFilterPanelOpen = !ui.exFilterPanelOpen;
       renderExFilterPanel();
