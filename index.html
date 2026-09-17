@@ -3487,50 +3487,29 @@
   /* ---------- Running rest timer bar ---------- */
   .stopwatch-bar{
     position:fixed;
-    left:16px;
-    right:16px;
-    max-width:448px;
-    margin:0 auto;
+    width:78px;
+    height:78px;
     display:flex;
     align-items:center;
-    gap:10px;
-    padding:12px 16px;
-    border:1.5px solid var(--accent);
-    border-radius:var(--radius-lg);
+    justify-content:center;
+    border:2px solid var(--accent);
+    border-radius:50%;
     background:var(--panel-2);
     background-image:var(--card-sheen);
-    box-shadow:0 12px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(var(--accent-rgb),0.12);
+    box-shadow:0 10px 28px rgba(0,0,0,0.5), 0 0 0 1px rgba(var(--accent-rgb),0.12);
     z-index:40;
+    cursor:grab;
+    touch-action:none;
   }
   .stopwatch-bar.hidden{display:none;}
-  .stopwatch-label{
-    font-family:'Oswald',sans-serif;
-    font-size:12px;
-    font-weight:700;
-    letter-spacing:0.06em;
-    text-transform:uppercase;
-    color:var(--accent);
-  }
+  .stopwatch-bar.dragging{cursor:grabbing;}
   .stopwatch-time{
     font-family:'JetBrains Mono',monospace;
-    font-size:16px;
+    font-size:15px;
     font-weight:700;
     color:var(--text);
-    flex:1;
+    pointer-events:none;
   }
-  .stopwatch-stop-btn{
-    background:none;
-    border:1px solid var(--line);
-    color:var(--text-dim);
-    font-size:11px;
-    font-weight:600;
-    letter-spacing:0.03em;
-    text-transform:uppercase;
-    padding:6px 12px;
-    border-radius:var(--radius-sm);
-    cursor:pointer;
-  }
-  .stopwatch-stop-btn:active{background:var(--panel-3);}
   .session-finish-bar{
     flex-shrink:0;
     display:flex;
@@ -7716,6 +7695,8 @@
     ui.showRestTimerPicker = false;
     renderRestTimerPickerOverlay();
     ui.restTimer = { endsAt: Date.now() + secs * 1000, totalSeconds: secs };
+    stopwatchDragged = false; // fresh timer -> starts back at the default spot
+    stopwatchPos = null;
     renderRestTimerBar();
     if (restTimerInterval) clearInterval(restTimerInterval);
     restTimerInterval = setInterval(tickRestTimer, 1000);
@@ -7765,19 +7746,75 @@
       return;
     }
     el.classList.remove('hidden');
-    // Floats just below the header rather than sitting inline in the
-    // page flow — measured live off .topbar's actual rendered height
-    // (rather than a hardcoded pixel guess) so it lines up correctly
-    // regardless of font size, safe-area insets, or anything else that
-    // could change the header's real height on a given device.
-    var topbar = document.querySelector('.topbar');
-    if (topbar) el.style.top = (topbar.getBoundingClientRect().bottom + 10) + 'px';
+    // Default spot is bottom-right, floating above the tabbar (and the
+    // session-finish-bar too, when one's showing) -- measured live off
+    // their actual rendered heights rather than a hardcoded guess, same
+    // reasoning as the header measurement this replaced. Only applied
+    // when the person hasn't dragged it somewhere themselves this timer
+    // (see the touch handlers below) -- otherwise every second's tick
+    // would yank a manually-repositioned bubble straight back.
+    if (!stopwatchDragged){
+      var tabbar = document.getElementById('tabbar');
+      var finishBar = document.getElementById('sessionFinishBar');
+      var bottomEl = (finishBar && !finishBar.classList.contains('hidden')) ? finishBar : tabbar;
+      var bottomY = bottomEl ? bottomEl.getBoundingClientRect().top : window.innerHeight;
+      el.style.top = (bottomY - 78 - 14) + 'px';
+      el.style.left = (window.innerWidth - 78 - 16) + 'px';
+    } else if (stopwatchPos){
+      el.style.top = stopwatchPos.top + 'px';
+      el.style.left = stopwatchPos.left + 'px';
+    }
     var remaining = remainingOverride != null ? remainingOverride : Math.max(0, Math.ceil((ui.restTimer.endsAt - Date.now()) / 1000));
-    el.innerHTML =
-      '<span class="stopwatch-label">Resting</span>' +
-      '<span class="stopwatch-time">'+fmtMMSS(remaining)+'</span>' +
-      '<button class="stopwatch-stop-btn" data-action="skip-rest-timer">Skip</button>';
+    el.innerHTML = '<span class="stopwatch-time">'+fmtMMSS(remaining)+'</span>';
   }
+
+  // Drag-to-reposition for the floating rest timer bubble. Same delegated
+  // touch approach as the set-row swipe-to-delete gesture, scoped to this
+  // one element by id rather than a class (there's only ever one). Total
+  // displacement decides tap vs drag on release -- a real drag repositions
+  // and stays put on every future tick (see renderRestTimerBar above); a
+  // near-stationary tap skips the rest period instead, same action the
+  // old Skip button used to trigger.
+  var STOPWATCH_TAP_MAX_PX = 10;
+  var stopwatchDragged = false;
+  var stopwatchPos = null; // { top, left } once dragged, else the default spot applies
+  var stopwatchDragGesture = null; // { startX, startY, elLeft, elTop, moved }
+  document.addEventListener('touchstart', function(e){
+    var el = document.getElementById('stopwatchBar');
+    if (!el || el.classList.contains('hidden') || !el.contains(e.target)) return;
+    var t = e.touches[0];
+    var rect = el.getBoundingClientRect();
+    stopwatchDragGesture = { startX: t.clientX, startY: t.clientY, elLeft: rect.left, elTop: rect.top, moved: false };
+  }, { passive: true });
+  document.addEventListener('touchmove', function(e){
+    if (!stopwatchDragGesture) return;
+    var el = document.getElementById('stopwatchBar');
+    if (!el) return;
+    var t = e.touches[0];
+    var dx = t.clientX - stopwatchDragGesture.startX;
+    var dy = t.clientY - stopwatchDragGesture.startY;
+    if (!stopwatchDragGesture.moved && Math.abs(dx) < STOPWATCH_TAP_MAX_PX && Math.abs(dy) < STOPWATCH_TAP_MAX_PX) return;
+    stopwatchDragGesture.moved = true;
+    el.classList.add('dragging');
+    e.preventDefault();
+    var margin = 8;
+    var newLeft = Math.max(margin, Math.min(window.innerWidth - 78 - margin, stopwatchDragGesture.elLeft + dx));
+    var newTop = Math.max(margin, Math.min(window.innerHeight - 78 - margin, stopwatchDragGesture.elTop + dy));
+    el.style.left = newLeft + 'px';
+    el.style.top = newTop + 'px';
+  }, { passive: false });
+  document.addEventListener('touchend', function(){
+    if (!stopwatchDragGesture) return;
+    var el = document.getElementById('stopwatchBar');
+    if (stopwatchDragGesture.moved){
+      el.classList.remove('dragging');
+      stopwatchDragged = true;
+      stopwatchPos = { top: parseFloat(el.style.top), left: parseFloat(el.style.left) };
+    } else if (el && ui.restTimer){
+      skipRestTimer(); // near-stationary touch -- treat as a tap, same as the old Skip button
+    }
+    stopwatchDragGesture = null;
+  });
 
   /* =========================================================
      NOTIFICATION BELL
@@ -12692,8 +12729,6 @@
       openTemplatePicker();
     } else if (action === 'open-rest-timer-picker'){
       openRestTimerPicker();
-    } else if (action === 'skip-rest-timer'){
-      skipRestTimer();
     } else if (action === 'toggle-muscle-map'){
       ui.showMuscleMap = !ui.showMuscleMap;
       ui.showMuscleMapHelp = false;
