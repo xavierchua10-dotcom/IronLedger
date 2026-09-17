@@ -2006,10 +2006,15 @@
     -webkit-overflow-scrolling:touch;
     padding:4px 16px calc(20px + var(--safe-bottom, 0px));
     display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .ex-suggest-list.hidden{display:none;}
+  .ex-suggest-grid{
+    display:flex;
     flex-wrap:wrap;
     gap:10px;
   }
-  .ex-suggest-list.hidden{display:none;}
   .ex-suggest-item{
     flex:1 1 calc(50% - 5px);
     min-width:calc(50% - 5px);
@@ -5273,13 +5278,15 @@
       }
       if (!items.length) return '';
       return '<div class="section-label">'+esc(muscle)+'</div>' +
+        '<div class="ex-suggest-grid">' +
         items.map(function(item){
           // item.muscle is a per-item override (e.g. Upright Row is filed
           // under the Traps section but tagged 'Shoulder/Trap') — must win
           // over the section's own category key, or the exercise gets
           // logged with the wrong muscle and buckets wrong on Progress.
           return exerciseSuggestItemHtml(item.name, item.muscle || muscle, item.equipment, item.how);
-        }).join('');
+        }).join('') +
+        '</div>';
     }).join('');
     if (!html && f && (f.muscles.length || f.equipment.length)){
       return '<div class="ex-filter-empty">No exercises match these filters.</div>';
@@ -5379,9 +5386,9 @@
     if (!exactMatch){
       html += '<button type="button" class="ex-suggest-custom" data-action="pick-ex-custom" data-name="'+esc(trimmed)+'">Use \u201c'+esc(trimmed)+'\u201d</button>';
     }
-    html += matches.map(function(m){
+    html += '<div class="ex-suggest-grid">' + matches.map(function(m){
       return exerciseSuggestItemHtml(m.name, m.muscle, m.equipment, m.how);
-    }).join('');
+    }).join('') + '</div>';
 
     el.classList.remove('hidden');
     el.innerHTML = html;
