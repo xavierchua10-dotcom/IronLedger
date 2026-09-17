@@ -5287,9 +5287,11 @@
     return results;
   }
 
-  function exerciseSuggestItemHtml(name, muscle, equipment, how){
+  function exerciseSuggestItemHtml(name, muscle, equipment, how, opts){
+    opts = opts || {};
+    var action = opts.action || 'pick-ex-suggestion';
     var img = EXERCISE_IMG[name] || (muscle ? MUSCLE_IMG[muscle] : null);
-    return '<button type="button" class="ex-suggest-item" data-action="pick-ex-suggestion" data-name="'+esc(name)+'" data-muscle="'+esc(muscle || '')+'">' +
+    return '<button type="button" class="ex-suggest-item'+(opts.selected ? ' selected' : '')+'" data-action="'+action+'" data-name="'+esc(name)+'" data-muscle="'+esc(muscle || '')+'">' +
       (img ? '<img class="ex-suggest-img" src="'+img+'" alt="" loading="lazy">' : '') +
       '<div class="ex-suggest-content">' +
         '<div class="ex-suggest-top">' +
@@ -9687,12 +9689,14 @@
       html += '<div class="progress-ex-list">';
       order.forEach(function(fm){
         html += '<div class="section-label">'+esc(fm)+'</div>';
+        html += '<div class="ex-suggest-grid">';
         grouped[fm].forEach(function(n){
           var selected = n === ui.progressExercise;
-          html += '<button type="button" class="ex-suggest-item'+(selected ? ' selected' : '')+'" data-action="select-progress-exercise-row" data-name="'+esc(n)+'">' +
-                    '<span class="ex-suggest-name">'+esc(n)+'</span>' +
-                  '</button>';
+          var libMatch = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === n; })[0];
+          html += exerciseSuggestItemHtml(n, fm, libMatch ? libMatch.equipment : null, libMatch ? libMatch.how : null,
+            { action: 'select-progress-exercise-row', selected: selected });
         });
+        html += '</div>';
       });
       html += '</div>';
 
