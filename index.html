@@ -1893,16 +1893,15 @@
   .mm-grid-item.tapped{background:var(--panel);border-color:var(--accent);}
   .mm-exercise-list{
     display:flex;
-    flex-direction:column;
-    gap:6px;
+    flex-wrap:wrap;
+    gap:8px;
   }
   .mm-exercise-item{
-    width:100%;
+    flex:1 1 calc(50% - 4px);
+    min-width:calc(50% - 4px);
     text-align:left;
     display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
+    flex-direction:column;
     background:var(--panel-3);
     border:1px solid var(--line);
     color:var(--text);
@@ -1910,13 +1909,22 @@
     line-height:1.3;
     font-family:'Inter',sans-serif;
     font-weight:500;
-    padding:10px 12px;
+    padding:8px 8px 10px;
     border-radius:var(--radius-sm);
     cursor:pointer;
   }
-  .mm-exercise-item-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mm-exercise-item-img{
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:var(--radius-xs);
+    object-fit:cover;
+    background:var(--panel);
+    margin-bottom:7px;
+  }
+  .mm-exercise-item-name{white-space:normal;}
   .mm-exercise-item-eq{
-    flex-shrink:0;
+    align-self:flex-start;
+    margin-top:6px;
     background:var(--panel);
     color:var(--text-faint);
     font-family:'JetBrains Mono',monospace;
@@ -1928,7 +1936,7 @@
     border-radius:var(--radius);
   }
   .mm-exercise-item:active{background:var(--panel);border-color:var(--accent-dim);}
-  .mm-exercise-item-custom{color:var(--accent);border-color:var(--accent-dim);background:transparent;}
+  .mm-exercise-item-custom{flex-basis:100%;color:var(--accent);border-color:var(--accent-dim);background:transparent;flex-direction:row;align-items:center;justify-content:center;}
 
   /* ---------- Exercise search overlay (full-screen, blurred backdrop) ----------
      Positioned absolute (not fixed) so it sizes itself against #app's own
@@ -6604,7 +6612,9 @@
     var opts = EXERCISE_LIBRARY[muscle] || [];
     var html = '<div class="mm-exercise-list">';
     opts.forEach(function(item){
+      var img = EXERCISE_IMG[item.name] || MUSCLE_IMG[muscle];
       html += '<button class="mm-exercise-item" data-action="mm-add-exercise" data-name="'+esc(item.name)+'" data-muscle="'+esc(muscle)+'">' +
+                (img ? '<img class="mm-exercise-item-img" src="'+esc(img)+'" alt="" loading="lazy">' : '') +
                 '<span class="mm-exercise-item-name">'+esc(item.name)+'</span>' +
                 '<span class="mm-exercise-item-eq">'+esc(item.equipment)+'</span>' +
               '</button>';
