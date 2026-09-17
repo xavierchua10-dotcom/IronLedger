@@ -861,6 +861,23 @@
     padding:2px 6px;
     margin-left:4px;
   }
+  .ex-photo-badge-btn{
+    background:var(--panel-3);
+    border:none;
+    color:var(--text-faint);
+    width:24px;
+    height:24px;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:var(--radius);
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  .ex-photo-badge-btn svg{width:13px;height:13px;}
+  .ex-photo-badge-btn[disabled]{cursor:default;opacity:0.5;}
+  .ex-photo-badge-btn.lit{background:var(--accent);color:#1c1500;}
   .volume-badge{
     background:var(--accent-dim);
     color:var(--accent);
@@ -3710,6 +3727,37 @@
      above all of them so it's never buried behind whatever it was
      opened on top of. */
   #confirmOverlay{ z-index:150; }
+  .img-preview-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(8,9,11,0.85);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px;
+    z-index:160;
+  }
+  .img-preview-overlay.hidden{display:none;}
+  .img-preview-img{
+    max-width:100%;
+    max-height:100%;
+    border-radius:var(--radius-lg);
+    background:#fff;
+  }
+  .img-preview-close{
+    position:absolute;
+    top:calc(16px + var(--safe-top, 0px));
+    right:16px;
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    background:rgba(28,31,36,0.8);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:22px;
+    line-height:1;
+    cursor:pointer;
+  }
   .confirm-overlay.hidden{display:none;}
   .confirm-overlay:not(.hidden){animation:overlayBackdropIn 0.15s ease;}
   .confirm-overlay:not(.hidden) .confirm-panel,
@@ -4070,6 +4118,10 @@
 </div>
 <div class="confirm-overlay hidden" id="ratingOverlay">
   <div class="pro-panel" id="ratingPanel"></div>
+</div>
+<div class="img-preview-overlay hidden" id="imgPreviewOverlay" data-action="close-img-preview">
+  <img class="img-preview-img" id="imgPreviewImg" alt="">
+  <button class="img-preview-close" data-action="close-img-preview" aria-label="Close">&times;</button>
 </div>
 <div class="toast" id="toast"></div>
 <div id="printReceipt" class="print-receipt hidden"></div>
@@ -8736,10 +8788,14 @@
     var refSets = getReferenceSets(session, ex.name);
     var supersetPartner = ex.supersetWith ? findExercise(session, ex.supersetWith) : null;
     var html = '<div class="exercise-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+(supersetPartner ? ' superset-linked' : '')+'" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
+    var photoImg = EXERCISE_IMG[ex.name] || (ex.muscle ? MUSCLE_IMG[ex.muscle] : null);
     html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
             '<div class="eh-badges">' +
             (supersetPartner ? '<span class="superset-badge">SUPERSET \u00b7 '+esc(supersetPartner.name)+'</span>' : '') +
             (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
+            '<button class="ex-photo-badge-btn'+(photoImg ? ' lit' : '')+'" '+(photoImg ? 'data-action="show-exercise-photo" data-img="'+esc(photoImg)+'" data-ex-name="'+esc(ex.name)+'"' : 'disabled')+' aria-label="'+(photoImg ? 'View exercise photo' : 'No photo available for this custom exercise')+'">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' +
+            '</button>' +
             (ex.sets.length > 0 ? '<span class="volume-badge">VOL '+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</span>' : '') +
             '</div>' +
             '</div>' +
@@ -12811,6 +12867,14 @@
       }
     } else if (action === 'open-exercise-reference'){
       openExerciseReference(el.dataset.exName);
+    } else if (action === 'show-exercise-photo'){
+      var imgPreviewOverlayEl = document.getElementById('imgPreviewOverlay');
+      var imgPreviewImgEl = document.getElementById('imgPreviewImg');
+      imgPreviewImgEl.src = el.dataset.img;
+      imgPreviewImgEl.alt = el.dataset.exName || '';
+      imgPreviewOverlayEl.classList.remove('hidden');
+    } else if (action === 'close-img-preview'){
+      document.getElementById('imgPreviewOverlay').classList.add('hidden');
     } else if (action === 'open-set-menu'){
       if (ui.openRowMenu && ui.openRowMenu.type === 'set' && ui.openRowMenu.setId === el.dataset.set){
         closeRowActionMenu();
