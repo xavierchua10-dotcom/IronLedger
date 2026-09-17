@@ -3503,6 +3503,8 @@
   }
   .stopwatch-bar.hidden{display:none;}
   .stopwatch-bar.dragging{cursor:grabbing;}
+  .stopwatch-bar.cancel-armed{border-color:var(--accent-2);background-color:var(--accent-2-dim);}
+  .stopwatch-bar.cancel-armed .stopwatch-time{color:var(--accent-2);}
   .stopwatch-time{
     font-family:'JetBrains Mono',monospace;
     font-size:15px;
@@ -7776,15 +7778,21 @@
   // near-stationary tap skips the rest period instead, same action the
   // old Skip button used to trigger.
   var STOPWATCH_TAP_MAX_PX = 10;
+  // Dragging the bubble down into the bottom strip of the screen and
+  // releasing there cancels the rest timer outright, in addition to the
+  // plain tap-to-skip above -- the classic "drag down to dismiss" a
+  // floating bubble gets. Zone height roughly matches the tabbar so it
+  // reads as "drag it down to where the nav bar is."
+  var STOPWATCH_CANCEL_ZONE_PX = 110;
   var stopwatchDragged = false;
   var stopwatchPos = null; // { top, left } once dragged, else the default spot applies
-  var stopwatchDragGesture = null; // { startX, startY, elLeft, elTop, moved }
+  var stopwatchDragGesture = null; // { startX, startY, elLeft, elTop, moved, armed }
   document.addEventListener('touchstart', function(e){
     var el = document.getElementById('stopwatchBar');
     if (!el || el.classList.contains('hidden') || !el.contains(e.target)) return;
     var t = e.touches[0];
     var rect = el.getBoundingClientRect();
-    stopwatchDragGesture = { startX: t.clientX, startY: t.clientY, elLeft: rect.left, elTop: rect.top, moved: false };
+    stopwatchDragGesture = { startX: t.clientX, startY: t.clientY, elLeft: rect.left, elTop: rect.top, moved: false, armed: false };
   }, { passive: true });
   document.addEventListener('touchmove', function(e){
     if (!stopwatchDragGesture) return;
@@ -7802,11 +7810,20 @@
     var newTop = Math.max(margin, Math.min(window.innerHeight - 78 - margin, stopwatchDragGesture.elTop + dy));
     el.style.left = newLeft + 'px';
     el.style.top = newTop + 'px';
+    var armed = (newTop + 78) > (window.innerHeight - STOPWATCH_CANCEL_ZONE_PX);
+    if (armed !== stopwatchDragGesture.armed){
+      stopwatchDragGesture.armed = armed;
+      el.classList.toggle('cancel-armed', armed);
+      el.innerHTML = armed ? '<span class="stopwatch-time">&times;</span>' : '<span class="stopwatch-time">'+fmtMMSS(Math.max(0, Math.ceil((ui.restTimer.endsAt - Date.now()) / 1000)))+'</span>';
+      if (navigator.vibrate) navigator.vibrate(armed ? 12 : 8);
+    }
   }, { passive: false });
   document.addEventListener('touchend', function(){
     if (!stopwatchDragGesture) return;
     var el = document.getElementById('stopwatchBar');
-    if (stopwatchDragGesture.moved){
+    if (stopwatchDragGesture.armed){
+      skipRestTimer(); // released inside the cancel zone
+    } else if (stopwatchDragGesture.moved){
       el.classList.remove('dragging');
       stopwatchDragged = true;
       stopwatchPos = { top: parseFloat(el.style.top), left: parseFloat(el.style.left) };
