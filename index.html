@@ -1998,15 +1998,15 @@
     -webkit-overflow-scrolling:touch;
     padding:4px 16px calc(20px + var(--safe-bottom, 0px));
     display:flex;
-    flex-direction:column;
-    gap:8px;
+    flex-wrap:wrap;
+    gap:10px;
   }
   .ex-suggest-list.hidden{display:none;}
   .ex-suggest-item{
-    width:100%;
+    flex:1 1 calc(50% - 5px);
+    min-width:calc(50% - 5px);
     display:flex;
-    align-items:center;
-    gap:12px;
+    flex-direction:column;
     text-align:left;
     background:var(--panel-3);
     border:1px solid var(--line);
@@ -2014,13 +2014,13 @@
     font-size:13.5px;
     font-family:'Inter',sans-serif;
     font-weight:500;
-    padding:13px 14px;
+    padding:10px 10px 12px;
     border-radius:var(--radius);
     cursor:pointer;
   }
   .ex-suggest-img{
-    width:52px;
-    height:52px;
+    width:100%;
+    aspect-ratio:1/1;
     flex-shrink:0;
     border-radius:var(--radius-sm);
     background:var(--panel);
@@ -5216,7 +5216,7 @@
   }
 
   function exerciseSuggestItemHtml(name, muscle, equipment, how){
-    var img = muscle ? MUSCLE_IMG[muscle] : null;
+    var img = EXERCISE_IMG[name] || (muscle ? MUSCLE_IMG[muscle] : null);
     return '<button type="button" class="ex-suggest-item" data-action="pick-ex-suggestion" data-name="'+esc(name)+'" data-muscle="'+esc(muscle || '')+'">' +
       (img ? '<img class="ex-suggest-img" src="'+img+'" alt="" loading="lazy">' : '') +
       '<div class="ex-suggest-content">' +
@@ -6435,6 +6435,123 @@
   // not a stock/licensed source) — replaces the old tappable front/
   // back SVG body diagram with a grid of these instead. Same
   // mm-select-muscle action on tap either way.
+  // Per-exercise photos from Xavier's own AI-generated set (see MUSCLE_IMG
+  // below for the muscle-group fallback used when an exercise has no
+  // specific photo of its own yet). Keyed by exact exercise name.
+  var EXERCISE_IMG = {
+    'Cable Tricep Kickback': 'images/exercise-photos/cable-tricep-kickback.webp',
+    'Dumbbell Incline Bench Press': 'images/exercise-photos/dumbbell-incline-bench-press.webp',
+    'Dumbbell Hammer Curl': 'images/exercise-photos/dumbbell-hammer-curl.webp',
+    'Face Pull': 'images/exercise-photos/face-pull.webp',
+    'Barbell Hip Thrust': 'images/exercise-photos/barbell-hip-thrust.webp',
+    'Deadlift': 'images/exercise-photos/deadlift.webp',
+    'Dumbbell Skull Crushers': 'images/exercise-photos/dumbbell-skull-crushers.webp',
+    'Machine Standing Calf Raise': 'images/exercise-photos/machine-standing-calf-raise.webp',
+    'Cable Shrug': 'images/exercise-photos/cable-shrug.webp',
+    'Tricep Pushdown': 'images/exercise-photos/tricep-pushdown.webp',
+    'Barbell Standing Calf Raise': 'images/exercise-photos/barbell-standing-calf-raise.webp',
+    'Barbell Decline Bench Press': 'images/exercise-photos/barbell-decline-bench-press.webp',
+    'Dumbbell Front Raise': 'images/exercise-photos/dumbbell-front-raise.webp',
+    'T-Bar Row': 'images/exercise-photos/t-bar-row.webp',
+    'Close Grip Dumbbell Row': 'images/exercise-photos/close-grip-dumbbell-row.webp',
+    'Close Grip Barbell Row': 'images/exercise-photos/close-grip-barbell-row.webp',
+    'Dumbbell Romanian Deadlift': 'images/exercise-photos/dumbbell-romanian-deadlift.webp',
+    'EZ-Bar Preacher Curl': 'images/exercise-photos/ez-bar-preacher-curl.webp',
+    'Lying Leg Curl': 'images/exercise-photos/lying-leg-curl.webp',
+    'Farmer\'s Carry': 'images/exercise-photos/farmer-s-carry.webp',
+    'Bodyweight Bulgarian Split Squat': 'images/exercise-photos/bodyweight-bulgarian-split-squat.webp',
+    'Dumbbell Tricep Kickback': 'images/exercise-photos/dumbbell-tricep-kickback.webp',
+    'Barbell Upright Row': 'images/exercise-photos/barbell-upright-row.webp',
+    'Russian Twist': 'images/exercise-photos/russian-twist.webp',
+    'Barbell Preacher Curl': 'images/exercise-photos/barbell-preacher-curl.webp',
+    'Tricep Rope Pushdown': 'images/exercise-photos/tricep-rope-pushdown.webp',
+    'Undergrip Barbell Row': 'images/exercise-photos/undergrip-barbell-row.webp',
+    'Dumbbell Lunges': 'images/exercise-photos/dumbbell-lunges.webp',
+    'Cable Overhead Extension': 'images/exercise-photos/cable-overhead-extension.webp',
+    'Arnold Press': 'images/exercise-photos/arnold-press.webp',
+    'Barbell Skull Crushers': 'images/exercise-photos/barbell-skull-crushers.webp',
+    'Dead Hang': 'images/exercise-photos/dead-hang.webp',
+    'Machine Hip Thrust': 'images/exercise-photos/machine-hip-thrust.webp',
+    'Dumbbell Curl': 'images/exercise-photos/dumbbell-curl.webp',
+    'Cable Front Raise': 'images/exercise-photos/cable-front-raise.webp',
+    'Dumbbell Goblet Squat': 'images/exercise-photos/dumbbell-goblet-squat.webp',
+    'Undergrip Lat Pulldown': 'images/exercise-photos/undergrip-lat-pulldown.webp',
+    'Dumbbell Lateral Raise': 'images/exercise-photos/dumbbell-lateral-raise.webp',
+    'Cable Chest Press': 'images/exercise-photos/cable-chest-press.webp',
+    'Cable Hammer Curl': 'images/exercise-photos/cable-hammer-curl.webp',
+    'Dips': 'images/exercise-photos/dips.webp',
+    'Calf Press': 'images/exercise-photos/calf-press.webp',
+    'EZ-Bar Skull Crushers': 'images/exercise-photos/ez-bar-skull-crushers.webp',
+    'Dumbbell Wrist Curl': 'images/exercise-photos/dumbbell-wrist-curl.webp',
+    'Dumbbell Row': 'images/exercise-photos/dumbbell-row.webp',
+    'Machine Row': 'images/exercise-photos/machine-row.webp',
+    'Straight Bar Curl': 'images/exercise-photos/straight-bar-curl.webp',
+    'Bodyweight Lunges': 'images/exercise-photos/bodyweight-lunges.webp',
+    'Stiff-Leg Deadlift': 'images/exercise-photos/stiff-leg-deadlift.webp',
+    'Cable Shoulder Press': 'images/exercise-photos/cable-shoulder-press.webp',
+    'Lat Pulldown': 'images/exercise-photos/lat-pulldown.webp',
+    'Cable Glute Kickback': 'images/exercise-photos/cable-glute-kickback.webp',
+    'Machine Chest Fly': 'images/exercise-photos/machine-chest-fly.webp',
+    'Sumo Deadlift': 'images/exercise-photos/sumo-deadlift.webp',
+    'Dumbbell Decline Bench Press': 'images/exercise-photos/dumbbell-decline-bench-press.webp',
+    'Cable Rear Delt Fly': 'images/exercise-photos/cable-rear-delt-fly.webp',
+    'Cable Crunch': 'images/exercise-photos/cable-crunch.webp',
+    'Pallof Press': 'images/exercise-photos/pallof-press.webp',
+    'Nordic Curl': 'images/exercise-photos/nordic-curl.webp',
+    'Undergrip Dumbbell Row': 'images/exercise-photos/undergrip-dumbbell-row.webp',
+    'Barbell Row': 'images/exercise-photos/barbell-row.webp',
+    'Barbell Bench Press': 'images/exercise-photos/barbell-bench-press.webp',
+    'Cable Pull-Through': 'images/exercise-photos/cable-pull-through.webp',
+    'Seated Calf Raise': 'images/exercise-photos/seated-calf-raise.webp',
+    'Back Squat': 'images/exercise-photos/back-squat.webp',
+    'Machine Lat Pulldown': 'images/exercise-photos/machine-lat-pulldown.webp',
+    'Dumbbell Overhead Extension': 'images/exercise-photos/dumbbell-overhead-extension.webp',
+    'Cable Wrist Curl': 'images/exercise-photos/cable-wrist-curl.webp',
+    'Leg Extension': 'images/exercise-photos/leg-extension.webp',
+    'Good Morning': 'images/exercise-photos/good-morning.webp',
+    'Single-Arm Cable Row': 'images/exercise-photos/single-arm-cable-row.webp',
+    'Close-Grip Bench Press': 'images/exercise-photos/close-grip-bench-press.webp',
+    'Barbell Wrist Curl': 'images/exercise-photos/barbell-wrist-curl.webp',
+    'Dumbbell Standing Calf Raise': 'images/exercise-photos/dumbbell-standing-calf-raise.webp',
+    'Dumbbell Upright Row': 'images/exercise-photos/dumbbell-upright-row.webp',
+    'Dumbbell Bulgarian Split Squat': 'images/exercise-photos/dumbbell-bulgarian-split-squat.webp',
+    'Machine Bench Press': 'images/exercise-photos/machine-bench-press.webp',
+    'Barbell Lunges': 'images/exercise-photos/barbell-lunges.webp',
+    'Dumbbell Chest Fly': 'images/exercise-photos/dumbbell-chest-fly.webp',
+    'Dumbbell Shrug': 'images/exercise-photos/dumbbell-shrug.webp',
+    'Hanging Leg Raise': 'images/exercise-photos/hanging-leg-raise.webp',
+    'Reverse Wrist Curl': 'images/exercise-photos/reverse-wrist-curl.webp',
+    'Cable Curl': 'images/exercise-photos/cable-curl.webp',
+    'Barbell Bicep Curl': 'images/exercise-photos/barbell-bicep-curl.webp',
+    'Concentration Curl': 'images/exercise-photos/concentration-curl.webp',
+    'Barbell Romanian Deadlift': 'images/exercise-photos/barbell-romanian-deadlift.webp',
+    'Ab Wheel Rollout': 'images/exercise-photos/ab-wheel-rollout.webp',
+    'Cable Chest Fly (Centered)': 'images/exercise-photos/cable-chest-fly-centered.webp',
+    'Cable Chest Fly (Incline)': 'images/exercise-photos/cable-chest-fly-incline.webp',
+    'Cable Chest Fly (Decline)': 'images/exercise-photos/cable-chest-fly-decline.webp',
+    'EZ-Bar Curl': 'images/exercise-photos/ez-bar-curl.webp',
+    'Dumbbell Shoulder Press': 'images/exercise-photos/dumbbell-shoulder-press.webp',
+    'Plank': 'images/exercise-photos/plank.webp',
+    'Barbell Shoulder Press': 'images/exercise-photos/barbell-shoulder-press.webp',
+    'Barbell Shrug': 'images/exercise-photos/barbell-shrug.webp',
+    'Seated Cable Row': 'images/exercise-photos/seated-cable-row.webp',
+    'Dumbbell Rear Delt Fly': 'images/exercise-photos/dumbbell-rear-delt-fly.webp',
+    'Front Squat': 'images/exercise-photos/front-squat.webp',
+    'Barbell Incline Bench Press': 'images/exercise-photos/barbell-incline-bench-press.webp',
+    'Cable Lateral Raise': 'images/exercise-photos/cable-lateral-raise.webp',
+    'Cable Pullover': 'images/exercise-photos/cable-pullover.webp',
+    'Dumbbell Bench Press': 'images/exercise-photos/dumbbell-bench-press.webp',
+    'Pull-ups': 'images/exercise-photos/pull-ups.webp',
+    'Leg Press': 'images/exercise-photos/leg-press.webp',
+    'Crunches': 'images/exercise-photos/crunches.webp',
+    'Dumbbell Preacher Curl': 'images/exercise-photos/dumbbell-preacher-curl.webp',
+    'Push-ups': 'images/exercise-photos/push-ups.webp',
+    'Glute Bridge': 'images/exercise-photos/glute-bridge.webp',
+    'Machine Shoulder Press': 'images/exercise-photos/machine-shoulder-press.webp',
+    'Overgrip Barbell Row': 'images/exercise-photos/overgrip-barbell-row.webp',
+    'Cable Hip Thrust': 'images/exercise-photos/cable-hip-thrust.webp'
+  };
+
   var MUSCLE_IMG = {
     Chest: 'images/muscles/chest.webp',
     Back: 'images/muscles/back.webp',
