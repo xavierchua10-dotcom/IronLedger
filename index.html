@@ -13260,7 +13260,24 @@
     var action = el.dataset.action;
     if (action === 'cancel-confirm'){
       ui.confirmModal = null;
+      var exListBeforeCancel = document.getElementById('exSuggestList');
+      var exScrollBeforeCancel = exListBeforeCancel ? exListBeforeCancel.scrollTop : 0;
       renderApp();
+      // renderApp() -> renderExerciseSearchOverlay() rebuilds that whole
+      // panel from scratch (see the comment on renderExFilterPanel above),
+      // which wipes the suggestions list back to empty even though the
+      // search overlay itself stays open after a cancel. Repopulate it
+      // against whatever's actually in the input right now, same pattern
+      // toggleExFilter/clearExFilters already use for the same reason —
+      // and since that rebuild is a fresh element, put the scroll position
+      // back too, or a plain cancel would otherwise jump back to the top
+      // of a list the person had already scrolled through.
+      var exInputAfterCancel = document.getElementById('exNameInput');
+      if (exInputAfterCancel){
+        renderExerciseSuggestions(exInputAfterCancel.value);
+        var exListAfterCancel = document.getElementById('exSuggestList');
+        if (exListAfterCancel) exListAfterCancel.scrollTop = exScrollBeforeCancel;
+      }
     } else if (action === 'confirm-modal-action'){
       var m = ui.confirmModal;
       ui.confirmModal = null;
