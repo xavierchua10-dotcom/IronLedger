@@ -1998,15 +1998,15 @@
     -webkit-overflow-scrolling:touch;
     padding:4px 16px calc(20px + var(--safe-bottom, 0px));
     display:flex;
-    flex-wrap:wrap;
-    gap:10px;
+    flex-direction:column;
+    gap:8px;
   }
   .ex-suggest-list.hidden{display:none;}
   .ex-suggest-item{
-    flex:1 1 calc(50% - 5px);
-    min-width:calc(50% - 5px);
+    width:100%;
     display:flex;
-    flex-direction:column;
+    align-items:center;
+    gap:12px;
     text-align:left;
     background:var(--panel-3);
     border:1px solid var(--line);
@@ -2014,13 +2014,13 @@
     font-size:13.5px;
     font-family:'Inter',sans-serif;
     font-weight:500;
-    padding:10px 10px 12px;
+    padding:13px 14px;
     border-radius:var(--radius);
     cursor:pointer;
   }
   .ex-suggest-img{
-    width:100%;
-    aspect-ratio:1/1;
+    width:52px;
+    height:52px;
     flex-shrink:0;
     border-radius:var(--radius-sm);
     background:var(--panel);
