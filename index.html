@@ -3486,32 +3486,43 @@
 
   /* ---------- Running rest timer bar ---------- */
   .stopwatch-bar{
-    position:fixed;
-    width:78px;
-    height:78px;
+    flex-shrink:0;
     display:flex;
     align-items:center;
-    justify-content:center;
-    border:2px solid var(--accent);
-    border-radius:50%;
-    background:var(--panel-2);
-    background-image:var(--card-sheen);
-    box-shadow:0 10px 28px rgba(0,0,0,0.5), 0 0 0 1px rgba(var(--accent-rgb),0.12);
-    z-index:40;
-    cursor:grab;
-    touch-action:none;
+    gap:10px;
+    padding:10px 16px;
+    border-top:1px solid var(--accent);
+    background:rgba(var(--accent-rgb),0.10);
   }
   .stopwatch-bar.hidden{display:none;}
-  .stopwatch-bar.dragging{cursor:grabbing;}
-  .stopwatch-bar.cancel-armed{border-color:var(--accent-2);background-color:var(--accent-2-dim);}
-  .stopwatch-bar.cancel-armed .stopwatch-time{color:var(--accent-2);}
+  .stopwatch-label{
+    font-family:'Oswald',sans-serif;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--accent);
+  }
   .stopwatch-time{
     font-family:'JetBrains Mono',monospace;
-    font-size:15px;
+    font-size:16px;
     font-weight:700;
     color:var(--text);
-    pointer-events:none;
+    flex:1;
   }
+  .stopwatch-stop-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    padding:6px 12px;
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+  }
+  .stopwatch-stop-btn:active{background:var(--panel-3);}
   .session-finish-bar{
     flex-shrink:0;
     display:flex;
@@ -7697,8 +7708,6 @@
     ui.showRestTimerPicker = false;
     renderRestTimerPickerOverlay();
     ui.restTimer = { endsAt: Date.now() + secs * 1000, totalSeconds: secs };
-    stopwatchDragged = false; // fresh timer -> starts back at the default spot
-    stopwatchPos = null;
     renderRestTimerBar();
     if (restTimerInterval) clearInterval(restTimerInterval);
     restTimerInterval = setInterval(tickRestTimer, 1000);
@@ -7748,90 +7757,12 @@
       return;
     }
     el.classList.remove('hidden');
-    // Default spot is bottom-right, floating above the tabbar (and the
-    // session-finish-bar too, when one's showing) -- measured live off
-    // their actual rendered heights rather than a hardcoded guess, same
-    // reasoning as the header measurement this replaced. Only applied
-    // when the person hasn't dragged it somewhere themselves this timer
-    // (see the touch handlers below) -- otherwise every second's tick
-    // would yank a manually-repositioned bubble straight back.
-    if (!stopwatchDragged){
-      var tabbar = document.getElementById('tabbar');
-      var finishBar = document.getElementById('sessionFinishBar');
-      var bottomEl = (finishBar && !finishBar.classList.contains('hidden')) ? finishBar : tabbar;
-      var bottomY = bottomEl ? bottomEl.getBoundingClientRect().top : window.innerHeight;
-      el.style.top = (bottomY - 78 - 14) + 'px';
-      el.style.left = (window.innerWidth - 78 - 16) + 'px';
-    } else if (stopwatchPos){
-      el.style.top = stopwatchPos.top + 'px';
-      el.style.left = stopwatchPos.left + 'px';
-    }
     var remaining = remainingOverride != null ? remainingOverride : Math.max(0, Math.ceil((ui.restTimer.endsAt - Date.now()) / 1000));
-    el.innerHTML = '<span class="stopwatch-time">'+fmtMMSS(remaining)+'</span>';
+    el.innerHTML =
+      '<span class="stopwatch-label">Resting</span>' +
+      '<span class="stopwatch-time">'+fmtMMSS(remaining)+'</span>' +
+      '<button class="stopwatch-stop-btn" data-action="skip-rest-timer">Skip</button>';
   }
-
-  // Drag-to-reposition for the floating rest timer bubble. Same delegated
-  // touch approach as the set-row swipe-to-delete gesture, scoped to this
-  // one element by id rather than a class (there's only ever one). Total
-  // displacement decides tap vs drag on release -- a real drag repositions
-  // and stays put on every future tick (see renderRestTimerBar above); a
-  // near-stationary tap skips the rest period instead, same action the
-  // old Skip button used to trigger.
-  var STOPWATCH_TAP_MAX_PX = 10;
-  // Dragging the bubble down into the bottom strip of the screen and
-  // releasing there cancels the rest timer outright, in addition to the
-  // plain tap-to-skip above -- the classic "drag down to dismiss" a
-  // floating bubble gets. Zone height roughly matches the tabbar so it
-  // reads as "drag it down to where the nav bar is."
-  var STOPWATCH_CANCEL_ZONE_PX = 110;
-  var stopwatchDragged = false;
-  var stopwatchPos = null; // { top, left } once dragged, else the default spot applies
-  var stopwatchDragGesture = null; // { startX, startY, elLeft, elTop, moved, armed }
-  document.addEventListener('touchstart', function(e){
-    var el = document.getElementById('stopwatchBar');
-    if (!el || el.classList.contains('hidden') || !el.contains(e.target)) return;
-    var t = e.touches[0];
-    var rect = el.getBoundingClientRect();
-    stopwatchDragGesture = { startX: t.clientX, startY: t.clientY, elLeft: rect.left, elTop: rect.top, moved: false, armed: false };
-  }, { passive: true });
-  document.addEventListener('touchmove', function(e){
-    if (!stopwatchDragGesture) return;
-    var el = document.getElementById('stopwatchBar');
-    if (!el) return;
-    var t = e.touches[0];
-    var dx = t.clientX - stopwatchDragGesture.startX;
-    var dy = t.clientY - stopwatchDragGesture.startY;
-    if (!stopwatchDragGesture.moved && Math.abs(dx) < STOPWATCH_TAP_MAX_PX && Math.abs(dy) < STOPWATCH_TAP_MAX_PX) return;
-    stopwatchDragGesture.moved = true;
-    el.classList.add('dragging');
-    e.preventDefault();
-    var margin = 8;
-    var newLeft = Math.max(margin, Math.min(window.innerWidth - 78 - margin, stopwatchDragGesture.elLeft + dx));
-    var newTop = Math.max(margin, Math.min(window.innerHeight - 78 - margin, stopwatchDragGesture.elTop + dy));
-    el.style.left = newLeft + 'px';
-    el.style.top = newTop + 'px';
-    var armed = (newTop + 78) > (window.innerHeight - STOPWATCH_CANCEL_ZONE_PX);
-    if (armed !== stopwatchDragGesture.armed){
-      stopwatchDragGesture.armed = armed;
-      el.classList.toggle('cancel-armed', armed);
-      el.innerHTML = armed ? '<span class="stopwatch-time">&times;</span>' : '<span class="stopwatch-time">'+fmtMMSS(Math.max(0, Math.ceil((ui.restTimer.endsAt - Date.now()) / 1000)))+'</span>';
-      if (navigator.vibrate) navigator.vibrate(armed ? 12 : 8);
-    }
-  }, { passive: false });
-  document.addEventListener('touchend', function(){
-    if (!stopwatchDragGesture) return;
-    var el = document.getElementById('stopwatchBar');
-    if (stopwatchDragGesture.armed){
-      skipRestTimer(); // released inside the cancel zone
-    } else if (stopwatchDragGesture.moved){
-      el.classList.remove('dragging');
-      stopwatchDragged = true;
-      stopwatchPos = { top: parseFloat(el.style.top), left: parseFloat(el.style.left) };
-    } else if (el && ui.restTimer){
-      skipRestTimer(); // near-stationary touch -- treat as a tap, same as the old Skip button
-    }
-    stopwatchDragGesture = null;
-  });
 
   /* =========================================================
      NOTIFICATION BELL
@@ -12746,6 +12677,8 @@
       openTemplatePicker();
     } else if (action === 'open-rest-timer-picker'){
       openRestTimerPicker();
+    } else if (action === 'skip-rest-timer'){
+      skipRestTimer();
     } else if (action === 'toggle-muscle-map'){
       ui.showMuscleMap = !ui.showMuscleMap;
       ui.showMuscleMapHelp = false;
