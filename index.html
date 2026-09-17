@@ -3701,6 +3701,36 @@
     padding:24px;
     z-index:100;
   }
+  /* Bottom sheet treatment, scoped specifically to #confirmOverlay (the
+     plain "are you sure?" dialogs) -- NOT the shared .confirm-overlay
+     class, which 21 other overlays also use (templates, pricing, the
+     muscle picker's own panels, etc). Those stay exactly as they were;
+     only this one overlay becomes a sheet. */
+  #confirmOverlay{
+    align-items:flex-end;
+    padding:0;
+  }
+  #confirmOverlay .confirm-panel{
+    max-width:480px;
+    border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+    padding-bottom:calc(20px + var(--safe-bottom, 0px));
+    transition:transform 0.2s ease;
+  }
+  #confirmOverlay .confirm-panel.dragging{transition:none;}
+  #confirmOverlay:not(.hidden) .confirm-panel{
+    animation:sheetSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes sheetSlideUp{
+    0%{transform:translateY(100%);}
+    100%{transform:translateY(0);}
+  }
+  .confirm-sheet-handle{
+    width:36px;
+    height:4px;
+    border-radius:2px;
+    background:var(--line);
+    margin:0 auto 14px;
+  }
   /* The confirm/"are you sure?" dialog can be triggered from inside any
      other overlay (Brief's Clear all, History's Delete session, Danger
      Zone, etc.) — it needs to always win the stacking order regardless
@@ -12174,6 +12204,33 @@
   }
 
   var confirmCountdownTimer = null;
+  // Shared dismiss path for #confirmOverlay specifically -- the Cancel
+  // button, tapping the backdrop, and dragging the sheet down all funnel
+  // through this one function so they behave identically, rather than
+  // each having their own slightly-different cleanup (which is exactly
+  // how the backdrop-tap path ended up missing the search-suggestions
+  // repopulation fix the Cancel button already had).
+  function dismissConfirmModal(){
+    ui.confirmModal = null;
+    var exListBeforeCancel = document.getElementById('exSuggestList');
+    var exScrollBeforeCancel = exListBeforeCancel ? exListBeforeCancel.scrollTop : 0;
+    renderApp();
+    // renderApp() -> renderExerciseSearchOverlay() rebuilds that whole
+    // panel from scratch (see the comment on renderExFilterPanel above),
+    // which wipes the suggestions list back to empty even though the
+    // search overlay itself stays open after a cancel. Repopulate it
+    // against whatever's actually in the input right now, same pattern
+    // toggleExFilter/clearExFilters already use for the same reason —
+    // and since that rebuild is a fresh element, put the scroll position
+    // back too, or a plain cancel would otherwise jump back to the top
+    // of a list the person had already scrolled through.
+    var exInputAfterCancel = document.getElementById('exNameInput');
+    if (exInputAfterCancel){
+      renderExerciseSuggestions(exInputAfterCancel.value);
+      var exListAfterCancel = document.getElementById('exSuggestList');
+      if (exListAfterCancel) exListAfterCancel.scrollTop = exScrollBeforeCancel;
+    }
+  }
   function renderConfirmModal(){
     var overlay = document.getElementById('confirmOverlay');
     var panel = document.getElementById('confirmPanel');
@@ -12189,6 +12246,7 @@
     var confirmLabel = m.confirmLabel || 'Delete';
     var counting = typeof m.countdown === 'number' && m.countdown > 0;
     panel.innerHTML =
+      '<div class="confirm-sheet-handle" aria-hidden="true"></div>' +
       (m.img ? '<img class="confirm-preview-img" src="'+esc(m.img)+'" alt="" loading="lazy">' : '') +
       '<div class="confirm-title">' + esc(m.title) + '</div>' +
       '<div class="confirm-message">' + esc(m.message) + '</div>' +
@@ -13306,33 +13364,14 @@
   var confirmOverlayEl = document.getElementById('confirmOverlay');
   confirmOverlayEl.addEventListener('click', function(e){
     if (e.target === confirmOverlayEl){
-      ui.confirmModal = null;
-      renderApp();
+      dismissConfirmModal();
       return;
     }
     var el = e.target.closest('[data-action]');
     if (!el) return;
     var action = el.dataset.action;
     if (action === 'cancel-confirm'){
-      ui.confirmModal = null;
-      var exListBeforeCancel = document.getElementById('exSuggestList');
-      var exScrollBeforeCancel = exListBeforeCancel ? exListBeforeCancel.scrollTop : 0;
-      renderApp();
-      // renderApp() -> renderExerciseSearchOverlay() rebuilds that whole
-      // panel from scratch (see the comment on renderExFilterPanel above),
-      // which wipes the suggestions list back to empty even though the
-      // search overlay itself stays open after a cancel. Repopulate it
-      // against whatever's actually in the input right now, same pattern
-      // toggleExFilter/clearExFilters already use for the same reason —
-      // and since that rebuild is a fresh element, put the scroll position
-      // back too, or a plain cancel would otherwise jump back to the top
-      // of a list the person had already scrolled through.
-      var exInputAfterCancel = document.getElementById('exNameInput');
-      if (exInputAfterCancel){
-        renderExerciseSuggestions(exInputAfterCancel.value);
-        var exListAfterCancel = document.getElementById('exSuggestList');
-        if (exListAfterCancel) exListAfterCancel.scrollTop = exScrollBeforeCancel;
-      }
+      dismissConfirmModal();
     } else if (action === 'confirm-modal-action'){
       var m = ui.confirmModal;
       ui.confirmModal = null;
@@ -13392,6 +13431,48 @@
       else renderApp();
     }
   });
+
+  // Drag-to-dismiss for the #confirmOverlay bottom sheet specifically —
+  // same tap-vs-drag disambiguation as the set-row swipe gesture and the
+  // rest-timer bubble drag (a handful of pixels of movement decides
+  // which one this is), just vertical instead of horizontal, and it's
+  // the whole panel that's draggable, not a small handle -- confirm
+  // dialogs don't have scrollable content, so there's nothing for a
+  // drag on the body to conflict with, and dragging from anywhere on a
+  // short sheet is the more forgiving, expected gesture.
+  var CONFIRM_SHEET_DISMISS_PX = 90;
+  var confirmSheetGesture = null; // { startY, panelHeight, moved }
+  document.getElementById('confirmPanel').addEventListener('touchstart', function(e){
+    var panel = e.currentTarget;
+    confirmSheetGesture = { startY: e.touches[0].clientY, panelHeight: panel.getBoundingClientRect().height, moved: false };
+  }, { passive: true });
+  document.getElementById('confirmPanel').addEventListener('touchmove', function(e){
+    if (!confirmSheetGesture) return;
+    var panel = e.currentTarget;
+    var dy = e.touches[0].clientY - confirmSheetGesture.startY;
+    if (!confirmSheetGesture.moved){
+      if (dy < 8) return; // ignore small jitter and any upward movement entirely
+      confirmSheetGesture.moved = true;
+      panel.classList.add('dragging');
+    }
+    e.preventDefault();
+    panel.style.transform = 'translateY(' + Math.max(0, dy) + 'px)';
+  }, { passive: false });
+  document.getElementById('confirmPanel').addEventListener('touchend', function(e){
+    if (!confirmSheetGesture) return;
+    var panel = e.currentTarget;
+    if (confirmSheetGesture.moved){
+      panel.classList.remove('dragging');
+      var dy = Math.max(0, e.changedTouches[0].clientY - confirmSheetGesture.startY);
+      if (dy > CONFIRM_SHEET_DISMISS_PX){
+        dismissConfirmModal();
+      } else {
+        panel.style.transform = '';
+      }
+    }
+    confirmSheetGesture = null;
+  });
+
   var routineNameOverlayEl = document.getElementById('routineNameOverlay');
   routineNameOverlayEl.addEventListener('click', function(e){
     if (e.target === routineNameOverlayEl){
