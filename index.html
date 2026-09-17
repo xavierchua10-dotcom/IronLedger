@@ -3486,13 +3486,21 @@
 
   /* ---------- Running rest timer bar ---------- */
   .stopwatch-bar{
-    flex-shrink:0;
+    position:fixed;
+    left:16px;
+    right:16px;
+    max-width:448px;
+    margin:0 auto;
     display:flex;
     align-items:center;
     gap:10px;
-    padding:10px 16px;
-    border-top:1px solid var(--accent);
-    background:rgba(var(--accent-rgb),0.10);
+    padding:12px 16px;
+    border:1.5px solid var(--accent);
+    border-radius:var(--radius-lg);
+    background:var(--panel-2);
+    background-image:var(--card-sheen);
+    box-shadow:0 12px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(var(--accent-rgb),0.12);
+    z-index:40;
   }
   .stopwatch-bar.hidden{display:none;}
   .stopwatch-label{
@@ -7757,6 +7765,13 @@
       return;
     }
     el.classList.remove('hidden');
+    // Floats just below the header rather than sitting inline in the
+    // page flow — measured live off .topbar's actual rendered height
+    // (rather than a hardcoded pixel guess) so it lines up correctly
+    // regardless of font size, safe-area insets, or anything else that
+    // could change the header's real height on a given device.
+    var topbar = document.querySelector('.topbar');
+    if (topbar) el.style.top = (topbar.getBoundingClientRect().bottom + 10) + 'px';
     var remaining = remainingOverride != null ? remainingOverride : Math.max(0, Math.ceil((ui.restTimer.endsAt - Date.now()) / 1000));
     el.innerHTML =
       '<span class="stopwatch-label">Resting</span>' +
