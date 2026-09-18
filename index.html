@@ -3223,7 +3223,22 @@
   .mg-row{padding:10px 0;cursor:pointer;}
   .mg-row + .mg-row{border-top:1px solid rgba(255,255,255,0.08);}
   .mg-row:active{opacity:0.85;}
-  .mg-row-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;gap:8px;}
+  .mg-row-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;gap:8px;}
+  .mg-row-thumb-wrap{
+    width:32px;
+    height:32px;
+    border-radius:50%;
+    flex-shrink:0;
+    transition:box-shadow 0.3s ease;
+  }
+  .mg-row-thumb{
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    object-fit:cover;
+    background:var(--panel);
+    display:block;
+  }
   .mg-row-name{
     font-family:'Oswald',sans-serif;
     font-weight:700;
@@ -3231,6 +3246,8 @@
     text-transform:uppercase;
     letter-spacing:0.03em;
     color:var(--text);
+    flex:1;
+    min-width:0;
   }
   .mg-row-count{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#c7ccd3;white-space:nowrap;}
   .mg-row-count.mg-good{color:var(--success);font-weight:700;}
@@ -9283,6 +9300,19 @@
       // CUSTOM_GREEN_PCT).
       var greenFloor = profile.isCustom ? Math.ceil(cap * CUSTOM_GREEN_PCT) : profile.greenMinSets;
       var stateClass = g.sets > cap ? ' mg-over' : (g.sets >= greenFloor ? ' mg-good' : '');
+      // Ring glow around the muscle thumbnail scales with this week's
+      // volume (pct, already computed above) and matches whichever
+      // state color the row itself is already using (gold default,
+      // green at/above the floor, red past the cap) -- same color
+      // language as the bar right next to it, just as a glow instead of
+      // a fill. Intensity from pct alone (not a fixed strong glow at
+      // any nonzero volume) so a barely-touched muscle stays visually
+      // quiet and a heavily-trained one actually stands out.
+      var glowRgb = g.sets > cap ? '193,68,60' : (g.sets >= greenFloor ? '95,184,106' : 'var(--accent-rgb)');
+      var glowAlpha = (pct / 100) * 0.65;
+      var glowSpread = 2 + (pct / 100) * 5;
+      var glowBlur = 4 + (pct / 100) * 10;
+      var thumbImg = MUSCLE_IMG[g.key];
       // Whole row toggles the exercise list open/closed now — tapping
       // anywhere on it, not just the small arrow text. Used to navigate
       // to the muscle-filtered Exercise Progression list instead
@@ -9291,6 +9321,7 @@
       // actually got the tap people meant to make.
       html += '<div class="mg-row" data-action="toggle-mg-exercises" data-muscle="'+esc(g.key)+'">' +
                 '<div class="mg-row-head">' +
+                  (thumbImg ? '<span class="mg-row-thumb-wrap" style="box-shadow:0 0 '+glowBlur.toFixed(0)+'px '+glowSpread.toFixed(0)+'px rgba('+glowRgb+','+glowAlpha.toFixed(2)+');"><img class="mg-row-thumb" src="'+thumbImg+'" alt="" loading="lazy"></span>' : '') +
                   '<span class="mg-row-name">'+esc(g.label)+'</span>' +
                   '<span class="mg-row-count'+stateClass+'">'+g.sets+' / '+cap+' sets</span>' +
                 '</div>' +
