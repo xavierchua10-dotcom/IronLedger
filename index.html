@@ -6816,6 +6816,13 @@
   var SWIPE_REVEAL_PX = 76;
   var SWIPE_OPEN_THRESHOLD_PX = SWIPE_REVEAL_PX / 2;
   var openSwipeRow = null; // the .set-row-swipe element currently revealed, if any
+  // Remembers #view's scroll position from the moment an exercise gets
+  // picked in Progress > Exercise Progression's list, so going back to
+  // the list (there's no confirm/cancel step in this flow, just list <->
+  // chart) restores it instead of starting scrolled to the top again.
+  // .progress-ex-list has no scroll of its own -- #view is what scrolls
+  // for this tab, same as every other tab's content.
+  var progressListScrollY = 0;
   var swipeGesture = null; // { rowEl, startX, startY, startedOpen, axis, dragX }
   function closeOpenSwipeRow(){
     if (openSwipeRow){
@@ -12268,6 +12275,32 @@
   }
 
   var confirmCountdownTimer = null;
+  // Shared dismiss path for #confirmOverlay -- the Cancel button and
+  // tapping the backdrop both funnel through this, so they can't drift
+  // out of sync with each other again (they briefly did, during work
+  // that's since been reverted). Restores scroll position in whichever
+  // exercise list is open behind the dialog, since renderApp() rebuilds
+  // both #exSuggestList and the muscle-picker's list from scratch on
+  // every call (see the comments on renderExFilterPanel and
+  // renderMuscleMapOverlay) -- a fresh element always starts scrolled to
+  // the top, so a plain cancel would otherwise jump back to the top of
+  // a list the person had already scrolled through.
+  function dismissConfirmModal(){
+    ui.confirmModal = null;
+    var exListBeforeCancel = document.getElementById('exSuggestList');
+    var exScrollBeforeCancel = exListBeforeCancel ? exListBeforeCancel.scrollTop : 0;
+    var mmListBeforeCancel = document.querySelector('.mm-list-col-full');
+    var mmScrollBeforeCancel = mmListBeforeCancel ? mmListBeforeCancel.scrollTop : 0;
+    renderApp();
+    var exInputAfterCancel = document.getElementById('exNameInput');
+    if (exInputAfterCancel){
+      renderExerciseSuggestions(exInputAfterCancel.value);
+      var exListAfterCancel = document.getElementById('exSuggestList');
+      if (exListAfterCancel) exListAfterCancel.scrollTop = exScrollBeforeCancel;
+    }
+    var mmListAfterCancel = document.querySelector('.mm-list-col-full');
+    if (mmListAfterCancel) mmListAfterCancel.scrollTop = mmScrollBeforeCancel;
+  }
   function renderConfirmModal(){
     var overlay = document.getElementById('confirmOverlay');
     var panel = document.getElementById('confirmPanel');
@@ -13068,12 +13101,16 @@
         ui.progressExerciseListOpen = false;
       });
     } else if (action === 'select-progress-exercise-row'){
+      var viewElBeforeSelect = document.getElementById('view');
+      progressListScrollY = viewElBeforeSelect ? viewElBeforeSelect.scrollTop : 0;
       ui.progressExercise = el.dataset.name;
       ui.progressExerciseListOpen = false;
       renderApp();
     } else if (action === 'show-progress-exercise-list'){
       ui.progressExerciseListOpen = true;
       renderApp();
+      var viewElAfterShow = document.getElementById('view');
+      if (viewElAfterShow) viewElAfterShow.scrollTop = progressListScrollY;
     } else if (action === 'toggle-progress-muscle-filter'){
       var pmf = ui.progressMuscleFilters || [];
       var pmfIdx = pmf.indexOf(el.dataset.muscle);
@@ -13406,33 +13443,14 @@
   var confirmOverlayEl = document.getElementById('confirmOverlay');
   confirmOverlayEl.addEventListener('click', function(e){
     if (e.target === confirmOverlayEl){
-      ui.confirmModal = null;
-      renderApp();
+      dismissConfirmModal();
       return;
     }
     var el = e.target.closest('[data-action]');
     if (!el) return;
     var action = el.dataset.action;
     if (action === 'cancel-confirm'){
-      ui.confirmModal = null;
-      var exListBeforeCancel = document.getElementById('exSuggestList');
-      var exScrollBeforeCancel = exListBeforeCancel ? exListBeforeCancel.scrollTop : 0;
-      renderApp();
-      // renderApp() -> renderExerciseSearchOverlay() rebuilds that whole
-      // panel from scratch (see the comment on renderExFilterPanel above),
-      // which wipes the suggestions list back to empty even though the
-      // search overlay itself stays open after a cancel. Repopulate it
-      // against whatever's actually in the input right now, same pattern
-      // toggleExFilter/clearExFilters already use for the same reason —
-      // and since that rebuild is a fresh element, put the scroll position
-      // back too, or a plain cancel would otherwise jump back to the top
-      // of a list the person had already scrolled through.
-      var exInputAfterCancel = document.getElementById('exNameInput');
-      if (exInputAfterCancel){
-        renderExerciseSuggestions(exInputAfterCancel.value);
-        var exListAfterCancel = document.getElementById('exSuggestList');
-        if (exListAfterCancel) exListAfterCancel.scrollTop = exScrollBeforeCancel;
-      }
+      dismissConfirmModal();
     } else if (action === 'confirm-modal-action'){
       var m = ui.confirmModal;
       ui.confirmModal = null;
@@ -13997,8 +14015,7 @@
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
     if (ui.confirmModal){
-      ui.confirmModal = null;
-      renderApp();
+      dismissConfirmModal();
     } else if (ui.savingRoutine){
       cancelSaveRoutine();
     } else if (ui.confirmingDeleteAccountPassword){
