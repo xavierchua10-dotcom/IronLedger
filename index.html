@@ -3055,6 +3055,36 @@
   }
   .chart-stats .cs-block .cs-label{font-size:10px;color:#c7ccd3;text-transform:uppercase;letter-spacing:0.05em;}
   .chart-stats .cs-block .cs-val{font-size:16px;color:var(--accent);font-weight:700;}
+  .chart-carousel{
+    overflow:hidden;
+    touch-action:pan-y;
+  }
+  .chart-carousel-track{
+    display:flex;
+    transition:transform 0.25s cubic-bezier(0.65,0,0.35,1);
+  }
+  .chart-carousel-track.dragging{transition:none;}
+  .chart-carousel-page{
+    flex:0 0 100%;
+    min-width:0;
+  }
+  .chart-dots{
+    display:flex;
+    justify-content:center;
+    gap:7px;
+    margin-top:4px;
+  }
+  .chart-dot{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:var(--line);
+    border:none;
+    padding:0;
+    cursor:pointer;
+    transition:background 0.15s ease, transform 0.15s ease;
+  }
+  .chart-dot.active{background:var(--accent);transform:scale(1.3);}
   .chart-empty-note{
     text-align:center;
     color:#c7ccd3;
@@ -6823,6 +6853,77 @@
   // .progress-ex-list has no scroll of its own -- #view is what scrolls
   // for this tab, same as every other tab's content.
   var progressListScrollY = 0;
+  // Exercise Progression's chart carousel (trend line <-> bar chart).
+  // Purely a visual/transient bit of state -- never triggers a
+  // renderApp() of its own (see the swipe/dot handlers below, both do
+  // direct DOM updates instead), so it only needs resetting to 0 at the
+  // one place the chart HTML actually gets freshly built (a real
+  // re-render always starts showing page 0, no inline transform yet).
+  var chartCarouselPage = 0;
+  function goToChartCarouselPage(page){
+    var track = document.getElementById('chartCarouselTrack');
+    if (!track) return;
+    chartCarouselPage = page;
+    track.style.transform = 'translateX(-' + (page * 100) + '%)';
+    document.querySelectorAll('.chart-dot').forEach(function(dot, i){
+      dot.classList.toggle('active', i === page);
+    });
+  }
+  // Swipe between the trend-line and bar-chart pages. Same axis-
+  // detection spirit as the set-row swipe-to-delete gesture, just
+  // horizontal-vs-vertical decided the other way around here (this
+  // carousel wants to catch horizontal drags and let vertical ones
+  // through to the page's own scroll, the opposite of a normally-
+  // vertical list catching horizontal ones).
+  var CHART_SWIPE_THRESHOLD_PX = 40;
+  var chartSwipeGesture = null; // { startX, startY, axis, dragPx }
+  document.addEventListener('touchstart', function(e){
+    var carousel = e.target.closest('#chartCarousel');
+    if (!carousel) return;
+    var t = e.touches[0];
+    chartSwipeGesture = { startX: t.clientX, startY: t.clientY, axis: null, dragPx: 0 };
+  }, { passive: true });
+  document.addEventListener('touchmove', function(e){
+    if (!chartSwipeGesture) return;
+    var track = document.getElementById('chartCarouselTrack');
+    if (!track) return;
+    var t = e.touches[0];
+    var dx = t.clientX - chartSwipeGesture.startX;
+    var dy = t.clientY - chartSwipeGesture.startY;
+    if (chartSwipeGesture.axis === null){
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      chartSwipeGesture.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (chartSwipeGesture.axis === 'x') track.classList.add('dragging');
+    }
+    if (chartSwipeGesture.axis !== 'y'){
+      e.preventDefault();
+    }
+    if (chartSwipeGesture.axis !== 'x') return;
+    // Resist dragging past either end instead of just stopping dead --
+    // a soft rubber-band gives a bit of feedback that there's nothing
+    // more that way, rather than the drag feeling like it hit a wall.
+    var maxPx = 1; // only 2 pages, so the far edge is always the other one
+    var atLeftEdge = chartCarouselPage === 0 && dx > 0;
+    var atRightEdge = chartCarouselPage === maxPx && dx < 0;
+    var resisted = (atLeftEdge || atRightEdge) ? dx / 2.5 : dx;
+    chartSwipeGesture.dragPx = resisted;
+    var trackWidth = track.parentElement.getBoundingClientRect().width;
+    var basePct = -(chartCarouselPage * 100);
+    var dragPct = (resisted / trackWidth) * 100;
+    track.style.transform = 'translateX(' + (basePct + dragPct) + '%)';
+  }, { passive: false });
+  document.addEventListener('touchend', function(){
+    if (!chartSwipeGesture) return;
+    var track = document.getElementById('chartCarouselTrack');
+    if (chartSwipeGesture.axis === 'x' && track){
+      track.classList.remove('dragging');
+      var next = chartCarouselPage;
+      if (chartSwipeGesture.dragPx < -CHART_SWIPE_THRESHOLD_PX) next = Math.min(1, chartCarouselPage + 1);
+      else if (chartSwipeGesture.dragPx > CHART_SWIPE_THRESHOLD_PX) next = Math.max(0, chartCarouselPage - 1);
+      goToChartCarouselPage(next);
+    }
+    chartSwipeGesture = null;
+  });
   var swipeGesture = null; // { rowEl, startX, startY, startedOpen, axis, dragX }
   function closeOpenSwipeRow(){
     if (openSwipeRow){
@@ -9796,7 +9897,19 @@
               '<div class="cs-block"><div class="cs-label">Latest top set</div><div class="cs-val" id="csValLatestTop" data-target="'+latest.topKg+'">0 '+unitLabel()+'</div></div>' +
             '</div>';
     if (points.length >= 2){
-      html += buildChartSVG(points);
+      chartCarouselPage = 0;
+      var lineChartSvg = buildChartSVG(points);
+      var barChartSvg = buildBarChartSVG(points);
+      html += '<div class="chart-carousel" id="chartCarousel">' +
+                '<div class="chart-carousel-track" id="chartCarouselTrack">' +
+                  '<div class="chart-carousel-page">'+lineChartSvg+'</div>' +
+                  '<div class="chart-carousel-page">'+barChartSvg+'</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="chart-dots">' +
+                '<button class="chart-dot active" data-action="chart-carousel-goto" data-page="0" aria-label="Trend line"></button>' +
+                '<button class="chart-dot" data-action="chart-carousel-goto" data-page="1" aria-label="Bar chart"></button>' +
+              '</div>';
     } else {
       html += '<div class="chart-empty-note">Log this exercise once more to start seeing a trend line.</div>';
     }
@@ -9918,6 +10031,33 @@
       });
     });
     return prs;
+  }
+
+  function buildBarChartSVG(points){
+    var w = 400, h = 140, pad = 16;
+    var vals = points.map(function(p){ return p.e1rm; });
+    var min = 0; // bars read from a zero baseline, unlike the line chart's min/max window
+    var max = Math.max.apply(null, vals) * 1.08; // small headroom so the tallest bar isn't flush with the top edge
+    var n = points.length;
+    var slot = (w - pad*2) / n;
+    var barW = Math.min(28, slot * 0.55);
+    function xAt(i){ return pad + slot * i + slot/2; }
+    function yAt(v){ return h - pad - ((v - min)/(max - min)) * (h - pad*2); }
+
+    var trendHex = points[n-1].e1rm > points[0].e1rm ? '#5fb86a'
+      : (points[n-1].e1rm < points[0].e1rm ? '#c1443c' : currentAccentTheme().accent);
+
+    var bars = points.map(function(p, i){
+      var barTop = yAt(p.e1rm);
+      var barH = (h - pad) - barTop;
+      var cx = xAt(i);
+      return '<rect x="'+(cx - barW/2).toFixed(1)+'" y="'+barTop.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(2, barH).toFixed(1)+'" rx="3" fill="'+trendHex+'" fill-opacity="'+(i === n-1 ? '1' : '0.55')+'"/>';
+    }).join('');
+
+    var svg = '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="140" preserveAspectRatio="none">';
+    svg += bars;
+    svg += '</svg>';
+    return svg;
   }
 
   function buildChartSVG(points){
@@ -13111,6 +13251,8 @@
       renderApp();
       var viewElAfterShow = document.getElementById('view');
       if (viewElAfterShow) viewElAfterShow.scrollTop = progressListScrollY;
+    } else if (action === 'chart-carousel-goto'){
+      goToChartCarouselPage(parseInt(el.dataset.page, 10));
     } else if (action === 'toggle-progress-muscle-filter'){
       var pmf = ui.progressMuscleFilters || [];
       var pmfIdx = pmf.indexOf(el.dataset.muscle);
