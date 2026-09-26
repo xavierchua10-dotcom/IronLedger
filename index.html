@@ -2505,6 +2505,23 @@
     justify-content:center;
     line-height:1;
   }
+  .hi-ex-actions{display:flex;gap:6px;flex-shrink:0;}
+  .hi-edit-btn{
+    width:26px;
+    height:26px;
+    flex-shrink:0;
+    border-radius:var(--radius-sm);
+    background:var(--panel-3);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+  }
+  .hi-edit-btn svg{width:14px;height:14px;display:block;}
+  .hi-edit-btn:active{background:var(--panel-2);border-color:var(--accent-dim);color:var(--accent);}
   .ex-tip-panel-ex{font-family:'Oswald',sans-serif;font-weight:700;font-size:14px;color:var(--text);text-transform:uppercase;letter-spacing:0.02em;margin-bottom:2px;}
   .ex-tip-panel-last{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);margin-bottom:12px;}
   .ex-tip-panel-empty{font-size:12.5px;color:var(--text-faint);line-height:1.5;padding:4px 0;}
@@ -5180,6 +5197,7 @@
     freshAddSetRow: null,       // exId whose Add Set input row should play the same glow pulse once it opens (see openAddSetPanel)
     justFinishedSessionId: null, // sessionId that should play the "just finished" glow pulse once in History (see flashSessionFinished)
     editDraft: null,             // { sessionId, name, exercises } — working copy while the History-edit overlay is open. Fully detached from state.sessions; nothing in it touches the real session until commitHistoryEditSave(). Cancel just discards it, no revert logic needed. See openHistoryEditOverlay.
+    historyEditFocusExId: null,  // when set, the overlay renders as a focused "Edit Exercise" panel showing only this one exercise from editDraft.exercises, instead of the whole session's list. Set via the per-exercise edit button in History; null for the session-level "\u22ee > Edit" entry point.
     historyEditOpenRow: null,    // { type: 'add'|'edit', exId, setId? } — which single inline weight/reps row is currently open inside the edit overlay (only one at a time)
     historyEditRowDraft: { weight: null, reps: null }, // typed-but-unconfirmed values for whichever row historyEditOpenRow points at
     historyEditAddingExercise: false, // true while the overlay is showing the "Add Exercise" search sub-view instead of the normal exercise list
@@ -9620,7 +9638,10 @@
                  (st.isPR ? '<span class="pr-tag">PR</span>' : '');
         }).join('<br>');
         html += '</div></div>' +
-                '<button class="hi-tip-btn'+(tipLocked ? ' locked' : '')+'" data-action="open-ex-tip" data-session="'+s.id+'" data-ex="'+ex.id+'" aria-label="Tips and target for '+esc(ex.name)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg></button>' +
+                '<div class="hi-ex-actions">' +
+                  '<button class="hi-edit-btn" data-action="edit-session-exercise" data-session="'+s.id+'" data-ex="'+ex.id+'" aria-label="Edit '+esc(ex.name)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>' +
+                  '<button class="hi-tip-btn'+(tipLocked ? ' locked' : '')+'" data-action="open-ex-tip" data-session="'+s.id+'" data-ex="'+ex.id+'" aria-label="Tips and target for '+esc(ex.name)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg></button>' +
+                '</div>' +
                 '</div>';
       });
       html += '<div class="hi-actions">' +
@@ -13108,7 +13129,7 @@
   // confirm step needed, since opening it touches nothing until Save is
   // tapped. An unsaved-draft warning happens on the Cancel side instead,
   // via requestCloseHistoryEditOverlay's dirty-check below.
-  function openHistoryEditOverlay(sessionId){
+  function openHistoryEditOverlay(sessionId, focusExId){
     var target = state.sessions.find(function(s){ return s.id === sessionId; });
     if (!target) return;
     ui.editDraft = {
@@ -13116,6 +13137,11 @@
       name: target.name,
       exercises: JSON.parse(JSON.stringify(target.exercises))
     };
+    // Focused mode shows just this one exercise instead of the whole
+    // session's list — the underlying draft still holds every exercise
+    // (see renderHistoryEditOverlay's filtering), so Save still writes
+    // the full session back correctly either way.
+    ui.historyEditFocusExId = focusExId || null;
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
     ui.historyEditAddingExercise = false;
@@ -13152,6 +13178,7 @@
 
   function closeHistoryEditOverlay(){
     ui.editDraft = null;
+    ui.historyEditFocusExId = null;
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
     ui.historyEditAddingExercise = false;
@@ -13173,17 +13200,20 @@
     real.exercises.forEach(function(ex){ affectedNames[ex.name] = true; });
     ui.editDraft.exercises.forEach(function(ex){ affectedNames[ex.name] = true; });
 
+    var focusedEx = ui.historyEditFocusExId ? ui.editDraft.exercises.find(function(ex){ return ex.id === ui.historyEditFocusExId; }) : null;
+
     real.name = ui.editDraft.name;
     real.exercises = ui.editDraft.exercises;
     Object.keys(affectedNames).forEach(function(name){ recomputeExercisePRs(name); });
     saveSessions();
     logActivity('Edited session "' + (real.name || 'Untitled session') + '"', 'History');
     ui.editDraft = null;
+    ui.historyEditFocusExId = null;
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
     ui.historyEditAddingExercise = false;
     ui.historyEditExerciseQuery = '';
-    showToast('Session updated');
+    showToast(focusedEx ? (focusedEx.name + ' updated') : 'Session updated');
     flashSessionFinished(real.id);
   }
 
@@ -13733,20 +13763,26 @@
 
     var draft = ui.editDraft;
     var openRow = ui.historyEditOpenRow;
+    var focusExId = ui.historyEditFocusExId;
+    var exercisesToRender = focusExId ? draft.exercises.filter(function(ex){ return ex.id === focusExId; }) : draft.exercises;
 
     var html = '<div class="he-header">' +
         '<button class="he-cancel-btn" data-action="request-close-history-edit">Cancel</button>' +
-        '<div class="he-title">Edit Session</div>' +
+        '<div class="he-title">'+(focusExId ? 'Edit Exercise' : 'Edit Session')+'</div>' +
         '<button class="he-save-btn" data-action="save-history-edit">Save</button>' +
       '</div>';
     html += '<div class="he-body">';
-    html += '<input type="text" id="heNameInput" class="he-name-input" maxlength="60" placeholder="Untitled session" value="'+esc(draft.name)+'">';
+    if (!focusExId){
+      html += '<input type="text" id="heNameInput" class="he-name-input" maxlength="60" placeholder="Untitled session" value="'+esc(draft.name)+'">';
+    }
 
-    if (draft.exercises.length === 0){
-      html += '<div class="empty" style="padding:24px 0;"><p>No exercises left in this session.<br>Save to keep it empty, or Cancel to keep the original.</p></div>';
+    if (exercisesToRender.length === 0){
+      html += focusExId ?
+        '<div class="empty" style="padding:24px 0;"><p>This exercise has been removed.<br>Save to remove it from the session, or Cancel to keep the original.</p></div>' :
+        '<div class="empty" style="padding:24px 0;"><p>No exercises left in this session.<br>Save to keep it empty, or Cancel to keep the original.</p></div>';
     } else {
-      draft.exercises.forEach(function(ex){
-        html += '<div class="he-exercise-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'">' +
+      exercisesToRender.forEach(function(ex){
+        html += '<div class="he-exercise-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'" id="heEx_'+ex.id+'">' +
             '<div class="he-exercise-head">' +
               '<div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
                 (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
@@ -13799,9 +13835,11 @@
         html += '</div>'; // close he-exercise-card
       });
     }
-    html += '<button class="add-exercise-bottom-btn" data-action="draft-open-add-exercise" style="width:100%;box-sizing:border-box;margin-top:4px;">' +
-              '<span class="plus-glyph">&#43;</span> Add Exercise' +
-            '</button>';
+    if (!focusExId){
+      html += '<button class="add-exercise-bottom-btn" data-action="draft-open-add-exercise" style="width:100%;box-sizing:border-box;margin-top:4px;">' +
+                '<span class="plus-glyph">&#43;</span> Add Exercise' +
+              '</button>';
+    }
     html += '</div>'; // close he-body
     panel.innerHTML = html;
   }
@@ -14503,6 +14541,8 @@
       openDeleteSessionConfirm(el.dataset.session);
     } else if (action === 'edit-session'){
       openHistoryEditOverlay(el.dataset.session);
+    } else if (action === 'edit-session-exercise'){
+      openHistoryEditOverlay(el.dataset.session, el.dataset.ex);
     } else if (action === 'repeat-session'){
       openRepeatSessionConfirm(el.dataset.session);
     } else if (action === 'open-print-menu'){
