@@ -11467,6 +11467,18 @@
 
     tabScrollPositions[state.tab] = viewEl.scrollTop;
 
+    // Slide the indicator (and flip the active tab label) right away --
+    // previously both only updated once renderApp() ran inside the
+    // 140ms setTimeout below, so the bar sat frozen for 140ms before it
+    // even started its own 0.25s slide, well after the tap registered.
+    // Doing it here lets it glide in parallel with the content fade
+    // instead of visibly lagging behind it.
+    var tabIndicatorEl = document.getElementById('tabIndicator');
+    if (tabIndicatorEl && newIndex !== -1) tabIndicatorEl.style.transform = 'translateX(' + (newIndex * 100) + '%)';
+    document.querySelectorAll('.tabbar button').forEach(function(btn){
+      btn.classList.toggle('active', btn.dataset.tab === newTab);
+    });
+
     if (ui.tabAnimating || oldIndex === -1 || newIndex === -1 || reduceMotion){
       state.tab = newTab;
       renderApp();
