@@ -1643,22 +1643,16 @@
     flex:0 0 auto;
     width:52px;
     height:52px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:2px;
+    display:block;
     border-radius:var(--radius);
-    border:2px solid var(--accent);
-    background:var(--accent-dim);
-    background-image:var(--card-sheen);
-    color:var(--accent);
+    border:none;
+    background:none;
     padding:0;
+    overflow:hidden;
     cursor:pointer;
   }
-  .mm-toggle-btn:active{background:var(--accent);color:#1c1500;}
-  .mm-toggle-btn svg{display:block;width:18px;height:18px;}
-  .mm-toggle-btn-label{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:0.03em;text-transform:uppercase;font-weight:700;line-height:1;}
+  .mm-toggle-btn:active{opacity:0.85;}
+  .mm-toggle-icon{display:block;width:100%;height:100%;object-fit:cover;}
 
   /* ---------- Template picker (category cards -> template list) ---------- */
   .pro-panel-header-left{display:flex;align-items:center;gap:6px;min-width:0;}
@@ -9369,14 +9363,7 @@
     html += '<div class="section-label">Add Exercise</div>';
 
     var muscleIconBtn = '<button class="mm-toggle-btn" data-action="toggle-muscle-map" title="Pick by muscle group" aria-label="Pick by muscle group">' +
-        '<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">' +
-          '<rect x="1" y="9" width="3" height="6" rx="1"/>' +
-          '<rect x="4.5" y="7" width="2.5" height="10" rx="1"/>' +
-          '<rect x="17" y="7" width="2.5" height="10" rx="1"/>' +
-          '<rect x="20" y="9" width="3" height="6" rx="1"/>' +
-          '<rect x="7" y="10.75" width="10" height="2.5" rx="1"/>' +
-        '</svg>' +
-        '<span class="mm-toggle-btn-label">Muscle</span>' +
+        '<img class="mm-toggle-icon" src="images/muscle-icon.png" alt="">' +
       '</button>';
 
     var addExerciseRow = '<div class="exercise-actions-row' + (session.exercises.length > 0 ? ' exercise-actions-row--after-list' : '') + '">' +
