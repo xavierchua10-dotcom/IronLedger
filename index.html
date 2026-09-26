@@ -6767,8 +6767,7 @@
   // those already have deliberately strong contrast for dense content.
   var CARD_STYLE_DEFAULTS = {
     default: { '--panel':'#1c1f24', '--panel-2':'#242830', '--panel-3':'#2a2f38', '--line':'#2e333b', '--glass-blur':'none', '--card-sheen':'linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0))', '--card-sheen-size':'auto', '--card-sheen-anim':'none' },
-    glass:   { '--panel':'rgba(28,31,36,0.58)', '--panel-2':'rgba(36,40,48,0.58)', '--panel-3':'rgba(42,47,56,0.58)', '--line':'rgba(255,255,255,0.09)', '--glass-blur':'blur(18px)', '--card-sheen':'linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0))', '--card-sheen-size':'auto', '--card-sheen-anim':'none' },
-    sheen:   { '--panel':'#1c1f24', '--panel-2':'#242830', '--panel-3':'#2a2f38', '--line':'#2e333b', '--glass-blur':'none', '--card-sheen':'radial-gradient(circle at 30% 30%, rgba(var(--accent-rgb),0.22), transparent 45%), linear-gradient(160deg, rgba(255,255,255,0.06), transparent 58%)', '--card-sheen-size':'220% 220%, auto', '--card-sheen-anim':'cardSheenDrift 6s ease-in-out infinite' }
+    glass:   { '--panel':'rgba(28,31,36,0.58)', '--panel-2':'rgba(36,40,48,0.58)', '--panel-3':'rgba(42,47,56,0.58)', '--line':'rgba(255,255,255,0.09)', '--glass-blur':'blur(18px)', '--card-sheen':'linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0))', '--card-sheen-size':'auto', '--card-sheen-anim':'none' }
   };
   function applyCardStyle(styleId){
     var root = document.documentElement.style;
@@ -6814,7 +6813,6 @@
   // already used for Accent color and Card background).
   var CARD_STYLE_PICKER_OPTIONS = [
     { id: 'default', label: 'Default', desc: 'The original look — solid cards, no extra effects.' },
-    { id: 'sheen', label: 'Sheen', desc: 'Adds a soft gold gradient glow to cards.' },
     { id: 'glass', label: 'Glass', desc: 'Adds blur and transparency to the app\'s main panels.' }
   ];
   var CARD_BG_OPTIONS = [
@@ -10035,7 +10033,7 @@
     } else if (kind === 'accentColor'){
       ui.settingsPickerDraft = (state.settings && state.settings.accentTheme) || 'gold';
     } else if (kind === 'cardBg'){
-      ui.settingsPickerDraft = (state.settings && state.settings.cardBg) || 'default';
+      ui.settingsPickerDraft = (state.settings && state.settings.cardBg) || 'none';
     } else if (kind === 'cardStyle'){
       ui.settingsPickerDraft = (state.settings && state.settings.cardStyle) || 'default';
     }
@@ -11324,7 +11322,7 @@
               '<button class="sr-action sr-action-swatch" data-action="open-settings-picker" data-kind="accentColor">' +
                 '<span class="sr-swatch-dot" style="background:'+accentThemeObj.accent+'"></span>'+esc(accentThemeObj.label) +
               '</button></div>';
-    var chosenCardBg = (state.settings && state.settings.cardBg) || 'default';
+    var chosenCardBg = (state.settings && state.settings.cardBg) || 'none';
     var cardBgObj = CARD_BG_OPTIONS.filter(function(o){ return o.id === chosenCardBg; })[0] || CARD_BG_OPTIONS[0];
     html += '<div class="settings-row"><div><div class="sr-label">Card background</div>' +
               '<div class="sr-sub">Applies consistently to every exercise card in Log</div></div>' +
@@ -11545,7 +11543,7 @@
     var unitBtn = document.getElementById('unitToggleBtn');
     if (unitBtn) unitBtn.textContent = state.settings.unit.toUpperCase();
 
-    document.body.dataset.cardBg = (state.settings && state.settings.cardBg) || 'default';
+    document.body.dataset.cardBg = (state.settings && state.settings.cardBg) || 'none';
 
     var proStarBtnEl = document.getElementById('proStarBtn');
     if (proStarBtnEl){
