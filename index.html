@@ -36,6 +36,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Start downloading the 3D model and its Draco decoder the moment the
+     app opens, not when Insight first gets tapped -- initMg3dViewer()'s
+     GLTFLoader.load('model.glb', ...) call only ever fires once you're
+     actually on that tab, so without this the whole ~1.2MB+decoder
+     download only starts at the exact moment someone is sitting there
+     watching a loading spinner for it. By the time they get to Insight,
+     if they didn't land there first, this has likely already finished
+     quietly in the background and GLTFLoader's own fetch just reads it
+     straight from cache. as="fetch" + crossorigin (even same-origin)
+     matches how GLTFLoader's underlying FileLoader actually requests
+     these -- a mismatched credentials mode is the most common reason a
+     preload silently goes unused instead of being picked up by the
+     later request. Two decoder files listed rather than all three in
+     /draco/ -- DRACOLoader prefers the WASM path (draco_wasm_wrapper.js
+     + draco_decoder.wasm) and only falls back to the plain-JS
+     draco_decoder.js on browsers that can't do WASM, which is rare
+     enough now not to be worth preloading preemptively too. -->
+<link rel="preload" href="model.glb" as="fetch" crossorigin>
+<link rel="preload" href="draco/draco_wasm_wrapper.js" as="fetch" crossorigin>
+<link rel="preload" href="draco/draco_decoder.wasm" as="fetch" crossorigin>
 <style>
   :root{
     --bg:#14161a;
@@ -562,6 +582,46 @@
      behind the sticky Volume overview / Exercise progression bar. */
   body.has-progress-subtab main#view{
     padding-bottom:calc(148px + var(--safe-bottom));
+  }
+  /* Insight reads as one fixed screen, not a scrollable page --
+     overflow:hidden here (rather than main#view's usual overflow-y:
+     auto) plus the panel itself told to fill that now-fixed space
+     exactly (height:100%, replacing the plain min-height:480px it'd
+     otherwise just sit at -- see .mg-panel's own comment). Padding-
+     bottom drops to a plain 16px (plus the safe-area inset, kept so
+     this doesn't sit under a phone's home-indicator gesture area)
+     since there's no longer any scroll room to reserve past the
+     content, and nothing here needs Log's finish-bar clearance.
+     margin-bottom:0 on the panel too -- with height:100% already
+     claiming the full content box, the existing 16px margin would
+     push a sliver past main#view's edge; harmless under
+     overflow:hidden (nothing visible gets clipped, it's empty margin
+     past the panel's own content) but zeroing it removes the
+     ambiguity rather than relying on that reasoning holding up. */
+  body.tab-insight-active main#view{
+    overflow:hidden;
+    padding:0 0 var(--safe-bottom);
+  }
+  /* Strips the bordered-card look (border, rounded corners, distinct
+     panel background) so the 3D model reads as a true full-bleed
+     scene filling the whole screen -- header text and the floating
+     stat readout just sit directly on top of the render. Paired with
+     main#view losing its own 16px padding above, so the panel (and by
+     extension .mg-3d-viewer, which already fills *it* edge-to-edge via
+     position:absolute;inset:0) reaches the actual screen edges instead
+     of floating inset within a margin. .mg-panel-content's own 16px/
+     14px padding is untouched, so header/row text still keeps a
+     sensible margin from the edges -- what is gone is the card
+     wrapping everything, not all spacing everywhere. overflow:hidden
+     stays on .mg-panel itself (unaffected by this override) as a
+     safety clip on the canvas, harmless now that there is no border-
+     radius left for it to visually round. */
+  body.tab-insight-active .mg-panel{
+    height:100%;
+    margin-bottom:0;
+    border:none;
+    border-radius:0;
+    background:none;
   }
 
   .section-label{
@@ -3098,23 +3158,386 @@
   }
   /* ---------- Progress: Muscle Volume Overview dashboard ---------- */
   .mg-panel{
+    position:relative;
+    overflow:hidden;
     background-color:var(--panel);
-    background-image:linear-gradient(180deg, rgba(8,9,11,0.75), rgba(8,9,11,0.92)), url('images/muscle-overview-bg.jpg');
-    background-size:cover;
-    background-position:center;
-    background-repeat:no-repeat;
     border:1px solid var(--line);
     border-radius:var(--radius);
-    padding:16px 14px;
+    min-height:480px;
     margin-bottom:16px;
   }
-  /* Intensity mode swaps in the red muscle-fiber illustration instead of
-     the gray anatomy figure — same overlay strength (checked against
-     this image's own brightness) and sizing, just a different photo. */
-  .mg-panel.mg-panel-intensity{
-    background-image:linear-gradient(180deg, rgba(8,9,11,0.75), rgba(8,9,11,0.92)), url('images/muscle-intensity-bg.jpg');
-  }
+  /* Both the default and intensity-mode background photos voided here
+     — the 3D viewer below takes over that role as the panel's visual
+     identity instead of a flat image. (mg-panel-intensity used to
+     override background-image for the red muscle-fiber variant;
+     nothing left for it to override now, so the class itself is just
+     inert going forward — harmless to leave on the element.) */
   .mg-panel-header{margin-bottom:12px;}
+  /* the 3D model as a full-bleed background
+     layer for the whole panel, header/rows overlaid on top of it (see
+     mg-panel-content below) -- same relationship the original
+     background photo had with the content sitting on top of it. */
+  .mg-3d-viewer{
+    position:absolute;
+    inset:0;
+    z-index:0;
+    /* Matches scene.background (0x14161a) -- this is what's visible
+       behind the loading spinner before the canvas takes over, and
+       briefly if the canvas is ever smaller than its wrap; keeping the
+       two in sync avoids a visible color snap when the real render
+       kicks in. Lightened from 0x0a0c10 on request (compared side by
+       side against a reference from a sibling app, SaviorFuel's food-
+       pyramid tab) -- was reading as too flat/pure-black. */
+    background:#14161a;
+    /* Without this, a touch-drag meant for OrbitControls (rotate the
+       model) also gets read by the browser as "scroll main#view" --
+       the two compete and you get the whole Progress tab scrolling
+       out from under you mid-drag instead of the model rotating
+       cleanly. touch-action:none hands the gesture entirely to
+       OrbitControls' own touch handling. */
+    touch-action:none;
+  }
+  .mg-3d-viewer canvas{display:block;width:100%;height:100%;}
+  /* The old version of this (25% opacity top -> 98% bottom) crushed
+     the model, especially the lower torso reading as almost solid
+     black -- got removed entirely for that. Brought back much gentler:
+     15% -> 40%, roughly a third the old gradient's strength at every
+     stop, and capped well short of "near solid black" at the bottom.
+     Just enough to take the edge off the brightest parts of the model
+     and add a little depth, not enough to hide anything. The row
+     cards/header/ring text-shadows added while this was off stay on --
+     harmless redundancy, and they are what carry legibility if this
+     ever needs tuning down again rather than this gradient alone. */
+  .mg-panel-scrim{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    background:linear-gradient(180deg, rgba(8,9,11,0.15) 0%, rgba(8,9,11,0.25) 50%, rgba(8,9,11,0.4) 100%);
+    pointer-events:none;
+  }
+  .mg-panel-content{
+    position:relative;
+    z-index:2;
+    padding:16px 14px;
+  }
+  .mg-3d-hint-inline{color:#82878f;}
+  /* compact muscle bars in a narrow sidebar
+     alongside the 3D model, rather than a full-width list stacking
+     below it -- leaves most of the panel clear so the model stays the
+     dominant visual. Positioned under an estimated header height
+     (top:64px) since the header itself is a normal-flow element with
+     content-dependent height; nudge this if it doesn't line up once
+     seen live. */
+  .mg-rows-sidebar{
+    position:absolute;
+    top:64px;
+    right:14px;
+    bottom:14px;
+    width:112px;
+    z-index:2;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .mg-row-mini{
+    flex-shrink:0;
+    width:100%;
+    text-align:left;
+    background:rgba(20,22,26,0.62);
+    border:1px solid rgba(255,255,255,0.09);
+    border-radius:7px;
+    padding:6px 8px;
+    cursor:pointer;
+  }
+  .mg-row-mini-name{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    color:#e9e6df;
+    margin-bottom:4px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    /* The card behind this (mg-row-mini) is only 62% opaque, so a
+       bright patch of the model can still show through and thin out
+       the contrast a little now that mg-panel-scrim (the old
+       panel-wide darkening gradient) is gone -- same reasoning as the
+       header/subtitle shadow below, just extra insurance here since
+       there's a background at all, unlike those two. */
+    text-shadow:0 1px 2px rgba(0,0,0,0.7);
+  }
+  .mg-row-mini.mg-good .mg-row-mini-name{color:var(--success);}
+  .mg-row-mini.mg-over .mg-row-mini-name{color:var(--accent-2);}
+  .mg-row-mini-bar-track{
+    display:block;
+    height:4px;
+    border-radius:2px;
+    background:rgba(255,255,255,0.14);
+    overflow:hidden;
+  }
+  /* transition here does nothing on an ordinary render -- every render
+     replaces this element wholesale via innerHTML, so there is no
+     "previous width" on a brand-new element for a transition to animate
+     from. It only actually plays when animateMg3dRowBars() explicitly
+     drives width 0% -> data-target-pct on these SAME already-mounted
+     elements after the fact (see that function for when it's called:
+     tab return, reset). cubic-bezier(0.22,1,0.36,1) ("ease-out-quint"
+     shaped -- fast start, long soft deceleration) reads smoother than
+     the plain ease-out this replaced, which decelerated too evenly/
+     linearly-feeling to read as a deliberate settle. animateMg3dRowBars
+     also staggers each bar's transition-delay a little, so they don't
+     all move in lockstep -- see that function. */
+  .mg-row-mini-bar-fill{display:block;height:100%;border-radius:2px;background:var(--mg-gold-dim);transition:width 750ms cubic-bezier(0.22,1,0.36,1);}
+  .mg-row-mini-bar-fill.mg-good{background:var(--success);}
+  .mg-row-mini-bar-fill.mg-over{background:var(--accent-2);}
+  /* callout shown over the model after
+     tapping a row -- ring on the left, "<label>" over "sets/cap" as two
+     stacked lines on the right (reference: a sketch the user sent of
+     ring-left/text-right, name and count on separate lines rather than
+     one "label — n/cap" line) -- echoing the tapped row's own number
+     back at eye level instead of making you glance over at the sidebar.
+     No card/background behind it -- floats directly over the model, so
+     the text gets a text-shadow and the ring a drop-shadow instead, for
+     legibility against whatever's under it. Positioned to stay clear of
+     mg-rows-sidebar (right:14px + 112px wide) via its own right:136px,
+     rather than a fixed pixel spot, so it still clears the sidebar if
+     that width ever changes. Fades in/out via opacity on a `.visible`
+     toggle instead of display:none, so the transition actually
+     animates. */
+  .mg-3d-callout{
+    position:absolute;
+    left:14px;
+    right:136px;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:3;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    gap:10px;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity 0.25s ease;
+  }
+  .mg-3d-callout.visible{opacity:1;}
+  /* Moving-border effect on every tap -- a short bright segment travels
+     once around the frame's rounded-rect border, then the border fades
+     out entirely (not left sitting there statically once the segment
+     has gone all the way round). Replaced an earlier drop-shadow glow
+     pulse with this.
+
+     The technique: a conic-gradient background on ::before, rotated by
+     animating the (Houdini/CSS custom-property) --mg3d-border-angle
+     from 0deg to 360deg -- @property is what makes that angle
+     interpolate smoothly frame-to-frame instead of snapping, since a
+     plain custom property has no defined type for the browser to
+     animate between. The conic-gradient alone would fill the whole
+     rect, not just its edge, so it gets masked down to a thin ring:
+     mask-composite:exclude (standard) / -webkit-mask-composite:xor
+     (the older equivalent, since -webkit-mask has broader support)
+     layers a content-box-only mask over a full mask and keeps only
+     where they DON'T overlap -- i.e. just the border-width strip,
+     matching .mg-3d-callout-frame's own padding.
+
+     One 1.6s keyframe animation covers a single lap (360deg) with the
+     fade concentrated in its own final 15% -- see the keyframe's own
+     comment for the fade-timing reasoning and this file's git history
+     for why it isn't two laps anymore (was 720deg/3.2s, changed on
+     request; duration was halved alongside the angle so the segment
+     keeps the same travel speed rather than covering half the distance
+     in the same time, which would read as slower).
+     Restarts on every tap via the same remove-reflow-readd
+     showMg3dCallout already does for .visible -- this animation is
+     standard CSS underneath so it gets that restart-on-reflow behavior
+     for free, no separate JS needed for this specific effect. */
+  .mg-3d-callout-frame{
+    position:relative;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    gap:10px;
+    padding:6px 10px;
+    border-radius:12px;
+  }
+  .mg-3d-callout-frame::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:12px;
+    padding:2px;
+    background:conic-gradient(from var(--mg3d-border-angle), transparent 0%, var(--accent) 6%, rgba(242,177,52,0.6) 12%, transparent 22%, transparent 100%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite:exclude;
+    opacity:0;
+    pointer-events:none;
+  }
+  .mg-3d-callout.visible .mg-3d-callout-frame::before{
+    opacity:1;
+    animation:mg3dBorderTravel 1.6s linear;
+  }
+  @property --mg3d-border-angle{
+    syntax:'<angle>';
+    inherits:false;
+    initial-value:0deg;
+  }
+  @keyframes mg3dBorderTravel{
+    /* One lap (360deg) instead of two -- also halved the duration
+       (3.2s -> 1.6s) to keep the segment moving at the same speed it
+       was before, rather than the same speed lap covering half the
+       distance reading as slower overall. Fade still folded into this
+       same keyframe's own final 15% rather than iteration-count -- see
+       the moving-border commit this replaced 720deg from for why that
+       matters (a repeat-iteration approach resets opacity at the start
+       of each lap instead of fading once at the true end). */
+    0%{ --mg3d-border-angle:0deg; opacity:1; }
+    85%{ --mg3d-border-angle:306deg; opacity:1; }
+    100%{ --mg3d-border-angle:360deg; opacity:0; }
+  }
+  .mg-3d-callout-text{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .mg-3d-callout-name{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+    font-weight:700;
+    color:#e9e6df;
+    white-space:nowrap;
+    text-shadow:0 1px 3px rgba(0,0,0,0.85), 0 0 10px rgba(0,0,0,0.6);
+  }
+  .mg-3d-callout-count-line{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    font-weight:700;
+    color:#e9e6df;
+    opacity:0.82;
+    white-space:nowrap;
+    text-shadow:0 1px 3px rgba(0,0,0,0.85), 0 0 10px rgba(0,0,0,0.6);
+  }
+  .mg-3d-callout-ring{
+    width:38px;
+    height:38px;
+    flex-shrink:0;
+    transform:rotate(-90deg); /* SVG circles start their stroke at 3 o'clock; rotate so the fill grows from the top like a clock */
+    /* Strengthened alongside removing mg-panel-scrim -- the ring track
+       (a fairly faint rgba(255,255,255,0.22) stroke) used to get some
+       extra pop from the darkening gradient behind it; a bit more
+       shadow here makes up for that now that it is gone. */
+    filter:drop-shadow(0 1px 5px rgba(0,0,0,0.85));
+    /* Per-state glow color for the tap shine below -- set via a class
+       on this SVG itself (mirrors the same stateClass already applied
+       to .mg-3d-callout-ring-fill, just also present here so CSS has
+       something to key the color off of at this element). Default
+       (no modifier class) is the dim/under-target gold. */
+    --mg3d-ring-glow:var(--accent);
+  }
+  .mg-3d-callout-ring.mg-good{ --mg3d-ring-glow:var(--success); }
+  .mg-3d-callout-ring.mg-over{ --mg3d-ring-glow:var(--accent-2); }
+  .mg-3d-callout.visible .mg-3d-callout-ring{
+    animation:mg3dRingShine 550ms ease-out;
+  }
+  @keyframes mg3dRingShine{
+    /* A quick shine directly on the ring's own stroke -- small blur
+       radius (7px) so it stays tight to the ring itself rather than
+       bleeding out into the surrounding area the way the border-travel
+       effect or the old glow pulse did; genuinely a different, shorter
+       effect from that one (550ms vs. the border's 1.6s), not the same
+       thing renamed. Layered as a SECOND drop-shadow() alongside the
+       existing dark contact-shadow above rather than replacing it --
+       filter accepts multiple stacked drop-shadow() functions, so the
+       contact shadow stays constant underneath while just the colored
+       glow layer fades in and back out. Colored via the --mg3d-ring-
+       glow custom property so the same keyframe works for all three
+       states without needing three separate keyframe blocks. */
+    0%{ filter:drop-shadow(0 1px 5px rgba(0,0,0,0.85)) drop-shadow(0 0 0px transparent); }
+    30%{ filter:drop-shadow(0 1px 5px rgba(0,0,0,0.85)) drop-shadow(0 0 7px var(--mg3d-ring-glow)); }
+    100%{ filter:drop-shadow(0 1px 5px rgba(0,0,0,0.85)) drop-shadow(0 0 0px transparent); }
+  }
+  .mg-3d-callout-ring-track{
+    fill:none;
+    stroke:rgba(255,255,255,0.22);
+    stroke-width:4;
+  }
+  .mg-3d-callout-ring-fill{
+    fill:none;
+    stroke:var(--mg-gold-dim);
+    stroke-width:4;
+    stroke-linecap:round;
+  }
+  .mg-3d-callout-ring-fill.mg-good{stroke:var(--success);}
+  .mg-3d-callout-ring-fill.mg-over{stroke:var(--accent-2);}
+  /* bottom-left reset button -- after
+     rotating/zooming the model with the drag gesture, this snaps the
+     camera back to mg3dState.defaultPos/defaultTarget (see
+     resetMg3dView) via the same tween goToMuscleView uses. Same visual
+     language as .mg-settings-btn (size, translucent bg, border) but
+     that one lives inline in the header row; this needs its own
+     absolute position since it floats over the model in the opposite
+     corner from the rows sidebar. */
+  .mg-3d-reset-btn{
+    position:absolute;
+    left:14px;
+    bottom:14px;
+    z-index:3;
+    width:30px;
+    height:30px;
+    flex-shrink:0;
+    border-radius:var(--radius-sm);
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.16);
+    color:#e9e6df;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+  }
+  .mg-3d-reset-btn svg{width:16px;height:16px;display:block;}
+  .mg-3d-reset-btn:active{background:rgba(255,255,255,0.14);}
+  /* Sits directly right of .mg-3d-reset-btn (left:14px + 30px wide +
+     8px gap = 52px) -- toggles toggleMg3dPlain(), same visual language
+     again, just a half-filled circle icon standing in for "plain vs
+     textured" since there is not an obvious universal icon for that. */
+  .mg-3d-plain-btn{
+    position:absolute;
+    left:52px;
+    bottom:14px;
+    z-index:3;
+    width:30px;
+    height:30px;
+    flex-shrink:0;
+    border-radius:var(--radius-sm);
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.16);
+    color:#e9e6df;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+  }
+  .mg-3d-plain-btn svg{width:16px;height:16px;display:block;}
+  .mg-3d-plain-btn:active{background:rgba(255,255,255,0.14);}
+  .mg-3d-loading{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:#82878f;
+    z-index:1;
+  }
   .mg-panel-title-row{display:flex;justify-content:space-between;align-items:center;gap:10px;}
   .mg-panel-header h3{
     font-family:'Oswald',sans-serif;
@@ -3666,7 +4089,7 @@
     position:absolute;
     top:-1px;
     left:8px;
-    width:calc((100% - 16px) / 4);
+    width:calc((100% - 16px) / 5);
     height:2.5px;
     border-radius:2px;
     background:var(--accent);
@@ -4047,6 +4470,12 @@
   .boot-loading-mark span{color:var(--accent);}
   @keyframes bootPulse{ 0%,100%{opacity:.4;} 50%{opacity:.9;} }
 </style>
+  <!-- Three.js r128 + the matching GLTFLoader/OrbitControls examples
+       builds, for the 3D model in Muscle Volume Overview (Insight tab). -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 <div id="bootLoading" class="boot-loading"><div class="boot-loading-mark">SAVIORFIT <span>LOGGER</span></div></div>
@@ -4086,14 +4515,11 @@
     <button class="btn-primary" id="finishSessionBtn" data-action="finish-session" disabled>Finish Session</button>
     <button class="add-set-global-btn" data-action="add-set-global" disabled>&#10003; Add Set</button>
   </div>
-  <nav class="progress-subtabbar hidden" id="progressSubtabbar">
-    <button data-action="back-to-muscle-dashboard" data-view="dashboard">Volume overview</button>
-    <button data-action="open-exercise-progression" data-view="exercise">Exercise progression</button>
-  </nav>
   <nav class="tabbar" id="tabbar">
     <span class="tab-indicator" id="tabIndicator"></span>
     <button data-action="set-tab" data-tab="log"><span class="tab-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="1" y="4" width="4" height="16" rx="1.3"/><rect x="19" y="4" width="4" height="16" rx="1.3"/><rect x="5" y="10.4" width="14" height="3.2" rx="1"/></svg></span>Log</button>
     <button data-action="set-tab" data-tab="history"><span class="tab-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="5" width="18" height="3" rx="1"/><rect x="3" y="10.5" width="18" height="3" rx="1"/><rect x="3" y="16" width="12" height="3" rx="1"/></svg></span>History</button>
+    <button data-action="set-tab" data-tab="insight"><span class="tab-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="3"/><path d="M12 9c-3 0-5.5 2-6 5l-1 7h3l.8-6h1.2v6h2v-6h1.2l.8 6h3l-1-7c-.5-3-3-5-6-5z"/></svg></span>Insight</button>
     <button data-action="set-tab" data-tab="progress"><span class="tab-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="14" width="4" height="7" rx="1"/><rect x="10" y="9" width="4" height="12" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg></span>Progress</button>
     <button data-action="set-tab" data-tab="settings"><span class="tab-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg></span>Settings</button>
   </nav>
@@ -9305,53 +9731,17 @@
       // CUSTOM_GREEN_PCT).
       var greenFloor = profile.isCustom ? Math.ceil(cap * CUSTOM_GREEN_PCT) : profile.greenMinSets;
       var stateClass = g.sets > cap ? ' mg-over' : (g.sets >= greenFloor ? ' mg-good' : '');
-      // Ring glow around the muscle thumbnail scales with this week's
-      // volume (pct, already computed above) and matches whichever
-      // state color the row itself is already using (gold default,
-      // green at/above the floor, red past the cap) -- same color
-      // language as the bar right next to it, just as a glow instead of
-      // a fill. Intensity from pct alone (not a fixed strong glow at
-      // any nonzero volume) so a barely-touched muscle stays visually
-      // quiet and a heavily-trained one actually stands out.
-      var glowRgb = g.sets > cap ? '193,68,60' : (g.sets >= greenFloor ? '95,184,106' : 'var(--accent-rgb)');
-      var glowAlpha = (pct / 100) * 0.65;
-      var glowSpread = 2 + (pct / 100) * 5;
-      var glowBlur = 4 + (pct / 100) * 10;
-      var thumbImg = MUSCLE_IMG[g.key];
-      // Whole row toggles the exercise list open/closed now — tapping
-      // anywhere on it, not just the small arrow text. Used to navigate
-      // to the muscle-filtered Exercise Progression list instead
-      // (open-muscle-drilldown); dropped in favor of expand, since
-      // navigating away on every tap made the arrow the only thing that
-      // actually got the tap people meant to make.
-      html += '<div class="mg-row" data-action="toggle-mg-exercises" data-muscle="'+esc(g.key)+'">' +
-                '<div class="mg-row-head">' +
-                  (thumbImg ? '<span class="mg-row-thumb-wrap" style="box-shadow:0 0 '+glowBlur.toFixed(0)+'px '+glowSpread.toFixed(0)+'px rgba('+glowRgb+','+glowAlpha.toFixed(2)+');"><img class="mg-row-thumb" src="'+thumbImg+'" alt="" loading="lazy"></span>' : '') +
-                  '<span class="mg-row-name">'+esc(g.label)+'</span>' +
-                  '<span class="mg-row-count'+stateClass+'">'+g.sets+' / '+cap+' sets</span>' +
-                '</div>' +
-                '<div class="mg-bar-track"><div class="mg-bar-fill'+stateClass+'" style="width:'+pct+'%"></div></div>';
-      if (g.topExercises.length){
-        // Collapsed by default — the chip list wraps unevenly (pill
-        // widths vary, so the last row rarely fills), which reads messy
-        // sitting open in every row all the time. Plain span now, not a
-        // button — the whole row already carries the toggle action, a
-        // second nested control here would just be redundant.
-        var expanded = !!ui.mgExpandedGroups[g.key];
-        html += '<span class="mg-chips-toggle">' +
-                  (expanded ? '\u25b4 Hide exercises' : '\u25be '+g.topExercises.length+' exercise'+(g.topExercises.length===1?'':'s')) +
-                '</span>';
-        if (expanded){
-          html += '<div class="mg-chips">';
-          g.topExercises.forEach(function(name){
-            html += '<button type="button" class="mg-chip" data-action="open-exercise-drilldown" data-name="'+esc(name)+'">'+esc(name)+'</button>';
-          });
-          html += '</div>';
-        }
-      } else {
-        html += '<div class="mg-empty-note">No sets logged this week</div>';
-      }
-      html += '</div>';
+      // Collapsed to just a name + a small bar -- no thumbnail (the 3D
+      // model itself is the visual identity now, a second small image
+      // reads redundant next to it) and no expand-to-show-exercises (a
+      // 120px-wide sidebar has nowhere reasonable for a chip list to
+      // expand into without looking cramped). Tapping flies the camera
+      // to that region (mg-3d-focus-muscle) -- that's the one
+      // interaction this compact view keeps.
+      html += '<button type="button" class="mg-row-mini'+stateClass+'" data-action="mg-3d-focus-muscle" data-muscle="'+esc(g.key)+'">' +
+                '<span class="mg-row-mini-name">'+esc(g.label)+'</span>' +
+                '<span class="mg-row-mini-bar-track"><span class="mg-row-mini-bar-fill'+stateClass+'" data-target-pct="'+pct+'" style="width:'+pct+'%"></span></span>' +
+              '</button>';
     });
     return html;
   }
@@ -9794,6 +10184,31 @@
     var activeProfile = getActiveProfile();
 
     var html = '<div class="mg-panel'+(activeProfile.key === 'intensity' ? ' mg-panel-intensity' : '')+'">';
+
+    // The 3D model sits as a full-bleed background layer for the whole
+    // panel (position:absolute, inset:0, z-index:0) rather than a
+    // separate hero block above the rows -- same relationship the
+    // original background photo had with the header/rows content
+    // sitting on top of it, just with the 3D viewer taking over that
+    // role. mg-panel-scrim is a pointer-events:none gradient between
+    // the canvas and the text content so drags in the gaps between
+    // rows still reach OrbitControls underneath, while the rows/header
+    // themselves (in mg-panel-content, z-index:2) stay fully legible
+    // and tappable on top of a visually busy model. initMg3dViewer()
+    // only does its expensive first-time setup once -- safe to call on
+    // every render even though this whole panel's HTML gets rebuilt
+    // from scratch each time Insight re-renders.
+    html += '<div class="mg-3d-viewer" id="mg3dViewer"><div class="mg-3d-loading" id="mg3dLoading">Loading model\u2026</div></div>';
+    html += '<div class="mg-panel-scrim"></div>';
+    html += '<div class="mg-3d-callout" id="mg3dCallout"></div>';
+    html += '<button type="button" class="mg-3d-reset-btn" data-action="mg-3d-reset-view" aria-label="Reset view">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.64-6.36"/><path d="M3 3v6h6"/></svg>' +
+            '</button>';
+    html += '<button type="button" class="mg-3d-plain-btn" data-action="mg-3d-toggle-plain" aria-label="Toggle plain / textured">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>' +
+            '</button>';
+
+    html += '<div class="mg-panel-content">';
     html += '<div class="mg-panel-header">' +
               '<div class="mg-panel-title-row"><h3>Muscle Volume Overview</h3>' +
                 '<div class="mg-header-btns">' +
@@ -9805,12 +10220,588 @@
                   '</button>' +
                 '</div>' +
               '</div>' +
-              '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+' \u00b7 '+esc(activeProfile.badge)+'</span></div>';
+              '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+' \u00b7 '+esc(activeProfile.badge)+' \u00b7 <span class="mg-3d-hint-inline">tap a muscle to focus</span></span></div>';
+    html += '</div>'; // .mg-panel-content (header only now -- rows moved to their own sidebar, see below)
 
-    html += renderMuscleOverviewRows(activeProfile, weeklyData);
+    html += '<div class="mg-rows-sidebar">' + renderMuscleOverviewRows(activeProfile, weeklyData) + '</div>';
 
     html += '</div>';
     return html;
+  }
+
+  // ===========================================================
+  // 3D model in Muscle Volume Overview (Insight tab).
+  //
+  // Important honesty note for future-me: the model (Tripo export,
+  // model.glb) is ONE CONTINUOUS MESH with no separate parts per
+  // muscle — confirmed by inspecting the raw glTF JSON (1 node, 1
+  // mesh, 1 material) and visually in the standalone viewer's
+  // wireframe mode. There is no way to select or highlight an
+  // individual muscle region on this asset. What this DOES do
+  // honestly: fly the CAMERA to a preset position/rotation that
+  // frames roughly where a given muscle group sits on a standard
+  // human figure — not select the muscle, just point the camera at
+  // that area and zoom in. That distinction matters; don't let this
+  // comment or the UI drift into implying real muscle selection.
+  // ===========================================================
+  var mg3dState = null; // { scene, camera, renderer, controls, model } once initialized
+  var mg3dCalloutTimer = null; // pending auto-hide timeout for the tap callout, see showMg3dCallout
+  var mg3dCalloutAnimFrame = null; // pending RAF for the callout's zero-to-value fill/count-up animation
+
+  // Camera presets per muscle key. Two schemas coexist here:
+  //   - azimuthDeg (new, used by the 6 coarse keys the Volume Overview
+  //     rows actually send — see data-muscle="'+g.key+'" in
+  //     renderMuscleOverviewRows): a free camera angle in degrees around
+  //     the model (0 = straight front, 180 = straight back, negative =
+  //     turned toward -X), plus camYOffset, the camera's height above
+  //     its own targetY (world units) -- lets close/angled shots look
+  //     level instead of tilted up. Hand-tuned against reference shots
+  //     of each row so the framing reads as an intentional close-up,
+  //     not just "somewhere on the body".
+  //   - side ('front'/'back', legacy): the original binary front-or-back
+  //     scheme. Still used by the fine-grained keys below (Traps,
+  //     Biceps, etc.) -- those aren't wired to any tap target today (the
+  //     rows only ever send the 6 coarse keys), kept here for whenever
+  //     a fine-grained drilldown view gets built. goToMuscleView()
+  //     supports both schemas.
+  // targetY is always 0-1, a fraction of the model's normalized ~1.8
+  // unit height.
+  var MG_3D_CAMERA_PRESETS = {
+    // Distance tightened on both -- with the panel now filling the
+    // whole screen (see the strip-the-card commit), these two left a
+    // real empty gap below the torso before hitting the reset button,
+    // confirmed against a marked-up screenshot showing exactly that
+    // gap. Chest, Shoulders, Arms, Legs and Core were all checked at
+    // the same time; only these two actually had the problem -- the
+    // others are tight enough shots already that they fill the taller
+    // frame fine as-is. Went as tight as each could go before the head
+    // itself started clipping at the top edge (confirmed by rendering
+    // -- Back couldn't go quite as tight as Chest before that happened).
+    Chest:      { side: 'front', targetY: 0.75, distance: 1.05 },
+    Back:       { side: 'back',  targetY: 0.7111, distance: 1.25 },
+    // distance tightened 0.78 -> 0.68 for the same reason Chest/Back
+    // were -- properly measured this time (pixel analysis of the
+    // center band, not eyeballing a screenshot): was 89.3% fill/10.5%
+    // top gap at the old distance, now 95.5%/4.4%, confirmed via
+    // rendering the exact final value, not just the test candidate.
+    Shoulders:  { azimuthDeg: 110, targetY: 0.861, distance: 0.68, camYOffset: 0.02 },
+    Arms:       { azimuthDeg: 110, targetY: 0.722, distance: 1.1, camYOffset: 0.10 },
+    // Pulled back from the original (distance:1.2, targetY:0.25) --
+    // that framing was tuned tight enough to match an early reference
+    // screenshot that itself had cropped feet, but it read as a
+    // genuine bug once actually seen live (feet cut off right at the
+    // frame edge, confirmed by re-rendering the exact old values and
+    // comparing). This distance/targetY leaves the feet fully in frame
+    // with a small margin below them.
+    Legs:       { azimuthDeg: -20, targetY: 0.278,  distance: 1.45, camYOffset: 0.05 },
+    Core:       { azimuthDeg: -25, targetY: 0.694, distance: 0.9, camYOffset: 0.05 },
+    Traps:      { side: 'back',  targetY: 0.90, distance: 1.3 },
+    Biceps:     { side: 'front', targetY: 0.75, distance: 1.3 },
+    Triceps:    { side: 'back',  targetY: 0.75, distance: 1.3 },
+    Forearms:   { side: 'front', targetY: 0.55, distance: 1.3 },
+    Abs:        { side: 'front', targetY: 0.68, distance: 1.5 },
+    Quads:      { side: 'front', targetY: 0.42, distance: 1.6 },
+    Hamstrings: { side: 'back',  targetY: 0.42, distance: 1.6 },
+    Glutes:     { side: 'back',  targetY: 0.52, distance: 1.4 },
+    Calves:     { side: 'back',  targetY: 0.15, distance: 1.5 }
+  };
+
+
+  function initMg3dViewer(){
+    var wrap = document.getElementById('mg3dViewer');
+    if (!wrap || typeof THREE === 'undefined') return;
+
+    if (mg3dState){
+      // Scene/renderer/model already exist from an earlier render --
+      // renderMuscleGroupsOverviewHtml() rebuilds this whole panel's
+      // HTML from scratch on every render (switching Progress sub-tabs,
+      // logging a set, anything that triggers a re-render), which means
+      // a fresh #mg3dViewer div every time. The renderer's canvas is
+      // still alive, just sitting in the OLD, now-detached div -- needs
+      // re-attaching to the new one, not recreating the whole scene
+      // from scratch (that would mean reloading and re-decoding the
+      // model on every single re-render, which is not something
+      // worth doing when the model itself hasn't changed).
+      wrap.appendChild(mg3dState.renderer.domElement);
+      mg3dState.wrap = wrap;
+      var w = wrap.clientWidth, h = wrap.clientHeight;
+      if (w && h){
+        mg3dState.camera.aspect = w / h;
+        mg3dState.camera.updateProjectionMatrix();
+        mg3dState.renderer.setSize(w, h);
+      }
+      // Every render rebuilds this whole panel's DOM from scratch,
+      // wrap included -- the OLD element the observer was watching is
+      // now detached/stale, so it has to be re-pointed at the fresh
+      // one each time, not just left running against a dead node.
+      if (mg3dState.resizeObserver){
+        mg3dState.resizeObserver.disconnect();
+        mg3dState.resizeObserver.observe(wrap);
+      }
+      if (mg3dState.model){
+        var loadingEl = document.getElementById('mg3dLoading');
+        if (loadingEl) loadingEl.style.display = 'none';
+      }
+      // animate() (below) pauses itself once mg3dState.wrap stops being
+      // in the document -- i.e. once you've navigated off Progress and
+      // this whole panel's DOM got torn out. Without this, the render
+      // loop ran forever in the background for the rest of the
+      // session, no matter which tab you were actually on: a full
+      // WebGL render call plus controls.update() every ~16ms,
+      // competing with whatever a later tab switch itself needed the
+      // main thread for. Restart it here now that a connected wrap
+      // exists again.
+      //
+      // rafId only ever actually reaches null when the old wrap sat
+      // disconnected across a real animation frame -- a same-tab
+      // re-render (logging a set while still looking at Progress)
+      // tears out and reattaches the wrap synchronously, before
+      // animate()'s already-pending frame ever gets a chance to fire
+      // and notice, so rafId stays a live (non-null) handle through
+      // that case. That makes it double as a reliable "you genuinely
+      // left and came back" signal, not just "the panel re-rendered" --
+      // which is what the camera reset and row-bar fill-up below are
+      // both keying off of too, so all of it only fires on an actual
+      // tab switch, not every set logged.
+      if (mg3dState.rafId === null && mg3dState.animate){
+        mg3dState.animate();
+        tweenMg3dCamera(mg3dState.defaultPos.clone(), mg3dState.defaultTarget.clone());
+        animateMg3dRowBars();
+      }
+      return;
+    }
+
+    var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x14161a);
+
+    var camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.1, 100);
+    // Nudged down slightly from (0, 1.4, 2.6)/target(0,1.0,0) -- with
+    // the panel now filling the whole screen (see the strip-the-card
+    // commit), the same old framing left the head crowded right under
+    // the header text with a lot of empty room below the feet. Raising
+    // targetY a little shifts the model down in-frame; distance had to
+    // come up too (2.6 -> 2.75) since targetY alone at the old distance
+    // started clipping the feet at the bottom edge -- confirmed by
+    // actually rendering several combinations, not assumed.
+    //
+    // Deliberately NOT tightened further to chase a higher frame-fill
+    // percentage the way Chest/Back/Shoulders were -- measured this
+    // (properly, via pixel analysis) at ~80% fill with real margin top
+    // and bottom, which sounds worse than it is: this is the only view
+    // meant to show the WHOLE body (every muscle preset is an
+    // intentional close-up that doesn't need to). Tried tightening it
+    // anyway to see if the gap could shrink safely -- every candidate
+    // that meaningfully closed the gap ended up cropping the feet,
+    // confirmed by rendering and visually inspecting each one, not just
+    // trusting the fill-percentage number (which can read as "filled"
+    // even when what's filling the bottom edge is cropped thighs, not
+    // feet). The remaining gap here is a real trade-off for showing
+    // head-to-toe in a narrow frame, not an oversight.
+    camera.position.set(0, 1.43, 2.75);
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    wrap.appendChild(renderer.domElement);
+
+    var controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 1.03, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 0.6;
+    controls.maxDistance = 5;
+    // Rotate-only drag, horizontal (azimuthal) only -- no zoom, no pan,
+    // and no vertical tilt either. enableZoom/enablePan block those
+    // gesture types outright; the vertical-tilt lock instead works by
+    // pinning minPolarAngle === maxPolarAngle to the CURRENT view's own
+    // polar angle (computed from whichever preset -- or the default
+    // view -- is showing, see mg3dPolarAngleFor and its call sites in
+    // goToMuscleView/resetMg3dView) -- OrbitControls simply can't move
+    // phi outside a zero-width range, so vertical drag has nowhere to
+    // go while horizontal (theta) stays completely free, all the way
+    // around. Locking it to whatever the CURRENT preset's own elevation
+    // actually is (rather than one fixed angle for every preset) means
+    // this never fights a preset's own tuned framing -- you can spin
+    // fully around whatever's showing, just not tilt it off-angle.
+    controls.enableZoom = false;
+    controls.enablePan = false;
+    controls.enableRotate = true;
+    controls.minPolarAngle = controls.maxPolarAngle = mg3dPolarAngleFor(1.43 - 1.03, 2.75); // matches defaultPos/defaultTarget below
+    // Idle auto-spin runs whenever nothing's actively being dragged
+    // (OrbitControls' own update() gates autoRotate on its internal
+    // state === NONE, which a live drag already occupies) -- keeps
+    // spinning until a muscle's tapped (goToMuscleView turns it off) or
+    // manually paused, resumes on reset. autoRotateSpeed default is 2
+    // (~30s/revolution); 1.5 here, ~40s/revolution, calmer than that
+    // but not so slow it reads as static.
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 1.5;
+    controls.update();
+
+    // Brightened twice now -- 1.1/0.45/0.65 (original) then 1.6/0.7/0.85,
+    // still too dark on the close angled shots (Shoulders/Arms), where
+    // the far side of the form from `key` falls into shadow with nothing
+    // to lift it. Pushed key/fill/hemi further AND added a fourth light
+    // (`nearFill`) that rides near the camera rather than a fixed scene
+    // position -- since it's set once here at the viewer's initial
+    // camera pos, it's a reasonable approximation for most framings, not
+    // a true camera-following light (would need updating per-frame in
+    // the render loop to truly track goToMuscleView's tween).
+    // HemisphereLight (sky/ground split) still stands in for ambient --
+    // fills shadows on every angle without flattening the muscle
+    // definition the way a flat AmbientLight would at this intensity.
+    var key = new THREE.DirectionalLight(0xffffff, 2.1);
+    key.position.set(2, 3, 2);
+    var fill = new THREE.DirectionalLight(0xaeb8c2, 1.2);
+    fill.position.set(-3, 1, -1);
+    var nearFill = new THREE.DirectionalLight(0xffffff, 0.5);
+    nearFill.position.set(0.5, 1.7, 0.9);
+    var hemi = new THREE.HemisphereLight(0x9b9b9b, 0x404040, 1.1);
+    scene.add(key, fill, nearFill, hemi);
+
+    mg3dState = { scene: scene, camera: camera, renderer: renderer, controls: controls, model: null, wrap: wrap, defaultTarget: new THREE.Vector3(0,1.03,0), defaultPos: new THREE.Vector3(0,1.43,2.75), rafId: null, animate: null, resizeObserver: null };
+
+    var loader = new THREE.GLTFLoader();
+    // model.glb is now Draco-compressed (18.3MB -> 1.18MB) -- decoder
+    // files are self-hosted in /draco/ alongside this file rather than
+    // pointed at a CDN, so the model doesn't depend on a third-party
+    // decoder host staying up.
+    var dracoLoader = new THREE.DRACOLoader();
+    dracoLoader.setDecoderPath('draco/');
+    loader.setDRACOLoader(dracoLoader);
+    loader.load('model.glb', function(gltf){
+      var model = gltf.scene;
+      var box = new THREE.Box3().setFromObject(model);
+      var size = box.getSize(new THREE.Vector3());
+      var center = box.getCenter(new THREE.Vector3());
+      var scale = 1.8 / size.y;
+      model.scale.setScalar(scale);
+      model.position.set(-center.x*scale, -box.min.y*scale, -center.z*scale);
+      scene.add(model);
+      mg3dState.model = model;
+
+      // Plain/texture toggle: there's no separate "plain" model file --
+      // same geometry either way, just a different material swapped
+      // onto the same mesh node, so toggling is instant and costs no
+      // extra download. Only handles the first mesh found since this
+      // model is a single continuous mesh with one material (see
+      // earlier inspection: 1 node/1 mesh/1 material) -- would need a
+      // full traverse-and-store-per-node if that ever changes.
+      model.traverse(function(node){
+        if (node.isMesh && !mg3dState.texturedMaterial){
+          mg3dState.meshNode = node;
+          mg3dState.texturedMaterial = node.material;
+          // Color here is much darker than it looks like it should be
+          // (0x303030, ~19% grey) -- this panel's light rig runs hot
+          // (key 2.1 + fill 1.2 + nearFill 0.5 + hemi 1.1, tuned so the
+          // muscle texture reads brightly enough), and there is no tone
+          // mapping to roll off highlights, so a flat mid-grey like
+          // 0x9a9a9a or even 0x5c5c5c still clipped straight to white
+          // in lit areas when actually tested against this rig. The
+          // muscle texture never had this problem since its own baked-
+          // in shadow/AO variation keeps it out of clipping range; a
+          // flat color has no such protection. Confirmed by rendering
+          // several candidates against the real light rig before
+          // landing here -- this is the point where it reads as an
+          // actual grey clay figure instead of an overexposed white one.
+          mg3dState.plainMaterial = new THREE.MeshStandardMaterial({
+            color: 0x303030,
+            roughness: 0.8,
+            metalness: 0,
+            normalMap: node.material.normalMap || null // keeps the muscle definition readable via lighting/shading even with the color gone
+          });
+          // Plain is the default view now -- apply it immediately on
+          // load rather than waiting for a tap. toggleMg3dPlain() just
+          // flips mg3dState.plainMode and swaps the material based on
+          // it, so staying in sync with that (rather than setting
+          // meshNode.material directly here) means the button's first
+          // tap correctly reads as "switch to textured" instead of
+          // re-applying plain on top of plain.
+          mg3dState.plainMode = true;
+          node.material = mg3dState.plainMaterial;
+        }
+      });
+
+      var loadingEl = document.getElementById('mg3dLoading');
+      if (loadingEl) loadingEl.style.display = 'none';
+    }, undefined, function(err){
+      var loadingEl = document.getElementById('mg3dLoading');
+      if (loadingEl) loadingEl.textContent = 'Model failed to load';
+      console.error('mg3d load error', err);
+    });
+
+    window.addEventListener('resize', function(){
+      if (!mg3dState || !mg3dState.wrap) return;
+      var w = mg3dState.wrap.clientWidth, h = mg3dState.wrap.clientHeight;
+      if (!w || !h) return;
+      mg3dState.camera.aspect = w / h;
+      mg3dState.camera.updateProjectionMatrix();
+      mg3dState.renderer.setSize(w, h);
+    });
+
+    // Confirmed via a live diagnostic (elementsFromPoint at several
+    // heights, sampled repeatedly so the reading couldn't be a stale
+    // snapshot): the canvas was genuinely shorter than its own
+    // container, missing from the hit-test stack over roughly the
+    // bottom 10% of the panel where only the plain wrap div showed up.
+    // window's own resize event doesn't fire for everything that can
+    // change #mg3dViewer's actual size on a real phone -- most likely
+    // culprit is mobile Chrome's address bar auto-hiding as you
+    // scroll, which changes the available viewport height without
+    // necessarily firing a window resize at a moment where
+    // clientHeight has already settled to the new value. ResizeObserver
+    // is the correct tool for this specifically -- it reports whenever
+    // the OBSERVED ELEMENT's own size changes, regardless of what
+    // caused it, rather than guessing at which window-level events to
+    // also listen for. Created once here; the reuse branch above
+    // re-targets it at each render's fresh wrap element (this whole
+    // panel's DOM, wrap included, gets rebuilt from scratch on every
+    // render, so the OLD observed element goes stale/detached each
+    // time -- has to be pointed at the new one, not just left running).
+    mg3dState.resizeObserver = new ResizeObserver(function(){
+      if (!mg3dState || !mg3dState.wrap) return;
+      var w = mg3dState.wrap.clientWidth, h = mg3dState.wrap.clientHeight;
+      if (!w || !h) return;
+      mg3dState.camera.aspect = w / h;
+      mg3dState.camera.updateProjectionMatrix();
+      mg3dState.renderer.setSize(w, h);
+    });
+    mg3dState.resizeObserver.observe(wrap);
+
+    function animate(){
+      // Stops rescheduling itself once this panel's wrap node is no
+      // longer in the document (navigated off Progress) instead of
+      // running forever in the background -- see the reuse branch
+      // above for where this gets restarted.
+      if (!mg3dState.wrap || !mg3dState.wrap.isConnected){
+        mg3dState.rafId = null;
+        return;
+      }
+      controls.update();
+      renderer.render(scene, camera);
+      mg3dState.rafId = requestAnimationFrame(animate);
+    }
+    mg3dState.animate = animate;
+    animate();
+  }
+
+  // Smoothly tweens the camera to a muscle's preset framing over
+  // ~700ms, rather than snapping instantly -- a hard cut reads as
+  // broken/glitchy for a camera move, a tween reads as intentional.
+  // Polar angle (angle from straight-up) of a camera sitting
+  // horizontalDistance away and offsetY above its own target -- used to
+  // lock OrbitControls' vertical drag range (minPolarAngle ===
+  // maxPolarAngle) to whatever the CURRENT preset's own elevation is,
+  // so horizontal drag stays completely free while vertical tilt has
+  // nowhere to go. atan2 rather than acos+division -- no risk of
+  // dividing by a near-zero distance, and no need to clamp an
+  // out-of-domain acos input from floating-point error.
+  function mg3dPolarAngleFor(offsetY, horizontalDistance){
+    return Math.atan2(horizontalDistance, offsetY);
+  }
+
+  // Disables OrbitControls' own damping updates during the tween (they'd
+  // fight the manual position writes) and re-enables after. Shared by
+  // goToMuscleView and resetMg3dView -- both just compute an end
+  // position/target and hand off to the same eased tween.
+  var mg3dTweenToken = 0;
+  function tweenMg3dCamera(endPos, endTarget, duration){
+    var startPos = mg3dState.camera.position.clone();
+    var startTarget = mg3dState.controls.target.clone();
+    var startTime = null;
+    duration = duration || 700;
+
+    // Tapping a second muscle before the first tween finished used to
+    // run two independent rAF loops at once, each dragging the camera
+    // toward a different destination on the same frame -- that fight
+    // between two in-flight tweens is what actually looked glitchy,
+    // more so than the damping issue below. A fresh token invalidates
+    // whichever loop was already running.
+    var myToken = ++mg3dTweenToken;
+    mg3dState.controls.enableDamping = false;
+
+    function tween(now){
+      if (myToken !== mg3dTweenToken) return; // superseded by a newer tween
+      if (startTime === null) startTime = now;
+      var t = Math.min(1, (now - startTime) / duration);
+      var eased = 1 - Math.pow(1 - t, 3);
+      mg3dState.camera.position.lerpVectors(startPos, endPos, eased);
+      mg3dState.controls.target.lerpVectors(startTarget, endTarget, eased);
+      mg3dState.controls.update();
+      if (t < 1){
+        requestAnimationFrame(tween);
+      } else {
+        mg3dState.controls.enableDamping = true; // back to normal once settled -- always true outside an active tween
+      }
+    }
+    requestAnimationFrame(tween);
+  }
+
+  function goToMuscleView(muscleKey){
+    if (!mg3dState || !mg3dState.model) return; // not loaded yet, or this key has no 3D preset -- degrade silently, the 2D thumbnail still works regardless
+    var preset = MG_3D_CAMERA_PRESETS[muscleKey];
+    if (!preset) return;
+
+    // Stops the idle auto-rotate once a specific muscle is framed up --
+    // it would otherwise keep drifting the camera away from a preset
+    // that was actually tuned (lighting, crop, distance) the moment it
+    // finished tweening there. resetMg3dView turns it back on.
+    mg3dState.controls.autoRotate = false;
+
+    // azimuthDeg (new schema) is a free angle; side (legacy schema) is
+    // just front(0deg)/back(180deg). See MG_3D_CAMERA_PRESETS comment.
+    var azimuth = preset.azimuthDeg !== undefined
+      ? preset.azimuthDeg * Math.PI / 180
+      : (preset.side === 'back' ? Math.PI : 0);
+    var camYOffset = preset.camYOffset !== undefined ? preset.camYOffset : 0.15;
+    var targetY = preset.targetY * 1.8; // presets are 0-1 fractions of the normalized 1.8-unit model height
+    var camX = Math.sin(azimuth) * preset.distance;
+    var camZ = Math.cos(azimuth) * preset.distance;
+    var endPos = new THREE.Vector3(camX, targetY + camYOffset, camZ);
+    var endTarget = new THREE.Vector3(0, targetY, 0);
+    // camX/camZ are exactly preset.distance from the (vertical) axis
+    // through the target by construction (sin/cos of the same
+    // azimuth*distance pair), so the preset's own distance IS the
+    // horizontal distance here -- no separate sqrt(camX^2+camZ^2) needed.
+    mg3dState.controls.minPolarAngle = mg3dState.controls.maxPolarAngle = mg3dPolarAngleFor(camYOffset, preset.distance);
+    tweenMg3dCamera(endPos, endTarget);
+  }
+
+  // Sidebar row bars (CHEST/BACK/etc) fill from 0 up to their real
+  // width on tab-return or reset, rather than the instant static width
+  // they'd otherwise just render at. CSS transition on
+  // .mg-row-mini-bar-fill can't do this by itself -- every render
+  // replaces these elements wholesale via innerHTML, so a brand-new
+  // element has no "previous width" to transition from. This forces
+  // one: snap to 0% with the transition disabled, force a reflow so
+  // the browser actually registers that 0% state, then hand back to
+  // the real target% (data-target-pct, set alongside the inline width
+  // in renderMuscleOverviewRows) with the transition re-enabled, which
+  // is what actually animates. Also staggers each bar's transition-
+  // delay by its position in the list (CHEST first, CORE last) so they
+  // cascade down in a wave rather than all six moving in lockstep --
+  // set as an inline transition-delay, which overrides the CSS rule's
+  // own (implicit 0s) delay for that one sub-property without needing
+  // to touch the shared duration/easing declared there.
+  function animateMg3dRowBars(){
+    var bars = document.querySelectorAll('.mg-row-mini-bar-fill');
+    bars.forEach(function(bar, i){
+      var target = bar.getAttribute('data-target-pct');
+      if (target === null) return;
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+      void bar.offsetWidth; // force reflow -- without this the browser coalesces both width writes into one and nothing visibly animates
+      bar.style.transition = '';
+      bar.style.transitionDelay = (i * 70) + 'ms';
+      bar.style.width = target + '%';
+    });
+  }
+
+  // Bottom-left reset button: back to the same framing the model loads
+  // into (mg3dState.defaultPos/defaultTarget, set once in initMg3dViewer)
+  // -- lets you find your way back after dragging/pinching around, same
+  // idea as goToMuscleView's tween just aimed at a fixed destination
+  // instead of a preset.
+  function resetMg3dView(){
+    if (!mg3dState || !mg3dState.model) return;
+    tweenMg3dCamera(mg3dState.defaultPos.clone(), mg3dState.defaultTarget.clone());
+    animateMg3dRowBars();
+    // Resumes the idle spin goToMuscleView turns off -- "reset" means
+    // no muscle is really in focus anymore, same reasoning already
+    // applied to the camera framing and highlight clearing.
+    mg3dState.controls.autoRotate = true;
+    // Re-locks the vertical-tilt range (see goToMuscleView's own
+    // version of this) to the default view's own elevation, computed
+    // generally from the actual vectors rather than hardcoded numbers
+    // -- stays correct if defaultPos/defaultTarget themselves ever
+    // change.
+    var offsetY = mg3dState.defaultPos.y - mg3dState.defaultTarget.y;
+    var horizontalDistance = Math.sqrt(
+      Math.pow(mg3dState.defaultPos.x - mg3dState.defaultTarget.x, 2) +
+      Math.pow(mg3dState.defaultPos.z - mg3dState.defaultTarget.z, 2)
+    );
+    mg3dState.controls.minPolarAngle = mg3dState.controls.maxPolarAngle = mg3dPolarAngleFor(offsetY, horizontalDistance);
+  }
+
+  // Button next to reset: swaps the mesh's material between the real
+  // muscle texture and a plain grey clay-style material (see the
+  // plainMaterial built alongside texturedMaterial when the model
+  // first loads) -- same geometry both ways, so this is instant and
+  // never re-touches the network.
+  function toggleMg3dPlain(){
+    if (!mg3dState || !mg3dState.meshNode) return;
+    mg3dState.plainMode = !mg3dState.plainMode;
+    mg3dState.meshNode.material = mg3dState.plainMode ? mg3dState.plainMaterial : mg3dState.texturedMaterial;
+  }
+
+  // Tap feedback for a muscle row: "<label> — sets/cap" plus a ring
+  // that fills from empty up to the actual percentage (and a number
+  // that counts up from 0 alongside it), shown over the model at eye
+  // level rather than making you glance over at the sidebar row you
+  // just tapped. Mirrors the same sets/cap/color-state math
+  // renderMuscleOverviewRows used to build that row in the first place
+  // -- recomputed here rather than threaded through as an argument
+  // since this fires from the global click-delegation handler, not from
+  // render code that already has weeklyData in scope. Auto-hides after
+  // a few seconds via a CSS opacity transition (see .visible) so it
+  // doesn't sit there permanently covering the model.
+  function showMg3dCallout(muscleKey){
+    var calloutEl = document.getElementById('mg3dCallout');
+    if (!calloutEl) return; // panel not mounted right now
+    var profile = getActiveProfile();
+    var cap = profile.caps[muscleKey];
+    if (cap === undefined) return; // this profile doesn't track this muscle
+    var g = computeWeeklyMuscleVolume().filter(function(x){ return x.key === muscleKey; })[0];
+    if (!g) return;
+    var pct = cap > 0 ? Math.min(1, g.sets / cap) : 0; // 0-1 fraction, clamped at 1 -- was Math.min(100, ...) before, a no-op bug since g.sets/cap is already a 0-ish fraction, never anywhere near 100. Over-cap sets/cap (e.g. 1.2) leaked straight through unclamped, past a dashoffset of 0, wrapping the dasharray pattern into a gap-plus-overlap instead of the intended clean full ring.
+    var greenFloor = profile.isCustom ? Math.ceil(cap * CUSTOM_GREEN_PCT) : profile.greenMinSets;
+    var stateClass = g.sets > cap ? ' mg-over' : (g.sets >= greenFloor ? ' mg-good' : '');
+
+    var RING_R = 17;
+    var RING_C = 2 * Math.PI * RING_R; // circumference -- stroke-dasharray/dashoffset both work in this unit
+    calloutEl.innerHTML =
+      '<div class="mg-3d-callout-frame">' +
+        '<svg class="mg-3d-callout-ring' + stateClass + '" viewBox="0 0 38 38">' +
+          '<circle class="mg-3d-callout-ring-track" cx="19" cy="19" r="' + RING_R + '"/>' +
+          '<circle class="mg-3d-callout-ring-fill' + stateClass + '" id="mg3dCalloutRing" cx="19" cy="19" r="' + RING_R + '" ' +
+            'stroke-dasharray="' + RING_C + '" stroke-dashoffset="' + RING_C + '"/>' +
+        '</svg>' +
+        '<div class="mg-3d-callout-text">' +
+          '<span class="mg-3d-callout-name">' + esc(g.label) + '</span>' +
+          '<span class="mg-3d-callout-count-line"><span id="mg3dCalloutCount">0</span>/' + cap + '</span>' +
+        '</div>' +
+      '</div>';
+    // remove-reflow-readd rather than a plain add(): if 'visible' is
+    // already present (re-tapping the same muscle, or tapping a new
+    // one before the fade-out finished), just adding it again is a
+    // no-op and the mg3dBorderTravel animation would not replay.
+    calloutEl.classList.remove('visible');
+    void calloutEl.offsetWidth; // force a reflow so the browser registers the removal before the class goes back on
+    calloutEl.classList.add('visible');
+
+    // Zero-to-value fill: ring dashoffset and the sets number both
+    // interpolate together over the same eased duration, rather than
+    // snapping straight to the final numbers.
+    clearTimeout(mg3dCalloutTimer);
+    if (mg3dCalloutAnimFrame) cancelAnimationFrame(mg3dCalloutAnimFrame);
+    var countEl = document.getElementById('mg3dCalloutCount');
+    var ringEl = document.getElementById('mg3dCalloutRing');
+    var fillDuration = 800;
+    var fillStart = null;
+    function fillTween(now){
+      if (fillStart === null) fillStart = now;
+      var t = Math.min(1, (now - fillStart) / fillDuration);
+      var eased = 1 - Math.pow(1 - t, 3);
+      countEl.textContent = Math.round(g.sets * eased);
+      ringEl.setAttribute('stroke-dashoffset', RING_C * (1 - pct * eased));
+      if (t < 1) mg3dCalloutAnimFrame = requestAnimationFrame(fillTween);
+    }
+    mg3dCalloutAnimFrame = requestAnimationFrame(fillTween);
+
+    mg3dCalloutTimer = setTimeout(function(){
+      calloutEl.classList.remove('visible');
+    }, 3000);
   }
 
   // The per-exercise deep dive. Two mutually-exclusive modes controlled
@@ -10004,35 +10995,63 @@
     if (!ui.progressExercise || names.indexOf(ui.progressExercise) === -1){
       ui.progressExercise = names[0];
     }
-    if (!ui.progressView) ui.progressView = 'dashboard';
-
-    var skipLock = false;
-    if (ui.progressView === 'exercise'){
-      var result = renderProgressExerciseView(names);
-      html += result.html;
-      skipLock = result.skipLock;
-    } else {
-      html += renderMuscleGroupsOverviewHtml();
-    }
+    // Volume Overview moved out to its own Insight tab, so Progress only
+    // ever renders the exercise view now. ui.progressView itself is left
+    // alone rather than deleted outright: a couple of handlers elsewhere
+    // (open-muscle-drilldown, open-exercise-drilldown) still set it, and
+    // leaving it as inert state is lower-risk than chasing down and
+    // rewriting every setter for what's otherwise an unrelated change.
+    var result = renderProgressExerciseView(names);
+    html += result.html;
+    var skipLock = result.skipLock;
 
     if (access.locked && !skipLock){
       var lockHtml =
         '<div class="progress-lock-overlay">' +
           '<div class="progress-lock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>' +
           '<div class="progress-lock-title">Progress is a Pro feature</div>' +
-          '<div class="progress-lock-sub">Track your estimated 1-rep max, PRs, and trend lines for every exercise — plus a weekly Muscle Volume Overview of your set volume per muscle — available on Pro or during your free trial.</div>' +
+          '<div class="progress-lock-sub">Track your estimated 1-rep max, PRs, and trend lines for every exercise — available on Pro or during your free trial.</div>' +
           '<button class="progress-lock-cta" data-action="open-pricing"><span><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="vertical-align:-2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg></span> ' + (state.currentAccount === 'guest' ? 'Create an account to go Pro' : 'See Pro plans') + '</button>' +
         '</div>';
       html = '<div class="progress-tab-wrap"><div class="progress-blur">' + html + '</div><div class="progress-dim"></div>' + lockHtml + '</div>';
     }
 
     document.getElementById('view').innerHTML = html;
-    if (ui.progressView === 'exercise'){
-      var best1RMEl = document.getElementById('csValBest1RM');
-      var latestTopEl = document.getElementById('csValLatestTop');
-      if (best1RMEl) animateStatCounter(best1RMEl, parseFloat(best1RMEl.dataset.target), fmtWeight, ' ' + unitLabel());
-      if (latestTopEl) animateStatCounter(latestTopEl, parseFloat(latestTopEl.dataset.target), fmtWeight, ' ' + unitLabel());
+    var best1RMEl = document.getElementById('csValBest1RM');
+    var latestTopEl = document.getElementById('csValLatestTop');
+    if (best1RMEl) animateStatCounter(best1RMEl, parseFloat(best1RMEl.dataset.target), fmtWeight, ' ' + unitLabel());
+    if (latestTopEl) animateStatCounter(latestTopEl, parseFloat(latestTopEl.dataset.target), fmtWeight, ' ' + unitLabel());
+  }
+
+  // The 5th tab. Was Progress's "dashboard" sub-view — same Volume
+  // Overview markup as before, just its own tab instead of a toggle
+  // within Progress, and no longer Pro-gated (see below). Kept the same
+  // allExerciseNames()===0 empty-state guard renderProgress already used
+  // rather than assuming renderMuscleGroupsOverviewHtml/getActiveProfile
+  // handle a truly empty account gracefully.
+  function renderInsight(){
+    var names = allExerciseNames();
+    var html = '';
+    if (names.length === 0){
+      html += '<div class="empty tab-empty-state"><div class="glyph">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path>' +
+                '</svg>' +
+              '</div>' +
+              '<p>Nothing to show yet.<br>Log a few sessions and your Insight will appear here.</p></div>';
+      document.getElementById('view').innerHTML = html;
+      return;
     }
+    // Free for everyone -- was gated the same way Progress's dashboard
+    // view used to be (progressAccessState().locked, the progress-lock-
+    // overlay/blur), removed on request. No account-tier branching left
+    // in this function at all now, not even a "still call
+    // progressAccessState() but ignore it" -- there is nothing here
+    // that reads Pro status.
+    html += renderMuscleGroupsOverviewHtml();
+
+    document.getElementById('view').innerHTML = html;
+    if (document.getElementById('mg3dViewer')) initMg3dViewer();
   }
 
   // one point per session for this exercise: best e1rm set in that session + top weight
@@ -10354,7 +11373,7 @@
   /* =========================================================
      RENDER DISPATCH
      ========================================================= */
-  var TAB_ORDER = ['log', 'history', 'progress', 'settings'];
+  var TAB_ORDER = ['log', 'history', 'insight', 'progress', 'settings'];
 
   // Slides the outgoing tab out and the incoming tab in, direction based on
   // their order in the tab bar (left tab -> right tab slides leftward, etc).
@@ -10438,18 +11457,28 @@
     // reset so a swiped-open row doesn't get "stuck" open in tracking
     // after whatever triggered this render.
     openSwipeRow = null;
+    // MUST run before the tab dispatch below, not after -- renderInsight()
+    // (called from that dispatch) measures the panel's real size to set
+    // up the 3D renderer/camera, and .mg-panel's height:100% only
+    // actually applies once this class is on <body>. With the toggle
+    // running after the dispatch, renderInsight would measure a panel
+    // that hadn't been stretched yet, and the renderer would lock the
+    // canvas to that stale size via an inline style (from Three's own
+    // renderer.setSize), so even once the panel visually grows a moment
+    // later the render wouldn't grow with it.
+    document.body.classList.toggle('tab-insight-active', state.tab === 'insight');
     document.querySelectorAll('.tabbar button').forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.tab === state.tab);
     });
     // Sliding indicator -- a single persistent element (never recreated,
     // just its transform updated) so it actually has something to
-    // animate from. All 4 tabs are equal width (flex:1 each), so the
+    // animate from. All 5 tabs are equal width (flex:1 each), so the
     // indicator's own position just needs the same width as one tab
     // slot (already set in CSS) and a translateX by that many 100%s --
     // no per-button measurement needed since they're never unequal.
     var tabIndicatorEl = document.getElementById('tabIndicator');
     if (tabIndicatorEl){
-      var tabOrder = ['log', 'history', 'progress', 'settings'];
+      var tabOrder = ['log', 'history', 'insight', 'progress', 'settings'];
       var tabIdx = tabOrder.indexOf(state.tab);
       if (tabIdx !== -1) tabIndicatorEl.style.transform = 'translateX(' + (tabIdx * 100) + '%)';
     }
@@ -10457,6 +11486,7 @@
     else if (state.tab === 'history') renderHistory();
     else if (state.tab === 'progress') renderProgress();
     else if (state.tab === 'settings') renderSettings();
+    else if (state.tab === 'insight') renderInsight();
 
     var unitBtn = document.getElementById('unitToggleBtn');
     if (unitBtn) unitBtn.textContent = state.settings.unit.toUpperCase();
@@ -10480,20 +11510,6 @@
     document.getElementById('sessionFinishBar').classList.toggle('hidden', !showFinishBar);
     document.getElementById('stopwatchBar').classList.toggle('hidden', !showFinishBar || !ui.restTimer);
     if (showFinishBar) renderRestTimerBar();
-
-    // Sticky Volume overview / Exercise progression switch — only exists
-    // on the Progress tab, stays put above the main tabbar while the
-    // page content above it scrolls (see body.has-progress-subtab).
-    var showProgressSubtabbar = state.tab === 'progress';
-    document.body.classList.toggle('has-progress-subtab', showProgressSubtabbar);
-    var progressSubtabbarEl = document.getElementById('progressSubtabbar');
-    progressSubtabbarEl.classList.toggle('hidden', !showProgressSubtabbar);
-    if (showProgressSubtabbar){
-      var activeProgressView = ui.progressView || 'dashboard';
-      progressSubtabbarEl.querySelectorAll('button').forEach(function(btn){
-        btn.classList.toggle('active', btn.dataset.view === activeProgressView);
-      });
-    }
 
     // Anyone mid-edit (typing a set, renaming an exercise, or the add-set
     // panel open) shouldn't be able to accidentally tap Finish Session —
@@ -13237,6 +14253,16 @@
       openHistoryDateRange();
     } else if (action === 'open-mg-settings'){
       openMgSettings();
+    } else if (action === 'mg-3d-focus-muscle'){
+      // The compact sidebar rows just fly the 3D camera now, no
+      // expand/collapse state -- silently no-ops if the model hasn't
+      // finished loading or this key has no preset.
+      goToMuscleView(el.dataset.muscle);
+      showMg3dCallout(el.dataset.muscle);
+    } else if (action === 'mg-3d-reset-view'){
+      resetMg3dView();
+    } else if (action === 'mg-3d-toggle-plain'){
+      toggleMg3dPlain();
     } else if (action === 'toggle-mg-exercises'){
       var mKey = el.dataset.muscle;
       ui.mgExpandedGroups[mKey] = !ui.mgExpandedGroups[mKey];
