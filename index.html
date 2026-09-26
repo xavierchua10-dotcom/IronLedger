@@ -4257,7 +4257,7 @@
   // see the comment there. Don't hardcode a value here; edit it in the
   // main app script only, so the two layers can't drift apart.
   var DEV_OVERRIDE_EMAIL = window.SaviorConfig && window.SaviorConfig.devEmail;
-  var TRIAL_DAYS = (window.SaviorConfig && window.SaviorConfig.trialDays) || 14;
+  var TRIAL_DAYS = (window.SaviorConfig && window.SaviorConfig.trialDays) || 30;
 
   window.SaviorFirebase = {
     signUp: function(email, password){
@@ -4377,7 +4377,7 @@
     },
     // Creates the /users/{uid} tier/subscription fields exactly once,
     // the first time this account is ever seen. Does NOT start the
-    // 14-day free trial — trial only begins when the user explicitly
+    // 30-day free trial — trial only begins when the user explicitly
     // taps "Start Free Trial" in the pricing modal (see startTrial()
     // below). Dev override email still gets permanent Pro immediately.
     // Safe to call on every login: it's a no-op once the doc exists.
@@ -4546,7 +4546,7 @@
      SUBSCRIPTION / PRO TIER
      Basic (free) vs Pro. Pro is unlocked by, in priority order:
        1. the developer override email — permanent, no checks
-       2. an active 14-day free trial (trialEndDate) — NOT started
+       2. an active 30-day free trial (trialEndDate) — NOT started
           automatically at signup; only begins the moment the user
           taps "Start Free Trial" in the pricing modal (see
           startFreeTrial() / trialAvailable() below)
@@ -4556,7 +4556,7 @@
      are always Basic, with no trial (trials require a real account).
      ========================================================= */
   var DEV_OVERRIDE_EMAIL = 'xavierchua10@gmail.com';
-  var TRIAL_DAYS = 14;
+  var TRIAL_DAYS = 30;
   // Bump manually on meaningful releases — shown at the bottom of
   // Settings so a bug report or support email can be matched to the
   // build that produced it, without needing to ask "what version are
@@ -8455,7 +8455,7 @@
   }
 
   // True only for a real (non-guest) account that has never started its
-  // one-time 14-day trial. Once trialStartDate is set — whether the trial
+  // one-time 30-day trial. Once trialStartDate is set — whether the trial
   // is still running or has since expired — this goes false for good.
   // Also false if this account's EMAIL already claimed a trial on a
   // previous, since-deleted account (state.trialClaimedByEmail, set by
@@ -8471,7 +8471,7 @@
   // Fired by the "Start Free Trial" button in the pricing modal. Writes
   // trialStartDate/trialEndDate to Firestore, then refreshes every UI
   // surface that depends on trial state (pricing modal, trial banner,
-  // Settings, the gold star icon). One-time 14-day trial — see
+  // Settings, the gold star icon). One-time 30-day trial — see
   // TRIAL_DAYS above.
   // Fires the "your trial has started" email in the background — never
   // awaited by the caller, never blocks the trial itself from starting,
@@ -8495,7 +8495,7 @@
       ui.confirmingTrial = false;
       renderApp();
       renderPricingPanel();
-      showToast('Free trial started \u2014 14 days of Pro unlocked');
+      showToast('Free trial started \u2014 30 days of Pro unlocked');
       sendTrialStartEmail();
     }).catch(function(err){
       ui.startingTrial = false;
@@ -8696,14 +8696,14 @@
           ? (ui.confirmingTrial
               ? '<div class="trial-offer-card">' +
                   '<div class="trial-offer-title">Start your free trial?</div>' +
-                  '<div class="trial-offer-sub">14 days of full Pro access begins right now. You can only do this once per account.</div>' +
+                  '<div class="trial-offer-sub">30 days of full Pro access begins right now. You can only do this once per account.</div>' +
                   '<div class="trial-offer-confirm-row">' +
                     '<button class="trial-offer-cancel-btn" data-action="cancel-start-trial"'+(ui.startingTrial?' disabled':'')+'>Cancel</button>' +
                     '<button class="trial-offer-btn" data-action="start-free-trial"'+(ui.startingTrial?' disabled':'')+'>'+(ui.startingTrial?'Starting\u2026':'Yes, Start Trial')+'</button>' +
                   '</div>' +
                 '</div>'
               : '<div class="trial-offer-card">' +
-                  '<div class="trial-offer-title"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="vertical-align:-2px;margin-right:2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg> Try Pro free for 14 days</div>' +
+                  '<div class="trial-offer-title"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="vertical-align:-2px;margin-right:2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg> Try Pro free for 30 days</div>' +
                   '<div class="trial-offer-sub">No card needed. Cancel anytime \u2014 or just let it lapse back to Basic.</div>' +
                   '<button class="trial-offer-btn" data-action="request-start-trial">Start Free Trial</button>' +
                 '</div>') +
@@ -10174,7 +10174,7 @@
     html += '<div class="settings-group">';
     if (state.currentAccount === 'guest'){
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
-                '<div class="sr-sub">Create a free account, then start a 14-day Pro trial anytime</div></div></div>';
+                '<div class="sr-sub">Create a free account, then start a 30-day Pro trial anytime</div></div></div>';
     } else if (isDevOverride()){
       html += '<div class="settings-row"><div><div class="sr-label"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="vertical-align:-2px;margin-right:2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg> Pro <span class="dev-badge">DEV</span></div>' +
                 '<div class="sr-sub">Developer account — permanent Pro access</div></div></div>';
@@ -10184,7 +10184,7 @@
                 '<button class="sr-action" data-action="open-pricing">Manage</button></div>';
     } else if (trialAvailable()){
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
-                '<div class="sr-sub">Try 14 days of Pro free \u2014 no card needed</div></div>' +
+                '<div class="sr-sub">Try 30 days of Pro free \u2014 no card needed</div></div>' +
                 '<button class="sr-action" data-action="open-pricing">Start Trial</button></div>';
     } else {
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
