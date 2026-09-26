@@ -1347,6 +1347,11 @@
   }
   .set-row-swipe.swiping .set-row-delete-btn{transition:none;}
   .set-row-swipe.swipe-open .set-row-delete-btn{transform:translateX(0);}
+  .ex-target-hint{
+    font-size:12px;
+    color:var(--text-faint);
+    padding:2px 0 10px;
+  }
   .set-row{
     display:grid;
     grid-template-columns:20px 1fr 44px;
@@ -2021,6 +2026,188 @@
      the keyboard opens (see the visualViewport.resize listener near the
      bottom of the script), so this overlay automatically stays within the
      keyboard-safe area for free, no extra scroll-into-view handling needed. */
+  /* Setup Wizard — genuinely full-screen (position:fixed, inset:0, no
+     card/border/rounding), unlike every other overlay in the app which
+     sits as a centered card over a dimmed backdrop. This one IS the
+     screen while it's open, on request. */
+  .onboard-wiz-overlay{
+    position:fixed;
+    inset:0;
+    z-index:200;
+    background:var(--bg);
+    display:flex;
+    flex-direction:column;
+    animation:onboardWizIn 0.2s ease;
+  }
+  .onboard-wiz-overlay.hidden{display:none;}
+  .onboard-wiz-panel{
+    flex:1;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    padding:calc(20px + var(--safe-top, 0px)) 20px calc(16px + var(--safe-bottom, 0px));
+    box-sizing:border-box;
+  }
+  .onboard-wiz-logo-badge{
+    width:68px;
+    height:68px;
+    border-radius:50%;
+    overflow:hidden;
+    flex-shrink:0;
+    margin:0 auto 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#000;
+    border:2px solid var(--accent);
+  }
+  .onboard-wiz-logo-badge img{display:block;width:100%;height:100%;object-fit:cover;}
+  .onboard-wiz-progress{
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    flex-shrink:0;
+    margin-bottom:8px;
+  }
+  .onboard-wiz-dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--panel-3);
+  }
+  .onboard-wiz-dot.active{background:var(--accent);}
+  .onboard-wiz-body{
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:16px 0;
+  }
+  .onboard-wiz-title{
+    font-family:'Oswald',sans-serif;
+    font-size:24px;
+    font-weight:700;
+    color:var(--text);
+    text-align:center;
+    margin-bottom:8px;
+  }
+  .onboard-wiz-sub{
+    font-size:13.5px;
+    color:var(--text-faint);
+    text-align:center;
+    line-height:1.5;
+    margin-bottom:28px;
+  }
+  .onboard-wiz-options{display:flex;flex-direction:column;gap:10px;}
+  .onboard-wiz-card{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    padding:16px 18px;
+    border-radius:var(--radius);
+    border:2px solid var(--line);
+    background:var(--panel);
+    text-align:left;
+    cursor:pointer;
+  }
+  .onboard-wiz-card.selected{border-color:var(--accent);background:var(--accent-dim);}
+  .onboard-wiz-card-label{
+    font-family:'Oswald',sans-serif;
+    font-size:16px;
+    font-weight:700;
+    color:var(--text);
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+  }
+  .onboard-wiz-card-desc{font-size:12.5px;color:var(--text-faint);}
+  .onboard-wiz-bw-row{
+    display:flex;
+    align-items:baseline;
+    justify-content:center;
+    gap:8px;
+  }
+  .onboard-wiz-bw-input{
+    width:140px;
+    background:none;
+    border:none;
+    border-bottom:2px solid var(--accent-dim);
+    font-family:'JetBrains Mono',monospace;
+    font-size:40px;
+    font-weight:700;
+    color:var(--text);
+    text-align:right;
+    padding:4px 0;
+  }
+  .onboard-wiz-bw-input:focus{outline:none;border-bottom-color:var(--accent);}
+  .onboard-wiz-bw-unit{font-family:'Oswald',sans-serif;font-size:16px;color:var(--text-faint);text-transform:uppercase;}
+  .onboard-wiz-days-row{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;}
+  .onboard-wiz-day-btn{
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    background:var(--panel);
+    color:var(--text);
+    font-family:'JetBrains Mono',monospace;
+    font-size:18px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .onboard-wiz-day-btn.selected{border-color:var(--accent);background:var(--accent-dim);color:var(--accent);}
+  .onboard-wiz-template-card{
+    padding:20px;
+    border-radius:var(--radius);
+    border:2px solid var(--accent);
+    background:var(--accent-dim);
+  }
+  .onboard-wiz-template-name{
+    font-family:'Oswald',sans-serif;
+    font-size:18px;
+    font-weight:700;
+    color:var(--accent);
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .onboard-wiz-template-list{font-size:13px;color:var(--text-dim);line-height:1.6;}
+  .onboard-wiz-footer{
+    flex-shrink:0;
+    display:flex;
+    gap:10px;
+  }
+  .onboard-wiz-back-btn{
+    flex:0 0 auto;
+    padding:14px 22px;
+    border-radius:var(--radius);
+    border:1px solid var(--line);
+    background:none;
+    color:var(--text-faint);
+    font-family:'Oswald',sans-serif;
+    font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    cursor:pointer;
+  }
+  .onboard-wiz-next-btn{
+    flex:1;
+    padding:14px 22px;
+    border-radius:var(--radius);
+    border:none;
+    background:var(--accent);
+    color:#1c1500;
+    font-family:'Oswald',sans-serif;
+    font-size:14px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    cursor:pointer;
+  }
+  .onboard-wiz-next-btn:active, .onboard-wiz-back-btn:active{opacity:0.8;}
+  @keyframes onboardWizIn{ from{opacity:0;} to{opacity:1;} }
+
   .ex-search-overlay{
     position:absolute;
     inset:0;
@@ -4570,6 +4757,9 @@
   <div class="ex-search-overlay hidden" id="progressExSearchOverlay">
     <div class="ex-search-panel" id="progressExSearchPanel"></div>
   </div>
+  <div class="onboard-wiz-overlay hidden" id="onboardWizOverlay">
+    <div class="onboard-wiz-panel" id="onboardWizPanel"></div>
+  </div>
 </div>
 <div id="authGate" class="hidden"></div>
 <div class="confirm-overlay hidden" id="confirmOverlay">
@@ -5166,6 +5356,9 @@
     authBusy: false,
     authDraft: { email: '', avatar: DEFAULT_AVATAR },
     awaitingAvatarPick: false,   // true right after a brand-new account is created, until they pick an icon
+    showOnboardingWizard: false,  // full-screen setup wizard (bodyweight/goal/experience/days -> suggested template) — auto-opens once right after avatar pick on a brand-new account, replayable anytime from Settings
+    onboardingStep: 0,             // index into ONBOARDING_STEPS
+    onboardingDraft: null,        // { bodyweightKg, goal, experienceLevel, trainingDaysPerWeek } — working copy while the wizard is open, only written to state.settings on finishOnboarding()
     confirmModal: null,           // { kind:'exercise'|'set'|'session', title, message, exId, setId, sessionId } or null
     pendingDeleteAccount: false,
     confirmingDeleteAccountPassword: false,  // true while the post-countdown re-auth panel is open
@@ -6881,170 +7074,192 @@
       label: 'Push Day A',
       category: 'ppl',
       exercises: [
-        { name: 'Barbell Bench Press', muscle: 'Chest' },
-        { name: 'Barbell Incline Bench Press', muscle: 'Chest' },
-        { name: 'Dumbbell Bench Press', muscle: 'Chest' },
-        { name: 'Barbell Shoulder Press', muscle: 'Shoulders' },
-        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders' },
-        { name: 'Tricep Pushdown', muscle: 'Triceps' },
-        { name: 'Barbell Skull Crushers', muscle: 'Triceps' }
+        { name: 'Barbell Bench Press', muscle: 'Chest', sets: 4 },
+        { name: 'Barbell Incline Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Dumbbell Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Barbell Shoulder Press', muscle: 'Shoulders', sets: 3 },
+        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders', sets: 3 },
+        { name: 'Tricep Pushdown', muscle: 'Triceps', sets: 3 },
+        { name: 'Barbell Skull Crushers', muscle: 'Triceps', sets: 3 }
       ]
     },
     pushB: {
       label: 'Push Day B',
       category: 'ppl',
       exercises: [
-        { name: 'Machine Bench Press', muscle: 'Chest' },
-        { name: 'Dumbbell Incline Bench Press', muscle: 'Chest' },
-        { name: 'Cable Chest Fly (Centered)', muscle: 'Chest' },
-        { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders' },
-        { name: 'Cable Lateral Raise', muscle: 'Shoulders' },
-        { name: 'Cable Overhead Extension', muscle: 'Triceps' },
-        { name: 'Dumbbell Skull Crushers', muscle: 'Triceps' }
+        { name: 'Machine Bench Press', muscle: 'Chest', sets: 4 },
+        { name: 'Dumbbell Incline Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Cable Chest Fly (Centered)', muscle: 'Chest', sets: 3 },
+        { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders', sets: 3 },
+        { name: 'Cable Lateral Raise', muscle: 'Shoulders', sets: 3 },
+        { name: 'Cable Overhead Extension', muscle: 'Triceps', sets: 3 },
+        { name: 'Dumbbell Skull Crushers', muscle: 'Triceps', sets: 3 }
       ]
     },
     pull: {
       label: 'Pull Day A',
       category: 'ppl',
       exercises: [
-        { name: 'Pull-ups', muscle: 'Back' },
-        { name: 'Barbell Row', muscle: 'Back' },
-        { name: 'Seated Cable Row', muscle: 'Back' },
-        { name: 'Face Pull', muscle: 'Shoulders' },
-        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders' },
-        { name: 'Barbell Bicep Curl', muscle: 'Biceps' },
-        { name: 'Dumbbell Hammer Curl', muscle: 'Biceps' }
+        { name: 'Pull-ups', muscle: 'Back', sets: 4 },
+        { name: 'Barbell Row', muscle: 'Back', sets: 3 },
+        { name: 'Seated Cable Row', muscle: 'Back', sets: 3 },
+        { name: 'Face Pull', muscle: 'Shoulders', sets: 3 },
+        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders', sets: 3 },
+        { name: 'Barbell Bicep Curl', muscle: 'Biceps', sets: 3 },
+        { name: 'Dumbbell Hammer Curl', muscle: 'Biceps', sets: 3 }
       ]
     },
     pullB: {
       label: 'Pull Day B',
       category: 'ppl',
       exercises: [
-        { name: 'Lat Pulldown', muscle: 'Back' },
-        { name: 'Undergrip Barbell Row', muscle: 'Back' },
-        { name: 'Dumbbell Row', muscle: 'Back' },
-        { name: 'Cable Rear Delt Fly', muscle: 'Shoulders' },
-        { name: 'Dumbbell Rear Delt Fly', muscle: 'Shoulders' },
-        { name: 'Cable Curl', muscle: 'Biceps' },
-        { name: 'Dumbbell Preacher Curl', muscle: 'Biceps' }
+        { name: 'Lat Pulldown', muscle: 'Back', sets: 4 },
+        { name: 'Undergrip Barbell Row', muscle: 'Back', sets: 3 },
+        { name: 'Dumbbell Row', muscle: 'Back', sets: 3 },
+        { name: 'Cable Rear Delt Fly', muscle: 'Shoulders', sets: 3 },
+        { name: 'Dumbbell Rear Delt Fly', muscle: 'Shoulders', sets: 3 },
+        { name: 'Cable Curl', muscle: 'Biceps', sets: 3 },
+        { name: 'Dumbbell Preacher Curl', muscle: 'Biceps', sets: 3 }
       ]
     },
     leg: {
       label: 'Leg Day A',
       category: 'ppl',
       exercises: [
-        { name: 'Back Squat', muscle: 'Quads' },
-        { name: 'Leg Press', muscle: 'Quads' },
-        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings' },
-        { name: 'Seated Leg Curl', muscle: 'Hamstrings' },
-        { name: 'Barbell Hip Thrust', muscle: 'Glutes' },
-        { name: 'Glute Bridge', muscle: 'Glutes' },
-        { name: 'Machine Standing Calf Raise', muscle: 'Calves' },
-        { name: 'Hanging Leg Raise', muscle: 'Abs' }
+        { name: 'Back Squat', muscle: 'Quads', sets: 4 },
+        { name: 'Leg Press', muscle: 'Quads', sets: 3 },
+        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Seated Leg Curl', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Barbell Hip Thrust', muscle: 'Glutes', sets: 3 },
+        { name: 'Glute Bridge', muscle: 'Glutes', sets: 3 },
+        { name: 'Machine Standing Calf Raise', muscle: 'Calves', sets: 3 },
+        { name: 'Hanging Leg Raise', muscle: 'Abs', sets: 3 }
       ]
     },
     legB: {
       label: 'Leg Day B',
       category: 'ppl',
       exercises: [
-        { name: 'Front Squat', muscle: 'Quads' },
-        { name: 'Leg Extension', muscle: 'Quads' },
-        { name: 'Dumbbell Romanian Deadlift', muscle: 'Hamstrings' },
-        { name: 'Lying Leg Curl', muscle: 'Hamstrings' },
-        { name: 'Machine Hip Thrust', muscle: 'Glutes' },
-        { name: 'Cable Glute Kickback', muscle: 'Glutes' },
-        { name: 'Barbell Standing Calf Raise', muscle: 'Calves' },
-        { name: 'Cable Crunch', muscle: 'Abs' }
+        { name: 'Front Squat', muscle: 'Quads', sets: 4 },
+        { name: 'Leg Extension', muscle: 'Quads', sets: 3 },
+        { name: 'Dumbbell Romanian Deadlift', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Lying Leg Curl', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Machine Hip Thrust', muscle: 'Glutes', sets: 3 },
+        { name: 'Cable Glute Kickback', muscle: 'Glutes', sets: 3 },
+        { name: 'Barbell Standing Calf Raise', muscle: 'Calves', sets: 3 },
+        { name: 'Cable Crunch', muscle: 'Abs', sets: 3 }
       ]
     },
     upper: {
       label: 'Upper Day A',
       category: 'upperLower',
       exercises: [
-        { name: 'Barbell Incline Bench Press', muscle: 'Chest' },
-        { name: 'Dumbbell Bench Press', muscle: 'Chest' },
-        { name: 'Lat Pulldown', muscle: 'Back' },
-        { name: 'Seated Cable Row', muscle: 'Back' },
-        { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders' },
-        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders' },
-        { name: 'Dumbbell Curl', muscle: 'Biceps', optional: true },
-        { name: 'Close-Grip Bench Press', muscle: 'Triceps', optional: true }
+        { name: 'Barbell Incline Bench Press', muscle: 'Chest', sets: 4 },
+        { name: 'Dumbbell Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Lat Pulldown', muscle: 'Back', sets: 3 },
+        { name: 'Seated Cable Row', muscle: 'Back', sets: 3 },
+        { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders', sets: 3 },
+        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders', sets: 3 },
+        { name: 'Dumbbell Curl', muscle: 'Biceps', sets: 2, optional: true },
+        { name: 'Close-Grip Bench Press', muscle: 'Triceps', sets: 2, optional: true }
       ]
     },
     upperB: {
       label: 'Upper Day B',
       category: 'upperLower',
       exercises: [
-        { name: 'Machine Bench Press', muscle: 'Chest' },
-        { name: 'Dumbbell Incline Bench Press', muscle: 'Chest' },
-        { name: 'Undergrip Lat Pulldown', muscle: 'Back' },
-        { name: 'T-Bar Row', muscle: 'Back' },
-        { name: 'Barbell Shoulder Press', muscle: 'Shoulders' },
-        { name: 'Cable Lateral Raise', muscle: 'Shoulders' },
-        { name: 'Dumbbell Hammer Curl', muscle: 'Biceps', optional: true },
-        { name: 'Tricep Rope Pushdown', muscle: 'Triceps', optional: true }
+        { name: 'Machine Bench Press', muscle: 'Chest', sets: 4 },
+        { name: 'Dumbbell Incline Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Undergrip Lat Pulldown', muscle: 'Back', sets: 3 },
+        { name: 'T-Bar Row', muscle: 'Back', sets: 3 },
+        { name: 'Barbell Shoulder Press', muscle: 'Shoulders', sets: 3 },
+        { name: 'Cable Lateral Raise', muscle: 'Shoulders', sets: 3 },
+        { name: 'Dumbbell Hammer Curl', muscle: 'Biceps', sets: 2, optional: true },
+        { name: 'Tricep Rope Pushdown', muscle: 'Triceps', sets: 2, optional: true }
       ]
     },
     lower: {
       label: 'Lower Day A',
       category: 'upperLower',
       exercises: [
-        { name: 'Back Squat', muscle: 'Quads' },
-        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings' },
-        { name: 'Leg Press', muscle: 'Quads' },
-        { name: 'Machine Standing Calf Raise', muscle: 'Calves', optional: true },
-        { name: 'Cable Crunch', muscle: 'Abs' }
+        { name: 'Back Squat', muscle: 'Quads', sets: 4 },
+        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Leg Press', muscle: 'Quads', sets: 3 },
+        { name: 'Barbell Hip Thrust', muscle: 'Glutes', sets: 3 },
+        { name: 'Machine Standing Calf Raise', muscle: 'Calves', sets: 2, optional: true },
+        { name: 'Cable Crunch', muscle: 'Abs', sets: 3 }
       ]
     },
     lowerB: {
       label: 'Lower Day B',
       category: 'upperLower',
       exercises: [
-        { name: 'Front Squat', muscle: 'Quads' },
-        { name: 'Lying Leg Curl', muscle: 'Hamstrings' },
-        { name: 'Dumbbell Goblet Squat', muscle: 'Quads' },
-        { name: 'Dumbbell Standing Calf Raise', muscle: 'Calves', optional: true },
-        { name: 'Ab Wheel Rollout', muscle: 'Abs' }
+        { name: 'Front Squat', muscle: 'Quads', sets: 4 },
+        { name: 'Lying Leg Curl', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Dumbbell Goblet Squat', muscle: 'Quads', sets: 3 },
+        { name: 'Dumbbell Bulgarian Split Squat', muscle: 'Glutes', sets: 3 },
+        { name: 'Dumbbell Standing Calf Raise', muscle: 'Calves', sets: 2, optional: true },
+        { name: 'Ab Wheel Rollout', muscle: 'Abs', sets: 3 }
       ]
     },
     fullBodyA: {
       label: 'Full Body A',
       category: 'fullBody',
       exercises: [
-        { name: 'Back Squat', muscle: 'Quads' },
-        { name: 'Barbell Bench Press', muscle: 'Chest' },
-        { name: 'Barbell Row', muscle: 'Back' },
-        { name: 'Barbell Shoulder Press', muscle: 'Shoulders' },
-        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings' },
-        { name: 'Hanging Leg Raise', muscle: 'Abs' }
+        { name: 'Back Squat', muscle: 'Quads', sets: 4 },
+        { name: 'Barbell Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Barbell Row', muscle: 'Back', sets: 3 },
+        { name: 'Barbell Shoulder Press', muscle: 'Shoulders', sets: 3 },
+        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Barbell Hip Thrust', muscle: 'Glutes', sets: 3 },
+        { name: 'Hanging Leg Raise', muscle: 'Abs', sets: 3 }
       ]
     },
     fullBodyB: {
       label: 'Full Body B',
       category: 'fullBody',
       exercises: [
-        { name: 'Leg Press', muscle: 'Quads' },
-        { name: 'Barbell Incline Bench Press', muscle: 'Chest' },
-        { name: 'Pull-ups', muscle: 'Back' },
-        { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders' },
-        { name: 'Seated Leg Curl', muscle: 'Hamstrings' },
-        { name: 'Cable Crunch', muscle: 'Abs' }
+        { name: 'Leg Press', muscle: 'Quads', sets: 4 },
+        { name: 'Barbell Incline Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Pull-ups', muscle: 'Back', sets: 3 },
+        { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders', sets: 3 },
+        { name: 'Seated Leg Curl', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Machine Hip Thrust', muscle: 'Glutes', sets: 3 },
+        { name: 'Cable Crunch', muscle: 'Abs', sets: 3 }
       ]
     },
     fullBodyC: {
       label: 'Full Body C',
       category: 'fullBody',
       exercises: [
-        { name: 'Dumbbell Goblet Squat', muscle: 'Quads' },
-        { name: 'Dumbbell Bench Press', muscle: 'Chest' },
-        { name: 'Dumbbell Row', muscle: 'Back' },
-        { name: 'Arnold Press', muscle: 'Shoulders' },
-        { name: 'Dumbbell Romanian Deadlift', muscle: 'Hamstrings' },
-        { name: 'Ab Wheel Rollout', muscle: 'Abs' }
+        { name: 'Dumbbell Goblet Squat', muscle: 'Quads', sets: 4 },
+        { name: 'Dumbbell Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Dumbbell Row', muscle: 'Back', sets: 3 },
+        { name: 'Arnold Press', muscle: 'Shoulders', sets: 3 },
+        { name: 'Dumbbell Romanian Deadlift', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Dumbbell Bulgarian Split Squat', muscle: 'Glutes', sets: 3 },
+        { name: 'Ab Wheel Rollout', muscle: 'Abs', sets: 3 }
+      ]
+    },
+    // The one auto-suggested by the setup wizard when someone picks
+    // "Beginner" for experience, regardless of their training-days
+    // answer — machine/dumbbell/bodyweight only, nothing that demands
+    // barbell technique (squat/deadlift bar path, bracing, etc.) on day
+    // one. See recommendedOnboardingTemplateKey.
+    beginnerFullBody: {
+      label: 'Beginner Full Body',
+      category: 'beginner',
+      exercises: [
+        { name: 'Leg Press', muscle: 'Quads', sets: 3 },
+        { name: 'Seated Leg Curl', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Machine Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Machine Row', muscle: 'Back', sets: 3 },
+        { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders', sets: 3 },
+        { name: 'Plank', muscle: 'Abs', sets: 3 }
       ]
     }
   };
-  var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB', 'upper', 'lower', 'upperB', 'lowerB', 'fullBodyA', 'fullBodyB', 'fullBodyC'];
+  var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB', 'upper', 'lower', 'upperB', 'lowerB', 'fullBodyA', 'fullBodyB', 'fullBodyC', 'beginnerFullBody'];
   // Groups the flat template list into labeled sections for the picker —
   // order here is the display order (PPL split first, then upper/lower,
   // then full body). Within a category, all "A" days are grouped first,
@@ -7054,6 +7269,7 @@
   // a key that gets removed later just quietly drops that card instead of
   // breaking.
   var WORKOUT_TEMPLATE_CATEGORIES = [
+    { id: 'beginner', label: 'Beginner', description: 'New to lifting? Start here.', keys: ['beginnerFullBody'] },
     { id: 'ppl', label: 'Push / Pull / Legs', description: 'The classic 3-day split.', keys: ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB'] },
     { id: 'upperLower', label: 'Upper / Lower', description: 'Balanced, efficient, repeatable.', keys: ['upper', 'lower', 'upperB', 'lowerB'] },
     { id: 'fullBody', label: 'Full Body', description: 'Everything, every session.', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] }
@@ -7830,6 +8046,206 @@
     { id: 'hypertrophy', label: 'Hypertrophy', desc: 'Muscle size' },
     { id: 'endurance', label: 'Endurance', desc: 'Stamina' }
   ];
+  /* =========================================================
+     SETUP WIZARD — full-screen, one question per screen, tap
+     Back/Next to move between them. Auto-opens once right after a
+     brand-new account picks their avatar (see confirm-onboarding-
+     avatar); replayable anytime via Settings > Setup Wizard
+     (open-onboarding-wizard). Answers only get written to real
+     settings on the final "Start Workout" tap (finishOnboarding) —
+     backing out early via Skip/Back-past-the-first-step discards
+     the draft, same pattern as ui.editDraft elsewhere.
+     ========================================================= */
+  var ONBOARDING_STEPS = ['bodyweight', 'goal', 'experience', 'days', 'template'];
+  var ONBOARDING_EXPERIENCE_OPTIONS = [
+    { id: 'beginner', label: 'Beginner', desc: 'New to structured training' },
+    { id: 'intermediate', label: 'Intermediate', desc: 'Been at it a while' },
+    { id: 'advanced', label: 'Advanced', desc: 'Years of consistent training' }
+  ];
+  var ONBOARDING_DAY_OPTIONS = [2, 3, 4, 5, 6];
+
+  function openOnboardingWizard(){
+    ui.showOnboardingWizard = true;
+    ui.onboardingStep = 0;
+    ui.onboardingDraft = {
+      bodyweightKg: (state.settings && state.settings.bodyweightKg) || null,
+      goal: (state.settings && state.settings.goal) || null,
+      experienceLevel: (state.settings && state.settings.experienceLevel) || null,
+      trainingDaysPerWeek: (state.settings && state.settings.trainingDaysPerWeek) || null
+    };
+    renderOnboardingWizard();
+  }
+  function closeOnboardingWizard(){
+    ui.showOnboardingWizard = false;
+    ui.onboardingDraft = null;
+    renderOnboardingWizard();
+  }
+  function onboardingBack(){
+    if (ui.onboardingStep > 0){
+      ui.onboardingStep--;
+      renderOnboardingWizard();
+    } else {
+      closeOnboardingWizard();
+    }
+  }
+  function onboardingNext(){
+    if (ui.onboardingStep < ONBOARDING_STEPS.length - 1){
+      ui.onboardingStep++;
+      renderOnboardingWizard();
+    }
+  }
+  function onboardingSetGoal(goalId){
+    ui.onboardingDraft.goal = goalId;
+    renderOnboardingWizard();
+  }
+  function onboardingSetExperience(level){
+    ui.onboardingDraft.experienceLevel = level;
+    renderOnboardingWizard();
+  }
+  function onboardingSetDays(n){
+    ui.onboardingDraft.trainingDaysPerWeek = n;
+    renderOnboardingWizard();
+  }
+  // Beginner always gets the dedicated beginner template regardless of
+  // days/week — a true beginner shouldn't land on a 5-day PPL split just
+  // because they said they can train 5 days. Otherwise, days/week alone
+  // decides the split: low frequency doesn't have enough sessions to
+  // recover a push/pull/legs rotation, high frequency has more than
+  // enough for one. Always returns the "A" (first) template in whichever
+  // split it picks, since that's the natural starting point of any of
+  // them.
+  function recommendedOnboardingTemplateKey(draft){
+    if (draft && draft.experienceLevel === 'beginner') return 'beginnerFullBody';
+    var days = (draft && draft.trainingDaysPerWeek) || 3;
+    if (days <= 3) return 'fullBodyA';
+    if (days === 4) return 'upper';
+    return 'push';
+  }
+  // Commits the draft to real settings, applies the recommended template
+  // to the current (already-empty, brand-new-account) session, and lands
+  // on Log so they see it populated. Deliberately skips the usual
+  // openStartTemplateConfirm() confirmation step — the whole wizard *is*
+  // the confirmation here, a second "Start this?" dialog right after
+  // would be redundant.
+  function finishOnboarding(){
+    var d = ui.onboardingDraft || {};
+    state.settings = state.settings || {};
+    if (d.bodyweightKg) state.settings.bodyweightKg = d.bodyweightKg;
+    if (d.goal) state.settings.goal = d.goal;
+    if (d.experienceLevel) state.settings.experienceLevel = d.experienceLevel;
+    if (d.trainingDaysPerWeek) state.settings.trainingDaysPerWeek = d.trainingDaysPerWeek;
+    saveSettings();
+    // Real guard, not just cosmetic -- the button label already reflects
+    // this (see renderOnboardingWizard's 'template' step), but this is
+    // what actually stops applyTemplate() from overwriting a session
+    // someone's already logged real sets into, regardless of how they
+    // got to this screen.
+    var activeSession = getActiveSession();
+    var sessionIsEmpty = !!(activeSession && activeSession.exercises.length === 0);
+    ui.showOnboardingWizard = false;
+    ui.onboardingDraft = null;
+    if (sessionIsEmpty){
+      var templateKey = recommendedOnboardingTemplateKey(d);
+      applyTemplate(templateKey);
+      switchTabWithFade('log');
+    } else {
+      showToast('Preferences saved');
+      renderApp();
+    }
+  }
+  function renderOnboardingWizard(){
+    var overlay = document.getElementById('onboardWizOverlay');
+    var panel = document.getElementById('onboardWizPanel');
+    if (!overlay || !panel) return;
+    if (!ui.showOnboardingWizard || !ui.onboardingDraft){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var draft = ui.onboardingDraft;
+    var stepIdx = ui.onboardingStep;
+    var step = ONBOARDING_STEPS[stepIdx];
+    var total = ONBOARDING_STEPS.length;
+
+    var html = '<div class="onboard-wiz-logo-badge"><img src="images/logo-mark.png" alt=""></div>';
+    html += '<div class="onboard-wiz-progress">';
+    for (var i = 0; i < total; i++){
+      html += '<span class="onboard-wiz-dot' + (i <= stepIdx ? ' active' : '') + '"></span>';
+    }
+    html += '</div>';
+
+    html += '<div class="onboard-wiz-body">';
+    if (step === 'bodyweight'){
+      html += '<div class="onboard-wiz-title">What\u2019s your bodyweight?</div>' +
+              '<div class="onboard-wiz-sub">Used for accurate load calculations on bodyweight exercises. Change it anytime in Settings.</div>' +
+              '<div class="onboard-wiz-bw-row">' +
+                '<input type="number" inputmode="decimal" id="onboardBwInput" class="onboard-wiz-bw-input" placeholder="0" value="'+(draft.bodyweightKg ? fmtWeight(draft.bodyweightKg) : '')+'">' +
+                '<span class="onboard-wiz-bw-unit">'+esc(unitLabel())+'</span>' +
+              '</div>';
+    } else if (step === 'goal'){
+      html += '<div class="onboard-wiz-title">What\u2019s your main goal?</div>' +
+              '<div class="onboard-wiz-sub">Tunes rep-range suggestions across the app.</div>' +
+              '<div class="onboard-wiz-options">';
+      GOAL_OPTIONS.forEach(function(g){
+        html += '<button type="button" class="onboard-wiz-card'+(draft.goal === g.id ? ' selected' : '')+'" data-action="onboard-set-goal" data-value="'+g.id+'">' +
+                  '<span class="onboard-wiz-card-label">'+esc(g.label)+'</span>' +
+                  '<span class="onboard-wiz-card-desc">'+esc(g.desc)+'</span>' +
+                '</button>';
+      });
+      html += '</div>';
+    } else if (step === 'experience'){
+      html += '<div class="onboard-wiz-title">Your training experience?</div>' +
+              '<div class="onboard-wiz-sub">Helps us suggest a starting routine that actually fits.</div>' +
+              '<div class="onboard-wiz-options">';
+      ONBOARDING_EXPERIENCE_OPTIONS.forEach(function(o){
+        html += '<button type="button" class="onboard-wiz-card'+(draft.experienceLevel === o.id ? ' selected' : '')+'" data-action="onboard-set-experience" data-value="'+o.id+'">' +
+                  '<span class="onboard-wiz-card-label">'+esc(o.label)+'</span>' +
+                  '<span class="onboard-wiz-card-desc">'+esc(o.desc)+'</span>' +
+                '</button>';
+      });
+      html += '</div>';
+    } else if (step === 'days'){
+      html += '<div class="onboard-wiz-title">How many days a week can you train?</div>' +
+              '<div class="onboard-wiz-sub">Decides whether we suggest full-body, upper/lower, or a push/pull/legs split.</div>' +
+              '<div class="onboard-wiz-days-row">';
+      ONBOARDING_DAY_OPTIONS.forEach(function(n){
+        html += '<button type="button" class="onboard-wiz-day-btn'+(draft.trainingDaysPerWeek === n ? ' selected' : '')+'" data-action="onboard-set-days" data-value="'+n+'">'+n+'</button>';
+      });
+      html += '</div>';
+    } else if (step === 'template'){
+      var templateKey = recommendedOnboardingTemplateKey(draft);
+      var tpl = WORKOUT_TEMPLATES[templateKey];
+      // applyTemplate() overwrites the CURRENT session's exercise list --
+      // safe to do unconditionally on a brand-new signup (session is
+      // always empty then), but this screen is also reachable via
+      // Settings > Setup Wizard > Replay at any time, where the active
+      // session may already have real logged sets. Checked here (not
+      // just skipped silently in finishOnboarding) so the button itself
+      // never promises something it won't actually do.
+      var activeSession = getActiveSession();
+      var sessionHasExercises = !!(activeSession && activeSession.exercises.length > 0);
+      html += '<div class="onboard-wiz-title">Your starting routine</div>' +
+              '<div class="onboard-wiz-sub">' + (sessionHasExercises
+                ? 'Based on your answers. Your current session already has exercises logged, so this won\u2019t be loaded automatically \u2014 start it yourself anytime from Log > Add Exercise > template icon.'
+                : 'Based on your answers \u2014 you can always change it later.') + '</div>' +
+              '<div class="onboard-wiz-template-card">' +
+                '<div class="onboard-wiz-template-name">'+esc(tpl.label)+'</div>' +
+                '<div class="onboard-wiz-template-list">'+tpl.exercises.map(function(ex){ return esc(ex.name); }).join(' \u00b7 ')+'</div>' +
+              '</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="onboard-wiz-footer">' +
+              '<button type="button" class="onboard-wiz-back-btn" data-action="onboard-back">'+(stepIdx === 0 ? 'Skip' : 'Back')+'</button>' +
+              (step === 'template'
+                ? '<button type="button" class="onboard-wiz-next-btn" data-action="onboard-finish">'+(getActiveSession() && getActiveSession().exercises.length > 0 ? 'Save & Close' : 'Start Workout')+'</button>'
+                : '<button type="button" class="onboard-wiz-next-btn" data-action="onboard-next">Next</button>') +
+            '</div>';
+
+    panel.innerHTML = html;
+  }
+
   function currentRepRange(){
     var goal = (state.settings && state.settings.goal) || 'hypertrophy';
     return GOAL_REP_RANGES[goal] || GOAL_REP_RANGES.hypertrophy;
@@ -8236,7 +8652,7 @@
     var session = getActiveSession();
     session.name = tpl.label;
     session.exercises = tpl.exercises.map(function(ex){
-      return { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false };
+      return { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false, targetSets: ex.sets || null };
     });
     saveSessions();
     showToast('Started ' + tpl.label);
@@ -9429,7 +9845,19 @@
     var editingSetObj = null;
 
     if (ex.sets.length === 0){
-      // Intentionally empty: no "no sets" placeholder, keeps the card compact until a set is logged.
+      // Only shows for exercises that came from a template (targetSets
+      // set in applyTemplate) -- a manually-added exercise has no
+      // targetSets and this stays exactly as compact/empty as before.
+      // Reps come from the person's Goal setting (GOAL_REP_RANGES), not
+      // the template -- the template only ever fixes a set count, reps
+      // are meant to flex with whatever they're training for. Disappears
+      // the moment a real set is logged (see the ex.sets.length > 0
+      // branch below), same as every other "before you've started"
+      // hint in this app.
+      if (ex.targetSets){
+        var hintRange = currentRepRange();
+        html += '<div class="ex-target-hint">Suggested: ' + ex.targetSets + ' sets \u00d7 ' + hintRange.min + '\u2013' + hintRange.max + ' reps</div>';
+      }
     } else {
       ex.sets.forEach(function(st, i){
         var isEditingRow = st.id === editingSetId;
@@ -11362,6 +11790,9 @@
               '<div class="sr-sub">Powers real load, PRs, and progression tips in Pro Tips</div>' +
               '<div class="sr-value">'+(state.settings.bodyweightKg ? fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set') + ' \u00b7 ' + esc((GOAL_OPTIONS.filter(function(g){ return g.id === ((state.settings && state.settings.goal) || 'hypertrophy'); })[0] || GOAL_OPTIONS[1]).label) + '</div></div>' +
               '<button class="sr-action" data-action="open-bodyweight-picker">'+(state.settings.bodyweightKg ? 'Edit' : 'Set')+'</button></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Setup Wizard</div>' +
+              '<div class="sr-sub">Bodyweight, goal, experience, and a suggested starting routine</div></div>' +
+              '<button class="sr-action" data-action="open-onboarding-wizard">Replay</button></div>';
     var restAutoStart = !!state.settings.restTimerAutoStart;
     html += '<div class="settings-row"><div><div class="sr-label">Rest timer start</div><div class="sr-sub">Auto starts the moment you log a set</div></div>' +
               '<div class="seg">' +
@@ -11675,6 +12106,7 @@
     renderMuscleMapOverlay();
     renderExerciseSearchOverlay();
     renderProgressExerciseSearchOverlay();
+    renderOnboardingWizard();
     renderConfirmModal();
     renderRoutineNamePanel();
     renderHistoryEditOverlay();
@@ -12870,10 +13302,10 @@
       showToast(err);
       return;
     }
-    openAddSetConfirm(ex, weightKg, reps);
+    commitSet(ex, weightKg, reps);
   }
 
-  // Triggered by the per-exercise "+" button — same confirmation flow as
+  // Triggered by the per-exercise "+" button — same commit flow as
   // addSetGlobal, just targeting a specific exercise's row directly instead
   // of relying on which input was last focused.
   function addSetRow(exId){
@@ -12896,7 +13328,14 @@
       showToast(err);
       return;
     }
-    openAddSetConfirm(ex, weightKg, reps);
+    // Commits straight away instead of routing through the "Add this
+    // set?" confirm modal — that step was pure friction with no real
+    // safety benefit (weightRepsError above already catches bad input
+    // before this point), and it used to also collapse the draft row
+    // closed on confirm, forcing a re-tap to reopen it for the next set.
+    // Deliberately NOT touching ui.expandedAddSet here, so the row stays
+    // open and ready to type straight into for the next set.
+    commitSet(ex, weightKg, reps);
   }
 
   function deleteSet(exId, setId){
@@ -14370,6 +14809,20 @@
       openTemplatePicker();
     } else if (action === 'open-rest-timer-picker'){
       openRestTimerPicker();
+    } else if (action === 'open-onboarding-wizard'){
+      openOnboardingWizard();
+    } else if (action === 'onboard-back'){
+      onboardingBack();
+    } else if (action === 'onboard-next'){
+      onboardingNext();
+    } else if (action === 'onboard-finish'){
+      finishOnboarding();
+    } else if (action === 'onboard-set-goal'){
+      onboardingSetGoal(el.dataset.value);
+    } else if (action === 'onboard-set-experience'){
+      onboardingSetExperience(el.dataset.value);
+    } else if (action === 'onboard-set-days'){
+      onboardingSetDays(parseInt(el.dataset.value, 10));
     } else if (action === 'open-log-chat'){
       openLogChat();
     } else if (action === 'close-log-chat'){
@@ -14658,6 +15111,9 @@
       ui.progressExerciseSearchQuery = t.value;
       renderProgressExerciseSearchResults();
     }
+    if (t.id === 'onboardBwInput'){
+      ui.onboardingDraft.bodyweightKg = toStoredKg(t.value);
+    }
   });
 
   document.getElementById('app').addEventListener('focusin', function(e){
@@ -14813,6 +15269,10 @@
       ui.awaitingAvatarPick = false;
       showAppShell();
       renderApp();
+      // Setup wizard opens as an overlay on top of the now-visible app
+      // shell, not as a replacement for it -- if it ever fails to open
+      // for some reason, the person isn't left stuck on a blank gate.
+      openOnboardingWizard();
     }
   });
   authGateEl.addEventListener('input', function(e){
