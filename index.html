@@ -9844,20 +9844,23 @@
     var editingSetId = (ui.editingSet && ui.editingSet.exId === ex.id) ? ui.editingSet.setId : null;
     var editingSetObj = null;
 
+    // Only shows for exercises that came from a template (targetSets set
+    // in applyTemplate) -- a manually-added exercise has no targetSets
+    // and this renders nothing, same as before. Reps come from the
+    // person's Goal setting (GOAL_REP_RANGES), not the template -- the
+    // template only ever fixes a set count, reps are meant to flex with
+    // whatever they're training for. Stays visible alongside logged sets
+    // (not just before the first one) so it still reads as "3 sets"
+    // while only 1 is done, not just a one-time nudge that vanishes the
+    // moment logging starts.
+    if (ex.targetSets){
+      var hintRange = currentRepRange();
+      html += '<div class="ex-target-hint">Suggested: ' + ex.targetSets + ' sets \u00d7 ' + hintRange.min + '\u2013' + hintRange.max + ' reps</div>';
+    }
+
     if (ex.sets.length === 0){
-      // Only shows for exercises that came from a template (targetSets
-      // set in applyTemplate) -- a manually-added exercise has no
-      // targetSets and this stays exactly as compact/empty as before.
-      // Reps come from the person's Goal setting (GOAL_REP_RANGES), not
-      // the template -- the template only ever fixes a set count, reps
-      // are meant to flex with whatever they're training for. Disappears
-      // the moment a real set is logged (see the ex.sets.length > 0
-      // branch below), same as every other "before you've started"
-      // hint in this app.
-      if (ex.targetSets){
-        var hintRange = currentRepRange();
-        html += '<div class="ex-target-hint">Suggested: ' + ex.targetSets + ' sets \u00d7 ' + hintRange.min + '\u2013' + hintRange.max + ' reps</div>';
-      }
+      // Intentionally empty otherwise: no "no sets" placeholder, keeps
+      // the card compact until a set is logged.
     } else {
       ex.sets.forEach(function(st, i){
         var isEditingRow = st.id === editingSetId;
