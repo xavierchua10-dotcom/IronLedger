@@ -3066,8 +3066,26 @@
   .auth-google-btn svg{flex-shrink:0;}
 
   /* ---------- Progress ---------- */
-  .progress-muscle-chips{margin-bottom:10px;}
-  .progress-muscle-clear{display:block;margin:0 0 14px;}
+  /* .ex-search-panel is display:flex;flex-direction:column with a
+     flex-shrink:0 head, which only actually scrolls because
+     .ex-suggest-list (the original add-exercise overlay's results
+     container) is flex:1;min-height:0;overflow-y:auto. The progress
+     picker's chips + list need the same shape: progress-muscle-chips/
+     -clear pin at their natural size (flex-shrink:0, matching
+     .ex-search-head's own approach) so they don't get squashed once a
+     flex:1 sibling exists; progress-ex-list-wrap is that sibling --
+     same flex:1;min-height:0;overflow-y:auto shape as .ex-suggest-list,
+     just its own class since it wraps .progress-ex-list rather than
+     being the scrollable element itself. */
+  .progress-muscle-chips{flex-shrink:0; padding:0 16px 10px;}
+  .progress-muscle-clear{flex-shrink:0; margin:0 16px 8px; display:inline-block;}
+  .progress-ex-list-wrap{
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:4px 16px calc(20px + var(--safe-bottom, 0px));
+  }
   .progress-ex-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
   .ex-suggest-item.selected{border-color:var(--accent);}
   .ex-suggest-item.selected .ex-suggest-name{color:var(--accent);}
@@ -4537,6 +4555,9 @@
   <div class="ex-search-overlay hidden" id="exSearchOverlay">
     <div class="ex-search-panel" id="exSearchPanel"></div>
   </div>
+  <div class="ex-search-overlay hidden" id="progressExSearchOverlay">
+    <div class="ex-search-panel" id="progressExSearchPanel"></div>
+  </div>
 </div>
 <div id="authGate" class="hidden"></div>
 <div class="confirm-overlay hidden" id="confirmOverlay">
@@ -5106,6 +5127,7 @@
     progressExercise: null,
     progressView: 'dashboard',    // 'dashboard' (Muscle Volume Overview) | 'exercise' (the existing 1RM/trendline deep-dive)
     progressMuscleFilters: [],    // array of fine EXERCISE_LIBRARY categories (e.g. ['Biceps','Triceps']) narrowing the Exercise Progression list; empty = unscoped
+    progressExerciseSearchQuery: '', // free-text filter for the same list, combined (AND) with progressMuscleFilters above
     progressExerciseListOpen: false, // Exercise Progression: true = browsing the chip-filtered list, false = viewing the selected exercise's chart
     progressOverviewMode: 'regular', // 'regular' | 'intensity' | 'custom' — which Muscle Overview profile's caps/rows are showing. Chosen via the settings overlay now (see showMgSettings), not an on-screen toggle.
     mgExpandedGroups: {},  // muscle key -> bool; whether that row's exercise chips are expanded. Collapsed by default — see renderMuscleOverviewRows.
@@ -7301,13 +7323,6 @@
   var SWIPE_REVEAL_PX = 76;
   var SWIPE_OPEN_THRESHOLD_PX = SWIPE_REVEAL_PX / 2;
   var openSwipeRow = null; // the .set-row-swipe element currently revealed, if any
-  // Remembers #view's scroll position from the moment an exercise gets
-  // picked in Progress > Exercise Progression's list, so going back to
-  // the list (there's no confirm/cancel step in this flow, just list <->
-  // chart) restores it instead of starting scrolled to the top again.
-  // .progress-ex-list has no scroll of its own -- #view is what scrolls
-  // for this tab, same as every other tab's content.
-  var progressListScrollY = 0;
   // Exercise Progression's chart carousel (trend line <-> bar chart).
   // Purely a visual/transient bit of state -- never triggers a
   // renderApp() of its own (see the swipe/dot handlers below, both do
@@ -10857,6 +10872,136 @@
   // mode in one action — see 'select-progress-exercise-row'.
   // Returns { html, skipLock } — skipLock mirrors the original behavior
   // of bypassing the Pro paywall blur for the "nothing logged yet" case.
+
+  // Shared by renderProgressExerciseView's initial render (list mode)
+  // and renderProgressExerciseSearchResults' live re-render on every
+  // keystroke -- combines the muscle-chip filters with a free-text
+  // search (AND, not OR: must match both) using the same token/
+  // substring matching exerciseSuggestions already uses elsewhere,
+  // via exerciseQueryTokens, for consistent behavior with the rest of
+  // the app's exercise search. Only ever searches namesWithProgress
+  // (exercises with actual logged sets), never the full library --
+  // this list is for picking something to chart, and an exercise with
+  // zero logged sets has nothing to chart.
+  function progressExerciseListInnerHtml(namesWithProgress, filters, query){
+    var tokens = exerciseQueryTokens(query);
+    var visibleNames = namesWithProgress.filter(function(n){
+      if (filters.length > 0){
+        var fm = fineMuscleForLoggedName(n);
+        if (!fm || filters.indexOf(fm) === -1) return false;
+      }
+      if (tokens.length > 0){
+        var nameLower = n.toLowerCase();
+        if (!tokens.every(function(t){ return nameLower.indexOf(t) !== -1; })) return false;
+      }
+      return true;
+    });
+
+    if (visibleNames.length === 0){
+      var reason = filters.length > 0 && tokens.length > 0
+        ? 'your search'
+        : filters.length > 0 ? (filters.length === 1 ? 'that muscle' : 'those muscles')
+        : 'your search';
+      return '<div class="mg-scope-empty">No logged exercises match ' + reason + '.</div>';
+    }
+
+    // Grouped by fine muscle category in EXERCISE_LIBRARY's own order —
+    // reads the same way the exercise-search picker's browse view does.
+    // A logged exercise with no recognized category (fully custom name)
+    // falls into a trailing "Other" group instead of being dropped.
+    var muscleOptions = Object.keys(EXERCISE_LIBRARY);
+    var grouped = {};
+    var order = [];
+    visibleNames.forEach(function(n){
+      var fm = fineMuscleForLoggedName(n) || 'Other';
+      if (!grouped[fm]){ grouped[fm] = []; order.push(fm); }
+      grouped[fm].push(n);
+    });
+    order.sort(function(a, b){
+      var ai = muscleOptions.indexOf(a); if (ai === -1) ai = muscleOptions.length;
+      var bi = muscleOptions.indexOf(b); if (bi === -1) bi = muscleOptions.length;
+      return ai - bi;
+    });
+
+    var html = '<div class="progress-ex-list">';
+    order.forEach(function(fm){
+      html += '<div class="section-label">'+esc(fm)+'</div>';
+      html += '<div class="ex-suggest-grid">';
+      grouped[fm].forEach(function(n){
+        var selected = n === ui.progressExercise;
+        var libMatch = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === n; })[0];
+        // No how-cue here on purpose -- this list is for picking which
+        // exercise's progress chart to view, not learning the exercise,
+        // so the extra description line is just noise in this context.
+        html += exerciseSuggestItemHtml(n, fm, libMatch ? libMatch.equipment : null, null,
+          { action: 'select-progress-exercise-row', selected: selected });
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  // Live-repopulates just #progressExListWrap as the user types in the
+  // Progress exercise-list search box -- called from #app's 'input'
+  // listener, not a full renderApp(), for the same reason
+  // renderExerciseSuggestions/#exSuggestList avoids one: replacing the
+  // input element mid-type would lose focus and cursor position.
+  function renderProgressExerciseSearchResults(){
+    var wrap = document.getElementById('progressExListWrap');
+    if (!wrap) return;
+    var namesWithProgress = allExerciseNames().filter(function(n){ return collectExercisePoints(n).length > 0; });
+    var filters = ui.progressMuscleFilters || [];
+    wrap.innerHTML = progressExerciseListInnerHtml(namesWithProgress, filters, ui.progressExerciseSearchQuery);
+  }
+
+  // Full-screen picker for "which exercise's progress am I looking
+  // at" -- same shell (back button + pinned search input, ex-search-
+  // overlay/ex-search-panel classes) as renderExerciseSearchOverlay's
+  // add-exercise picker, on request to match that experience instead
+  // of the in-page chip+list section this replaced. Deliberately a
+  // separate overlay/function rather than teaching the existing one a
+  // second mode -- that one drives session-exercise add/rename
+  // (ui.editingExerciseName, a real exercise object, different
+  // selection/cancel semantics entirely); keeping them apart means
+  // this can't regress that already-working flow.
+  // No equipment/muscle FILTER PANEL button here the way the add-
+  // exercise header has one -- the muscle chips already do that job
+  // inline, simpler than a second panel for what is a much smaller
+  // list (only logged exercises, not the whole library).
+  function renderProgressExerciseSearchOverlay(){
+    var overlay = document.getElementById('progressExSearchOverlay');
+    var panel = document.getElementById('progressExSearchPanel');
+    if (!overlay || !panel) return;
+    if (!ui.progressExerciseListOpen){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+
+    var namesWithProgress = allExerciseNames().filter(function(n){ return collectExercisePoints(n).length > 0; });
+    var filters = ui.progressMuscleFilters || [];
+    var muscleOptions = Object.keys(EXERCISE_LIBRARY);
+
+    var html = '<div class="ex-search-head">' +
+      '<button class="ex-search-back" data-action="close-progress-exercise-list" aria-label="Close">' +
+        '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>' +
+      '</button>' +
+      '<input type="text" class="ex-search-input" id="progressExSearchInput" maxlength="60" value="'+esc(ui.progressExerciseSearchQuery || '')+'" placeholder="Search exercises\u2026" autocomplete="off">' +
+    '</div>';
+    html += '<div class="ex-filter-chips progress-muscle-chips">' + muscleOptions.map(function(m){
+      var active = filters.indexOf(m) !== -1;
+      return '<button type="button" class="ex-filter-chip'+(active ? ' active' : '')+'" data-action="toggle-progress-muscle-filter" data-muscle="'+esc(m)+'">'+esc(m)+'</button>';
+    }).join('') + '</div>';
+    if (filters.length > 0){
+      html += '<button type="button" class="ex-filter-clear progress-muscle-clear" data-action="clear-progress-muscle-filters">Clear filters</button>';
+    }
+    html += '<div id="progressExListWrap" class="progress-ex-list-wrap">' + progressExerciseListInnerHtml(namesWithProgress, filters, ui.progressExerciseSearchQuery) + '</div>';
+
+    panel.innerHTML = html;
+  }
+
   function renderProgressExerciseView(names){
     // No inline back link here anymore — the sticky Volume overview /
     // Exercise progression bar at the bottom of the screen (see
@@ -10877,65 +11022,10 @@
       return { html: html, skipLock: true };
     }
 
-    if (ui.progressExerciseListOpen){
-      // ---- LIST MODE: chips + grouped list, no chart ----
-      var filters = ui.progressMuscleFilters || [];
-      var muscleOptions = Object.keys(EXERCISE_LIBRARY);
-      html += '<div class="ex-filter-chips progress-muscle-chips">' + muscleOptions.map(function(m){
-        var active = filters.indexOf(m) !== -1;
-        return '<button type="button" class="ex-filter-chip'+(active ? ' active' : '')+'" data-action="toggle-progress-muscle-filter" data-muscle="'+esc(m)+'">'+esc(m)+'</button>';
-      }).join('') + '</div>';
-      if (filters.length > 0){
-        html += '<button type="button" class="ex-filter-clear progress-muscle-clear" data-action="clear-progress-muscle-filters">Clear filters</button>';
-      }
-
-      var visibleNames = namesWithProgress.filter(function(n){
-        if (filters.length === 0) return true;
-        var fm = fineMuscleForLoggedName(n);
-        return fm && filters.indexOf(fm) !== -1;
-      });
-
-      if (visibleNames.length === 0){
-        html += '<div class="mg-scope-empty">No logged exercises match '+(filters.length === 1 ? 'that muscle' : 'those muscles')+'.</div>';
-        return { html: html, skipLock: false };
-      }
-
-      // Grouped by fine muscle category in EXERCISE_LIBRARY's own order —
-      // reads the same way the exercise-search picker's browse view does.
-      // A logged exercise with no recognized category (fully custom name)
-      // falls into a trailing "Other" group instead of being dropped.
-      var grouped = {};
-      var order = [];
-      visibleNames.forEach(function(n){
-        var fm = fineMuscleForLoggedName(n) || 'Other';
-        if (!grouped[fm]){ grouped[fm] = []; order.push(fm); }
-        grouped[fm].push(n);
-      });
-      order.sort(function(a, b){
-        var ai = muscleOptions.indexOf(a); if (ai === -1) ai = muscleOptions.length;
-        var bi = muscleOptions.indexOf(b); if (bi === -1) bi = muscleOptions.length;
-        return ai - bi;
-      });
-
-      html += '<div class="progress-ex-list">';
-      order.forEach(function(fm){
-        html += '<div class="section-label">'+esc(fm)+'</div>';
-        html += '<div class="ex-suggest-grid">';
-        grouped[fm].forEach(function(n){
-          var selected = n === ui.progressExercise;
-          var libMatch = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === n; })[0];
-          // No how-cue here on purpose -- this list is for picking which
-          // exercise's progress chart to view, not learning the exercise,
-          // so the extra description line is just noise in this context.
-          html += exerciseSuggestItemHtml(n, fm, libMatch ? libMatch.equipment : null, null,
-            { action: 'select-progress-exercise-row', selected: selected });
-        });
-        html += '</div>';
-      });
-      html += '</div>';
-
-      return { html: html, skipLock: false };
-    }
+    // Exercise picker now lives in the full-screen
+    // #progressExSearchOverlay (see renderProgressExerciseSearchOverlay)
+    // instead of an inline mode here -- this always renders detail/
+    // chart mode now, the overlay sits on top of it when open.
 
     // ---- DETAIL MODE: title bar + chart + tip + PR list ----
     if (namesWithProgress.indexOf(ui.progressExercise) === -1){
@@ -11575,6 +11665,7 @@
 
     renderMuscleMapOverlay();
     renderExerciseSearchOverlay();
+    renderProgressExerciseSearchOverlay();
     renderConfirmModal();
     renderRoutineNamePanel();
     renderHistoryEditOverlay();
@@ -14359,16 +14450,21 @@
         ui.progressExerciseListOpen = false;
       });
     } else if (action === 'select-progress-exercise-row'){
-      var viewElBeforeSelect = document.getElementById('view');
-      progressListScrollY = viewElBeforeSelect ? viewElBeforeSelect.scrollTop : 0;
+      // No scroll-position save/restore anymore -- that was for the old
+      // inline list sharing main#view's own scroll with the rest of the
+      // tab. The picker is a self-contained full-screen overlay now
+      // (see renderProgressExerciseSearchOverlay), same as the add-
+      // exercise search overlay, which doesn't preserve its own scroll
+      // position across opens either.
       ui.progressExercise = el.dataset.name;
       ui.progressExerciseListOpen = false;
       renderApp();
     } else if (action === 'show-progress-exercise-list'){
       ui.progressExerciseListOpen = true;
       renderApp();
-      var viewElAfterShow = document.getElementById('view');
-      if (viewElAfterShow) viewElAfterShow.scrollTop = progressListScrollY;
+    } else if (action === 'close-progress-exercise-list'){
+      ui.progressExerciseListOpen = false;
+      renderApp();
     } else if (action === 'chart-carousel-goto'){
       goToChartCarouselPage(parseInt(el.dataset.page, 10));
     } else if (action === 'toggle-progress-muscle-filter'){
@@ -14529,6 +14625,10 @@
     if (t.id === 'exNameInput'){
       ui.pendingSuggestMuscle = null;
       renderExerciseSuggestions(t.value);
+    }
+    if (t.id === 'progressExSearchInput'){
+      ui.progressExerciseSearchQuery = t.value;
+      renderProgressExerciseSearchResults();
     }
   });
 
