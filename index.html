@@ -3300,10 +3300,6 @@
     letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:6px;
   }
 
-  /* ---------- Redacted timestamp (Basic tier) ---------- */
-  .ts-lock{color:var(--text-faint);cursor:default;display:inline-flex;vertical-align:middle;}
-  .ts-lock svg{width:11px;height:11px;}
-
   /* ---------- Google sign-in button ---------- */
   .auth-google-btn{
     width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
@@ -4639,15 +4635,6 @@
     100%{text-shadow:0 0 0 rgba(255,255,255,0);}
   }
   .set-idx.flash, .set-wr.flash, .set-time.flash{animation:numberFlash 650ms ease-out;}
-  /* Basic tier has no timestamp to flash, so the lock icon itself pulses
-     instead — same idea as the PR tag's pulse, just applied here so
-     Basic users still get a clear "this is what just changed" cue. */
-  @keyframes lockPulse{
-    0%{transform:scale(1);opacity:1;}
-    35%{transform:scale(1.35);opacity:1;}
-    100%{transform:scale(1);opacity:1;}
-  }
-  .ts-lock.flash{display:inline-flex;animation:lockPulse 500ms ease;}
   @keyframes notifSlideDown{
     0%{opacity:0;transform:translateY(-8px);}
     100%{opacity:1;transform:translateY(0);}
@@ -5300,10 +5287,8 @@
     activityLog: [],       // [{ id, time, message, tag }, ...] newest first — the "Brief"
     tab: 'log',
     currentAccount: null,  // null (show gate) | 'guest' | account id
-    userDoc: null,         // realtime mirror of Firestore /users/{uid} — tier, trial, subscription, progressAccess
-    progressAccess: {}     // month key ('2026-08') -> { firstUseAt }. Guest source of truth; real-account fallback until userDoc loads.
+    userDoc: null          // realtime mirror of Firestore /users/{uid} — tier, trial, subscription, progressAccess
   };
-
   // Handles the two home-screen app shortcuts declared in manifest.json
   // (long-press the installed icon on Android). Log is already the
   // default landing tab regardless, so ?action=new-session doesn't need
@@ -5569,20 +5554,6 @@
   }
   function saveActivityLog(){
     safeSetItem(scopedKey(STORAGE_ACTIVITY_LOG), JSON.stringify(state.activityLog));
-  }
-
-  // Guest-mode (and pre-sync fallback) storage for the Progress tab's
-  // per-calendar-month "3 free days" tracker. Real accounts prefer
-  // state.userDoc.progressAccess (Firestore) once it's loaded — see
-  // progressAccessState().
-  function loadProgressAccessLocal(){
-    try{
-      var raw = localStorage.getItem(scopedKey(STORAGE_PROGRESS_ACCESS));
-      return raw ? JSON.parse(raw) : {};
-    }catch(e){ return {}; }
-  }
-  function saveProgressAccessLocal(){
-    safeSetItem(scopedKey(STORAGE_PROGRESS_ACCESS), JSON.stringify(state.progressAccess));
   }
 
   // Records an entry in the Brief (activity log) — every add/edit/delete/rename
@@ -7892,11 +7863,6 @@
     return '';
   }
 
-  function monthKey(d){
-    d = d || new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-  }
-
   // Progress is Pro/trial only now — no Basic-tier grace period. Kept as
   // its own function (rather than inlining isProActive() at each call
   // site) so the {locked} shape stays the same for renderProgress() below,
@@ -7905,28 +7871,6 @@
     return { locked: !isProActive() };
   }
 
-  function recordProgressFirstUse(mk){
-    var rec = { firstUseAt: Date.now() };
-    if (state.currentAccount === 'guest'){
-      state.progressAccess = state.progressAccess || {};
-      if (state.progressAccess[mk]) return;
-      state.progressAccess[mk] = rec;
-      saveProgressAccessLocal();
-    } else if (state.currentAccount){
-      state.userDoc = state.userDoc || {};
-      state.userDoc.progressAccess = state.userDoc.progressAccess || {};
-      if (state.userDoc.progressAccess[mk]) return;
-      state.userDoc.progressAccess[mk] = rec;
-      if (window.SaviorFirebase && window.SaviorFirebase.updateUserDoc){
-        var patch = { progressAccess: {} };
-        patch.progressAccess[mk] = rec;
-        window.SaviorFirebase.updateUserDoc(state.currentAccount, patch).catch(function(){});
-      }
-    }
-  }
-
-  // Redacts a set/session timestamp for Basic tier — Pro sees the real
-  // clock time, Basic sees a small lock glyph in its place.
   // Set/session timestamp — shown for everyone (was Basic-tier redacted
   // behind a lock glyph, Pro-only). Kept the label/flash args in the
   // signature since call sites still pass them.
@@ -9612,7 +9556,7 @@
       '</div>' +
       '<div class="pricing-body">' +
         '<ul class="paywall-features">' +
-          '<li><span class="chk">&#10003;</span> Full timestamps on every set, everywhere</li>' +
+          '<li><span class="chk">&#10003;</span> Tips &amp; Target \u2014 a specific weight or rep goal for your next session</li>' +
           '<li><span class="chk">&#10003;</span> Unlimited Progress \u2014 charts, PRs, trends</li>' +
           '<li><span class="chk">&#10003;</span> Print Pro PDF \u2014 modern layout + overload tips</li>' +
         '</ul>' +
@@ -11591,10 +11535,9 @@
       document.getElementById('view').innerHTML = html;
       return;
     }
-    // Only counts as "using" the Progress tab (and starts the Basic-tier
-    // 3-free-days-per-month clock — see progressAccessState) once there's
-    // actually something loggable to view. Checked after the empty-account
-    // guard above so simply opening an empty tab doesn't burn a free day.
+    // Progress is a hard Pro/trial lock now (see progressAccessState) —
+    // this call just gets the current {locked} state, nothing is
+    // recorded or started by checking it.
     var access = progressAccessState();
     if (!ui.progressExercise || names.indexOf(ui.progressExercise) === -1){
       ui.progressExercise = names[0];
@@ -11807,7 +11750,7 @@
                 '<button class="sr-action" data-action="open-pricing">Start Trial</button></div>';
     } else {
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
-                '<div class="sr-sub">Upgrade for full timestamps, unlimited Progress & Pro PDF</div></div>' +
+                '<div class="sr-sub">Upgrade for Tips &amp; Target, unlimited Progress &amp; Pro PDF</div></div>' +
                 '<button class="sr-action" data-action="open-pricing">Upgrade</button></div>';
     }
     html += '</div>';
@@ -12158,7 +12101,6 @@
     // lives in ui.* same as before.
     ui.progressOverviewMode = state.settings.progressOverviewMode || 'regular';
     state.activityLog = loadActivityLog();
-    state.progressAccess = loadProgressAccessLocal();
     purgeStaleActivity();
     state.tab = 'log';
     ui.editingSet = null;
@@ -12304,7 +12246,6 @@
     state.currentAccountEmail = null;
     state.trialClaimedByEmail = false;
     state.userDoc = null;
-    state.progressAccess = {};
     ui.showAccountMenu = false;
     ui.authMode = 'login';
     ui.authError = null;
