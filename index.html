@@ -10622,6 +10622,32 @@
       '</div>';
   }
 
+  // Settings -> Support -> "Share App". Uses the OS share sheet
+  // (WhatsApp, Messages, etc.) when available; falls back to copying
+  // the link to the clipboard on browsers without navigator.share
+  // (mainly desktop). The link is the live web app itself rather than
+  // the Play Store listing, since that works for every platform
+  // regardless of whether someone's on Android, iOS, or desktop, and
+  // regardless of the Play Store listing's current testing/release status.
+  function shareApp(){
+    var shareData = {
+      title: 'SaviorFit Logger',
+      text: 'I\u2019ve been using SaviorFit Logger to track my workouts \u2014 check it out:',
+      url: 'https://xavierchua10-dotcom.github.io/IronLedger/'
+    };
+    if (navigator.share){
+      navigator.share(shareData).catch(function(){ /* cancelled or failed silently -- a cancelled share isn't an error */ });
+    } else if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(shareData.url).then(function(){
+        showToast('Link copied to clipboard');
+      }).catch(function(){
+        showToast('Could not copy link');
+      });
+    } else {
+      showToast('Could not share \u2014 try copying the link manually');
+    }
+  }
+
   // The Progress tab's dashboard landing view: one panel, a Regular/
   // Intensity switch at the top instead of stacking both (see
   // ui.progressOverviewMode), and rows for whichever mode is active
@@ -11883,6 +11909,8 @@
               '<button class="sr-action" data-action="start-tour">Start</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Rate SaviorFit Logger</div><div class="sr-sub">'+(state.settings.appRating ? 'You rated '+state.settings.appRating+' star'+(state.settings.appRating === 1 ? '' : 's')+' \u2014 tap to update' : 'Let us know how it\u2019s going')+'</div></div>' +
               '<button class="sr-action" data-action="open-rating-panel">Rate</button></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Share App</div><div class="sr-sub">Know someone who\u2019d like this? Send them the link</div></div>' +
+              '<button class="sr-action" data-action="share-app">Share</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Instagram</div><div class="sr-sub">@im.savior_</div></div>' +
               '<a class="sr-action" href="https://instagram.com/im.savior_" target="_blank" rel="noopener">Open</a></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Email</div><div class="sr-sub">xavierchua10@gmail.com</div></div>' +
@@ -14827,6 +14855,8 @@
       openMuscleVolumeInsight();
     } else if (action === 'open-rating-panel'){
       openRatingPanel();
+    } else if (action === 'share-app'){
+      shareApp();
     } else if (action === 'select-progress-exercise-row'){
       // No scroll-position save/restore anymore -- that was for the old
       // inline list sharing main#view's own scroll with the rest of the
