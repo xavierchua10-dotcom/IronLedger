@@ -2033,9 +2033,63 @@
     display:flex;
     flex-direction:column;
     animation:onboardWizIn 0.2s ease;
+    overflow:hidden;
   }
   .onboard-wiz-overlay.hidden{display:none;}
+  /* Decorative background only -- static markup, never touched by
+     renderOnboardingWizard() (which only ever writes into
+     #onboardWizPanel's innerHTML), so it never flickers/rebuilds across
+     the wizard's re-renders the way the panel content does. Purely
+     visual, so it's pointer-events:none and sits behind the panel via
+     z-index, not part of the panel's own flex layout. */
+  .onboard-wiz-bg{
+    position:absolute;
+    inset:0;
+    z-index:0;
+    overflow:hidden;
+    pointer-events:none;
+  }
+  .onboard-wiz-bg-grid{
+    position:absolute;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size:38px 38px;
+    -webkit-mask-image:linear-gradient(180deg, #000 0%, #000 40%, transparent 75%);
+    mask-image:linear-gradient(180deg, #000 0%, #000 40%, transparent 75%);
+  }
+  .onboard-wiz-bg-ray{
+    position:absolute;
+    top:-60px;
+    width:2px;
+    background:linear-gradient(180deg, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0));
+    transform-origin:top center;
+  }
+  .onboard-wiz-bg-ray.r1{left:20%; height:420px; transform:rotate(-14deg);}
+  .onboard-wiz-bg-ray.r2{left:38%; height:520px; transform:rotate(-6deg);}
+  .onboard-wiz-bg-ray.r3{left:58%; height:520px; transform:rotate(5deg);}
+  .onboard-wiz-bg-ray.r4{left:78%; height:420px; transform:rotate(13deg);}
+  .onboard-wiz-bg-plate{
+    position:absolute;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,0.035);
+  }
+  .onboard-wiz-bg-plate.p1{width:340px;height:340px; bottom:-140px; left:-100px;}
+  .onboard-wiz-bg-plate.p2{width:220px;height:220px; bottom:-60px; left:20px;}
+  .onboard-wiz-bg-plate.p3{width:260px;height:260px; bottom:-90px; right:-90px;}
+  .onboard-wiz-bg-glow{
+    position:absolute;
+    top:-120px;
+    left:50%;
+    transform:translateX(-50%);
+    width:520px;
+    height:520px;
+    background:radial-gradient(circle, rgba(var(--accent-rgb),0.28) 0%, rgba(var(--accent-rgb),0.10) 35%, rgba(var(--accent-rgb),0) 65%);
+  }
   .onboard-wiz-panel{
+    position:relative;
+    z-index:1;
     flex:1;
     min-height:0;
     display:flex;
@@ -4699,6 +4753,17 @@
     <div class="ex-search-panel" id="progressExSearchPanel"></div>
   </div>
   <div class="onboard-wiz-overlay hidden" id="onboardWizOverlay">
+    <div class="onboard-wiz-bg">
+      <div class="onboard-wiz-bg-grid"></div>
+      <div class="onboard-wiz-bg-ray r1"></div>
+      <div class="onboard-wiz-bg-ray r2"></div>
+      <div class="onboard-wiz-bg-ray r3"></div>
+      <div class="onboard-wiz-bg-ray r4"></div>
+      <div class="onboard-wiz-bg-plate p1"></div>
+      <div class="onboard-wiz-bg-plate p2"></div>
+      <div class="onboard-wiz-bg-plate p3"></div>
+      <div class="onboard-wiz-bg-glow"></div>
+    </div>
     <div class="onboard-wiz-panel" id="onboardWizPanel"></div>
   </div>
 </div>
