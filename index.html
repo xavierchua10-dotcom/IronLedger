@@ -578,11 +578,6 @@
     -webkit-overflow-scrolling:touch;
     padding:16px 16px calc(100px + var(--safe-bottom));
   }
-  /* Extra bottom room on Progress so the last row/card isn't hidden
-     behind the sticky Volume overview / Exercise progression bar. */
-  body.has-progress-subtab main#view{
-    padding-bottom:calc(148px + var(--safe-bottom));
-  }
   /* Insight reads as one fixed screen, not a scrollable page --
      overflow:hidden here (rather than main#view's usual overflow-y:
      auto) plus the panel itself told to fill that now-fixed space
@@ -3894,60 +3889,6 @@
     cursor:pointer;margin-top:6px;
   }
   .mg-custom-save-btn:active{background:var(--accent-dim);}
-  .mg-row{padding:10px 0;cursor:pointer;}
-  .mg-row + .mg-row{border-top:1px solid rgba(255,255,255,0.08);}
-  .mg-row:active{opacity:0.85;}
-  .mg-row-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;gap:8px;}
-  .mg-row-thumb-wrap{
-    width:32px;
-    height:32px;
-    border-radius:50%;
-    flex-shrink:0;
-    transition:box-shadow 0.3s ease;
-  }
-  .mg-row-thumb{
-    width:100%;
-    height:100%;
-    border-radius:50%;
-    object-fit:cover;
-    background:var(--panel);
-    display:block;
-  }
-  .mg-row-name{
-    font-family:'Oswald',sans-serif;
-    font-weight:700;
-    font-size:13.5px;
-    text-transform:uppercase;
-    letter-spacing:0.03em;
-    color:var(--text);
-    flex:1;
-    min-width:0;
-  }
-  .mg-row-count{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#c7ccd3;white-space:nowrap;}
-  .mg-row-count.mg-good{color:var(--success);font-weight:700;}
-  .mg-row-count.mg-over{color:var(--accent-2);font-weight:700;}
-  .mg-bar-track{height:9px;border-radius:5px;background:rgba(255,255,255,0.1);overflow:hidden;}
-  .mg-bar-fill{height:100%;border-radius:5px;background:var(--mg-gold-dim);}
-  .mg-bar-fill.mg-good{background:var(--success);}
-  .mg-bar-fill.mg-over{background:var(--accent-2);}
-  .mg-chips{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
-  .mg-chips-toggle{
-    background:none;border:none;padding:0;margin-top:9px;
-    font-size:11px;color:var(--text-faint);cursor:pointer;
-  }
-  .mg-chips-toggle:active{color:var(--text-dim);}
-  .mg-chip{
-    background:rgba(255,255,255,0.06);
-    border:1px solid rgba(255,255,255,0.14);
-    border-radius:999px;
-    padding:5px 11px;
-    font-size:11px;
-    color:#dfe2e6;
-    cursor:pointer;
-    white-space:nowrap;
-  }
-  .mg-chip:active{opacity:0.7;background:rgba(255,255,255,0.12);}
-  .mg-empty-note{color:#9198a1;font-size:11px;margin-top:8px;}
   .mg-scope-empty{
     text-align:center;
     color:var(--text-faint);
@@ -4365,37 +4306,8 @@
   .tabbar button.active{color:var(--accent);}
   .tabbar button:active{background:var(--panel-2);}
 
-  /* ---------- Progress sub-tab bar (Volume overview / Exercise progression) ---------- */
-  .progress-subtabbar{
-    position:sticky;
-    bottom:0;
-    display:flex;
-    background:var(--panel-2);
-    border-top:1px solid var(--line);
-    max-width:480px;
-    margin:0 auto;
-    width:100%;
-  }
-  .progress-subtabbar button{
-    flex:1;
-    background:none;
-    border:none;
-    color:var(--text-faint);
-    font-family:'Oswald',sans-serif;
-    font-size:12px;
-    letter-spacing:0.03em;
-    text-transform:uppercase;
-    font-weight:700;
-    padding:12px 6px;
-    cursor:pointer;
-  }
-  .progress-subtabbar button + button{border-left:1px solid var(--line);}
-  .progress-subtabbar button.active{color:var(--accent);background:var(--panel-3);}
-  .progress-subtabbar button:active{opacity:0.85;}
-
-  /* Fade+shift transition for switching between the Progress sub-tab
-     panels (Volume overview / Exercise progression) — see
-     switchProgressViewWithFade(). Out: 140ms, in: 160ms, per spec. */
+  /* Fade+shift transition for the content swap on a main tab switch —
+     see switchTabWithFade(). Out: 140ms, in: 160ms, per spec. */
   #view.subtab-fade-out{
     opacity:0;
     transform:translateY(6px);
@@ -5356,12 +5268,10 @@
     historyDateRangeDraft: {start:'', end:''}, // draft start/end while the picker is open, discarded on Cancel
     historyDateRangeError: null,  // validation message shown in the date-range picker, if any
     progressExercise: null,
-    progressView: 'dashboard',    // 'dashboard' (Muscle Volume Overview) | 'exercise' (the existing 1RM/trendline deep-dive)
     progressMuscleFilters: [],    // array of fine EXERCISE_LIBRARY categories (e.g. ['Biceps','Triceps']) narrowing the Exercise Progression list; empty = unscoped
     progressExerciseSearchQuery: '', // free-text filter for the same list, combined (AND) with progressMuscleFilters above
     progressExerciseListOpen: false, // Exercise Progression: true = browsing the chip-filtered list, false = viewing the selected exercise's chart
     progressOverviewMode: 'regular', // 'regular' | 'intensity' | 'custom' — which Muscle Overview profile's caps/rows are showing. Chosen via the settings overlay now (see showMgSettings), not an on-screen toggle.
-    mgExpandedGroups: {},  // muscle key -> bool; whether that row's exercise chips are expanded. Collapsed by default — see renderMuscleOverviewRows.
     showMgSettings: false, // whether the Muscle Volume Overview settings overlay (mode picker + custom targets) is open
     mgDraftMode: null,     // mode picked inside the panel but not yet applied — see openMgSettings/applyMgSettings. null when panel's closed.
     settingsPickerKind: null,  // 'restTimer' | 'accentColor' | 'cardBg' | null — which generic Settings picker overlay is open, if any
@@ -6866,21 +6776,6 @@
     return fineMuscle;
   }
 
-  // Translates a Volume Overview bar's coarse bucket (Chest/Back/
-  // Shoulders/Arms/Legs/Core) into the equivalent set of fine
-  // EXERCISE_LIBRARY categories, so tapping "Arms" on the dashboard
-  // pre-selects Biceps + Triceps + Forearms in the Exercise Progression
-  // muscle filter — one filter mechanism (progressMuscleFilters) instead
-  // of two parallel ones.
-  var BUCKET_TO_FINE_MUSCLES = {
-    Chest: ['Chest'],
-    Back: ['Back', 'Traps'],
-    Shoulders: ['Shoulders'],
-    Arms: ['Biceps', 'Triceps', 'Forearms'],
-    Legs: ['Quads', 'Hamstrings', 'Glutes', 'Calves'],
-    Core: ['Abs']
-  };
-
   // Equipment chip options for the exercise-search filter panel, in the
   // order they're shown. Kept as an explicit list (rather than derived
   // from EXERCISE_LIBRARY_FLAT) so the chip order stays stable regardless
@@ -7241,6 +7136,7 @@
         { name: 'Barbell Shoulder Press', muscle: 'Shoulders', sets: 3 },
         { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings', sets: 3 },
         { name: 'Barbell Hip Thrust', muscle: 'Glutes', sets: 3 },
+        { name: 'Barbell Standing Calf Raise', muscle: 'Calves', sets: 2, optional: true },
         { name: 'Hanging Leg Raise', muscle: 'Abs', sets: 3 }
       ]
     },
@@ -7254,6 +7150,7 @@
         { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders', sets: 3 },
         { name: 'Seated Leg Curl', muscle: 'Hamstrings', sets: 3 },
         { name: 'Machine Hip Thrust', muscle: 'Glutes', sets: 3 },
+        { name: 'Machine Standing Calf Raise', muscle: 'Calves', sets: 2, optional: true },
         { name: 'Cable Crunch', muscle: 'Abs', sets: 3 }
       ]
     },
@@ -7267,6 +7164,7 @@
         { name: 'Arnold Press', muscle: 'Shoulders', sets: 3 },
         { name: 'Dumbbell Romanian Deadlift', muscle: 'Hamstrings', sets: 3 },
         { name: 'Dumbbell Bulgarian Split Squat', muscle: 'Glutes', sets: 3 },
+        { name: 'Dumbbell Standing Calf Raise', muscle: 'Calves', sets: 2, optional: true },
         { name: 'Ab Wheel Rollout', muscle: 'Abs', sets: 3 }
       ]
     },
@@ -11495,9 +11393,9 @@
   }
 
   function renderProgressExerciseView(names){
-    // No inline back link here anymore — the sticky Volume overview /
-    // Exercise progression bar at the bottom of the screen (see
-    // progressSubtabbar) is the way back now, so this doesn't duplicate it.
+    // No inline back link here — Progress only ever renders this view
+    // now (Volume Overview moved out to its own Insight tab), so there's
+    // nothing to navigate back to.
     var html = '';
 
     // Only exercises with actual logged sets have anything to show below
@@ -11618,11 +11516,7 @@
       ui.progressExercise = names[0];
     }
     // Volume Overview moved out to its own Insight tab, so Progress only
-    // ever renders the exercise view now. ui.progressView itself is left
-    // alone rather than deleted outright: a couple of handlers elsewhere
-    // (open-muscle-drilldown, open-exercise-drilldown) still set it, and
-    // leaving it as inert state is lower-risk than chasing down and
-    // rewriting every setter for what's otherwise an unrelated change.
+    // ever renders the exercise view now.
     var result = renderProgressExerciseView(names);
     html += result.html;
     var skipLock = result.skipLock;
@@ -12009,34 +11903,6 @@
   // logging a set. Session-only, not persisted; resets on reload same
   // as any other in-memory UI state.
   var tabScrollPositions = {};
-
-  // Fades the current Progress sub-tab panel out (opacity+translateY,
-  // 140ms), swaps to the new panel via the normal render, then fades it
-  // in from the same offset (160ms). `mutate` should just set the
-  // ui.progressView/filter state — the render + fade is handled here.
-  // Skips the animation entirely under reduced-motion or if a main-tab
-  // slide is already in flight, same guard as switchTabWithFade.
-  function switchProgressViewWithFade(mutate){
-    var viewEl = document.getElementById('view');
-    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion || ui.tabAnimating){
-      mutate();
-      renderApp();
-      return;
-    }
-    viewEl.classList.remove('subtab-fade-in');
-    viewEl.classList.add('subtab-fade-out');
-    setTimeout(function(){
-      mutate();
-      renderApp();
-      var v = document.getElementById('view');
-      v.classList.remove('subtab-fade-out');
-      v.classList.add('subtab-fade-in');
-      setTimeout(function(){
-        v.classList.remove('subtab-fade-in');
-      }, 170);
-    }, 140);
-  }
 
   function switchTabWithFade(newTab){
     if (newTab === state.tab){
@@ -13325,20 +13191,6 @@
     renderApp();
   }
 
-  function openAddSetConfirm(ex, weightKg, reps){
-    ui.confirmModal = {
-      kind: 'add-set-global',
-      title: 'Add this set?',
-      message: fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + ' will be logged for ' + ex.name + '.',
-      confirmLabel: 'Add Set',
-      variant: 'primary',
-      exId: ex.id,
-      weightKg: weightKg,
-      reps: reps
-    };
-    renderApp();
-  }
-
   function addSetGlobal(){
     var target = activeAddSetTarget();
     if (!target){
@@ -14337,13 +14189,15 @@
      person who most needs it.
      ========================================================= */
   var TOUR_STEPS = [
-    { tab: 'log', selector: '.template-toggle-btn', fallback: '#view', title: 'Start from a template', text: 'New here? Tap this to load a pre-built routine \u2014 Push Day, Legs, Full Body, and more \u2014 instead of adding exercises one by one.' },
+    { tab: 'log', selector: '.template-toggle-btn', fallback: '#view', title: 'Start from a template', text: 'New here? Tap this to load a pre-built routine \u2014 Beginner Full Body, Push Day, Legs, and more \u2014 each with a suggested set count and rep range for every exercise.' },
     { tab: 'log', selector: '[data-action="add-blank-exercise"]', title: 'Add an exercise', text: 'Tap here to add an exercise \u2014 search by name, or browse the full library grouped by muscle.' },
+    { tab: 'log', selector: '.add-set-btn', fallback: '#view', title: 'Log a set', text: 'Type your weight and reps, then tap the checkmark \u2014 it logs instantly and the row stays open, ready for your next set right away.' },
     { tab: 'log', selector: '.mm-toggle-btn', title: 'Browse by muscle', text: 'Prefer to browse? This opens a body diagram \u2014 tap a muscle group to see matching exercises.' },
     { tab: 'log', selector: '#restTimerHeaderBtn', title: 'Rest timer', text: 'Start a rest timer between sets. It keeps counting down even if you switch tabs.' },
     { tab: 'log', selector: '#notifBellBtn', title: 'Notifications', text: 'Trial status, reminders, and other updates show up here.' },
-    { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Tap the \u22ee on any session to edit, repeat, or delete it.' },
+    { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Tap the \u22ee on any session to edit, repeat, or delete it \u2014 or tap the pencil on any exercise to jump straight to editing just that one.' },
     { tab: 'insight', selector: '.mg-panel', fallback: '#view', title: 'Insight', text: 'See your weekly set volume per muscle group on the 3D model \u2014 tap a muscle to focus the camera on it.' },
+    { tab: 'settings', selector: '[data-action="open-onboarding-wizard"]', fallback: '#view', title: 'Setup Wizard', text: 'Replay the setup questions anytime \u2014 bodyweight, goal, experience, and training days \u2014 to get a freshly suggested starting routine.' },
     { tab: 'settings', selector: '[data-action="open-bodyweight-picker"]', fallback: '#view', title: 'Bodyweight & goal', text: 'Set these once \u2014 they power real load tracking on bodyweight exercises and shape how Pro Tips suggests your next set.' },
     { tab: 'settings', selector: '[data-action="open-settings-picker"][data-kind="accentColor"]', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
     { tab: 'settings', selector: '[data-action="open-settings-picker"][data-kind="cardBg"]', fallback: '#view', title: 'Card style', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
@@ -14944,45 +14798,10 @@
       resetMg3dView();
     } else if (action === 'mg-3d-toggle-plain'){
       toggleMg3dPlain();
-    } else if (action === 'toggle-mg-exercises'){
-      var mKey = el.dataset.muscle;
-      ui.mgExpandedGroups[mKey] = !ui.mgExpandedGroups[mKey];
-      renderApp();
     } else if (action === 'open-muscle-volume-insight'){
       openMuscleVolumeInsight();
     } else if (action === 'open-rating-panel'){
       openRatingPanel();
-    } else if (action === 'open-muscle-drilldown'){
-      // Translates the bar's coarse bucket into the equivalent fine
-      // categories — tapping "Arms" pre-selects Biceps+Triceps+Forearms
-      // in the same progressMuscleFilters the chips below use directly.
-      // Lands in list mode since no single exercise has been picked yet.
-      ui.progressMuscleFilters = (BUCKET_TO_FINE_MUSCLES[el.dataset.muscle] || []).slice();
-      ui.progressExerciseListOpen = true;
-      ui.progressView = 'exercise';
-      renderApp();
-    } else if (action === 'open-exercise-drilldown'){
-      ui.progressExercise = el.dataset.name;
-      ui.progressMuscleFilters = [];
-      ui.progressExerciseListOpen = false;
-      ui.progressView = 'exercise';
-      renderApp();
-    } else if (action === 'back-to-muscle-dashboard'){
-      switchProgressViewWithFade(function(){
-        ui.progressView = 'dashboard';
-        ui.progressMuscleFilters = [];
-      });
-    } else if (action === 'open-exercise-progression'){
-      // Entry point from the sticky sub-tab bar — a general "see exercise
-      // trends" landing, not a muscle-scoped drill-down, so it clears any
-      // filters left over from a muscle-bar tap the same way the
-      // dashboard button clears them going the other direction, and
-      // lands on whichever exercise's chart rather than the browse list.
-      switchProgressViewWithFade(function(){
-        ui.progressView = 'exercise';
-        ui.progressMuscleFilters = [];
-        ui.progressExerciseListOpen = false;
-      });
     } else if (action === 'select-progress-exercise-row'){
       // No scroll-position save/restore anymore -- that was for the old
       // inline list sharing main#view's own scroll with the rest of the
@@ -15384,12 +15203,6 @@
       else if (m && m.kind === 'draft-add-exercise-confirm') draftPickExercise(m.exName, m.exMuscle);
       else if (m && m.kind === 'logout') logOut();
       else if (m && m.kind === 'delete-account') openDeleteAccountPasswordConfirm();
-      else if (m && m.kind === 'add-set-global'){
-        var session = getActiveSession();
-        var ex = findExercise(session, m.exId);
-        ui.expandedAddSet[m.exId] = false;
-        if (ex) commitSet(ex, m.weightKg, m.reps);
-      }
       else if (m && m.kind === 'edit-set-confirm'){
         applySetEdit(m.exId, m.setId, m.weightKg, m.reps);
       }
