@@ -7963,9 +7963,12 @@
 
   // Redacts a set/session timestamp for Basic tier — Pro sees the real
   // clock time, Basic sees a small lock glyph in its place.
+  // Set/session timestamp — shown for everyone (was Basic-tier redacted
+  // behind a lock glyph, Pro-only). Kept the label/flash args in the
+  // signature since call sites still pass them.
   function tsOrLock(iso, label, flash){
     if (!iso) return '';
-    return isProActive() ? fmtTime(iso) : '<span class="ts-lock'+(flash ? ' flash' : '')+'" title="Upgrade to Pro to see '+(label || 'set times')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>';
+    return fmtTime(iso);
   }
 
   // Best e1rm for this exercise name across all sessions, excluding a
