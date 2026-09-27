@@ -5298,6 +5298,7 @@
     showOnboardingWizard: false,  // full-screen setup wizard (bodyweight/goal/experience/days -> suggested template) — auto-opens once right after avatar pick on a brand-new account, replayable anytime from Settings
     onboardingStep: 0,             // index into ONBOARDING_STEPS
     onboardingDraft: null,        // { bodyweightKg, goal, experienceLevel, trainingDaysPerWeek } — working copy while the wizard is open, only written to state.settings on finishOnboarding()
+    onboardingIsNewSignup: false, // true only when the wizard was opened right after a brand-new signup (see confirm-onboarding-avatar) — decides whether closing/finishing it auto-starts the guided tour
     confirmModal: null,           // { kind:'exercise'|'set'|'session', title, message, exId, setId, sessionId } or null
     pendingDeleteAccount: false,
     confirmingDeleteAccountPassword: false,  // true while the post-countdown re-auth panel is open
@@ -7994,9 +7995,10 @@
   ];
   var ONBOARDING_DAY_OPTIONS = [2, 3, 4, 5, 6];
 
-  function openOnboardingWizard(){
+  function openOnboardingWizard(fromSignup){
     ui.showOnboardingWizard = true;
     ui.onboardingStep = 0;
+    ui.onboardingIsNewSignup = !!fromSignup;
     ui.onboardingDraft = {
       bodyweightKg: (state.settings && state.settings.bodyweightKg) || null,
       goal: (state.settings && state.settings.goal) || null,
@@ -8009,6 +8011,14 @@
     ui.showOnboardingWizard = false;
     ui.onboardingDraft = null;
     renderOnboardingWizard();
+    // Skipping (Back on step 0) still counts as "done with the wizard"
+    // for a brand-new account -- the tour is a separate, independent
+    // introduction to the app and shouldn't be held hostage to whether
+    // they actually filled in bodyweight/goal/etc.
+    if (ui.onboardingIsNewSignup){
+      ui.onboardingIsNewSignup = false;
+      startTour();
+    }
   }
   function onboardingBack(){
     if (ui.onboardingStep > 0){
@@ -8074,13 +8084,22 @@
     var sessionIsEmpty = !!(activeSession && activeSession.exercises.length === 0);
     ui.showOnboardingWizard = false;
     ui.onboardingDraft = null;
+    var isNewSignup = ui.onboardingIsNewSignup;
+    ui.onboardingIsNewSignup = false;
     if (sessionIsEmpty){
       var templateKey = recommendedOnboardingTemplateKey(d);
       applyTemplate(templateKey);
       switchTabWithFade('log');
+      // switchTabWithFade's own fade is still in flight (140ms out +
+      // 160ms in) when this line runs -- starting the tour immediately
+      // would fight it for both the tab and the render. Delaying past
+      // that window lets the fade land first, so the tour's first
+      // spotlight (also on Log) doesn't get interrupted mid-transition.
+      if (isNewSignup) setTimeout(startTour, 360);
     } else {
       showToast('Preferences saved');
       renderApp();
+      if (isNewSignup) startTour();
     }
   }
   function renderOnboardingWizard(){
@@ -15146,7 +15165,7 @@
       // Setup wizard opens as an overlay on top of the now-visible app
       // shell, not as a replacement for it -- if it ever fails to open
       // for some reason, the person isn't left stuck on a blank gate.
-      openOnboardingWizard();
+      openOnboardingWizard(true);
     }
   });
   authGateEl.addEventListener('input', function(e){
