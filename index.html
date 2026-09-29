@@ -13190,24 +13190,6 @@
     ui.expandedAddSet[exId] = true;
     ui.showBwHelp = false;
     if (bwHelpTimer){ clearTimeout(bwHelpTimer); bwHelpTimer = null; }
-    // Suggests the next set's weight/reps from the last time this exercise
-    // was logged — same lookup that powers the gold Reference button,
-    // matched by set index (set 1 suggests last time's set 1, set 2
-    // suggests last time's set 2, etc.), falling back to the last set
-    // logged last time once past however many sets were done then. Purely
-    // a starting point in an ordinary editable draft — typing over it
-    // works exactly like typing into a blank field, and it never
-    // overwrites a draft that's already there (e.g. reopening a panel
-    // mid-entry).
-    if (!ui.draftSets[exId]){
-      var openSession = getActiveSession();
-      var openEx = findExercise(openSession, exId);
-      var refSets = openEx ? getReferenceSets(openSession, openEx.name) : null;
-      if (refSets && refSets.length){
-        var refSet = refSets[Math.min(openEx.sets.length, refSets.length - 1)];
-        ui.draftSets[exId] = { weight: fmtWeight(refSet.weightKg), reps: String(refSet.reps) };
-      }
-    }
     // One-shot glow flag, same pattern as flashExerciseAdded — bake the
     // class into this one render, then clear immediately so it never
     // replays on a later unrelated re-render.
@@ -13216,7 +13198,7 @@
     ui.freshAddSetRow = null;
     var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
     var input = card && card.querySelector('.set-weight-input');
-    if (input){ input.focus(); input.select(); }
+    if (input){ input.focus(); }
   }
 
   function closeAddSetPanel(exId){
