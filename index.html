@@ -9581,7 +9581,7 @@
           '<div class="price-card-sub">$'+(PRICE_ANNUAL/12).toFixed(2)+'/mo billed annually</div>' +
           '<button class="price-cta-btn" data-action="start-checkout" data-plan="annual">Start Annual \u2014 $'+PRICE_ANNUAL.toFixed(2)+'/yr</button>' +
         '</div>' +
-        '<div class="paywall-note">Secure checkout via Stripe. Manage or cancel anytime.</div>' +
+        '<div class="paywall-note">Secure checkout via '+(isTWA() ? 'Google Play' : 'Stripe')+'. Manage or cancel anytime.</div>' +
       '</div>';
   }
 
