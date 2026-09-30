@@ -4832,7 +4832,7 @@
   import {
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
     signOut, onAuthStateChanged, deleteUser, GoogleAuthProvider, signInWithPopup,signInWithRedirect
-    reauthenticateWithCredential, EmailAuthProvider, reauthenticateWithPopup,
+    reauthenticateWithCredential, EmailAuthProvider, reauthenticateWithPopup, getRedirectResult
     sendPasswordResetEmail, updatePassword, sendEmailVerification
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import {
@@ -4862,7 +4862,17 @@
   const db = getFirestore(app);
   const cloudFunctions = getFunctions(app);
   const googleProvider = new GoogleAuthProvider();
-
+     
+// Catches and resolves the Google Sign-In redirect when returning to the app
+getRedirectResult(auth)
+  .then((result) => {
+    if (result) {
+      console.log("Logged in user:", result.user);
+    }
+  })
+  .catch((err) => {
+    console.error("Redirect login error:", err);
+  });
   // Lets writes/reads queue locally and sync automatically when back
   // online, instead of failing outright while offline.
   enableIndexedDbPersistence(db).catch(function(){ /* multiple tabs open, or unsupported browser — sync just won't be offline-durable, not fatal */ });
