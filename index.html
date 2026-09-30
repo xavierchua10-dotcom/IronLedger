@@ -4831,7 +4831,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-    signOut, onAuthStateChanged, deleteUser, GoogleAuthProvider, signInWithPopup,
+    signOut, onAuthStateChanged, deleteUser, GoogleAuthProvider, signInWithPopup,signInWithRedirect
     reauthenticateWithCredential, EmailAuthProvider, reauthenticateWithPopup,
     sendPasswordResetEmail, updatePassword, sendEmailVerification
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -4930,7 +4930,7 @@
       return updatePassword(user, newPassword);
     },
     signInWithGoogle: function(){
-      return signInWithPopup(auth, googleProvider).then(function(cred){ return cred.user; });
+      return signInWithRedirect(auth, googleProvider);
     },
     logOut: function(){
       return signOut(auth);
