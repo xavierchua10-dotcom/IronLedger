@@ -5870,74 +5870,70 @@
       });
     });
     entries.sort(function(a,b){ return new Date(a.date) - new Date(b.date); });
-    var prev = [];
+    var st = newPRState();
     var hold = isHoldExercise(exerciseName);
     entries.forEach(function(e){
       var w = effectiveLoadKg(exerciseName, e.set.weightKg);
-      var kind = classifyPR(prev, w, e.set.reps, hold);
+      var kind = classifyPR(st, w, e.set.reps, hold);
       e.set.isPR = !!kind;
       if (kind) e.set.prType = kind; else delete e.set.prType;
-      prev.push({ w: w, r: e.set.reps });
+      recordPRSet(st, w, e.set.reps);
     });
   }
 
   // PR rules, shared by commitSet (live logging) and recomputeExercisePRs
   // (edits/deletes) so both always agree. A set is a PR if ANY of these hold
-  // against the exercise's earlier sets:
-  //   'weight' - heaviest load yet, as long as it was done for at least
-  //              MIN_PR_REPS reps. Fixes the weight-bump case: 85 x 12 then
-  //              90 x 8 is a PR even though e1RM (114 vs 119) and volume
-  //              (720 vs 1020) both went down.
-  //   'reps'   - more reps than ever done at this load or heavier (the
-  //              5 -> 8 -> 12 progression phase at a new weight).
-  //   'e1rm'   - highest estimated 1RM yet (the original rule; also what
-  //              makes the very first set of an exercise a PR).
+  // against the exercise's earlier sets (checked in this order):
+  //   'weight' - heaviest load yet among sets done for >= MIN_PR_REPS reps.
+  //              Fixes the weight-bump case: 85 x 12 then 90 x 8 is a PR even
+  //              though e1RM (114 vs 119) and volume (720 vs 1020) went down.
+  //   'reps'   - more reps than ever done at this exact load, but ONLY at your
+  //              current top working load (the 5 -> 8 -> 12 phase after a
+  //              weight bump). Lighter warm-up / back-off sets never count, so
+  //              40 x 15 after a best of 85 x 12 is not a PR.
+  //   'e1rm'   - highest estimated 1RM yet (the original rule; also what makes
+  //              the very first set of an exercise a PR).
   // Hold exercises (reps = seconds) keep the original e1RM-only rule since a
-  // rep floor and rep-at-weight comparison don't mean anything for them.
-  // prev is [{w: effective load kg, r: reps}] for all earlier sets.
+  // rep floor and reps-at-load comparison don't mean anything for them.
+  // Runs in one pass over history via a small running-state object.
   var MIN_PR_REPS = 5;
-  function classifyPR(prev, w, reps, isHold){
-    var bestE = 0;
-    prev.forEach(function(p){
-      var v = e1rm(p.w, p.r);
-      if (v > bestE) bestE = v;
-    });
+  function newPRState(){
+    return { bestE: 0, bestW: 0, bestQualW: 0, repsAt: {} };
+  }
+  function prLoadKey(w){ return String(Math.round(w * 1000)); }
+  function recordPRSet(st, w, reps){
+    var v = e1rm(w, reps);
+    if (v > st.bestE) st.bestE = v;
+    if (w > st.bestW) st.bestW = w;
+    if (reps >= MIN_PR_REPS && w > st.bestQualW) st.bestQualW = w;
+    var k = prLoadKey(w);
+    if (!(st.repsAt[k] >= reps)) st.repsAt[k] = reps;
+  }
+  function classifyPR(st, w, reps, isHold){
     var thisE = e1rm(w, reps);
-    if (isHold){
-      return thisE > bestE + 0.001 ? 'e1rm' : null;
-    }
-    if (reps >= MIN_PR_REPS && w > 0){
-      var bestQualW = 0;
-      prev.forEach(function(p){
-        if (p.r >= MIN_PR_REPS && p.w > bestQualW) bestQualW = p.w;
-      });
-      if (bestQualW > 0 && w > bestQualW + 0.001) return 'weight';
-    }
-    // Reps to beat: anything done at exactly this load, plus heavier sets
-    // that were real working sets (>= MIN_PR_REPS). A heavy single or triple
-    // shouldn't make 8 reps at a lighter load look like a rep PR.
-    var bestRepsAtLoad = 0;
-    prev.forEach(function(p){
-      var same = Math.abs(p.w - w) <= 0.001;
-      var heavier = p.w > w + 0.001 && p.r >= MIN_PR_REPS;
-      if ((same || heavier) && p.r > bestRepsAtLoad) bestRepsAtLoad = p.r;
-    });
-    if (bestRepsAtLoad > 0 && reps > bestRepsAtLoad) return 'reps';
-    if (thisE > bestE + 0.001) return 'e1rm';
+    if (isHold) return thisE > st.bestE + 0.001 ? 'e1rm' : null;
+    if (reps >= MIN_PR_REPS && w > 0 && st.bestQualW > 0 && w > st.bestQualW + 0.001) return 'weight';
+    // "Top working load": heaviest load done for real working reps; if there
+    // are none yet (e.g. a heavy-triples lifter), fall back to heaviest ever.
+    var topW = st.bestQualW > 0 ? st.bestQualW : st.bestW;
+    var prevReps = st.repsAt[prLoadKey(w)] || 0;
+    if (prevReps > 0 && reps > prevReps && w >= topW - 0.001) return 'reps';
+    if (thisE > st.bestE + 0.001) return 'e1rm';
     return null;
   }
-  function priorSetsFor(exerciseName){
+  // Running state for every set of this exercise already logged (live path).
+  function buildPRState(exerciseName){
     var key = exerciseName.trim().toLowerCase();
-    var out = [];
+    var st = newPRState();
     state.sessions.forEach(function(s){
       s.exercises.forEach(function(ex){
         if (ex.name.trim().toLowerCase() !== key) return;
-        ex.sets.forEach(function(st){
-          out.push({ w: effectiveLoadKg(ex.name, st.weightKg), r: st.reps });
+        ex.sets.forEach(function(x){
+          recordPRSet(st, effectiveLoadKg(ex.name, x.weightKg), x.reps);
         });
       });
     });
-    return out;
+    return st;
   }
 
   // Bodyweight changes what "effective load" means for every bodyweight
@@ -13063,7 +13059,7 @@
   function commitSet(ex, weightKg, reps){
     var setId = uid();
     var prevBest = bestE1RM(ex.name, null);
-    var prKind = classifyPR(priorSetsFor(ex.name), effectiveLoadKg(ex.name, weightKg), reps, isHoldExercise(ex.name));
+    var prKind = classifyPR(buildPRState(ex.name), effectiveLoadKg(ex.name, weightKg), reps, isHoldExercise(ex.name));
     var isPR = !!prKind;
 
     var newSet = {
