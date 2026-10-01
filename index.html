@@ -5870,13 +5870,74 @@
       });
     });
     entries.sort(function(a,b){ return new Date(a.date) - new Date(b.date); });
-    var best = 0;
+    var prev = [];
+    var hold = isHoldExercise(exerciseName);
     entries.forEach(function(e){
-      var val = e1rm(effectiveLoadKg(exerciseName, e.set.weightKg), e.set.reps);
-      var isPR = val > best + 0.001;
-      e.set.isPR = isPR;
-      if (isPR) best = val;
+      var w = effectiveLoadKg(exerciseName, e.set.weightKg);
+      var kind = classifyPR(prev, w, e.set.reps, hold);
+      e.set.isPR = !!kind;
+      if (kind) e.set.prType = kind; else delete e.set.prType;
+      prev.push({ w: w, r: e.set.reps });
     });
+  }
+
+  // PR rules, shared by commitSet (live logging) and recomputeExercisePRs
+  // (edits/deletes) so both always agree. A set is a PR if ANY of these hold
+  // against the exercise's earlier sets:
+  //   'weight' - heaviest load yet, as long as it was done for at least
+  //              MIN_PR_REPS reps. Fixes the weight-bump case: 85 x 12 then
+  //              90 x 8 is a PR even though e1RM (114 vs 119) and volume
+  //              (720 vs 1020) both went down.
+  //   'reps'   - more reps than ever done at this load or heavier (the
+  //              5 -> 8 -> 12 progression phase at a new weight).
+  //   'e1rm'   - highest estimated 1RM yet (the original rule; also what
+  //              makes the very first set of an exercise a PR).
+  // Hold exercises (reps = seconds) keep the original e1RM-only rule since a
+  // rep floor and rep-at-weight comparison don't mean anything for them.
+  // prev is [{w: effective load kg, r: reps}] for all earlier sets.
+  var MIN_PR_REPS = 5;
+  function classifyPR(prev, w, reps, isHold){
+    var bestE = 0;
+    prev.forEach(function(p){
+      var v = e1rm(p.w, p.r);
+      if (v > bestE) bestE = v;
+    });
+    var thisE = e1rm(w, reps);
+    if (isHold){
+      return thisE > bestE + 0.001 ? 'e1rm' : null;
+    }
+    if (reps >= MIN_PR_REPS && w > 0){
+      var bestQualW = 0;
+      prev.forEach(function(p){
+        if (p.r >= MIN_PR_REPS && p.w > bestQualW) bestQualW = p.w;
+      });
+      if (bestQualW > 0 && w > bestQualW + 0.001) return 'weight';
+    }
+    // Reps to beat: anything done at exactly this load, plus heavier sets
+    // that were real working sets (>= MIN_PR_REPS). A heavy single or triple
+    // shouldn't make 8 reps at a lighter load look like a rep PR.
+    var bestRepsAtLoad = 0;
+    prev.forEach(function(p){
+      var same = Math.abs(p.w - w) <= 0.001;
+      var heavier = p.w > w + 0.001 && p.r >= MIN_PR_REPS;
+      if ((same || heavier) && p.r > bestRepsAtLoad) bestRepsAtLoad = p.r;
+    });
+    if (bestRepsAtLoad > 0 && reps > bestRepsAtLoad) return 'reps';
+    if (thisE > bestE + 0.001) return 'e1rm';
+    return null;
+  }
+  function priorSetsFor(exerciseName){
+    var key = exerciseName.trim().toLowerCase();
+    var out = [];
+    state.sessions.forEach(function(s){
+      s.exercises.forEach(function(ex){
+        if (ex.name.trim().toLowerCase() !== key) return;
+        ex.sets.forEach(function(st){
+          out.push({ w: effectiveLoadKg(ex.name, st.weightKg), r: st.reps });
+        });
+      });
+    });
+    return out;
   }
 
   // Bodyweight changes what "effective load" means for every bodyweight
@@ -13002,16 +13063,18 @@
   function commitSet(ex, weightKg, reps){
     var setId = uid();
     var prevBest = bestE1RM(ex.name, null);
-    var thisE1rm = e1rm(effectiveLoadKg(ex.name, weightKg), reps);
-    var isPR = thisE1rm > prevBest + 0.001;
+    var prKind = classifyPR(priorSetsFor(ex.name), effectiveLoadKg(ex.name, weightKg), reps, isHoldExercise(ex.name));
+    var isPR = !!prKind;
 
-    ex.sets.push({
+    var newSet = {
       id: setId,
       weightKg: roundNice(weightKg),
       reps: reps,
       isPR: isPR,
       timestamp: new Date().toISOString()
-    });
+    };
+    if (prKind) newSet.prType = prKind;
+    ex.sets.push(newSet);
     delete ui.draftSets[ex.id];
     saveSessions();
     logActivity('Added set ' + fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + ' to "' + ex.name + '"' + (isPR ? ' \u2014 new PR' : ''), 'Log');
@@ -13034,7 +13097,7 @@
     }
     if (isPR){
       var joke = susWeightJoke(ex.name, weightKg, prevBest);
-      showToast(joke || ('New PR on ' + ex.name + '!'));
+      showToast(joke || ('New ' + (prKind === 'weight' ? 'weight ' : prKind === 'reps' ? 'rep ' : '') + 'PR on ' + ex.name + '!'));
     }
     if (state.settings.restTimerAutoStart && !ui.restTimer && shouldAutoStartRestAfterSet(ex)){
       autoStartRestTimer();
