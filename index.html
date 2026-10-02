@@ -15435,6 +15435,120 @@
     }
   })();
 
+  /* ---------- Android back button / swipe-back closes the open panel ----------
+     The app is a single page, so the Android back button (and the swipe-back
+     gesture) had nothing to go "back" to and simply quit the app — even with
+     a search panel open on top. Every open full-screen panel, dialog or
+     floating menu now counts as a "layer":
+       - when a layer opens, one history entry is pushed;
+       - when the user presses back, that entry is popped and the TOP layer is
+         closed using its own close/cancel control (the same code path as
+         tapping its X or Cancel), so the app stays open;
+       - when a layer is closed some other way (its X, picking an item, a tap
+         outside), its history entry is removed again, so nothing piles up and
+         once every panel is closed, back exits the app as usual.
+     Layers are detected from the panels' `hidden` class, so each panel keeps
+     its own open/close logic. The muscle picker counts as two levels
+     (muscle list -> muscle grid -> Log), matching its own back arrow. */
+  var BACK_LAYER_SELECTOR = '.confirm-overlay, .mm-overlay, .ex-search-overlay, .img-preview-overlay, .notif-dropdown, .row-action-menu';
+  // First-run flows where back shouldn't silently skip a step.
+  var BACK_LAYER_SKIP = { onboardWizOverlay: 1, avatarPickOverlay: 1 };
+  var backDepth = 0;          // history entries we have pushed for open layers
+  var backIgnorePops = 0;     // popstate events caused by our own history.go()
+  var backSyncQueued = false;
+  function backLayerEls(){
+    var out = [];
+    Array.prototype.forEach.call(document.querySelectorAll(BACK_LAYER_SELECTOR), function(el){
+      if (BACK_LAYER_SKIP[el.id]) return;
+      if (el.classList.contains('hidden')) return;
+      if (window.getComputedStyle(el).display === 'none') return;
+      out.push(el);
+    });
+    // bottom -> top: by z-index, then document order
+    out.sort(function(a, b){
+      var za = parseInt(window.getComputedStyle(a).zIndex, 10) || 0;
+      var zb = parseInt(window.getComputedStyle(b).zIndex, 10) || 0;
+      if (za !== zb) return za - zb;
+      return (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1;
+    });
+    return out;
+  }
+  function mmListOpen(){
+    var panel = document.getElementById('mmOverlayPanel');
+    return !!(panel && panel.querySelector('[data-action="mm-back-to-grid"]'));
+  }
+  function backLayerCount(){
+    var els = backLayerEls();
+    var n = els.length;
+    var hasMm = els.some(function(el){ return el.id === 'mmOverlay'; });
+    if (hasMm && mmListOpen()) n++;
+    return n;
+  }
+  function syncBackHistory(){
+    backSyncQueued = false;
+    var n = backLayerCount();
+    if (n > backDepth){
+      while (backDepth < n){
+        try { history.pushState({ ilLayer: true }, '', location.href); }
+        catch (err) { return; }
+        backDepth++;
+      }
+    } else if (n < backDepth){
+      var diff = backDepth - n;
+      backDepth = n;
+      backIgnorePops++;           // history.go(-diff) fires exactly one popstate
+      history.go(-diff);
+    }
+  }
+  function queueBackSync(){
+    if (backSyncQueued) return;
+    backSyncQueued = true;
+    // A microtask, so it still runs inside the same tap as the change that
+    // opened/closed the panel (pushState needs a recent user gesture).
+    Promise.resolve().then(syncBackHistory);
+  }
+  function visibleBackControl(root){
+    var nodes = root.querySelectorAll('[data-action]');
+    for (var i = 0; i < nodes.length; i++){
+      var a = nodes[i].getAttribute('data-action');
+      var closes = /^(cancel-|close-|dismiss-)/.test(a) || a === 'toggle-muscle-map' || a === 'request-close-history-edit';
+      if (closes && nodes[i].offsetParent !== null) return nodes[i];
+    }
+    return null;
+  }
+  function closeTopBackLayer(){
+    var els = backLayerEls();
+    if (!els.length) return;
+    var top = els[els.length - 1];
+    if (top.id === 'rowActionMenu'){ closeRowActionMenu(); return; }
+    if (top.id === 'mmOverlay' && mmListOpen()){
+      var backBtn = top.querySelector('[data-action="mm-back-to-grid"]');
+      if (backBtn){ backBtn.click(); return; }
+    }
+    var ctl = visibleBackControl(top);
+    if (ctl) ctl.click();
+    else top.click();             // a tap on the backdrop itself
+  }
+  window.addEventListener('popstate', function(){
+    if (backIgnorePops > 0){ backIgnorePops--; return; }
+    if (backDepth <= 0) return;   // not ours: normal navigation
+    backDepth--;
+    closeTopBackLayer();
+    // If nothing actually closed (a panel that needs confirmation, or no close
+    // control), the next sync pushes the entry back: the press is absorbed
+    // and the app never quits while a panel is open.
+    queueBackSync();
+  });
+  (function watchBackLayers(){
+    if (typeof MutationObserver === 'undefined') return;
+    var mo = new MutationObserver(queueBackSync);
+    Array.prototype.forEach.call(document.querySelectorAll(BACK_LAYER_SELECTOR), function(el){
+      mo.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+    });
+    var mmPanel = document.getElementById('mmOverlayPanel');
+    if (mmPanel) mo.observe(mmPanel, { childList: true });   // muscle grid <-> muscle list
+  })();
+
   document.getElementById('app').addEventListener('click', function(e){
     if (e.target.id === 'mmOverlay'){
       ui.showMuscleMap = false;
