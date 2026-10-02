@@ -46,7 +46,7 @@
 <div class="wrap">
   <a class="back" href="index.html">&larr; Back to SaviorFit Logger</a>
   <h1>Privacy <span>Policy</span></h1>
-  <p class="updated">Last updated: September 2026</p>
+  <p class="updated">Last updated: October 2026</p>
 
   <div class="notice">
     Plain-language summary from the app's independent developer, not a law firm — written to actually be readable rather than as dense legal boilerplate.
@@ -58,6 +58,8 @@
     <li>Your email address (for login)</li>
     <li>Your workout data — sessions, sets, routines, bodyweight, training goals, and app preferences — so it syncs across your devices</li>
     <li>Basic subscription status (Pro/trial/free), managed through Stripe (web) or Google Play Billing (Android app)</li>
+    <li>If you use the in-app AI assistant (a Pro feature): the messages you type to it, and a little context so it can answer (see section 2)</li>
+    <li>Ratings and feedback you choose to submit, which are sent to the developer along with your account email</li>
   </ul>
 
   <h2>2. Who we share it with</h2>
@@ -67,7 +69,8 @@
     <tr><td>Firebase (Google)</td><td>Account login, storing/syncing your workout data, and running backend functions for payments and notifications</td></tr>
     <tr><td>Stripe</td><td>Payment processing — we never see or store your card details</td></tr>
     <tr><td>Google Play Billing</td><td>Payment processing for purchases made in the Android app — we verify your subscription status with Google but never see or store your card details</td></tr>
-    <tr><td>Resend</td><td>Delivers transactional emails (verification, trial started, receipt)</td></tr>
+    <tr><td>Resend</td><td>Delivers transactional emails (verification, trial started, receipt) and any rating or feedback you send us</td></tr>
+    <tr><td>Google Gemini (AI assistant)</td><td>If you use the in-app AI assistant, the message you type is sent to Google's Gemini service to work out what you're asking for. To answer, it's also given limited context: which tab you have open, your unit setting, the exercises logged in your current session, your last few messages with the assistant, and any notes you've asked it to remember. It is only available to signed-in Pro and trial accounts. How Google handles that data is covered by Google's own terms.</td></tr>
   </table>
 
   <h2>3. Push notifications</h2>
@@ -77,8 +80,10 @@
   <p>From Settings, at any time, you can:</p>
   <ul>
     <li><strong>Export</strong> a full JSON backup of your data</li>
-    <li><strong>Delete</strong> your account and all associated data permanently</li>
+    <li><strong>Delete</strong> your account, which permanently removes your workout data, routines, settings and profile</li>
   </ul>
+  <p><strong>Deleting without opening the app:</strong> email <a href="mailto:xavierchua10@gmail.com?subject=Delete%20my%20SaviorFit%20data">xavierchua10@gmail.com</a> from the email address on your account with the subject &ldquo;Delete my SaviorFit data&rdquo; and we'll delete your account and its data.</p>
+  <p><strong>What we keep after deletion:</strong> a small record that a free trial has already been used with your email address and account ID, so the free trial can't be claimed again. It contains no workout data. Stripe and Google Play also keep payment records under their own policies and legal obligations.</p>
 
   <h2>5. Data security</h2>
   <p>Your data is stored in Firebase's Firestore database with access rules restricting it to your own account. No system is 100% immune to risk, but standard industry security practices are followed.</p>
