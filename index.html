@@ -4909,6 +4909,9 @@
 <div class="confirm-overlay hidden" id="settingsPickerOverlay">
   <div class="pro-panel" id="settingsPickerPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="chartRangeOverlay">
+  <div class="pro-panel" id="chartRangePanel"></div>
+</div>
 <div class="confirm-overlay hidden" id="supersetPickerOverlay">
   <div class="pro-panel" id="supersetPickerPanel"></div>
 </div>
@@ -5437,6 +5440,7 @@
     authMode: 'login',     // 'login' | 'signup'
     authError: null,
     authBusy: false,
+    showChartRange: false, // the Progress chart's Sessions / Weekly / Monthly picker panel
     chartView: 'session',   // Progress chart range: 'session' (default) | 'week' | 'month'. Not persisted — resets on exercise change / reopen.
     authDraft: { email: '', avatar: DEFAULT_AVATAR },
     awaitingAvatarPick: false,   // true right after a brand-new account is created, until they pick an icon
@@ -11768,7 +11772,7 @@
                 '</div>' +
               '</div>' +
               '<div class="chart-dots">' +
-                '<button type="button" class="chart-view-btn'+(ui.chartView !== 'session' ? ' active' : '')+'" id="chartViewBtn" data-action="chart-view-cycle" aria-label="'+chartViewBtnAria(ui.chartView)+'">'+chartViewBtnHtml(ui.chartView)+'</button>' +
+                '<button type="button" class="chart-view-btn'+(ui.chartView !== 'session' ? ' active' : '')+'" id="chartViewBtn" data-action="open-chart-range" aria-label="'+chartViewBtnAria(ui.chartView)+'" aria-haspopup="dialog">'+chartViewBtnHtml(ui.chartView)+'</button>' +
                 '<button class="chart-dot active" data-action="chart-carousel-goto" data-page="0" aria-label="Trend line"></button>' +
                 '<button class="chart-dot" data-action="chart-carousel-goto" data-page="1" aria-label="Bar chart"></button>' +
               '</div>';
@@ -11998,7 +12002,7 @@
            '</svg><span>' + CHART_VIEW_LABEL[view] + '</span>';
   }
   function chartViewBtnAria(view){
-    return 'Chart range: ' + CHART_VIEW_LABEL[view] + '. Tap to change.';
+    return 'Chart range: ' + CHART_VIEW_LABEL[view] + '. Tap to choose.';
   }
   // Bars grow up from the baseline and the line rises from it. Classes are
   // added on the fly (rather than baked into the SVG) so the normal render
@@ -12020,21 +12024,70 @@
     void pageEl.offsetWidth;
     pageEl.classList.add('chart-anim');
   }
-  function cycleChartView(){
+  // Switches the Progress chart to `view` in place (no full re-render, so the
+  // slide you're on and the stats above are left alone) and plays the
+  // rise/grow animation. Picking the range that's already showing just
+  // closes the panel without replaying anything.
+  function applyChartView(view){
+    if (CHART_VIEW_ORDER.indexOf(view) === -1) return;
+    var changed = ui.chartView !== view;
+    ui.chartView = view;
+    closeChartRangePanel();
+    if (!changed) return;
     var track = document.getElementById('chartCarouselTrack');
     if (!track || !ui.progressExercise) return;
-    var cur = CHART_VIEW_ORDER.indexOf(ui.chartView);
-    ui.chartView = CHART_VIEW_ORDER[(cur + 1) % CHART_VIEW_ORDER.length];
     var points = collectExercisePoints(ui.progressExercise);
     var showWeight = points.length >= 2 && shouldShowWeightLine(ui.progressExercise, points);
-    track.innerHTML = buildChartPagesHtml(ui.progressExercise, ui.chartView, showWeight);
+    track.innerHTML = buildChartPagesHtml(ui.progressExercise, view, showWeight);
     var btn = document.getElementById('chartViewBtn');
     if (btn){
-      btn.innerHTML = chartViewBtnHtml(ui.chartView);
-      btn.setAttribute('aria-label', chartViewBtnAria(ui.chartView));
-      btn.classList.toggle('active', ui.chartView !== 'session');
+      btn.innerHTML = chartViewBtnHtml(view);
+      btn.setAttribute('aria-label', chartViewBtnAria(view));
+      btn.classList.toggle('active', view !== 'session');
     }
     playChartAnim(track.children[chartCarouselPage]);
+  }
+  /* Floating panel for choosing the chart range. Same shell as the other
+     pickers (dimmed backdrop + .pro-panel, tap outside / X / Escape to
+     close); tapping a range applies it straight away. */
+  var CHART_VIEW_DESC = {
+    session: 'One point for every workout you logged',
+    week: 'Your best of each week, last ' + CHART_MAX_PERIODS + ' weeks',
+    month: 'Your best of each month, last ' + CHART_MAX_PERIODS + ' months'
+  };
+  var CHART_VIEW_TITLE = { session: 'Sessions', week: 'Weekly', month: 'Monthly' };
+  function openChartRangePanel(){
+    ui.showChartRange = true;
+    renderChartRangeOverlay();
+  }
+  function closeChartRangePanel(){
+    ui.showChartRange = false;
+    renderChartRangeOverlay();
+  }
+  function renderChartRangeOverlay(){
+    var overlay = document.getElementById('chartRangeOverlay');
+    var panel = document.getElementById('chartRangePanel');
+    if (!overlay || !panel) return;
+    if (!ui.showChartRange){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var body = '<div class="card-style-picker" role="radiogroup" aria-label="Chart range">';
+    CHART_VIEW_ORDER.forEach(function(v){
+      var on = ui.chartView === v;
+      body += '<button type="button" class="card-style-option'+(on ? ' active' : '')+'" role="radio" aria-checked="'+(on ? 'true' : 'false')+'" data-action="pick-chart-range" data-view="'+v+'">' +
+                '<div class="card-style-option-label">'+CHART_VIEW_TITLE[v]+'</div>' +
+                '<div class="card-style-option-desc">'+CHART_VIEW_DESC[v]+'</div>' +
+              '</button>';
+    });
+    body += '</div>';
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Chart range</h3>' +
+        '<button class="pro-panel-close" data-action="close-chart-range" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' + body + '</div>';
   }
 
   // Green if the estimated 1RM rose from the first plotted session to the
@@ -15361,8 +15414,8 @@
       renderApp();
     } else if (action === 'chart-carousel-goto'){
       goToChartCarouselPage(parseInt(el.dataset.page, 10));
-    } else if (action === 'chart-view-cycle'){
-      cycleChartView();
+    } else if (action === 'open-chart-range'){
+      openChartRangePanel();
     } else if (action === 'toggle-progress-muscle-filter'){
       var pmf = ui.progressMuscleFilters || [];
       var pmfIdx = pmf.indexOf(el.dataset.muscle);
@@ -16091,6 +16144,27 @@
     if (e.key === 'Escape'){
       e.preventDefault();
       closeSettingsPicker();
+    }
+  });
+
+  var chartRangeOverlayEl = document.getElementById('chartRangeOverlay');
+  chartRangeOverlayEl.addEventListener('click', function(e){
+    if (e.target === chartRangeOverlayEl){
+      closeChartRangePanel();
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    if (el.dataset.action === 'close-chart-range'){
+      closeChartRangePanel();
+    } else if (el.dataset.action === 'pick-chart-range'){
+      applyChartView(el.dataset.view);
+    }
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && ui.showChartRange){
+      e.preventDefault();
+      closeChartRangePanel();
     }
   });
 
