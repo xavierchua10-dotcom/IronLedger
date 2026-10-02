@@ -8010,6 +8010,38 @@
     return roundNice(Math.max(capped, smallIncrementKg(weightKg, muscle)));
   }
 
+  // "Add weight next time" shows a RANGE of plate-loadable jumps rather than
+  // one number, since real gyms load in 2.5 kg plates (5 lb for lb users) and
+  // people choose between the smallest bump and the next one up: 80 kg ->
+  // 82.5-85 kg. At 20 kg and over the step is the plate size (scaled by the
+  // goal's step multiplier and snapped to whole plates, so strength asks for
+  // a bigger bump); below 20 kg (dumbbells, light cables) the old small
+  // per-load steps stay, since plate sizes don't apply there. Returns the
+  // low/high TOTAL load in kg.
+  function nextWeightRangeKg(effKg, muscle){
+    var step = stepKgFor(effKg, muscle);
+    var plateKg = (state.settings && state.settings.unit === 'lb') ? lbToKg(5) : 2.5;
+    var loInc, hiInc;
+    if (effKg >= 20){
+      loInc = Math.max(plateKg, Math.round(step / plateKg) * plateKg);
+      hiInc = loInc + plateKg;
+    } else {
+      loInc = step;
+      hiInc = step * 2;
+    }
+    return { lo: roundNice(effKg + loInc), hi: roundNice(effKg + hiInc) };
+  }
+  // Range counterpart of describeLoad: "82.5\u201385 kg", or for a bodyweight
+  // exercise with a bodyweight set, the ADDED weight range ("bodyweight +
+  // 2.5\u20135 kg") since that's what gets typed into the +KG field.
+  function describeLoadRange(name, loKg, hiKg){
+    var a = fmtWeight(loKg), b = fmtWeight(hiKg);
+    var rng = (a === b) ? a : a + '\u2013' + b;
+    var bw = state.settings && state.settings.bodyweightKg;
+    if (bw && bw > 0 && isBodyweightExercise(name)) return 'bodyweight + ' + rng + ' ' + unitLabel();
+    return rng + ' ' + unitLabel();
+  }
+
   // Progressive-overload heuristic per exercise, rep-range target driven
   // by the person's training goal (Settings > Bodyweight & Goal — defaults
   // to Hypertrophy's 8-12 if never set, matching this app's original fixed
@@ -8350,10 +8382,13 @@
       detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 well past the ' + repMin + '\u2013' + repMax + ' ' + goalLabel + ' range, so this weight is too light. Based on that effort, jump up to about ' + describeLoad(ex.name, bigAddedKg) + ' next session \u2014 scaled to your current strength \u2014 and aim to land back in the ' + repMin + '\u2013' + repMax + ' range.' +
         (best.reps > repExtreme ? ' That\u2019s a lot of reps for one set \u2014 the jump above is capped to stay realistic rather than trust the math past the point it means anything, so double check the numbers if that rep count wasn\u2019t intentional.' : '');
     } else if (best.reps >= repMax){
-      var nextAddedKg = roundNice(smallIncrementKg(bestEffKg, ex.muscle) - bwOffset);
+      var nextRange = nextWeightRangeKg(bestEffKg, ex.muscle);
+      var nextLoAddedKg = roundNice(nextRange.lo - bwOffset);
+      var nextHiAddedKg = roundNice(nextRange.hi - bwOffset);
+      var nextRangeText = describeLoadRange(ex.name, nextLoAddedKg, nextHiAddedKg);
       headline = 'Add weight next time';
-      target = 'Target: ' + describeLoad(ex.name, nextAddedKg) + ' next session, aim for ' + repMin + ' reps';
-      detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 the top of the ' + repMin + '\u2013' + repMax + ' ' + goalLabel + ' range. Bump the weight to about ' + describeLoad(ex.name, nextAddedKg) + ' next session and reset toward ' + repMin + ' reps.';
+      target = 'Target: ' + nextRangeText + ' next session, aim for ' + repMin + '\u2013' + repMax + ' reps';
+      detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 the top of the ' + repMin + '\u2013' + repMax + ' ' + goalLabel + ' range. Bump the weight to ' + nextRangeText + ' next session and reset toward the ' + repMin + '\u2013' + repMax + ' rep range.';
     } else if (best.reps < repMin){
       // Under the range at a weight you're still building up to. Not a
       // setback, so no "work BACK up" wording — and right after a weight
