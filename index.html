@@ -276,6 +276,9 @@
   }
   .row-action-item:active{background:var(--panel-3);}
   .row-action-item.danger{color:var(--accent-2);}
+  /* Current choice in the chart-range menu: gold with a check mark. */
+  .row-action-item.selected{color:var(--accent);}
+  .row-action-item.selected::after{content:'\2713';float:right;margin-left:16px;}
 
   /* ---------- Guided tour ---------- */
   /* #tourBackdrop: full-screen, catches every tap while the tour is open
@@ -4909,9 +4912,6 @@
 <div class="confirm-overlay hidden" id="settingsPickerOverlay">
   <div class="pro-panel" id="settingsPickerPanel"></div>
 </div>
-<div class="confirm-overlay hidden" id="chartRangeOverlay">
-  <div class="pro-panel" id="chartRangePanel"></div>
-</div>
 <div class="confirm-overlay hidden" id="supersetPickerOverlay">
   <div class="pro-panel" id="supersetPickerPanel"></div>
 </div>
@@ -5440,7 +5440,6 @@
     authMode: 'login',     // 'login' | 'signup'
     authError: null,
     authBusy: false,
-    showChartRange: false, // the Progress chart's Sessions / Weekly / Monthly picker panel
     chartView: 'session',   // Progress chart range: 'session' (default) | 'week' | 'month'. Not persisted — resets on exercise change / reopen.
     authDraft: { email: '', avatar: DEFAULT_AVATAR },
     awaitingAvatarPick: false,   // true right after a brand-new account is created, until they pick an icon
@@ -9348,6 +9347,10 @@
           : { label: 'Link as Superset', action: 'open-superset-picker' },
         { label: 'Delete', action: 'delete-exercise', danger: true }
       ];
+    } else if (m.type === 'chartRange'){
+      items = CHART_VIEW_ORDER.map(function(v){
+        return { label: CHART_VIEW_TITLE[v], action: 'pick-chart-range', view: v, selected: ui.chartView === v };
+      });
     } else if (m.type === 'session'){
       items = [
         { label: 'Edit', action: 'edit-session' },
@@ -9367,15 +9370,32 @@
       ? 'data-session="'+m.exId+'"'
       : 'data-ex="'+m.exId+'"'+(m.setId ? ' data-set="'+m.setId+'"' : '');
     menu.innerHTML = items.map(function(it){
+      if (it.view){
+        return '<button type="button" class="row-action-item'+(it.selected ? ' selected' : '')+'" role="menuitemradio" aria-checked="'+(it.selected ? 'true' : 'false')+'" data-action="'+it.action+'" data-view="'+it.view+'">'+esc(it.label)+'</button>';
+      }
       return '<button type="button" class="row-action-item'+(it.danger ? ' danger' : '')+'" data-action="'+it.action+'" '+idAttrs+'>'+esc(it.label)+'</button>';
     }).join('');
     menu.classList.remove('hidden');
     if (anchorEl){
       var rect = anchorEl.getBoundingClientRect();
       var menuWidth = menu.offsetWidth || 140;
-      var left = Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8);
-      menu.style.top = (rect.bottom + 6) + 'px';
-      menu.style.left = Math.max(8, left) + 'px';
+      if (m.type === 'chartRange'){
+        // The pill sits at the chart's bottom-left, so the menu lines up with
+        // its LEFT edge (the \u22ee menus line up with their right edge) and
+        // flips above the pill when there isn't room below before the tab bar.
+        var cLeft = Math.min(rect.left, window.innerWidth - menuWidth - 8);
+        var cTop = rect.bottom + 6;
+        var menuH = menu.offsetHeight || 0;
+        var tabEl = document.querySelector('.tabbar');
+        var limit = tabEl ? tabEl.getBoundingClientRect().top : window.innerHeight;
+        if (cTop + menuH > limit - 4 && rect.top - 6 - menuH >= 8) cTop = rect.top - 6 - menuH;
+        menu.style.top = cTop + 'px';
+        menu.style.left = Math.max(8, cLeft) + 'px';
+      } else {
+        var left = Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8);
+        menu.style.top = (rect.bottom + 6) + 'px';
+        menu.style.left = Math.max(8, left) + 'px';
+      }
     }
   }
 
@@ -12032,7 +12052,7 @@
     if (CHART_VIEW_ORDER.indexOf(view) === -1) return;
     var changed = ui.chartView !== view;
     ui.chartView = view;
-    closeChartRangePanel();
+    closeRowActionMenu();
     if (!changed) return;
     var track = document.getElementById('chartCarouselTrack');
     if (!track || !ui.progressExercise) return;
@@ -12047,47 +12067,14 @@
     }
     playChartAnim(track.children[chartCarouselPage]);
   }
-  /* Floating panel for choosing the chart range. Same shell as the other
-     pickers (dimmed backdrop + .pro-panel, tap outside / X / Escape to
-     close); tapping a range applies it straight away. */
-  var CHART_VIEW_DESC = {
-    session: 'One point for every workout you logged',
-    week: 'Your best of each week, last ' + CHART_MAX_PERIODS + ' weeks',
-    month: 'Your best of each month, last ' + CHART_MAX_PERIODS + ' months'
-  };
+  /* The range picker is the app's shared floating "\u22ee" menu (see
+     openRowActionMenu / renderRowActionMenu) with a 'chartRange' type: it drops
+     down under the pill, closes on any outside tap or scroll, and tapping a
+     range applies it straight away. */
   var CHART_VIEW_TITLE = { session: 'Sessions', week: 'Weekly', month: 'Monthly' };
-  function openChartRangePanel(){
-    ui.showChartRange = true;
-    renderChartRangeOverlay();
-  }
-  function closeChartRangePanel(){
-    ui.showChartRange = false;
-    renderChartRangeOverlay();
-  }
-  function renderChartRangeOverlay(){
-    var overlay = document.getElementById('chartRangeOverlay');
-    var panel = document.getElementById('chartRangePanel');
-    if (!overlay || !panel) return;
-    if (!ui.showChartRange){
-      overlay.classList.add('hidden');
-      panel.innerHTML = '';
-      return;
-    }
-    overlay.classList.remove('hidden');
-    var body = '<div class="card-style-picker" role="radiogroup" aria-label="Chart range">';
-    CHART_VIEW_ORDER.forEach(function(v){
-      var on = ui.chartView === v;
-      body += '<button type="button" class="card-style-option'+(on ? ' active' : '')+'" role="radio" aria-checked="'+(on ? 'true' : 'false')+'" data-action="pick-chart-range" data-view="'+v+'">' +
-                '<div class="card-style-option-label">'+CHART_VIEW_TITLE[v]+'</div>' +
-                '<div class="card-style-option-desc">'+CHART_VIEW_DESC[v]+'</div>' +
-              '</button>';
-    });
-    body += '</div>';
-    panel.innerHTML =
-      '<div class="pro-panel-header"><h3>Chart range</h3>' +
-        '<button class="pro-panel-close" data-action="close-chart-range" aria-label="Close">&#10005;</button>' +
-      '</div>' +
-      '<div class="pro-panel-body">' + body + '</div>';
+  function toggleChartRangeMenu(anchorEl){
+    if (ui.openRowMenu && ui.openRowMenu.type === 'chartRange') closeRowActionMenu();
+    else openRowActionMenu('chartRange', null, null, anchorEl);
   }
 
   // Green if the estimated 1RM rose from the first plotted session to the
@@ -15188,7 +15175,7 @@
     // open it — this covers both "tapped a menu item" (Rename/Delete/Edit
     // set/Delete set all still run via their own branch below) and "tapped
     // away entirely while it was open".
-    if (ui.openRowMenu && action !== 'open-exercise-menu' && action !== 'open-set-menu' && action !== 'open-session-menu'){
+    if (ui.openRowMenu && action !== 'open-exercise-menu' && action !== 'open-set-menu' && action !== 'open-session-menu' && action !== 'open-chart-range'){
       closeRowActionMenu();
     }
 
@@ -15415,7 +15402,9 @@
     } else if (action === 'chart-carousel-goto'){
       goToChartCarouselPage(parseInt(el.dataset.page, 10));
     } else if (action === 'open-chart-range'){
-      openChartRangePanel();
+      toggleChartRangeMenu(el);
+    } else if (action === 'pick-chart-range'){
+      applyChartView(el.dataset.view);
     } else if (action === 'toggle-progress-muscle-filter'){
       var pmf = ui.progressMuscleFilters || [];
       var pmfIdx = pmf.indexOf(el.dataset.muscle);
@@ -15687,7 +15676,7 @@
   document.addEventListener('click', function(e){
     if (!ui.openRowMenu) return;
     var menu = document.getElementById('rowActionMenu');
-    if (menu && !menu.contains(e.target) && !e.target.closest('[data-action="open-exercise-menu"]') && !e.target.closest('[data-action="open-set-menu"]') && !e.target.closest('[data-action="open-session-menu"]')){
+    if (menu && !menu.contains(e.target) && !e.target.closest('[data-action="open-exercise-menu"]') && !e.target.closest('[data-action="open-set-menu"]') && !e.target.closest('[data-action="open-session-menu"]') && !e.target.closest('[data-action="open-chart-range"]')){
       closeRowActionMenu();
     }
   });
@@ -16144,27 +16133,6 @@
     if (e.key === 'Escape'){
       e.preventDefault();
       closeSettingsPicker();
-    }
-  });
-
-  var chartRangeOverlayEl = document.getElementById('chartRangeOverlay');
-  chartRangeOverlayEl.addEventListener('click', function(e){
-    if (e.target === chartRangeOverlayEl){
-      closeChartRangePanel();
-      return;
-    }
-    var el = e.target.closest('[data-action]');
-    if (!el) return;
-    if (el.dataset.action === 'close-chart-range'){
-      closeChartRangePanel();
-    } else if (el.dataset.action === 'pick-chart-range'){
-      applyChartView(el.dataset.view);
-    }
-  });
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape' && ui.showChartRange){
-      e.preventDefault();
-      closeChartRangePanel();
     }
   });
 
