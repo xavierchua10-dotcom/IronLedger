@@ -11703,7 +11703,7 @@
     if (points.length >= 2){
       chartCarouselPage = 0;
       var lineChartSvg = buildChartSVG(points, showWeightLine);
-      var barChartSvg = buildBarChartSVG(points);
+      var barChartSvg = buildBarChartSVG(points, showWeightLine);
       html += '<div class="chart-carousel" id="chartCarousel">' +
                 '<div class="chart-carousel-track" id="chartCarouselTrack">' +
                   '<div class="chart-carousel-page">'+lineChartSvg+'</div>' +
@@ -11877,14 +11877,24 @@
     return points.some(function(p){ return p.topKg > 0; });
   }
 
-  function buildBarChartSVG(points){
+  function buildBarChartSVG(points, showWeight){
     var w = 400, h = 140, pad = 16;
     var vals = points.map(function(p){ return p.e1rm; });
+    // With the weight bars on, the scale has to fit both series (the weight
+    // is never above the 1RM, but taking the max of both keeps that true
+    // even for odd data).
+    var scaleVals = showWeight ? vals.concat(points.map(function(p){ return p.topKg; })) : vals;
     var min = 0; // bars read from a zero baseline, unlike the line chart's min/max window
-    var max = Math.max.apply(null, vals) * 1.08; // small headroom so the tallest bar isn't flush with the top edge
+    var max = Math.max.apply(null, scaleVals) * 1.08; // small headroom so the tallest bar isn't flush with the top edge
     var n = points.length;
     var slot = (w - pad*2) / n;
     var barW = Math.min(28, slot * 0.55);
+    // With the weight bars on, each session gets a PAIR of narrower bars
+    // side by side — est. 1RM (trend color) then top weight (white) — sized
+    // so the pair takes a little more room than one bar used to.
+    var pairGap = 2;
+    var pairW = Math.min(34, slot * 0.75);
+    var halfW = Math.max(1, (pairW - pairGap) / 2);
     function xAt(i){ return pad + slot * i + slot/2; }
     function yAt(v){ return h - pad - ((v - min)/(max - min)) * (h - pad*2); }
 
@@ -11894,7 +11904,17 @@
       var barTop = yAt(p.e1rm);
       var barH = (h - pad) - barTop;
       var cx = xAt(i);
-      return '<rect x="'+(cx - barW/2).toFixed(1)+'" y="'+barTop.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(2, barH).toFixed(1)+'" rx="3" fill="'+trendHex+'" fill-opacity="'+(i === n-1 ? '1' : '0.55')+'"/>';
+      var opacity = (i === n-1 ? '1' : '0.55');
+      if (!showWeight){
+        return '<rect x="'+(cx - barW/2).toFixed(1)+'" y="'+barTop.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(2, barH).toFixed(1)+'" rx="3" fill="'+trendHex+'" fill-opacity="'+opacity+'"/>';
+      }
+      var wTop = yAt(p.topKg);
+      var wH = (h - pad) - wTop;
+      var rx = Math.min(3, halfW / 2);
+      var leftX = cx - pairW/2;
+      var rightX = leftX + halfW + pairGap;
+      return '<rect x="'+leftX.toFixed(1)+'" y="'+barTop.toFixed(1)+'" width="'+halfW.toFixed(1)+'" height="'+Math.max(2, barH).toFixed(1)+'" rx="'+rx.toFixed(1)+'" fill="'+trendHex+'" fill-opacity="'+opacity+'"/>' +
+             '<rect x="'+rightX.toFixed(1)+'" y="'+wTop.toFixed(1)+'" width="'+halfW.toFixed(1)+'" height="'+Math.max(2, wH).toFixed(1)+'" rx="'+rx.toFixed(1)+'" fill="'+WEIGHT_LINE_HEX+'" fill-opacity="'+opacity+'"/>';
     }).join('');
 
     var svg = '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="140" preserveAspectRatio="none">';
