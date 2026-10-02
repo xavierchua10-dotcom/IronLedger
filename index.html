@@ -3451,6 +3451,61 @@
     transition:background 0.15s ease, transform 0.15s ease;
   }
   .chart-dot.active{background:var(--accent);transform:scale(1.3);}
+  /* Range switch (Sessions / Weekly / Monthly) tucked in the bottom-left
+     corner of the Progress chart, level with the slide dots. */
+  .chart-dots{position:relative;align-items:center;min-height:20px;}
+  .chart-view-btn{
+    position:absolute;
+    left:0;
+    top:50%;
+    transform:translateY(-50%);
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    padding:2px 8px 2px 6px;
+    background:rgba(10,12,16,0.55);
+    border:1px solid var(--line);
+    border-radius:var(--radius-pill);
+    color:#c7ccd3;
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    line-height:1.4;
+    cursor:pointer;
+  }
+  .chart-view-btn svg{display:block;flex-shrink:0;}
+  .chart-view-btn.active{color:var(--accent);border-color:var(--accent-dim);}
+  .chart-view-btn:active{opacity:0.8;}
+  /* Date labels under the weekly / monthly charts. Padding + equal-width
+     cells line each label up with its bar/point (the SVG pads 16 of its 400
+     units on each side = 4%). */
+  .chart-xlabels{
+    display:flex;
+    padding:2px 4% 0;
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    color:#c7ccd3;
+    pointer-events:none;
+  }
+  .chart-xlabels span{flex:1 1 0;min-width:0;text-align:center;white-space:nowrap;overflow:hidden;}
+  .chart-empty-note.tall{min-height:140px;display:flex;align-items:center;justify-content:center;}
+  /* Switch animation: bars grow up from the baseline and the line rises
+     from it (see playChartAnim). The global reduced-motion rule turns all of
+     this off. 124px = the chart baseline in SVG units (140 - 16 padding). */
+  @keyframes crBarUp{from{transform:scaleY(0);}to{transform:scaleY(1);}}
+  @keyframes crLineUp{from{transform:scaleY(0);opacity:0.25;}to{transform:scaleY(1);opacity:1;}}
+  @keyframes crDotIn{from{opacity:0;}to{opacity:1;}}
+  .chart-anim .cr-bar{
+    transform-box:fill-box;
+    transform-origin:50% 100%;
+    animation:crBarUp 0.55s cubic-bezier(0.2,0.8,0.2,1) both;
+  }
+  .chart-anim .cr-line{
+    transform-origin:0 124px;
+    animation:crLineUp 0.6s cubic-bezier(0.2,0.8,0.2,1) both;
+  }
+  .chart-anim .cr-dot{animation:crDotIn 0.3s ease 0.45s both;}
   .chart-empty-note{
     text-align:center;
     color:#c7ccd3;
@@ -5382,6 +5437,7 @@
     authMode: 'login',     // 'login' | 'signup'
     authError: null,
     authBusy: false,
+    chartView: 'session',   // Progress chart range: 'session' (default) | 'week' | 'month'. Not persisted — resets on exercise change / reopen.
     authDraft: { email: '', avatar: DEFAULT_AVATAR },
     awaitingAvatarPick: false,   // true right after a brand-new account is created, until they pick an icon
     showOnboardingWizard: false,  // full-screen setup wizard (bodyweight/goal/experience/days -> suggested template) — auto-opens once right after avatar pick on a brand-new account, replayable anytime from Settings
@@ -7631,11 +7687,14 @@
   function goToChartCarouselPage(page){
     var track = document.getElementById('chartCarouselTrack');
     if (!track) return;
+    var changed = chartCarouselPage !== page;
     chartCarouselPage = page;
     track.style.transform = 'translateX(-' + (page * 100) + '%)';
     document.querySelectorAll('.chart-dot').forEach(function(dot, i){
       dot.classList.toggle('active', i === page);
     });
+    // Moving to the other slide replays the rise/grow animation on it.
+    if (changed) playChartAnim(track.children[page]);
   }
   // Swipe between the trend-line and bar-chart pages. Same axis-
   // detection spirit as the set-row swipe-to-delete gesture, just
@@ -11671,6 +11730,7 @@
     // ---- DETAIL MODE: title bar + chart + tip + PR list ----
     if (namesWithProgress.indexOf(ui.progressExercise) === -1){
       ui.progressExercise = namesWithProgress[0];
+      ui.chartView = 'session';
     }
 
     var fineMuscle = fineMuscleForLoggedName(ui.progressExercise);
@@ -11702,15 +11762,13 @@
             '</div>';
     if (points.length >= 2){
       chartCarouselPage = 0;
-      var lineChartSvg = buildChartSVG(points, showWeightLine);
-      var barChartSvg = buildBarChartSVG(points, showWeightLine);
       html += '<div class="chart-carousel" id="chartCarousel">' +
                 '<div class="chart-carousel-track" id="chartCarouselTrack">' +
-                  '<div class="chart-carousel-page">'+lineChartSvg+'</div>' +
-                  '<div class="chart-carousel-page">'+barChartSvg+'</div>' +
+                  buildChartPagesHtml(ui.progressExercise, ui.chartView, showWeightLine) +
                 '</div>' +
               '</div>' +
               '<div class="chart-dots">' +
+                '<button type="button" class="chart-view-btn'+(ui.chartView !== 'session' ? ' active' : '')+'" id="chartViewBtn" data-action="chart-view-cycle" aria-label="'+chartViewBtnAria(ui.chartView)+'">'+chartViewBtnHtml(ui.chartView)+'</button>' +
                 '<button class="chart-dot active" data-action="chart-carousel-goto" data-page="0" aria-label="Trend line"></button>' +
                 '<button class="chart-dot" data-action="chart-carousel-goto" data-page="1" aria-label="Bar chart"></button>' +
               '</div>';
@@ -11860,6 +11918,125 @@
     return prs;
   }
 
+  /* ---------- Progress chart range: Sessions / Weekly / Monthly ----------
+     Sessions (the default) plots one point per logged session. Weekly and
+     Monthly bucket those same sessions by calendar week (Mon-Sun) or month and
+     plot the BEST est. 1RM and the HEAVIEST top weight in each bucket, so the
+     white weight bars still show whether progress came from weight or reps.
+     The window runs from the first logged bucket to now, capped at the last
+     CHART_MAX_PERIODS, with empty buckets kept as gaps. */
+  var CHART_MAX_PERIODS = 12;
+  var CHART_MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var CHART_VIEW_ORDER = ['session', 'week', 'month'];
+  var CHART_VIEW_LABEL = { session: 'Session', week: 'Week', month: 'Month' };
+  function chartViewData(name, view){
+    var pts = collectExercisePoints(name);
+    if (view !== 'week' && view !== 'month') return { points: pts, opts: null, labels: null };
+    var isWeek = view === 'week';
+    function startOf(d){
+      if (isWeek){
+        var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // back to Monday
+        return x;
+      }
+      return new Date(d.getFullYear(), d.getMonth(), 1);
+    }
+    function next(d){
+      return isWeek ? new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7)
+                    : new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    }
+    function keyOf(d){ return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); }
+    if (!pts.length) return { points: [], opts: { slots: 0 }, labels: [] };
+    var firstStart = startOf(new Date(pts[0].date));
+    var lastDataStart = startOf(new Date(pts[pts.length - 1].date));
+    var nowStart = startOf(new Date());
+    var endStart = +lastDataStart > +nowStart ? lastDataStart : nowStart;
+    var periods = [];
+    for (var cur = firstStart; +cur <= +endStart && periods.length < 2000; cur = next(cur)) periods.push(cur);
+    periods = periods.slice(-CHART_MAX_PERIODS);
+    var agg = {};
+    pts.forEach(function(p){
+      var k = keyOf(startOf(new Date(p.date)));
+      var a = agg[k];
+      if (!a) agg[k] = { e1rm: p.e1rm, topKg: p.topKg };
+      else { if (p.e1rm > a.e1rm) a.e1rm = p.e1rm; if (p.topKg > a.topKg) a.topKg = p.topKg; }
+    });
+    var points = [], labels = [];
+    periods.forEach(function(ps, idx){
+      labels.push(isWeek ? (ps.getDate() + '/' + (ps.getMonth() + 1)) : CHART_MONTH_NAMES[ps.getMonth()]);
+      var a = agg[keyOf(ps)];
+      if (a) points.push({ slot: idx, date: ps.toISOString(), e1rm: a.e1rm, topKg: a.topKg });
+    });
+    return { points: points, opts: { slots: periods.length }, labels: labels };
+  }
+  // Date labels for the grouped views. Weeks are crowded (d/M), so with more
+  // than 6 of them only every second one is shown, always counting back from
+  // the newest so the current period is labelled.
+  function chartXLabelsHtml(labels, view){
+    if (!labels || !labels.length) return '';
+    var step = (view === 'week' && labels.length > 6) ? 2 : 1;
+    var cells = labels.map(function(l, i){
+      var show = ((labels.length - 1 - i) % step === 0);
+      return '<span>' + (show ? esc(l) : '&nbsp;') + '</span>';
+    }).join('');
+    return '<div class="chart-xlabels" aria-hidden="true">' + cells + '</div>';
+  }
+  // Inner HTML of the carousel track (both pages) for the given range.
+  function buildChartPagesHtml(name, view, showWeight){
+    var d = chartViewData(name, view);
+    if (view !== 'session' && d.points.length < 2){
+      var note = '<div class="chart-empty-note tall">Not enough history for a ' + (view === 'week' ? 'weekly' : 'monthly') + ' view yet</div>';
+      return '<div class="chart-carousel-page">' + note + '</div><div class="chart-carousel-page">' + note + '</div>';
+    }
+    var labelsHtml = d.labels ? chartXLabelsHtml(d.labels, view) : '';
+    return '<div class="chart-carousel-page">' + buildChartSVG(d.points, showWeight, d.opts) + labelsHtml + '</div>' +
+           '<div class="chart-carousel-page">' + buildBarChartSVG(d.points, showWeight, d.opts) + labelsHtml + '</div>';
+  }
+  function chartViewBtnHtml(view){
+    return '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+             '<rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>' +
+           '</svg><span>' + CHART_VIEW_LABEL[view] + '</span>';
+  }
+  function chartViewBtnAria(view){
+    return 'Chart range: ' + CHART_VIEW_LABEL[view] + '. Tap to change.';
+  }
+  // Bars grow up from the baseline and the line rises from it. Classes are
+  // added on the fly (rather than baked into the SVG) so the normal render
+  // stays exactly as it was and only an actual switch animates. Re-adding
+  // .chart-anim after a reflow replays it. Called when the range changes and
+  // when a different slide is swiped/tapped into view.
+  function playChartAnim(pageEl){
+    if (!pageEl) return;
+    var svg = pageEl.querySelector('svg');
+    if (!svg) return;
+    var i = 0;
+    Array.prototype.forEach.call(svg.querySelectorAll('rect'), function(r){
+      r.classList.add('cr-bar');
+      r.style.animationDelay = (i++ * 22) + 'ms';
+    });
+    Array.prototype.forEach.call(svg.querySelectorAll('path'), function(pa){ pa.classList.add('cr-line'); });
+    Array.prototype.forEach.call(svg.querySelectorAll('circle'), function(c){ c.classList.add('cr-dot'); });
+    pageEl.classList.remove('chart-anim');
+    void pageEl.offsetWidth;
+    pageEl.classList.add('chart-anim');
+  }
+  function cycleChartView(){
+    var track = document.getElementById('chartCarouselTrack');
+    if (!track || !ui.progressExercise) return;
+    var cur = CHART_VIEW_ORDER.indexOf(ui.chartView);
+    ui.chartView = CHART_VIEW_ORDER[(cur + 1) % CHART_VIEW_ORDER.length];
+    var points = collectExercisePoints(ui.progressExercise);
+    var showWeight = points.length >= 2 && shouldShowWeightLine(ui.progressExercise, points);
+    track.innerHTML = buildChartPagesHtml(ui.progressExercise, ui.chartView, showWeight);
+    var btn = document.getElementById('chartViewBtn');
+    if (btn){
+      btn.innerHTML = chartViewBtnHtml(ui.chartView);
+      btn.setAttribute('aria-label', chartViewBtnAria(ui.chartView));
+      btn.classList.toggle('active', ui.chartView !== 'session');
+    }
+    playChartAnim(track.children[chartCarouselPage]);
+  }
+
   // Green if the estimated 1RM rose from the first plotted session to the
   // latest, red if it fell, the accent color if unchanged. One place so the
   // line chart, bar chart and the legend swatch can never disagree.
@@ -11877,7 +12054,7 @@
     return points.some(function(p){ return p.topKg > 0; });
   }
 
-  function buildBarChartSVG(points, showWeight){
+  function buildBarChartSVG(points, showWeight, opts){
     var w = 400, h = 140, pad = 16;
     var vals = points.map(function(p){ return p.e1rm; });
     // With the weight bars on, the scale has to fit both series (the weight
@@ -11887,7 +12064,11 @@
     var min = 0; // bars read from a zero baseline, unlike the line chart's min/max window
     var max = Math.max.apply(null, scaleVals) * 1.08; // small headroom so the tallest bar isn't flush with the top edge
     var n = points.length;
-    var slot = (w - pad*2) / n;
+    // Grouped views divide the width into one slot per calendar period (empty
+    // periods keep their slot, so they read as gaps); sessions use one slot
+    // per point, as before.
+    var slotted = !!(opts && opts.slots);
+    var slot = (w - pad*2) / (slotted ? opts.slots : n);
     var barW = Math.min(28, slot * 0.55);
     // With the weight bars on, each session gets a PAIR of narrower bars
     // side by side — est. 1RM (trend color) then top weight (white) — sized
@@ -11898,7 +12079,7 @@
     var pairGap = 2;
     var pairW = Math.min(34, slot * 0.75);
     var halfW = Math.max(1, (pairW - pairGap) / 2);
-    function xAt(i){ return pad + slot * i + slot/2; }
+    function xAt(i){ return pad + slot * (slotted ? points[i].slot : i) + slot/2; }
     function yAt(v){ return h - pad - ((v - min)/(max - min)) * (h - pad*2); }
 
     var trendHex = chartTrendHex(points);
@@ -11928,7 +12109,7 @@
     return svg;
   }
 
-  function buildChartSVG(points, showWeight){
+  function buildChartSVG(points, showWeight, opts){
     var w = 400, h = 140, pad = 16;
     var vals = points.map(function(p){ return p.e1rm; });
     // With the weight line on, both lines share ONE kg scale so they can be
@@ -11940,7 +12121,14 @@
     var min = Math.min.apply(null, scaleVals), max = Math.max.apply(null, scaleVals);
     if (min === max){ min = min - 1; max = max + 1; }
     var n = points.length;
-    function xAt(i){ return n === 1 ? w/2 : pad + (i/(n-1)) * (w - pad*2); }
+    // Weekly / monthly views place each point in its calendar slot (so skipped
+    // weeks show as real gaps and the labels underneath line up); the
+    // per-session view spreads the points evenly like it always has.
+    var slotted = !!(opts && opts.slots);
+    function xAt(i){
+      if (slotted) return pad + ((points[i].slot + 0.5) / opts.slots) * (w - pad*2);
+      return n === 1 ? w/2 : pad + (i/(n-1)) * (w - pad*2);
+    }
     function yAt(v){ return h - pad - ((v - min)/(max - min)) * (h - pad*2); }
 
     var path = points.map(function(p,i){
@@ -15162,6 +15350,7 @@
       // exercise search overlay, which doesn't preserve its own scroll
       // position across opens either.
       ui.progressExercise = el.dataset.name;
+      ui.chartView = 'session';
       ui.progressExerciseListOpen = false;
       renderApp();
     } else if (action === 'show-progress-exercise-list'){
@@ -15172,6 +15361,8 @@
       renderApp();
     } else if (action === 'chart-carousel-goto'){
       goToChartCarouselPage(parseInt(el.dataset.page, 10));
+    } else if (action === 'chart-view-cycle'){
+      cycleChartView();
     } else if (action === 'toggle-progress-muscle-filter'){
       var pmf = ui.progressMuscleFilters || [];
       var pmfIdx = pmf.indexOf(el.dataset.muscle);
