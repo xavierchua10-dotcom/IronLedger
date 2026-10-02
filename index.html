@@ -8284,6 +8284,28 @@
     sets.forEach(function(st){
       if (e1rm(effectiveLoadKg(ex.name, st.weightKg), st.reps) > e1rm(effectiveLoadKg(ex.name, best.weightKg), best.reps)) best = st;
     });
+    // The tip is about the weight you actually worked up to, so the
+    // reference ("top") set is the HEAVIEST working set (ties: most reps),
+    // not the highest-e1RM one. Judging by e1RM picked the lighter set of
+    // an ascending session — 100 x 12 (e1RM 140) beat 105 x 9 (136.5) — and
+    // then told people to "add weight" to a number below what they'd
+    // already lifted that day. A "working" set needs at least
+    // min(MIN_PR_REPS, the goal's rep minimum) reps so a heavy single in a
+    // hypertrophy session isn't the reference, while a strength goal (range
+    // starts at 1) still counts heavy triples. If nothing qualifies, or for
+    // holds (reps = seconds), the original highest-e1RM pick stands.
+    if (!isHoldExercise(ex.name)){
+      var workFloor = Math.min(MIN_PR_REPS, repMin);
+      var topSet = null, topSetW = 0;
+      sets.forEach(function(st){
+        if (st.reps < workFloor) return;
+        var w = effectiveLoadKg(ex.name, st.weightKg);
+        if (!topSet || w > topSetW + 0.001 || (Math.abs(w - topSetW) <= 0.001 && st.reps > topSet.reps)){
+          topSet = st; topSetW = w;
+        }
+      });
+      if (topSet) best = topSet;
+    }
     var bestEffKg = effectiveLoadKg(ex.name, best.weightKg);
     var setIds = sets.map(function(st){ return st.id; });
     var prior = priorBestE1RM(ex.name, setIds);
