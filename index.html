@@ -3411,6 +3411,16 @@
   }
   .chart-stats .cs-block .cs-label{font-size:10px;color:#c7ccd3;text-transform:uppercase;letter-spacing:0.05em;}
   .chart-stats .cs-block .cs-val{font-size:16px;color:var(--accent);font-weight:700;}
+  /* Little color key next to each stat label — doubles as the chart legend
+     when the trend line also draws the weight-progression line. */
+  .chart-stats .cs-swatch{
+    display:inline-block;
+    width:12px;
+    height:3px;
+    border-radius:2px;
+    margin-right:6px;
+    vertical-align:middle;
+  }
   .chart-carousel{
     overflow:hidden;
     touch-action:pan-y;
@@ -11679,14 +11689,20 @@
     var best = points.reduce(function(a,b){ return b.e1rm > a.e1rm ? b : a; }, points[0]);
     var latest = points[points.length - 1];
 
+    // Two lines on the trend chart when there's a weight to plot: est. 1RM
+    // and the top weight per session. The swatches next to the two stat
+    // labels below are the legend.
+    var showWeightLine = points.length >= 2 && shouldShowWeightLine(ui.progressExercise, points);
+    var swatch1RM = showWeightLine ? '<i class="cs-swatch" style="background:'+chartTrendHex(points)+'"></i>' : '';
+    var swatchWeight = showWeightLine ? '<i class="cs-swatch" style="background:'+WEIGHT_LINE_HEX+'"></i>' : '';
     html += '<div class="chart-wrap">';
     html += '<div class="chart-stats">' +
-              '<div class="cs-block"><div class="cs-label">Est. best 1RM</div><div class="cs-val" id="csValBest1RM" data-target="'+best.e1rm+'">0 '+unitLabel()+'</div></div>' +
-              '<div class="cs-block"><div class="cs-label">Latest top set</div><div class="cs-val" id="csValLatestTop" data-target="'+latest.topKg+'">0 '+unitLabel()+'</div></div>' +
+              '<div class="cs-block"><div class="cs-label">'+swatch1RM+'Est. best 1RM</div><div class="cs-val" id="csValBest1RM" data-target="'+best.e1rm+'">0 '+unitLabel()+'</div></div>' +
+              '<div class="cs-block"><div class="cs-label">'+swatchWeight+'Latest top set</div><div class="cs-val" id="csValLatestTop" data-target="'+latest.topKg+'">0 '+unitLabel()+'</div></div>' +
             '</div>';
     if (points.length >= 2){
       chartCarouselPage = 0;
-      var lineChartSvg = buildChartSVG(points);
+      var lineChartSvg = buildChartSVG(points, showWeightLine);
       var barChartSvg = buildBarChartSVG(points);
       html += '<div class="chart-carousel" id="chartCarousel">' +
                 '<div class="chart-carousel-track" id="chartCarouselTrack">' +
@@ -11844,6 +11860,23 @@
     return prs;
   }
 
+  // Green if the estimated 1RM rose from the first plotted session to the
+  // latest, red if it fell, the accent color if unchanged. One place so the
+  // line chart, bar chart and the legend swatch can never disagree.
+  function chartTrendHex(points){
+    var n = points.length;
+    return points[n-1].e1rm > points[0].e1rm ? '#5fb86a'
+      : (points[n-1].e1rm < points[0].e1rm ? '#c1443c' : currentAccentTheme().accent);
+  }
+  // The weight line only means something when there IS a weight to plot:
+  // not for holds (plank etc. log seconds), and not when every session's top
+  // load is 0 (bodyweight-only with no bodyweight set).
+  var WEIGHT_LINE_HEX = '#e9e6df';
+  function shouldShowWeightLine(name, points){
+    if (isHoldExercise(name)) return false;
+    return points.some(function(p){ return p.topKg > 0; });
+  }
+
   function buildBarChartSVG(points){
     var w = 400, h = 140, pad = 16;
     var vals = points.map(function(p){ return p.e1rm; });
@@ -11855,8 +11888,7 @@
     function xAt(i){ return pad + slot * i + slot/2; }
     function yAt(v){ return h - pad - ((v - min)/(max - min)) * (h - pad*2); }
 
-    var trendHex = points[n-1].e1rm > points[0].e1rm ? '#5fb86a'
-      : (points[n-1].e1rm < points[0].e1rm ? '#c1443c' : currentAccentTheme().accent);
+    var trendHex = chartTrendHex(points);
 
     var bars = points.map(function(p, i){
       var barTop = yAt(p.e1rm);
@@ -11871,10 +11903,16 @@
     return svg;
   }
 
-  function buildChartSVG(points){
+  function buildChartSVG(points, showWeight){
     var w = 400, h = 140, pad = 16;
     var vals = points.map(function(p){ return p.e1rm; });
-    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    // With the weight line on, both lines share ONE kg scale so they can be
+    // compared honestly (the weight line always sits at or below the 1RM
+    // line, since an estimated 1RM is never lower than the weight lifted).
+    // The 1RM line looks a bit flatter than it did alone — that's the cost of
+    // making room for the lighter weights.
+    var scaleVals = showWeight ? vals.concat(points.map(function(p){ return p.topKg; })) : vals;
+    var min = Math.min.apply(null, scaleVals), max = Math.max.apply(null, scaleVals);
     if (min === max){ min = min - 1; max = max + 1; }
     var n = points.length;
     function xAt(i){ return n === 1 ? w/2 : pad + (i/(n-1)) * (w - pad*2); }
@@ -11890,8 +11928,7 @@
     // matches what the line visually shows: net direction across the
     // plotted window. Same green/red as the Muscle Volume Overview bars
     // (--success / --accent-2) for consistency across the app.
-    var trendHex = points[n-1].e1rm > points[0].e1rm ? '#5fb86a'
-      : (points[n-1].e1rm < points[0].e1rm ? '#c1443c' : currentAccentTheme().accent);
+    var trendHex = chartTrendHex(points);
     var dots = points.map(function(p,i){
       return '<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(p.e1rm).toFixed(1)+'" r="3" fill="'+trendHex+'"/>';
     }).join('');
@@ -11906,6 +11943,20 @@
     svg += '<path d="'+areaPath+'" fill="url(#grad)" stroke="none"/>';
     svg += '<path d="'+path+'" fill="none" stroke="'+trendHex+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
     svg += dots;
+    if (showWeight){
+      // Weight progression as a STEP line: it stays flat at a weight until
+      // the session where you moved up (or down), then jumps — so each
+      // increment shows up as a clear step instead of a slope.
+      var stepPath = points.map(function(p,i){
+        if (i === 0) return 'M' + xAt(0).toFixed(1) + ',' + yAt(p.topKg).toFixed(1);
+        return 'L' + xAt(i).toFixed(1) + ',' + yAt(points[i-1].topKg).toFixed(1) +
+               ' L' + xAt(i).toFixed(1) + ',' + yAt(p.topKg).toFixed(1);
+      }).join(' ');
+      svg += '<path d="'+stepPath+'" fill="none" stroke="'+WEIGHT_LINE_HEX+'" stroke-opacity="0.9" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>';
+      svg += points.map(function(p,i){
+        return '<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(p.topKg).toFixed(1)+'" r="2.4" fill="'+WEIGHT_LINE_HEX+'"/>';
+      }).join('');
+    }
     svg += '</svg>';
     return svg;
   }
