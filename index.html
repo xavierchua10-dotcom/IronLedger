@@ -8300,6 +8300,7 @@
     //   - below your top working weight AND below your best e1RM.
     // Holds (reps = seconds) keep the plain e1RM comparison.
     var regressed = false;
+    var weightBump = false;
     if (prior > 0){
       if (isHoldExercise(ex.name)){
         regressed = thisE1 < prior - 0.001;
@@ -8308,6 +8309,7 @@
         var priorTopW = priorSt.bestQualW > 0 ? priorSt.bestQualW : priorSt.bestW;
         if (bestEffKg > priorTopW + 0.001){
           regressed = false;
+          weightBump = priorTopW > 0;
         } else if (Math.abs(bestEffKg - priorTopW) <= 0.001){
           regressed = best.reps < (priorSt.repsAt[prLoadKey(bestEffKg)] || 0);
         } else {
@@ -8331,9 +8333,16 @@
       target = 'Target: ' + describeLoad(ex.name, nextAddedKg) + ' next session, aim for ' + repMin + ' reps';
       detail = 'You hit ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 the top of the ' + repMin + '\u2013' + repMax + ' ' + goalLabel + ' range. Bump the weight to about ' + describeLoad(ex.name, nextAddedKg) + ' next session and reset toward ' + repMin + ' reps.';
     } else if (best.reps < repMin){
-      headline = 'Work back up to ' + repMin + ' reps';
-      target = 'Same weight, ' + describeLoad(ex.name, best.weightKg) + ', aim for ' + repMin + '\u2013' + repMax + ' reps';
-      detail = 'Top set was ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 below the ' + repMin + '\u2013' + repMax + ' ' + goalLabel + ' range. Keep the same weight next session and aim to reach at least ' + repMin + ' reps. If it still feels too heavy to get there, drop the weight slightly and build back up within ' + repMin + '\u2013' + repMax + '.';
+      // Under the range at a weight you're still building up to. Not a
+      // setback, so no "work BACK up" wording — and right after a weight
+      // bump (a new top-weight PR) there's no "drop the weight" nudge.
+      headline = 'Build up to ' + repMin + ' reps';
+      target = 'Maintain ' + describeLoad(ex.name, best.weightKg) + ', aim for ' + repMin + '\u2013' + repMax + ' reps';
+      if (weightBump){
+        detail = 'New top weight: ' + describeLoad(ex.name, best.weightKg) + ' \u00d7 ' + best.reps + '. Stay at ' + describeLoad(ex.name, best.weightKg) + ' and add reps each session \u2014 from ' + best.reps + ' up to at least ' + repMin + ', then toward ' + repMax + ', before adding weight again.';
+      } else {
+        detail = 'Top set was ' + best.reps + ' reps at ' + describeLoad(ex.name, best.weightKg) + ' \u2014 below the ' + repMin + '\u2013' + repMax + ' ' + goalLabel + ' range. Keep the same weight next session and aim to reach at least ' + repMin + ' reps. If it still feels too heavy to get there, drop the weight slightly and build back up within ' + repMin + '\u2013' + repMax + '.';
+      }
     } else {
       headline = 'Add a rep next time';
       target = 'Maintain ' + describeLoad(ex.name, best.weightKg) + ', aim for ' + (best.reps + 1) + ' reps';
