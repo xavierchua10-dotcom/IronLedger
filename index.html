@@ -5884,7 +5884,7 @@
   // PR rules, shared by commitSet (live logging) and recomputeExercisePRs
   // (edits/deletes) so both always agree. A set is a PR if ANY of these hold
   // against the exercise's earlier sets (checked in this order):
-  //   'weight' - heaviest load yet among sets done for >= MIN_PR_REPS reps.
+  //   'weight' - heaviest load yet among sets done for >= prRepFloor() reps.
   //              Fixes the weight-bump case: 85 x 12 then 90 x 8 is a PR even
   //              though e1RM (114 vs 119) and volume (720 vs 1020) went down.
   //   'reps'   - more reps than ever done at this exact load, but ONLY at your
@@ -5897,6 +5897,14 @@
   // rep floor and reps-at-load comparison don't mean anything for them.
   // Runs in one pass over history via a small running-state object.
   var MIN_PR_REPS = 5;
+  // The rep floor for a "working" set follows the training goal instead of a
+  // flat 5: min(5, the goal's rep minimum). Hypertrophy (8-12) and endurance
+  // (15-20) stay at 5; strength (1-5) drops to 1 so a heavier triple or double
+  // counts as a weight PR (100 x 5 -> 105 x 3), which a flat 5-rep floor
+  // wrongly ignored for people who train low-rep.
+  function prRepFloor(){
+    return Math.max(1, Math.min(MIN_PR_REPS, currentRepRange().min));
+  }
   function newPRState(){
     return { bestE: 0, bestW: 0, bestQualW: 0, repsAt: {} };
   }
@@ -5905,14 +5913,14 @@
     var v = e1rm(w, reps);
     if (v > st.bestE) st.bestE = v;
     if (w > st.bestW) st.bestW = w;
-    if (reps >= MIN_PR_REPS && w > st.bestQualW) st.bestQualW = w;
+    if (reps >= prRepFloor() && w > st.bestQualW) st.bestQualW = w;
     var k = prLoadKey(w);
     if (!(st.repsAt[k] >= reps)) st.repsAt[k] = reps;
   }
   function classifyPR(st, w, reps, isHold){
     var thisE = e1rm(w, reps);
     if (isHold) return thisE > st.bestE + 0.001 ? 'e1rm' : null;
-    if (reps >= MIN_PR_REPS && w > 0 && st.bestQualW > 0 && w > st.bestQualW + 0.001) return 'weight';
+    if (reps >= prRepFloor() && w > 0 && st.bestQualW > 0 && w > st.bestQualW + 0.001) return 'weight';
     // "Top working load": heaviest load done for real working reps; if there
     // are none yet (e.g. a heavy-triples lifter), fall back to heaviest ever.
     var topW = st.bestQualW > 0 ? st.bestQualW : st.bestW;
@@ -8327,7 +8335,7 @@
     // starts at 1) still counts heavy triples. If nothing qualifies, or for
     // holds (reps = seconds), the original highest-e1RM pick stands.
     if (!isHoldExercise(ex.name)){
-      var workFloor = Math.min(MIN_PR_REPS, repMin);
+      var workFloor = prRepFloor();
       var topSet = null, topSetW = 0;
       sets.forEach(function(st){
         if (st.reps < workFloor) return;
