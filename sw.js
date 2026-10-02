@@ -24,9 +24,18 @@ firebase.initializeApp({
 });
 
 var messaging = firebase.messaging();
+// The Firebase SDK itself shows any background push that carries a
+// `notification` payload (which is what the backend sends) BEFORE it calls
+// this handler. This handler used to show it again, so every background
+// notification appeared twice. It now only covers data-only pushes, which the
+// SDK doesn't display. The app icon for SDK-shown notifications comes from
+// webpush.notification.icon in the backend's push message.
 messaging.onBackgroundMessage(function(payload){
-  self.registration.showNotification(payload.notification.title, {
-    body: payload.notification.body,
+  if (payload && payload.notification) return;
+  var d = (payload && payload.data) || {};
+  if (!d.title && !d.body) return;
+  return self.registration.showNotification(d.title || 'SaviorFit Logger', {
+    body: d.body || '',
     icon: './icons/apple-touch-icon.png'
   });
 });
