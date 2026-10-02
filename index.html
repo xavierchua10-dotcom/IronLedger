@@ -12118,15 +12118,7 @@
     document.getElementById('stopwatchBar').classList.toggle('hidden', !showFinishBar || !ui.restTimer);
     if (showFinishBar) renderRestTimerBar();
 
-    // Anyone mid-edit (typing a set, renaming an exercise, or the add-set
-    // panel open) shouldn't be able to accidentally tap Finish Session —
-    // it sits right above the keyboard in those moments.
-    var isMidEdit = !!ui.editingSet || !!ui.editingExerciseName ||
-      Object.keys(ui.expandedAddSet).some(function(k){ return ui.expandedAddSet[k]; });
-    var canFinish = !!activeSession && sessionSetCount(activeSession) > 0 && !isMidEdit;
-    var finishBtnEl = document.getElementById('finishSessionBtn');
-    finishBtnEl.disabled = !canFinish;
-    finishBtnEl.classList.toggle('ready', canFinish);
+    refreshFinishSessionBtn();
 
     renderMuscleMapOverlay();
     renderExerciseSearchOverlay();
@@ -13549,6 +13541,26 @@
   // properly logged rides along fine, but a draft sitting in the input
   // boxes was never part of the session data to begin with, so it just
   // vanishes unless callers here surface it first.
+  // Finish Session is enabled once there's at least one logged set, unless
+  // the person is mid-edit: editing a set, renaming an exercise, or has
+  // typed numbers into an add-set panel that haven't been logged yet
+  // (finishing then would silently throw those numbers away). An add-set
+  // panel that's merely OPEN with empty fields does NOT block it — after
+  // logging a set the panel deliberately stays open for the next one, and
+  // blocking on that left Finish greyed out with no visible reason. The
+  // bar already hides itself while the keyboard is up, so an empty open
+  // panel can't cause an accidental tap. Called from renderApp and from the
+  // add-set input handler so it tracks typing without a full re-render.
+  function refreshFinishSessionBtn(){
+    var el = document.getElementById('finishSessionBtn');
+    if (!el) return;
+    var activeSession = getActiveSession();
+    var isMidEdit = !!ui.editingSet || !!ui.editingExerciseName || !!activeSessionUnsavedDraftExercise();
+    var canFinish = !!activeSession && sessionSetCount(activeSession) > 0 && !isMidEdit;
+    el.disabled = !canFinish;
+    el.classList.toggle('ready', canFinish);
+  }
+
   function activeSessionUnsavedDraftExercise(){
     var session = getActiveSession();
     if (!session) return null;
@@ -15077,6 +15089,7 @@
         if (t.classList.contains('set-weight-input')) ui.draftSets[exId].weight = t.value;
         else ui.draftSets[exId].reps = t.value;
         refreshRowAddSetBtn(exId);
+        refreshFinishSessionBtn();
       }
     }
     if (t.id === 'historySearchInput'){
