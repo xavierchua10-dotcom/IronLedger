@@ -11889,6 +11889,15 @@
     var n = points.length;
     var slot = (w - pad*2) / n;
     var barW = Math.min(28, slot * 0.55);
+    // With the weight bars on, each session gets a PAIR of narrower bars
+    // side by side — est. 1RM (trend color) then top weight (white) — sized
+    // so the pair takes a little more room than one bar used to. The 1RM bar
+    // is weight AND reps together, the white bar is weight alone: white
+    // stepping up = progressing by weight; white flat while green grows =
+    // progressing by reps.
+    var pairGap = 2;
+    var pairW = Math.min(34, slot * 0.75);
+    var halfW = Math.max(1, (pairW - pairGap) / 2);
     function xAt(i){ return pad + slot * i + slot/2; }
     function yAt(v){ return h - pad - ((v - min)/(max - min)) * (h - pad*2); }
 
@@ -11899,22 +11908,18 @@
       var barH = (h - pad) - barTop;
       var cx = xAt(i);
       var opacity = (i === n-1 ? '1' : '0.55');
-      var out = '<rect x="'+(cx - barW/2).toFixed(1)+'" y="'+barTop.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(2, barH).toFixed(1)+'" rx="3" fill="'+trendHex+'" fill-opacity="'+opacity+'"/>';
-      if (showWeight){
-        // The top-weight bar sits INSIDE the est. 1RM bar (same baseline,
-        // centered, narrower), so one glance says how the two moved: the
-        // 1RM bar is weight AND reps together, the white bar is weight
-        // alone. White flat while green climbs = progressing by reps;
-        // white stepping up = progressing by weight. Always shorter than
-        // the green bar since an estimated 1RM is never below the weight.
-        // Minimum height is anchored to the baseline (grows upward) so a very
-        // light weight against a tall scale can't hang below the bottom edge.
-        var wH = Math.max(2, (h - pad) - yAt(p.topKg));
-        var wTop = (h - pad) - wH;
-        var innerW = Math.max(1.5, barW * 0.5);
-        out += '<rect x="'+(cx - innerW/2).toFixed(1)+'" y="'+wTop.toFixed(1)+'" width="'+innerW.toFixed(1)+'" height="'+wH.toFixed(1)+'" rx="'+Math.min(2, innerW/2).toFixed(1)+'" fill="'+WEIGHT_LINE_HEX+'" fill-opacity="'+(i === n-1 ? '1' : '0.85')+'"/>';
+      if (!showWeight){
+        return '<rect x="'+(cx - barW/2).toFixed(1)+'" y="'+barTop.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(2, barH).toFixed(1)+'" rx="3" fill="'+trendHex+'" fill-opacity="'+opacity+'"/>';
       }
-      return out;
+      // Minimum height is anchored to the baseline (grows upward) so a very
+      // light weight against a tall scale can't hang below the bottom edge.
+      var wH = Math.max(2, (h - pad) - yAt(p.topKg));
+      var wTop = (h - pad) - wH;
+      var rx = Math.min(3, halfW / 2);
+      var leftX = cx - pairW/2;
+      var rightX = leftX + halfW + pairGap;
+      return '<rect x="'+leftX.toFixed(1)+'" y="'+barTop.toFixed(1)+'" width="'+halfW.toFixed(1)+'" height="'+Math.max(2, barH).toFixed(1)+'" rx="'+rx.toFixed(1)+'" fill="'+trendHex+'" fill-opacity="'+opacity+'"/>' +
+             '<rect x="'+rightX.toFixed(1)+'" y="'+wTop.toFixed(1)+'" width="'+halfW.toFixed(1)+'" height="'+wH.toFixed(1)+'" rx="'+rx.toFixed(1)+'" fill="'+WEIGHT_LINE_HEX+'" fill-opacity="'+opacity+'"/>';
     }).join('');
 
     var svg = '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="140" preserveAspectRatio="none">';
