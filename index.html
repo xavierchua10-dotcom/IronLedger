@@ -5922,13 +5922,14 @@
     return null;
   }
   // Running state for every set of this exercise already logged (live path).
-  function buildPRState(exerciseName){
+  function buildPRState(exerciseName, excludeSetIds){
     var key = exerciseName.trim().toLowerCase();
     var st = newPRState();
     state.sessions.forEach(function(s){
       s.exercises.forEach(function(ex){
         if (ex.name.trim().toLowerCase() !== key) return;
         ex.sets.forEach(function(x){
+          if (excludeSetIds && excludeSetIds.indexOf(x.id) !== -1) return;
           recordPRSet(st, effectiveLoadKg(ex.name, x.weightKg), x.reps);
         });
       });
@@ -8288,7 +8289,33 @@
     var prior = priorBestE1RM(ex.name, setIds);
     var thisE1 = e1rm(bestEffKg, best.reps);
     var headline, detail, target;
-    if (prior > 0 && thisE1 < prior - 0.001){
+    // "Below your recent best" has to agree with how PRs are awarded
+    // (see classifyPR): moving UP in weight is progress even when e1RM or
+    // volume dips (85 x 12 -> 90 x 8), and so is building reps at that new
+    // top weight (90 x 5 -> 6 -> 8). Comparing raw e1RM against the old
+    // lighter-weight best told people they were "below their best" at the
+    // exact moment the app was awarding them a PR. So it only counts as a
+    // regression when you're:
+    //   - at your top working weight with fewer reps than you've done there, or
+    //   - below your top working weight AND below your best e1RM.
+    // Holds (reps = seconds) keep the plain e1RM comparison.
+    var regressed = false;
+    if (prior > 0){
+      if (isHoldExercise(ex.name)){
+        regressed = thisE1 < prior - 0.001;
+      } else {
+        var priorSt = buildPRState(ex.name, setIds);
+        var priorTopW = priorSt.bestQualW > 0 ? priorSt.bestQualW : priorSt.bestW;
+        if (bestEffKg > priorTopW + 0.001){
+          regressed = false;
+        } else if (Math.abs(bestEffKg - priorTopW) <= 0.001){
+          regressed = best.reps < (priorSt.repsAt[prLoadKey(bestEffKg)] || 0);
+        } else {
+          regressed = thisE1 < prior - 0.001;
+        }
+      }
+    }
+    if (regressed){
       headline = 'Match your recent best';
       target = 'Maintain ' + describeLoad(ex.name, best.weightKg) + ' until you match your recent best';
       detail = 'Top set here was ' + describeLoad(ex.name, best.weightKg) + ' \u00d7 ' + best.reps + ', below your recent best on ' + ex.name + '. Aim to match that number before chasing a new PR.';
