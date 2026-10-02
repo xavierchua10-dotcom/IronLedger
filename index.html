@@ -4124,16 +4124,38 @@
   }
   .settings-row .seg{
     display:flex;
+    position:relative;
     background:var(--panel-2);
-    border-radius:var(--radius-sm);
+    border-radius:var(--radius-pill);
     padding:3px;
   }
   .settings-row .seg button{
     background:none;border:none;color:var(--text-faint);
-    padding:6px 14px;border-radius:var(--radius-xs);font-size:12px;font-weight:700;cursor:pointer;
+    padding:6px 14px;border-radius:var(--radius-pill);font-size:12px;font-weight:700;cursor:pointer;
     font-family:'JetBrains Mono',monospace;
+    position:relative;z-index:1;
+    transition:color 0.2s ease;
   }
   .settings-row .seg button.active{background:var(--accent);color:#1c1500;}
+  /* Sliding pill: once enhanceSegControls() has added the .seg-thumb, the
+     thumb carries the gold and glides between options, so the active button
+     itself goes transparent. Without the script the plain gold button above
+     still works. */
+  .settings-row .seg.seg-slide button.active{background:transparent;}
+  .settings-row .seg .seg-thumb{
+    position:absolute;
+    top:3px;bottom:3px;left:0;
+    width:0;
+    border-radius:var(--radius-pill);
+    background:var(--accent);
+    z-index:0;
+    pointer-events:none;
+    transition:transform 0.3s cubic-bezier(0.3,0.9,0.3,1), width 0.3s cubic-bezier(0.3,0.9,0.3,1);
+  }
+  @media (prefers-reduced-motion: reduce){
+    .settings-row .seg .seg-thumb{transition:none;}
+    .settings-row .seg button{transition:none;}
+  }
   /* ---------- Bodyweight picker overlay ---------- */
   .bw-picker-intro{
     font-size:12.5px;
@@ -12442,9 +12464,19 @@
                 '<button data-action="toggle-set-flash" data-val="off" class="'+(state.settings.setFlashEffect === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
     if (state.currentAccount !== 'guest'){
-      var pushOn = !!(state.userDoc && state.userDoc.fcmToken);
-      html += '<div class="settings-row"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+(pushOn ? 'Enabled on this device' : 'Get a nudge when it\u2019s been a while')+'</div></div>' +
-                '<button class="sr-action" data-action="enable-push"'+(ui.pushBusy ? ' disabled' : '')+'>'+(ui.pushBusy ? '\u2026' : (pushOn ? 'Re-enable' : 'Enable'))+'</button></div>';
+      // A saved token only means the ACCOUNT registered a device once. Whether
+      // THIS device will actually get pushes also depends on its current
+      // permission, so "Enabled on this device" needs both — otherwise it kept
+      // saying "Enabled" after notifications were blocked in the phone's
+      // settings, or on a second phone that never turned them on.
+      var notifPerm = (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported';
+      var pushBlocked = (notifPerm === 'denied');
+      var pushOn = !!(state.userDoc && state.userDoc.fcmToken) && notifPerm === 'granted';
+      var pushSub = pushBlocked ? 'Blocked on this device \u2014 allow notifications for SaviorFit Logger in your phone\u2019s settings'
+                  : (pushOn ? 'Enabled on this device' : 'Get a nudge when it\u2019s been a while');
+      html += '<div class="settings-row"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+pushSub+'</div></div>' +
+                (pushBlocked ? '' : '<button class="sr-action" data-action="enable-push"'+(ui.pushBusy ? ' disabled' : '')+'>'+(ui.pushBusy ? '\u2026' : (pushOn ? 'Re-enable' : 'Enable'))+'</button>') +
+              '</div>';
     }
     // Reuses the exact same install-app action and triggerInstallPrompt()
     // as the top-of-app banner (see near the bottom of this script) —
@@ -15311,6 +15343,95 @@
   /* =========================================================
      EVENT DELEGATION
      ========================================================= */
+  /* ---------- Sliding pill for the Settings segmented controls ----------
+     Every ON/OFF, KG/LB, Comfortable/Compact ... control in Settings is a
+     .seg. Tapping an option re-renders the whole view (a brand-new .seg), so
+     a plain CSS transition has nothing to animate. Instead: when an option is
+     tapped, remember where that control's pill was (captureSegSlide), and
+     after the re-render start the new pill THERE with no transition, then let
+     it glide to the active option (enhanceSegControls). */
+  var segPendingSlide = null;
+  function segKey(seg){
+    var b = seg.querySelector('button');
+    return b ? (b.getAttribute('data-action') || '') : '';
+  }
+  function captureSegSlide(el){
+    segPendingSlide = null;
+    var seg = el && el.closest ? el.closest('.settings-row .seg') : null;
+    if (!seg) return;
+    var th = seg.querySelector('.seg-thumb');
+    if (!th) return;
+    var sr = seg.getBoundingClientRect();
+    var tr = th.getBoundingClientRect();
+    segPendingSlide = { key: segKey(seg), left: tr.left - sr.left, width: tr.width };
+  }
+  function placeSegThumb(seg, th, animate){
+    var active = seg.querySelector('button.active');
+    if (!active || !seg.offsetWidth){ th.style.width = '0px'; return; }
+    if (!animate) th.style.transition = 'none';
+    th.style.width = active.offsetWidth + 'px';
+    th.style.transform = 'translateX(' + active.offsetLeft + 'px)';
+    if (!animate){ void th.offsetWidth; th.style.transition = ''; }
+  }
+  function enhanceSegControls(){
+    var pending = segPendingSlide;
+    segPendingSlide = null;
+    var segs = document.querySelectorAll('.settings-row .seg');
+    Array.prototype.forEach.call(segs, function(seg){
+      var th = seg.querySelector('.seg-thumb');
+      var fresh = !th;
+      if (fresh){
+        th = document.createElement('span');
+        th.className = 'seg-thumb';
+        th.setAttribute('aria-hidden', 'true');
+        seg.insertBefore(th, seg.firstChild);
+        seg.classList.add('seg-slide');
+        if (typeof ResizeObserver !== 'undefined'){
+          // Re-fit the pill if the control's width really changes (web fonts
+          // arriving, rotation). A ResizeObserver also reports once as soon as
+          // it starts observing — ignore that first call, or it snaps the pill
+          // to its final spot and cancels the slide that's just starting.
+          var lastSegWidth = seg.offsetWidth;
+          new ResizeObserver(function(){
+            var w = seg.offsetWidth;
+            if (w === lastSegWidth) return;
+            lastSegWidth = w;
+            placeSegThumb(seg, th, false);
+          }).observe(seg);
+        }
+      }
+      Array.prototype.forEach.call(seg.querySelectorAll('button'), function(b){
+        b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false');
+      });
+      if (fresh && pending && pending.key === segKey(seg) && seg.offsetWidth){
+        // start where the pill was, then glide to the newly active option
+        th.style.transition = 'none';
+        th.style.width = pending.width + 'px';
+        th.style.transform = 'translateX(' + pending.left + 'px)';
+        void th.offsetWidth;
+        th.style.transition = '';
+        placeSegThumb(seg, th, true);
+      } else if (fresh){
+        placeSegThumb(seg, th, false);
+      }
+    });
+  }
+  (function watchSegControls(){
+    var view = document.getElementById('view');
+    if (view && typeof MutationObserver !== 'undefined'){
+      new MutationObserver(enhanceSegControls).observe(view, { childList: true, subtree: true });
+    }
+    // Web fonts change the buttons' widths once they arrive.
+    if (document.fonts && document.fonts.ready){
+      document.fonts.ready.then(function(){
+        Array.prototype.forEach.call(document.querySelectorAll('.settings-row .seg'), function(seg){
+          var th = seg.querySelector('.seg-thumb');
+          if (th) placeSegThumb(seg, th, false);
+        });
+      });
+    }
+  })();
+
   document.getElementById('app').addEventListener('click', function(e){
     if (e.target.id === 'mmOverlay'){
       ui.showMuscleMap = false;
@@ -15332,6 +15453,7 @@
     var el = e.target.closest('[data-action]');
     if (!el) return;
     var action = el.dataset.action;
+    captureSegSlide(el);
 
     // The shared "⋮" popover closes on any click except the buttons that
     // open it — this covers both "tapped a menu item" (Rename/Delete/Edit
