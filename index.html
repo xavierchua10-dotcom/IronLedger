@@ -396,6 +396,43 @@
     padding:30px 24px 26px;
     box-shadow:0 16px 48px rgba(0,0,0,0.5);
   }
+  /* Dim-the-screen + centered spinner shown while a log in / sign up /
+     Google sign-in is in flight (see renderAuthGate). Fixed + full-screen so
+     it also swallows taps, which stops double-submits on top of the fields
+     already being disabled. Stays up through the post-login data load too,
+     since the gate isn't hidden until the app shell is ready. */
+  .auth-loading-overlay{
+    position:fixed;
+    top:0;right:0;bottom:0;left:0;
+    z-index:500;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(6,8,10,0.62);
+    -webkit-backdrop-filter:blur(2px);
+    backdrop-filter:blur(2px);
+    animation:authLoadFade 0.18s ease both;
+  }
+  .auth-spinner{
+    width:56px;
+    height:56px;
+    border-radius:50%;
+    border:4px solid rgba(255,255,255,0.14);
+    border-top-color:var(--accent);
+    /* soft dark halo so the ring stays readable over bright elements
+       (like the gold Log In button) sitting behind the dimmed overlay */
+    box-shadow:0 0 28px 16px rgba(6,8,10,0.6);
+    animation:authSpin 0.8s linear infinite;
+  }
+  @keyframes authSpin{to{transform:rotate(360deg);}}
+  @keyframes authLoadFade{from{opacity:0;}to{opacity:1;}}
+  /* The global reduced-motion rule further down freezes every animation,
+     which would leave a static ring that doesn't say "loading". Keep the
+     spinner turning, just slower and without the fade. */
+  @media (prefers-reduced-motion: reduce){
+    .auth-loading-overlay{animation:none !important;}
+    .auth-spinner{animation:authSpin 1.8s linear infinite !important;}
+  }
   .auth-title{text-align:center;margin-bottom:22px;}
   .auth-title h1{
     font-family:'Oswald',sans-serif;
@@ -12554,6 +12591,23 @@
     }
   }
 
+  // Marks the auth gate busy (which shows the dim overlay + spinner) and arms
+  // a watchdog so a hung request can't leave the screen dimmed forever: if
+  // it's still the same attempt and still busy after `ms`, drop the overlay
+  // and say so. A late success is still handled by the auth listener. The
+  // sequence number keeps an old attempt's timer from clearing a newer one.
+  var authBusySeq = 0;
+  function startAuthBusy(ms){
+    ui.authBusy = true;
+    var seq = ++authBusySeq;
+    setTimeout(function(){
+      if (!ui.authBusy || authBusySeq !== seq) return;
+      ui.authBusy = false;
+      ui.authError = 'This is taking longer than usual \u2014 check your connection and try again';
+      renderAuthGate();
+    }, ms || 30000);
+  }
+
   function handleLogIn(email, password){
     email = (email || '').trim();
     if (!email || !password){
@@ -12572,7 +12626,7 @@
       return;
     }
     ui.authError = null;
-    ui.authBusy = true;
+    startAuthBusy();
     renderAuthGate();
     window.SaviorFirebase.logIn(email, password).catch(function(err){
       ui.authBusy = false;
@@ -12610,7 +12664,7 @@
       return;
     }
     ui.authError = null;
-    ui.authBusy = true;
+    startAuthBusy();
     renderAuthGate();
     window.SaviorFirebase.signUp(email, password).catch(function(err){
       ui.authBusy = false;
@@ -12637,7 +12691,7 @@
       return;
     }
     ui.authError = null;
-    ui.authBusy = true;
+    startAuthBusy();
     renderAuthGate();
     window.SaviorFirebase.resetPassword(email).then(function(){
       ui.authBusy = false;
@@ -12657,7 +12711,7 @@
       return;
     }
     ui.authError = null;
-    ui.authBusy = true;
+    startAuthBusy(120000);
     renderAuthGate();
     window.SaviorFirebase.signInWithGoogle().catch(function(err){
       ui.authBusy = false;
@@ -12691,7 +12745,7 @@
       html += '<button class="auth-forgot-link" type="button" data-action="forgot-password"'+(busy?' disabled':'')+'>Forgot password?</button>';
     }
     html += '<div class="auth-error">'+(ui.authError ? esc(ui.authError) : '')+'</div>';
-    html += '<button class="auth-submit" data-action="'+(mode==='signup'?'do-signup':'do-login')+'"'+(busy?' disabled':'')+'>'+(busy ? '\u2026' : (mode==='signup'?'Create Account':'Log In'))+'</button>';
+    html += '<button class="auth-submit" data-action="'+(mode==='signup'?'do-signup':'do-login')+'"'+(busy?' disabled':'')+'>'+(mode==='signup'?'Create Account':'Log In')+'</button>';
     html += '<div class="auth-divider">or</div>';
     html += '<button class="auth-google-btn" data-action="continue-google"'+(busy?' disabled':'')+'>' +
               '<svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.85 2.08-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.87 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.81 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33C2.44 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.59-2.59C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>' +
@@ -12700,6 +12754,9 @@
     html += '<button class="auth-guest-btn" data-action="continue-guest"'+(busy?' disabled':'')+'>Continue as Guest</button>';
     html += '<div class="auth-note">Accounts sync your workout log across devices. Guest mode stays on this device only.</div>';
     html += '</div>';
+    if (busy){
+      html += '<div class="auth-loading-overlay" role="status" aria-live="polite" aria-label="Please wait"><div class="auth-spinner"></div></div>';
+    }
     document.getElementById('authGate').innerHTML = html;
   }
 
