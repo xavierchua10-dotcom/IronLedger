@@ -4781,10 +4781,10 @@
 </style>
   <!-- Three.js r128 + the matching GLTFLoader/OrbitControls examples
        builds, for the 3D model in Muscle Volume Overview (Insight tab). -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" defer></script>
 </head>
 <body>
 <div id="bootLoading" class="boot-loading" role="status" aria-label="SaviorFit Logger"><div class="boot-loading-mark" aria-hidden="true"><span class="bl-ch" style="--i:0">S</span><span class="bl-ch" style="--i:1">A</span><span class="bl-ch" style="--i:2">V</span><span class="bl-ch" style="--i:3">I</span><span class="bl-ch" style="--i:4">O</span><span class="bl-ch" style="--i:5">R</span><span class="bl-ch" style="--i:6">F</span><span class="bl-ch" style="--i:7">I</span><span class="bl-ch" style="--i:8">T</span><span class="bl-ch" style="--i:9">&nbsp;</span><span class="bl-gold"><span class="bl-ch" style="--i:10">L</span><span class="bl-ch" style="--i:11">O</span><span class="bl-ch" style="--i:12">G</span><span class="bl-ch" style="--i:13">G</span><span class="bl-ch" style="--i:14">E</span><span class="bl-ch" style="--i:15">R</span></span></div></div>
@@ -5299,6 +5299,11 @@
   var STORAGE_ROUTINES = 'il_routines_v1';
   var STORAGE_ACTIVITY_LOG = 'il_activity_log_v1';
   var STORAGE_PROGRESS_ACCESS = 'il_progress_access_v1';
+  // Set (per account) whenever this device holds changes the cloud may not
+  // have yet, and cleared once a cloud save succeeds. While it's set, a
+  // login/launch keeps the local copy instead of overwriting it with the
+  // (older) cloud one — see enterAccount().
+  var STORAGE_CLOUD_DIRTY = 'il_cloud_dirty_v1';
   var ACTIVITY_LOG_MAX = 300;
   var ACTIVITY_LOG_FREE_AGE_MS = 24 * 60 * 60 * 1000;      // Basic: Brief entries auto-expire after 24h
   var ACTIVITY_LOG_PRO_AGE_MS = 7 * 24 * 60 * 60 * 1000;   // Pro: extended to 7 days
@@ -5604,16 +5609,51 @@
     showToast('Local storage is unavailable (private browsing?) \u2014 changes may not be saved');
   }
 
+  // Every render path assumes sessions/routines are arrays of objects whose
+  // .exercises (and each exercise's .sets) are arrays. Stored or imported data
+  // that breaks that (hand-edited backup, a half-written save, a cloud doc with
+  // the wrong shape) used to throw during boot and leave the app stuck on the
+  // splash screen, or blank the History/Progress tabs. This repairs the shape
+  // instead — valid data passes through untouched.
+  function isPlainObject(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
+  function sanitizeExerciseList(list){
+    if (!Array.isArray(list)) return [];
+    return list.filter(isPlainObject).map(function(ex){
+      if (typeof ex.name !== 'string') ex.name = '';
+      ex.sets = Array.isArray(ex.sets) ? ex.sets.filter(isPlainObject) : [];
+      return ex;
+    });
+  }
+  function sanitizeSessionList(raw){
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(isPlainObject).map(function(sess){
+      if (typeof sess.name !== 'string') sess.name = '';
+      sess.exercises = sanitizeExerciseList(sess.exercises);
+      return sess;
+    });
+  }
+  function sanitizeRoutineList(raw){
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(isPlainObject).map(function(r){
+      if (typeof r.name !== 'string') r.name = '';
+      r.exercises = Array.isArray(r.exercises) ? r.exercises.filter(isPlainObject).map(function(ex){
+        if (typeof ex.name !== 'string') ex.name = '';
+        return ex;
+      }) : [];
+      return r;
+    });
+  }
   function loadSessions(){
     try{
       var raw = localStorage.getItem(scopedKey(STORAGE_SESSIONS));
-      return raw ? JSON.parse(raw) : [];
+      return raw ? sanitizeSessionList(JSON.parse(raw)) : [];
     }catch(e){ return []; }
   }
   function loadSettings(){
     try{
       var raw = localStorage.getItem(scopedKey(STORAGE_SETTINGS));
-      return raw ? JSON.parse(raw) : { unit: 'kg', avatar: null };
+      var parsed = raw ? JSON.parse(raw) : null;
+      return isPlainObject(parsed) ? parsed : { unit: 'kg', avatar: null };
     }catch(e){ return { unit: 'kg', avatar: null }; }
   }
   function saveSessions(){
@@ -5645,7 +5685,7 @@
   function loadRoutines(){
     try{
       var raw = localStorage.getItem(scopedKey(STORAGE_ROUTINES));
-      return raw ? JSON.parse(raw) : [];
+      return raw ? sanitizeRoutineList(JSON.parse(raw)) : [];
     }catch(e){ return []; }
   }
   function saveRoutines(){
@@ -5727,16 +5767,74 @@
     if (!window.SaviorFirebase || !window.SaviorFirebase.saveUserData) return;
     if (!state.currentAccount || state.currentAccount === 'guest') return;
     if (!firestorePullSettled) return;
-    var acct = state.currentAccount;
+    // Mark this device as holding changes the cloud may not have yet. It's
+    // only cleared after a cloud save actually succeeds, so a save that never
+    // happens (app closed inside the debounce window, a failed write, a
+    // logout) can't later be overwritten by the older cloud copy.
+    cloudSyncSeq++;
+    safeSetItem(STORAGE_CLOUD_DIRTY + '::' + state.currentAccount, '1');
+    cloudSyncPending = true;
     clearTimeout(firestoreSyncTimer);
-    firestoreSyncTimer = setTimeout(function(){
-      window.SaviorFirebase.saveUserData(acct, {
-        sessions: state.sessions,
-        routines: state.routines,
-        settings: state.settings
-      }).catch(function(err){ console.error('Firestore sync failed:', err); });
-    }, 800); // batches rapid successive saves (e.g. typing) into one write
+    firestoreSyncTimer = setTimeout(flushCloudSync, 800); // batches rapid successive saves (e.g. typing) into one write
   }
+  var cloudSyncSeq = 0;
+  var cloudSyncPending = false;
+  var cloudSyncRetries = 0;
+  var cloudSyncWarnedAt = 0;
+  var cloudSizeWarned = false;
+  // Cloud documents max out at 1 MiB; the whole history lives in one, so
+  // warn well before that instead of letting saves start failing silently.
+  var CLOUD_DOC_WARN_BYTES = 800 * 1024;
+  function cancelPendingCloudSync(){
+    clearTimeout(firestoreSyncTimer);
+    cloudSyncPending = false;
+  }
+  function flushCloudSync(){
+    clearTimeout(firestoreSyncTimer);
+    cloudSyncPending = false;
+    var acct = state.currentAccount;
+    if (!acct || acct === 'guest' || !firestorePullSettled) return;
+    if (!window.SaviorFirebase || !window.SaviorFirebase.saveUserData) return;
+    var seq = cloudSyncSeq;
+    var payload = { sessions: state.sessions, routines: state.routines, settings: state.settings };
+    if (!cloudSizeWarned){
+      try {
+        if (JSON.stringify(payload).length > CLOUD_DOC_WARN_BYTES){
+          cloudSizeWarned = true;
+          showToast('Your history is getting large — export a backup from Settings soon');
+        }
+      } catch (e) { /* size check is best-effort */ }
+    }
+    window.SaviorFirebase.saveUserData(acct, payload).then(function(){
+      cloudSyncRetries = 0;
+      // Only clear the flag if nothing changed while this write was in flight.
+      if (seq === cloudSyncSeq) safeRemoveItem(STORAGE_CLOUD_DIRTY + '::' + acct);
+    }).catch(function(err){
+      console.error('Firestore sync failed:', err);
+      var now = Date.now();
+      if (now - cloudSyncWarnedAt > 60000){
+        cloudSyncWarnedAt = now;
+        showToast('Cloud backup didn\u2019t go through \u2014 your data is safe on this device');
+      }
+      // Stay marked dirty; try again a few times (e.g. a dropped connection),
+      // and on the next change or app launch after that.
+      if (cloudSyncRetries < 3 && state.currentAccount === acct){
+        cloudSyncRetries++;
+        cloudSyncPending = true;
+        clearTimeout(firestoreSyncTimer);
+        firestoreSyncTimer = setTimeout(flushCloudSync, 30000);
+      }
+    });
+  }
+  // Push a waiting change out right now when the app is being backgrounded or
+  // closed, instead of leaving it to the 800ms timer the OS may never let run.
+  function flushPendingCloudSync(){
+    if (cloudSyncPending) flushCloudSync();
+  }
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden) flushPendingCloudSync();
+  });
+  window.addEventListener('pagehide', flushPendingCloudSync);
 
   function uid(){
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -9542,6 +9640,11 @@
     try { return document.referrer.indexOf('android-app://') === 0; }
     catch(e){ return false; }
   }
+  function isNativeShell(){
+    try {
+      return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+    } catch(e){ return false; }
+  }
 
   // Opens the appropriate Stripe Payment Link in a new tab, tagging it
   // with client_reference_id so a webhook can tie the payment back to
@@ -9557,6 +9660,15 @@
     }
     if (isTWA()){
       startPlayCheckout(plan);
+      return;
+    }
+    // Inside a native Android/iOS shell (e.g. Capacitor) there's no TWA
+    // referrer and no Digital Goods API, so this would fall through to the
+    // Stripe link — which Google Play's payments policy doesn't allow for
+    // in-app subscriptions. Until native billing is wired into that shell,
+    // don't steer people to an outside checkout from inside it.
+    if (isNativeShell()){
+      showToast('Subscriptions aren\u2019t available in this app version yet');
       return;
     }
     var link = plan === 'annual' ? STRIPE_LINK_ANNUAL : STRIPE_LINK_MONTHLY;
@@ -12686,6 +12798,11 @@
   // provisions (once, ever) the account's tier/trial/subscription
   // fields on the same /users/{uid} doc, then keeps them live via a
   // realtime listener.
+  var keptLocalChanges = false;
+  function isCloudDirty(acct){
+    try { return localStorage.getItem(STORAGE_CLOUD_DIRTY + '::' + acct) === '1'; }
+    catch (e) { return false; }
+  }
   function enterAccount(uidVal, email){
     setCurrentAccountId(uidVal);
     state.currentAccount = uidVal;
@@ -12718,10 +12835,21 @@
       // signup, or a first-ever Google sign-in), not a returning login.
       var isNewAccount = !!(state.userDoc && state.userDoc.__isNewAccount);
       if (state.userDoc) delete state.userDoc.__isNewAccount;
+      // If this device has changes that never reached the cloud (the app was
+      // closed inside the save window, a write failed, the user logged out
+      // right after a change) the local copy is the newer one — keep it and
+      // push it up below, rather than replacing it with the older cloud copy.
+      keptLocalChanges = false;
       if (remote){
-        if (remote.sessions) safeSetItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(remote.sessions));
-        if (remote.routines) safeSetItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(remote.routines));
-        if (remote.settings) safeSetItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(remote.settings));
+        var haveLocal = localStorage.getItem(scopedKey(STORAGE_SESSIONS)) !== null;
+        if (haveLocal && isCloudDirty(uidVal)){
+          keptLocalChanges = true;
+          console.warn('Kept unsynced local data over the cloud copy for', uidVal);
+        } else {
+          if (Array.isArray(remote.sessions)) safeSetItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(remote.sessions));
+          if (Array.isArray(remote.routines)) safeSetItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(remote.routines));
+          if (isPlainObject(remote.settings)) safeSetItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(remote.settings));
+        }
       }
       return isNewAccount;
     }).catch(function(err){
@@ -12732,6 +12860,8 @@
     }).then(function(isNewAccount){
       firestorePullSettled = true;
       bootAccountData();
+      // Push the kept local changes up now that the pull has settled.
+      if (keptLocalChanges){ keptLocalChanges = false; scheduleFirestoreSync(); }
       subscribeUserDoc(uidVal);
       try { restorePlayPurchases(); } catch (err) { console.error('restorePlayPurchases threw:', err); }
       // Marks "last opened the app" for the 2-day inactivity push job
@@ -12775,10 +12905,12 @@
   function logOut(){
     var wasGuest = (state.currentAccount === 'guest');
     if (userDocUnsub){ userDocUnsub(); userDocUnsub = null; }
-    // Cancel any pending debounced Firestore sync (see scheduleFirestoreSync)
-    // — otherwise a save queued just before logging out can still fire
-    // ~800ms later and write to the account that was just logged out of.
-    clearTimeout(firestoreSyncTimer);
+    // Send any pending debounced Firestore sync NOW, while the account is
+    // still the signed-in one (flushCloudSync captures it), instead of
+    // dropping it — a change made just before tapping Log Out used to be lost
+    // from the cloud this way.
+    if (!wasGuest) flushPendingCloudSync();
+    cancelPendingCloudSync();
     setCurrentAccountId(null);
     state.currentAccount = null;
     state.currentAccountEmail = null;
@@ -12804,7 +12936,8 @@
     // — without this, a save queued just before deletion can fire ~800ms
     // later with merge:true and silently recreate the doc we're about to
     // wipe, right after deleteUserData() removes it.
-    clearTimeout(firestoreSyncTimer);
+    cancelPendingCloudSync();
+    safeRemoveItem(STORAGE_CLOUD_DIRTY + '::' + id);
     safeRemoveItem(STORAGE_SESSIONS + '::' + id);
     safeRemoveItem(STORAGE_SETTINGS + '::' + id);
     safeRemoveItem(STORAGE_ROUTINES + '::' + id);
@@ -15146,6 +15279,7 @@
         var cleanSessions = data.sessions.filter(function(s){
           return s && typeof s === 'object' && Array.isArray(s.exercises);
         });
+        cleanSessions = sanitizeSessionList(cleanSessions);
         if (cleanSessions.length === 0 && data.sessions.length > 0) throw new Error('no valid sessions');
         var droppedSessions = data.sessions.length - cleanSessions.length;
         state.sessions = cleanSessions;
@@ -15155,10 +15289,11 @@
           var cleanRoutines = data.routines.filter(function(r){
             return r && typeof r === 'object' && Array.isArray(r.exercises);
           });
+          cleanRoutines = sanitizeRoutineList(cleanRoutines);
           droppedRoutines = data.routines.length - cleanRoutines.length;
           state.routines = cleanRoutines;
         }
-        if (data.settings && typeof data.settings === 'object') state.settings = data.settings;
+        if (isPlainObject(data.settings)) state.settings = data.settings;
         saveSessions();
         saveRoutines();
         saveSettings();
