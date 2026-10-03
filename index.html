@@ -1382,6 +1382,32 @@
     color:var(--text-faint);
     padding:2px 0 10px;
   }
+  /* Tiny "i" next to jargon (1RM, top set, volume, PR list): tap for a
+     plain-language explanation. The ::after widens the tap area. */
+  .info-dot{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:14px;height:14px;
+    margin-left:6px;
+    padding:0;
+    border:1px solid currentColor;
+    border-radius:50%;
+    background:none;
+    color:inherit;
+    opacity:0.75;
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    font-weight:700;
+    line-height:1;
+    text-transform:none;
+    letter-spacing:0;
+    vertical-align:middle;
+    cursor:pointer;
+  }
+  .info-dot::after{content:'';position:absolute;top:-9px;right:-9px;bottom:-9px;left:-9px;}
+  .pr-tag[data-action]{cursor:pointer;}
   .set-row{
     display:grid;
     grid-template-columns:20px 1fr 44px;
@@ -8400,7 +8426,10 @@
   // split it picks, since that's the natural starting point of any of
   // them.
   function recommendedOnboardingTemplateKey(draft){
-    if (draft && draft.experienceLevel === 'beginner') return 'beginnerFullBody';
+    // Skipping the experience question means we don't know — and the safe
+    // guess for an unknown lifter is the machine-based beginner routine, not
+    // a barbell squat/deadlift day.
+    if (!draft || !draft.experienceLevel || draft.experienceLevel === 'beginner') return 'beginnerFullBody';
     var days = (draft && draft.trainingDaysPerWeek) || 3;
     if (days <= 3) return 'fullBodyA';
     if (days === 4) return 'upper';
@@ -10247,6 +10276,13 @@
       html += '<div class="ex-target-hint">Suggested: ' + ex.targetSets + ' sets \u00d7 ' + hintRange.min + '\u2013' + hintRange.max + ' reps</div>';
     }
 
+    // First time doing this exercise? A gentle one-liner, only for people who
+    // haven't said they're intermediate/advanced, gone once the first set is in.
+    var expLevel = state.settings && state.settings.experienceLevel;
+    if (ex.sets.length === 0 && expLevel !== 'intermediate' && expLevel !== 'advanced' && !exerciseHasHistory(ex.name, ex.id)){
+      html += '<div class="ex-target-hint ex-first-hint">First time with this exercise? Start light and focus on form.</div>';
+    }
+
     if (ex.sets.length === 0){
       // Intentionally empty otherwise: no "no sets" placeholder, keeps
       // the card compact until a set is logged.
@@ -10263,7 +10299,7 @@
                   '<span class="set-detail">' +
                     '<span class="set-wr'+(isFreshSet ? ' flash' : '')+'">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
                     (st.timestamp ? '<span class="set-time'+(isFreshSet ? ' flash' : '')+'"> &middot; '+tsOrLock(st.timestamp, null, isFreshSet)+'</span>' : '') +
-                    (st.isPR ? '<span class="pr-tag-wrap"><span class="pr-tag'+(isFreshPR?' fresh':'')+'">PR</span>'+(isFreshPR ? prBurstHtml() : '')+'</span>' : '') +
+                    (st.isPR ? '<span class="pr-tag-wrap"><span class="pr-tag'+(isFreshPR?' fresh':'')+'"'+prTagAttrs(st)+'>PR</span>'+(isFreshPR ? prBurstHtml() : '')+'</span>' : '') +
                   '</span>' +
                   '<span class="set-actions">' +
                     '<button class="set-act-btn" data-action="open-set-menu" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Set options">&#8942;</button>' +
@@ -10427,7 +10463,7 @@
               '</div>' +
               '<div class="hi-right">' +
                 '<button class="icon-btn hi-menu-btn" data-action="open-session-menu" data-session="'+s.id+'" aria-label="Session options">&#8942;</button>' +
-                '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol</div>' +
+                '<div class="hi-stats">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets<br>'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+' '+unitLabel()+' vol'+infoDotHtml('volume')+'</div>' +
               '</div>' +
             '</div>';
     if (expanded){
@@ -10443,7 +10479,7 @@
         html += ex.sets.map(function(st){
           return fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps +
                  (st.timestamp ? ' <span class="set-time">&middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
-                 (st.isPR ? '<span class="pr-tag">PR</span>' : '');
+                 (st.isPR ? '<span class="pr-tag"'+prTagAttrs(st)+'>PR</span>' : '');
         }).join('<br>');
         html += '</div></div>' +
                 '<div class="hi-ex-actions">' +
@@ -11124,7 +11160,7 @@
 
     html += '<div class="mg-panel-content">';
     html += '<div class="mg-panel-header">' +
-              '<div class="mg-panel-title-row"><h3>Muscle Volume Overview</h3>' +
+              '<div class="mg-panel-title-row"><h3>Muscle Volume Overview'+infoDotHtml('mgvolume')+'</h3>' +
                 '<div class="mg-header-btns">' +
                   '<button type="button" class="mg-settings-btn" data-action="open-mg-settings" aria-label="Volume settings">' +
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/></svg>' +
@@ -11932,8 +11968,8 @@
     var swatchWeight = showWeightLine ? '<i class="cs-swatch" style="background:'+WEIGHT_LINE_HEX+'"></i>' : '';
     html += '<div class="chart-wrap">';
     html += '<div class="chart-stats">' +
-              '<div class="cs-block"><div class="cs-label">'+swatch1RM+'Est. best 1RM</div><div class="cs-val" id="csValBest1RM" data-target="'+best.e1rm+'">0 '+unitLabel()+'</div></div>' +
-              '<div class="cs-block"><div class="cs-label">'+swatchWeight+'Latest top set</div><div class="cs-val" id="csValLatestTop" data-target="'+latest.topKg+'">0 '+unitLabel()+'</div></div>' +
+              '<div class="cs-block"><div class="cs-label">'+swatch1RM+'Est. best 1RM'+infoDotHtml('1rm')+'</div><div class="cs-val" id="csValBest1RM" data-target="'+best.e1rm+'">0 '+unitLabel()+'</div></div>' +
+              '<div class="cs-block"><div class="cs-label">'+swatchWeight+'Latest top set'+infoDotHtml('topset')+'</div><div class="cs-val" id="csValLatestTop" data-target="'+latest.topKg+'">0 '+unitLabel()+'</div></div>' +
             '</div>';
     if (points.length >= 2){
       chartCarouselPage = 0;
@@ -11971,7 +12007,7 @@
               '</div>';
     }
 
-    html += '<div class="section-label">Personal Records</div>';
+    html += '<div class="section-label">Personal Records'+infoDotHtml('records')+'</div>';
     var prSets = collectPRs(ui.progressExercise);
     if (prSets.length === 0){
       html += '<div style="color:var(--text-faint);font-size:12px;">No PRs logged yet — your first set of this exercise counts!</div>';
@@ -12465,6 +12501,11 @@
               '<div class="seg">' +
                 '<button data-action="toggle-set-flash" data-val="on" class="'+(state.settings.setFlashEffect !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-set-flash" data-val="off" class="'+(state.settings.setFlashEffect === false ? 'active' : '')+'">OFF</button>' +
+              '</div></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Quick add</div><div class="sr-sub">Skip the &ldquo;Add exercise?&rdquo; and &ldquo;Add a set?&rdquo; pop-ups. Deleting and finishing still ask first.</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="toggle-quick-add" data-val="on" class="'+(state.settings.quickAdd === true ? 'active' : '')+'">ON</button>' +
+                '<button data-action="toggle-quick-add" data-val="off" class="'+(state.settings.quickAdd !== true ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
     if (state.currentAccount !== 'guest'){
       // A saved token only means the ACCOUNT registered a device once. Whether
@@ -13436,7 +13477,65 @@
       '<div class="pro-panel-body">' + body + '</div>';
   }
 
+  /* ---------- Tap-for-meaning explanations ----------
+     Gym jargon (PR, 1RM, top set, volume) was used everywhere and explained
+     nowhere. A tiny "i" next to the term, or tapping a PR badge, opens a short
+     plain-language dialog (same dialog component, one "Got it" button). */
+  function infoDotHtml(term){
+    return '<button type="button" class="info-dot" data-action="explain-term" data-term="' + term + '" aria-label="What does this mean?">i</button>';
+  }
+  function prTagAttrs(st){
+    return ' data-action="explain-pr" data-pr-type="' + esc((st && st.prType) || '') + '" role="button" aria-label="What is a PR?"';
+  }
+  function infoContent(key, prType){
+    var lb = !!(state.settings && state.settings.unit === 'lb');
+    var u = unitLabel();
+    if (key === 'pr'){
+      var floor = prRepFloor();
+      if (prType === 'weight') return { title: 'Weight PR', message: 'The heaviest weight you\u2019ve lifted on this exercise' + (floor > 1 ? ' for at least ' + floor + ' reps' : '') + '. Moving up in weight counts as progress even if your reps dip.' };
+      if (prType === 'reps') return { title: 'Rep PR', message: 'More reps than you\u2019ve ever done at this weight (or a heavier one). Adding reps is how you earn the next weight jump.' };
+      if (prType === 'e1rm') return { title: 'Strength PR', message: 'Your highest estimated 1RM yet. The weight and reps together add up to a new best, even if neither one is a record on its own.' };
+      return { title: 'PR = Personal Record', message: 'You earn a PR badge when you beat your own best on an exercise: a heavier weight, more reps at a weight, or a higher estimated 1RM.' };
+    }
+    if (key === '1rm'){
+      var w = lb ? 175 : 80;
+      return { title: 'Estimated 1RM', message: 'The most you could lift for a single rep, worked out from the weight and reps you actually did. It puts different sets on one scale, so 80 \u00d7 10 and 90 \u00d7 6 can be compared. It\u2019s only an estimate \u2014 you never have to lift that much.',
+               example: 'Example: ' + w + ' ' + u + ' \u00d7 10 reps \u2248 ' + Math.round(e1rm(w, 10)) + ' ' + u + ' estimated 1RM.' };
+    }
+    if (key === 'topset') return { title: 'Top set', message: 'The heaviest set you did in a session (if two are equal, the one with more reps). The white line and bars on the chart follow it, so you can see whether you\u2019re progressing by adding weight.' };
+    if (key === 'records') return { title: 'Personal records', message: 'The sets where you beat your previous best on this exercise \u2014 a heavier weight, more reps at a weight, or a higher estimated 1RM. Newest first.' };
+    if (key === 'volume'){
+      var vw = lb ? 135 : 60, total = vw * 10 * 3;
+      return { title: 'Volume', message: 'Weight \u00d7 reps, added up across every set in the session. A rough measure of how much work you did \u2014 more volume over time usually means you\u2019re getting stronger.',
+               example: 'Example: 3 sets of ' + vw + ' ' + u + ' \u00d7 10 = ' + total.toLocaleString() + ' ' + u + '.' };
+    }
+    if (key === 'mgvolume') return { title: 'Muscle volume', message: 'Counts the sets you\u2019ve done for each muscle group this week against a target. Muscles with few sets are the ones to train more; tap a muscle to focus it on the 3D body.' };
+    return null;
+  }
+  function openInfo(key, prType){
+    var c = infoContent(key, prType);
+    if (!c) return;
+    ui.confirmModal = { kind: 'info', title: c.title, message: c.message, how: c.example || null, confirmLabel: 'Got it', variant: 'primary', infoOnly: true };
+    renderApp();
+  }
+
+  // Quick add: skips the "Add exercise?" / "Add a set?" pop-ups. Deleting,
+  // renaming, finishing and the other destructive prompts always still ask.
+  function quickAddOn(){ return !!(state.settings && state.settings.quickAdd); }
+
+  // First time doing an exercise? (any other card with logged sets by that name)
+  function exerciseHasHistory(name, exId){
+    var key = String(name || '').trim().toLowerCase();
+    if (!key) return false;
+    return state.sessions.some(function(sess){
+      return sess.exercises.some(function(e){
+        return e.id !== exId && String(e.name || '').trim().toLowerCase() === key && e.sets.length > 0;
+      });
+    });
+  }
+
   function openAddExerciseConfirm(muscle){
+    if (quickAddOn()){ addBlankExercise(muscle || null); return; }
     ui.confirmModal = {
       kind: 'add-blank-exercise',
       title: 'Add new exercise?',
@@ -13461,6 +13560,7 @@
   }
   function openAddNamedExerciseConfirm(name, muscle){
     ui.showMuscleMap = false;
+    if (quickAddOn()){ addExercise(name, muscle || null); return; }
     var info = exerciseInfoForConfirm(name, muscle);
     ui.confirmModal = {
       kind: 'add-named-exercise',
@@ -13489,6 +13589,11 @@
     var ex = findExercise(session, exId);
     if (!ex) return;
     var isNew = ui.newExerciseId === exId;
+    if (isNew && quickAddOn()){
+      ui.pendingSuggestMuscle = muscle || null;
+      saveExerciseName(exId, name);
+      return;
+    }
     var info = isNew ? exerciseInfoForConfirm(name, muscle) : { img: null, how: null };
     ui.confirmModal = {
       kind: 'pick-exercise-name',
@@ -13883,6 +13988,7 @@
     var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
+    if (quickAddOn()){ openAddSetPanel(exId); return; }
     ui.confirmModal = {
       kind: 'open-add-set-confirm',
       title: 'Add a new set?',
@@ -14633,7 +14739,7 @@
       return '<div class="ref-set-row">' +
                '<span class="ref-set-idx">'+(i+1)+'</span>' +
                '<span class="ref-set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+(isHoldExercise(ui.referenceExerciseName) ? 's' : '')+'</span>' +
-               (st.isPR ? '<span class="pr-tag">PR</span>' : '') +
+               (st.isPR ? '<span class="pr-tag"'+prTagAttrs(st)+'>PR</span>' : '') +
              '</div>';
     }).join('');
     panel.innerHTML =
@@ -14793,8 +14899,12 @@
       '<div class="confirm-message">' + esc(m.message) + '</div>' +
       (m.how ? '<div class="confirm-how">' + esc(m.how) + '</div>' : '') +
       '<div class="confirm-buttons">' +
-        '<button class="confirm-btn-cancel" data-action="cancel-confirm">Cancel</button>' +
-        '<button class="'+confirmClass+'" id="confirmActionBtn" data-action="confirm-modal-action"'+(counting?' disabled':'')+'>'+esc(counting ? confirmLabel + ' (' + m.countdown + ')' : confirmLabel)+'</button>' +
+        (m.infoOnly
+          // Explanations have nothing to confirm: one "Got it" button (it uses
+          // cancel-confirm so Android back and the backdrop close it the same way).
+          ? '<button class="confirm-btn-primary" data-action="cancel-confirm">Got it</button>'
+          : '<button class="confirm-btn-cancel" data-action="cancel-confirm">Cancel</button>' +
+            '<button class="'+confirmClass+'" id="confirmActionBtn" data-action="confirm-modal-action"'+(counting?' disabled':'')+'>'+esc(counting ? confirmLabel + ' (' + m.countdown + ')' : confirmLabel)+'</button>') +
       '</div>';
 
     if (counting){
@@ -14914,7 +15024,7 @@
                 '<span class="set-idx">'+(i+1)+'</span>' +
                 '<span class="set-detail" data-action="draft-open-edit-set" data-ex="'+ex.id+'" data-set="'+st.id+'">' +
                   '<span class="set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
-                  (st.isPR ? '<span class="pr-tag">PR</span>' : '') +
+                  (st.isPR ? '<span class="pr-tag"'+prTagAttrs(st)+'>PR</span>' : '') +
                 '</span>' +
                 '<span class="set-actions">' +
                   '<button class="set-act-btn" data-action="draft-delete-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Delete set"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg></button>' +
@@ -15871,6 +15981,14 @@
       renderApp();
     } else if (action === 'set-rest-timer-mode'){
       state.settings.restTimerAutoStart = (el.dataset.mode === 'auto');
+      saveSettings();
+      renderApp();
+    } else if (action === 'explain-term'){
+      openInfo(el.dataset.term);
+    } else if (action === 'explain-pr'){
+      openInfo('pr', el.dataset.prType);
+    } else if (action === 'toggle-quick-add'){
+      state.settings.quickAdd = (el.dataset.val === 'on');
       saveSettings();
       renderApp();
     } else if (action === 'toggle-haptic-feedback'){
