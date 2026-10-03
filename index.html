@@ -1762,8 +1762,8 @@
      (the four categories and the individual templates inside them) uses this
      one arrangement — three rays and three plates — so the picker reads as a
      single design. Everything sits on the RIGHT so the text on the left stays
-     on a clean dark base. The individual template cards on step 2 wear a
-     softer version (.tpl-bg--sub). */
+     on a clean dark base. The individual template cards on step 2 use it at
+     exactly the same strength as the category cards. */
   .template-card{position:relative;overflow:hidden;}
   .template-card > *:not(.tpl-bg){position:relative;z-index:1;}
   .template-cat-card{
@@ -1814,9 +1814,6 @@
   .tpl-bg .plate.p1{right:70px;}
   .tpl-bg .plate.p2{right:30px;}
   .tpl-bg .plate.p3{right:-10px;}
-  /* Softer version for the individual template cards on step 2 */
-  .tpl-bg--sub{opacity:0.7;}
-  .tpl-bg--sub .glow{width:200px;height:200px;}
   .template-cat-card .template-card-sub{color:#d7dae0;}
   .template-cat-card .template-card-count{color:#aab0b8;}
   .template-card-name{
@@ -4847,8 +4844,60 @@
   .boot-loading{
     position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
     background:var(--bg); z-index:999;
+    overflow:hidden;
   }
+  /* The same grid / rays / plate rings / glow look as the template cards and
+     the setup wizard, scaled to the whole screen (vw/vh units, so it fills any
+     phone or tablet). Static markup + CSS only, so it paints with the very
+     first frame, before any script has run. The name sits on top of it. */
+  .boot-bg{
+    position:absolute;
+    top:0;right:0;bottom:0;left:0;
+    overflow:hidden;
+    pointer-events:none;
+    /* plate size follows the SHORTER side, so the rings stay a sensible size
+       on a tall phone, a tablet and a sideways (landscape) screen alike */
+    --pl:min(74vw, 42vh);
+  }
+  .boot-bg i{position:absolute;display:block;}
+  .boot-bg .g{
+    top:0;right:0;bottom:0;left:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size:38px 38px;
+    -webkit-mask-image:linear-gradient(180deg, #000 0%, #000 45%, transparent 85%);
+    mask-image:linear-gradient(180deg, #000 0%, #000 45%, transparent 85%);
+  }
+  .boot-bg .glow{
+    top:-20vh;
+    left:50%;
+    width:min(140vw, 100vh);height:min(140vw, 100vh);
+    transform:translateX(-50%);
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(var(--accent-rgb),0.30) 0%, rgba(var(--accent-rgb),0.10) 38%, rgba(var(--accent-rgb),0) 66%);
+  }
+  .boot-bg .ray{
+    top:-8vh;
+    /* ends (fully faded) above the name, so the rays never cross behind it */
+    width:2px;height:50vh;
+    background:linear-gradient(180deg, rgba(var(--accent-rgb),0.30), rgba(var(--accent-rgb),0));
+    transform-origin:top center;
+  }
+  .boot-bg .ray.a{left:26%;transform:rotate(-11deg);}
+  .boot-bg .ray.b{left:50%;transform:rotate(0deg);}
+  .boot-bg .ray.c{left:74%;transform:rotate(11deg);}
+  .boot-bg .plate{
+    width:var(--pl);height:var(--pl);
+    bottom:calc(var(--pl) * -0.54);
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,0.06);
+  }
+  .boot-bg .plate.p1{left:calc(var(--pl) * -0.32);}
+  .boot-bg .plate.p2{left:calc(50% - var(--pl) / 2);}
+  .boot-bg .plate.p3{right:calc(var(--pl) * -0.32);}
   .boot-loading-mark{
+    position:relative; z-index:1;
     font-weight:800; letter-spacing:.04em; font-size:22px; color:var(--text);
     opacity:.9;
     /* gentle pulse that starts once the letters have all arrived (14 steps of
@@ -4876,7 +4925,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" defer></script>
 </head>
 <body>
-<div id="bootLoading" class="boot-loading" role="status" aria-label="SaviorFit Logger"><div class="boot-loading-mark" aria-hidden="true"><span class="bl-ch" style="--i:0">S</span><span class="bl-ch" style="--i:1">A</span><span class="bl-ch" style="--i:2">V</span><span class="bl-ch" style="--i:3">I</span><span class="bl-ch" style="--i:4">O</span><span class="bl-ch" style="--i:5">R</span><span class="bl-ch" style="--i:6">F</span><span class="bl-ch" style="--i:7">I</span><span class="bl-ch" style="--i:8">T</span><span class="bl-ch" style="--i:9">&nbsp;</span><span class="bl-gold"><span class="bl-ch" style="--i:10">L</span><span class="bl-ch" style="--i:11">O</span><span class="bl-ch" style="--i:12">G</span><span class="bl-ch" style="--i:13">G</span><span class="bl-ch" style="--i:14">E</span><span class="bl-ch" style="--i:15">R</span></span></div></div>
+<div id="bootLoading" class="boot-loading" role="status" aria-label="SaviorFit Logger"><div class="boot-bg" aria-hidden="true"><i class="g"></i><i class="glow"></i><i class="ray a"></i><i class="ray b"></i><i class="ray c"></i><i class="plate p1"></i><i class="plate p2"></i><i class="plate p3"></i></div><div class="boot-loading-mark" aria-hidden="true"><span class="bl-ch" style="--i:0">S</span><span class="bl-ch" style="--i:1">A</span><span class="bl-ch" style="--i:2">V</span><span class="bl-ch" style="--i:3">I</span><span class="bl-ch" style="--i:4">O</span><span class="bl-ch" style="--i:5">R</span><span class="bl-ch" style="--i:6">F</span><span class="bl-ch" style="--i:7">I</span><span class="bl-ch" style="--i:8">T</span><span class="bl-ch" style="--i:9">&nbsp;</span><span class="bl-gold"><span class="bl-ch" style="--i:10">L</span><span class="bl-ch" style="--i:11">O</span><span class="bl-ch" style="--i:12">G</span><span class="bl-ch" style="--i:13">G</span><span class="bl-ch" style="--i:14">E</span><span class="bl-ch" style="--i:15">R</span></span></div></div>
 <script>window.__bootSplashStart = performance.now();</script>
 <div id="app" class="hidden">
   <header class="topbar">
@@ -8982,8 +9031,8 @@
   // CSS): the grid / rays / plate rings / glow look from the setup wizard.
   // Every template card gets the same arrangement. Purely visual
   // (aria-hidden, pointer-events:none).
-  function templateBgHtml(soft){
-    return '<span class="tpl-bg' + (soft ? ' tpl-bg--sub' : '') + '" aria-hidden="true">' +
+  function templateBgHtml(){
+    return '<span class="tpl-bg" aria-hidden="true">' +
              '<i class="g"></i><i class="glow"></i>' +
              '<i class="ray a"></i><i class="ray b"></i><i class="ray c"></i>' +
              '<i class="plate p1"></i><i class="plate p2"></i><i class="plate p3"></i>' +
@@ -9015,7 +9064,7 @@
             var keys = templatesInCategory(c);
             if (!keys.length) return '';
             return '<button type="button" class="template-card template-cat-card" data-action="select-template-category" data-category="'+c.id+'">' +
-              templateBgHtml(false) +
+              templateBgHtml() +
               '<div class="template-card-name">'+esc(c.label)+'</div>' +
               '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
               '<div class="template-card-count">'+keys.length+' template'+(keys.length===1?'':'s')+'</div>' +
@@ -9048,7 +9097,7 @@
             }
           }
           return divider + '<button type="button" class="template-card" data-action="select-template" data-template="'+key+'">' +
-            templateBgHtml(true) +
+            templateBgHtml() +
             '<div class="template-card-name">'+esc(tpl.label)+'</div>' +
             '<div class="template-card-sub">'+esc(templateSummaryLine(tpl))+'</div>' +
             '<div class="template-card-count">'+tpl.exercises.length+' exercises</div>' +
