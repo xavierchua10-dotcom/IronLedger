@@ -1776,6 +1776,17 @@
   .template-card > *:not(.tpl-bg){position:relative;z-index:1;}
   .template-card:active{border-color:var(--accent);filter:brightness(1.12);}
   .template-cat-card{min-height:110px;}
+  /* The Settings cards wear the same background (dark base + the .tpl-bg
+     grid / rays / plates / glow layer). The class is added by
+     enhanceSettingsCards(); the Danger-zone "Delete account" card is skipped
+     on purpose, so a warning doesn't get the gold decoration. */
+  .settings-group.sg-deco{
+    position:relative;
+    overflow:hidden;
+    background-color:#14171b;
+    background-image:none;
+  }
+  .settings-group.sg-deco > *:not(.tpl-bg){position:relative;z-index:1;}
   .tpl-bg{
     position:absolute;
     top:0;right:0;bottom:0;left:0;
@@ -15634,10 +15645,19 @@
       }
     });
   }
+  // Gives every Settings card the shared template-picker background. Idempotent
+  // (safe to run on every DOM change); skips the Danger-zone delete card.
+  function enhanceSettingsCards(){
+    Array.prototype.forEach.call(document.querySelectorAll('#view .settings-group'), function(g){
+      if (g.classList.contains('sg-deco') || g.querySelector('.sr-action-danger')) return;
+      g.classList.add('sg-deco');
+      g.insertAdjacentHTML('afterbegin', templateBgHtml());
+    });
+  }
   (function watchSegControls(){
     var view = document.getElementById('view');
     if (view && typeof MutationObserver !== 'undefined'){
-      new MutationObserver(enhanceSegControls).observe(view, { childList: true, subtree: true });
+      new MutationObserver(function(){ enhanceSettingsCards(); enhanceSegControls(); }).observe(view, { childList: true, subtree: true });
     }
     // Web fonts change the buttons' widths once they arrive.
     if (document.fonts && document.fonts.ready){
