@@ -1755,13 +1755,17 @@
     background:var(--line);
     margin:0 2px 14px;
   }
-  /* Category cards (step 1 of the template picker) get a photo background
-     per category, via a fixed relative filename — NOT baked into this
-     file as base64. The actual jpg files (images/ppl-bg.jpg, images/upper-lower-bg.jpg,
-     images/full-body-bg.jpg) ship as separate assets uploaded alongside this
-     index.html, in the same folder, so the relative url() below resolves.
-     The gradient darkens the photo so the label/description/count stay
-     readable regardless of what's busy in the underlying image. */
+  /* Category cards (step 1 of the template picker) wear the same dark-gym
+     scenes as the exercise cards' "Card background" setting (the images/*-bg.jpg
+     files the app already ships for it), one per category — so the picker
+     matches the rest of the app instead of the old bright cartoon photos, and
+     the Beginner card, which used to have no picture at all, gets one too.
+       Beginner         -> exercise-card-bg  (dumbbell rack + bench, the app's default look)
+       Push / Pull / Legs -> chest-bg         (squat rack + bench)
+       Upper / Lower    -> shoulder-bg       (machine + plates)
+       Full Body        -> legs-bg           (power rack + brick wall)
+     The gradient keeps the label / description / count readable over whatever
+     is busy in the scene. */
   .template-cat-card{
     position:relative;
     min-height:110px;
@@ -1770,14 +1774,17 @@
     background-repeat:no-repeat;
   }
   .template-cat-card:active{border-color:var(--accent);filter:brightness(1.12);}
+  .template-cat-card[data-category="beginner"]{
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.50), rgba(8,9,12,0.90)), url('images/exercise-card-bg.jpg');
+  }
   .template-cat-card[data-category="ppl"]{
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('images/ppl-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.50), rgba(8,9,12,0.90)), url('images/chest-bg.jpg');
   }
   .template-cat-card[data-category="upperLower"]{
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('images/upper-lower-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.50), rgba(8,9,12,0.90)), url('images/shoulder-bg.jpg');
   }
   .template-cat-card[data-category="fullBody"]{
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('images/full-body-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(8,9,12,0.50), rgba(8,9,12,0.90)), url('images/legs-bg.jpg');
   }
   .template-cat-card .template-card-sub{color:#d7dae0;}
   .template-cat-card .template-card-count{color:#aab0b8;}
