@@ -1758,15 +1758,12 @@
   /* Template picker backgrounds: the same look as the setup wizard / login
      screen — a faint grid, thin accent-colored light rays, weight-plate rings
      and a soft glow — drawn in CSS (no image files), so it follows whatever
-     accent color is chosen and the Corners setting. Each category gets its own
-     arrangement, with a meaning:
-       Beginner          one spotlight, one ray, one plate     (a single first step)
-       Push / Pull / Legs  three rays, three plates            (three days)
-       Upper / Lower     a dividing line: rays above, plates below
-       Full Body         a full fan of rays and nested rings   (everything)
-     Everything sits on the RIGHT so the text on the left stays on a clean dark
-     base. Step-2 template cards (Push Day A ...) wear a softer version
-     (.tpl-bg--sub) of their category's look. */
+     accent color is chosen and the Corners setting. EVERY template card
+     (the four categories and the individual templates inside them) uses this
+     one arrangement — three rays and three plates — so the picker reads as a
+     single design. Everything sits on the RIGHT so the text on the left stays
+     on a clean dark base. The individual template cards on step 2 wear a
+     softer version (.tpl-bg--sub). */
   .template-card{position:relative;overflow:hidden;}
   .template-card > *:not(.tpl-bg){position:relative;z-index:1;}
   .template-cat-card{
@@ -1794,6 +1791,7 @@
     mask-image:linear-gradient(90deg, transparent 15%, #000 70%);
   }
   .tpl-bg .glow{
+    right:-60px;top:-120px;
     width:240px;height:240px;
     border-radius:50%;
     background:radial-gradient(circle, rgba(var(--accent-rgb),0.30) 0%, rgba(var(--accent-rgb),0.10) 38%, rgba(var(--accent-rgb),0) 66%);
@@ -1804,43 +1802,18 @@
     background:linear-gradient(180deg, rgba(var(--accent-rgb),0.30), rgba(var(--accent-rgb),0));
     transform-origin:top center;
   }
+  .tpl-bg .ray.a{left:62%;transform:rotate(-11deg);}
+  .tpl-bg .ray.b{left:76%;transform:rotate(0deg);}
+  .tpl-bg .ray.c{left:90%;transform:rotate(11deg);}
   .tpl-bg .plate{
+    width:96px;height:96px;
+    bottom:-52px;
     border-radius:50%;
     border:2px solid rgba(255,255,255,0.06);
   }
-  .tpl-bg .split{
-    left:46%;right:0;top:50%;
-    height:1px;
-    background:linear-gradient(90deg, rgba(var(--accent-rgb),0), rgba(var(--accent-rgb),0.30));
-  }
-  /* Beginner */
-  .tpl-bg--beginner .glow{right:-70px;top:-110px;}
-  .tpl-bg--beginner .ray.a{left:80%;transform:rotate(9deg);}
-  .tpl-bg--beginner .plate.p1{width:130px;height:130px;right:-34px;bottom:-62px;}
-  /* Push / Pull / Legs */
-  .tpl-bg--ppl .glow{right:-60px;top:-120px;}
-  .tpl-bg--ppl .ray.a{left:62%;transform:rotate(-11deg);}
-  .tpl-bg--ppl .ray.b{left:76%;transform:rotate(0deg);}
-  .tpl-bg--ppl .ray.c{left:90%;transform:rotate(11deg);}
-  .tpl-bg--ppl .plate.p1{width:96px;height:96px;right:70px;bottom:-52px;}
-  .tpl-bg--ppl .plate.p2{width:96px;height:96px;right:30px;bottom:-52px;}
-  .tpl-bg--ppl .plate.p3{width:96px;height:96px;right:-10px;bottom:-52px;}
-  /* Upper / Lower */
-  .tpl-bg--upperLower .glow{right:-60px;top:-130px;}
-  .tpl-bg--upperLower .ray.a{left:68%;transform:rotate(-7deg);}
-  .tpl-bg--upperLower .ray.b{left:86%;transform:rotate(7deg);}
-  .tpl-bg--upperLower .plate.p1{width:92px;height:92px;right:62px;bottom:-48px;}
-  .tpl-bg--upperLower .plate.p2{width:92px;height:92px;right:8px;bottom:-48px;}
-  /* Full Body */
-  .tpl-bg--fullBody .glow{right:-40px;top:-80px;width:280px;height:280px;}
-  .tpl-bg--fullBody .ray.a{left:52%;transform:rotate(-17deg);}
-  .tpl-bg--fullBody .ray.b{left:64%;transform:rotate(-8deg);}
-  .tpl-bg--fullBody .ray.c{left:76%;transform:rotate(0deg);}
-  .tpl-bg--fullBody .ray.d{left:88%;transform:rotate(8deg);}
-  .tpl-bg--fullBody .ray.e{left:98%;transform:rotate(17deg);}
-  .tpl-bg--fullBody .plate.p1{width:150px;height:150px;right:-36px;bottom:-72px;}
-  .tpl-bg--fullBody .plate.p2{width:104px;height:104px;right:-13px;bottom:-49px;}
-  .tpl-bg--fullBody .plate.p3{width:58px;height:58px;right:10px;bottom:-26px;}
+  .tpl-bg .plate.p1{right:70px;}
+  .tpl-bg .plate.p2{right:30px;}
+  .tpl-bg .plate.p3{right:-10px;}
   /* Softer version for the individual template cards on step 2 */
   .tpl-bg--sub{opacity:0.7;}
   .tpl-bg--sub .glow{width:200px;height:200px;}
@@ -9006,17 +8979,15 @@
   }
 
   // Decorative background layer for the template picker (see .tpl-bg in the
-  // CSS): same grid / rays / plate rings / glow look as the setup wizard,
-  // arranged per category. Purely visual (aria-hidden, pointer-events:none).
-  var TPL_BG_PARTS = {
-    beginner:   '<i class="glow"></i><i class="ray a"></i><i class="plate p1"></i>',
-    ppl:        '<i class="glow"></i><i class="ray a"></i><i class="ray b"></i><i class="ray c"></i><i class="plate p1"></i><i class="plate p2"></i><i class="plate p3"></i>',
-    upperLower: '<i class="glow"></i><i class="split"></i><i class="ray a"></i><i class="ray b"></i><i class="plate p1"></i><i class="plate p2"></i>',
-    fullBody:   '<i class="glow"></i><i class="ray a"></i><i class="ray b"></i><i class="ray c"></i><i class="ray d"></i><i class="ray e"></i><i class="plate p1"></i><i class="plate p2"></i><i class="plate p3"></i>'
-  };
-  function templateBgHtml(catId, soft){
-    var parts = TPL_BG_PARTS[catId] || TPL_BG_PARTS.beginner;
-    return '<span class="tpl-bg tpl-bg--' + (TPL_BG_PARTS[catId] ? catId : 'beginner') + (soft ? ' tpl-bg--sub' : '') + '" aria-hidden="true"><i class="g"></i>' + parts + '</span>';
+  // CSS): the grid / rays / plate rings / glow look from the setup wizard.
+  // Every template card gets the same arrangement. Purely visual
+  // (aria-hidden, pointer-events:none).
+  function templateBgHtml(soft){
+    return '<span class="tpl-bg' + (soft ? ' tpl-bg--sub' : '') + '" aria-hidden="true">' +
+             '<i class="g"></i><i class="glow"></i>' +
+             '<i class="ray a"></i><i class="ray b"></i><i class="ray c"></i>' +
+             '<i class="plate p1"></i><i class="plate p2"></i><i class="plate p3"></i>' +
+           '</span>';
   }
 
   function renderTemplatePickerOverlay(){
@@ -9044,7 +9015,7 @@
             var keys = templatesInCategory(c);
             if (!keys.length) return '';
             return '<button type="button" class="template-card template-cat-card" data-action="select-template-category" data-category="'+c.id+'">' +
-              templateBgHtml(c.id, false) +
+              templateBgHtml(false) +
               '<div class="template-card-name">'+esc(c.label)+'</div>' +
               '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
               '<div class="template-card-count">'+keys.length+' template'+(keys.length===1?'':'s')+'</div>' +
@@ -9077,7 +9048,7 @@
             }
           }
           return divider + '<button type="button" class="template-card" data-action="select-template" data-template="'+key+'">' +
-            templateBgHtml(cat.id, true) +
+            templateBgHtml(true) +
             '<div class="template-card-name">'+esc(tpl.label)+'</div>' +
             '<div class="template-card-sub">'+esc(templateSummaryLine(tpl))+'</div>' +
             '<div class="template-card-count">'+tpl.exercises.length+' exercises</div>' +
