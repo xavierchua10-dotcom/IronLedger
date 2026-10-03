@@ -12440,6 +12440,14 @@
     var d = new Date(iso);
     return d.getDate() + ' ' + CHART_MONTH_NAMES[d.getMonth()] + ' ' + d.getFullYear();
   }
+  // "17 DAYS" / "8 WEEKS" / "7 MONTHS" between the first and last session.
+  function shareSpanText(firstIso, lastIso){
+    var days = Math.max(1, Math.round((new Date(lastIso).getTime() - new Date(firstIso).getTime()) / 86400000) + 1);
+    if (days < 14) return days + (days === 1 ? ' DAY' : ' DAYS');
+    if (days < 70) return Math.round(days / 7) + ' WEEKS';
+    var m = Math.max(2, Math.round(days / 30.44));
+    return m + ' MONTHS';
+  }
   function shareDelta(deltaKg){
     var sign = deltaKg > 0.04 ? '+' : (deltaKg < -0.04 ? '\u2212' : '');
     return sign + fmtWeight(Math.abs(deltaKg)) + ' ' + unitLabel();
@@ -12453,24 +12461,10 @@
       name: name,
       muscle: fineMuscleForLoggedName(name) || '',
       points: pts, first: first, last: last, best: best,
-      // The card follows the same free / Pro split as the Progress tab: free
-      // gets the est. 1RM line over the recent window; Pro / trial also gets
-      // the weight line and the full history.
-      pro: isProActive(),
-      chartPoints: isProActive() ? pts : freeWindowPoints(pts),
       prs: collectPRs(name).length,
       e1rmDelta: best.e1rm - first.e1rm,
       topDelta: last.topKg - first.topKg
     };
-  }
-  function shareRoundRect(ctx, x, y, w, h, r){
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
   }
   function shareWrap(ctx, text, maxW, maxLines){
     var words = String(text).split(/\s+/), lines = [], cur = '';
@@ -12491,145 +12485,107 @@
   function drawProgressShareCard(ctx, d){
     var W = SHARE_W, H = SHARE_H;
     var accent = currentAccentTheme().accent, acc = hexToRgbString(accent);
-    var pro = d.pro !== false;                 // draw the Pro extras (weight line) only for Pro / trial
-    var cpts = d.chartPoints || d.points;      // what the chart plots (the recent window for free)
     var HEAD = "Oswald,'Arial Narrow','Helvetica Neue',Arial,sans-serif";
     var MONO = "'JetBrains Mono','Courier New',monospace";
-    var GOOD = '#5fb86a', BAD = '#c1443c';
+    var GOOD = '#5fb86a', BAD = '#c1443c', INK = '#f4f1ea', DIM = '#9aa1ab', FAINT = '#8b929c';
     function spacing(px){ if ('letterSpacing' in ctx) ctx.letterSpacing = px + 'px'; }
 
-    // ---- the app's background look: grid, glow, three rays, three plate rings
+    // ---- background: the app's look, kept quiet (soft glow, a few faint rays, a hint of grid and plates)
     ctx.fillStyle = '#0f1114'; ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = 'rgba(255,255,255,0.035)'; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255,255,255,0.022)'; ctx.lineWidth = 1;
     var gx, gy;
     for (gx = 0; gx <= W; gx += 54){ ctx.beginPath(); ctx.moveTo(gx + 0.5, 0); ctx.lineTo(gx + 0.5, H); ctx.stroke(); }
     for (gy = 0; gy <= H; gy += 54){ ctx.beginPath(); ctx.moveTo(0, gy + 0.5); ctx.lineTo(W, gy + 0.5); ctx.stroke(); }
-    var fade = ctx.createLinearGradient(0, H * 0.45, 0, H * 0.92);
+    var fade = ctx.createLinearGradient(0, H * 0.4, 0, H * 0.9);
     fade.addColorStop(0, 'rgba(15,17,20,0)'); fade.addColorStop(1, 'rgba(15,17,20,1)');
-    ctx.fillStyle = fade; ctx.fillRect(0, H * 0.45, W, H * 0.55);
-    var glow = ctx.createRadialGradient(W / 2, -60, 0, W / 2, -60, 980);
-    glow.addColorStop(0, 'rgba(' + acc + ',0.30)'); glow.addColorStop(0.38, 'rgba(' + acc + ',0.10)'); glow.addColorStop(0.66, 'rgba(' + acc + ',0)');
+    ctx.fillStyle = fade; ctx.fillRect(0, H * 0.4, W, H * 0.6);
+    var glow = ctx.createRadialGradient(W / 2, -80, 0, W / 2, -80, 940);
+    glow.addColorStop(0, 'rgba(' + acc + ',0.22)'); glow.addColorStop(0.4, 'rgba(' + acc + ',0.07)'); glow.addColorStop(0.7, 'rgba(' + acc + ',0)');
     ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
     [[0.26, -11], [0.5, 0], [0.74, 11]].forEach(function(r){
       ctx.save(); ctx.translate(W * r[0], -30); ctx.rotate(r[1] * Math.PI / 180);
-      var lg = ctx.createLinearGradient(0, 0, 0, 660);
-      lg.addColorStop(0, 'rgba(' + acc + ',0.30)'); lg.addColorStop(1, 'rgba(' + acc + ',0)');
-      ctx.fillStyle = lg; ctx.fillRect(-1.5, 0, 3, 660); ctx.restore();
+      var lg = ctx.createLinearGradient(0, 0, 0, 560);
+      lg.addColorStop(0, 'rgba(' + acc + ',0.12)'); lg.addColorStop(1, 'rgba(' + acc + ',0)');
+      ctx.fillStyle = lg; ctx.fillRect(-1.5, 0, 3, 560); ctx.restore();
     });
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 3;
     [0.12, 0.5, 0.88].forEach(function(px){ ctx.beginPath(); ctx.arc(W * px, H + 190, 400, 0, Math.PI * 2); ctx.stroke(); });
 
-    // ---- header
+    // ---- header: brand left, period right, hairline under it
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
-    ctx.font = '700 46px ' + HEAD; spacing(3);
+    ctx.font = '700 42px ' + HEAD; spacing(3);
     ctx.fillStyle = '#e9e6df'; ctx.fillText('SAVIORFIT', 72, 112);
     var w1 = ctx.measureText('SAVIORFIT ').width;
     ctx.fillStyle = accent; ctx.fillText('LOGGER', 72 + w1, 112);
-    ctx.font = '500 26px ' + MONO; spacing(1); ctx.textAlign = 'right'; ctx.fillStyle = '#9aa1ab';
+    ctx.font = '500 25px ' + MONO; spacing(1); ctx.textAlign = 'right'; ctx.fillStyle = DIM;
     ctx.fillText((shareShortDate(d.first.date) + ' \u2013 ' + shareLongDate(d.last.date)).toUpperCase(), W - 72, 108);
     ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.09)'; ctx.fillRect(72, 152, W - 144, 2);
 
-    // ---- exercise name (up to two lines)
-    var y = 250;
-    if (d.muscle){ ctx.font = '600 30px ' + MONO; spacing(4); ctx.fillStyle = accent; ctx.fillText(d.muscle.toUpperCase(), 72, y); y += 20; }
+    // ---- measure the middle block, then centre it between the header and footer
     ctx.font = '700 96px ' + HEAD; spacing(1);
-    var lines = shareWrap(ctx, d.name.toUpperCase(), W - 144, 2);
-    ctx.fillStyle = '#f4f1ea';
-    lines.forEach(function(line, i){ ctx.fillText(line, 72, y + 96 + i * 100); });
-    var nameBottom = y + 96 + (lines.length - 1) * 100;
-    var shift = (lines.length - 1) * 100;
+    var nameLines = shareWrap(ctx, d.name.toUpperCase(), W - 144, 2);
+    var hMuscle = d.muscle ? 52 : 0;
+    var blockH = hMuscle + (nameLines.length - 1) * 100 + 666;
+    var areaTop = 190, areaBottom = 1195;
+    var y0 = areaTop + Math.max(0, (areaBottom - areaTop - blockH) * 0.42);
+
+    // ---- exercise: muscle label + name (up to two lines)
+    if (d.muscle){ ctx.font = '600 29px ' + MONO; spacing(4); ctx.fillStyle = accent; ctx.fillText(d.muscle.toUpperCase(), 72, y0 + 30); }
+    ctx.font = '700 96px ' + HEAD; spacing(1); ctx.fillStyle = INK;
+    nameLines.forEach(function(line, i){ ctx.fillText(line, 72, y0 + hMuscle + 96 + i * 100); });
+    var nameBottom = y0 + hMuscle + 96 + (nameLines.length - 1) * 100;
 
     // ---- the two headline numbers
-    var labelY = nameBottom + 92;
-    function statBlock(x, label, swatchHex, valueKg, deltaKg, valueColor){
-      // the little colour swatch is the chart legend; with no weight line (free) it is dropped
-      if (pro){ ctx.fillStyle = swatchHex; ctx.fillRect(x, labelY - 22, 34, 6); }
-      ctx.font = '500 27px ' + MONO; spacing(2); ctx.fillStyle = '#c7ccd3'; ctx.fillText(label, pro ? x + 48 : x, labelY);
+    var labelY = nameBottom + 100;
+    function statBlock(x, label, valueKg, deltaKg, valueColor, colW){
+      ctx.font = '500 27px ' + MONO; spacing(2); ctx.fillStyle = '#c7ccd3'; ctx.fillText(label, x, labelY);
       var val = fmtWeight(valueKg), unitTxt = unitLabel().toUpperCase();
-      // Shrink the number until number + unit fit their column, so heavy lifts
-      // in pounds (or a wider fallback font when the web font didn't load)
-      // never run off the card.
-      var colW = (x === 72 ? 468 : 428), fs = 150, vw = 0, uw = 0;
+      // shrink the number until number + unit fit the column (heavy lifts in
+      // pounds, or a wider fallback font when the web font didn't load)
+      var fs = 170, vw = 0, uw = 0;
       spacing(0);
       for (; fs >= 70; fs -= 4){
         ctx.font = '700 ' + fs + 'px ' + HEAD; vw = ctx.measureText(val).width;
         ctx.font = '600 ' + Math.round(fs * 0.35) + 'px ' + HEAD; uw = ctx.measureText(unitTxt).width;
         if (vw + 14 + uw <= colW) break;
       }
-      ctx.font = '700 ' + fs + 'px ' + HEAD; ctx.fillStyle = valueColor; ctx.fillText(val, x, labelY + 142);
-      ctx.font = '600 ' + Math.round(fs * 0.35) + 'px ' + HEAD; ctx.fillStyle = '#9aa1ab'; ctx.fillText(unitTxt, x + vw + 14, labelY + 142);
-      ctx.font = '600 34px ' + MONO; spacing(0);
-      ctx.fillStyle = deltaKg > 0.04 ? GOOD : (deltaKg < -0.04 ? BAD : '#9aa1ab');
-      ctx.fillText(shareDelta(deltaKg) + ' since ' + shareShortDate(d.first.date), x, labelY + 205);
+      ctx.font = '700 ' + fs + 'px ' + HEAD; ctx.fillStyle = valueColor; ctx.fillText(val, x, labelY + 160);
+      ctx.font = '600 ' + Math.round(fs * 0.35) + 'px ' + HEAD; ctx.fillStyle = DIM; ctx.fillText(unitTxt, x + vw + 14, labelY + 160);
+      ctx.font = '600 33px ' + MONO; spacing(0);
+      ctx.fillStyle = deltaKg > 0.04 ? GOOD : (deltaKg < -0.04 ? BAD : DIM);
+      ctx.fillText(shareDelta(deltaKg) + ' since ' + shareShortDate(d.first.date), x, labelY + 228);
     }
-    statBlock(72, 'EST. BEST 1RM', chartTrendHex(cpts), d.best.e1rm, d.e1rmDelta, accent);
-    statBlock(580, 'LATEST TOP SET', WEIGHT_LINE_HEX, d.last.topKg, d.topDelta, '#f4f1ea');
+    statBlock(72, 'EST. BEST 1RM', d.best.e1rm, d.e1rmDelta, accent, 468);
+    statBlock(580, 'LATEST TOP SET', d.last.topKg, d.topDelta, INK, 428);
 
-    // ---- chart panel
-    var panelX = 72, panelW = W - 144, panelY = labelY + 262;
-    var panelH = 1128 - panelY + (shift ? 0 : 0);
-    if (panelH < 300) panelH = 300;
-    shareRoundRect(ctx, panelX, panelY, panelW, panelH, 30);
-    ctx.fillStyle = 'rgba(255,255,255,0.045)'; ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.09)'; ctx.lineWidth = 2; ctx.stroke();
-    // legend
-    var lgy = panelY + 56;
-    ctx.fillStyle = chartTrendHex(cpts); ctx.fillRect(panelX + 40, lgy - 18, 30, 6);
-    ctx.font = '500 25px ' + MONO; spacing(1); ctx.fillStyle = '#c7ccd3'; ctx.fillText('EST. 1RM', panelX + 82, lgy);
-    if (pro){
-      var lw = ctx.measureText('EST. 1RM').width;
-      ctx.fillStyle = WEIGHT_LINE_HEX; ctx.fillRect(panelX + 82 + lw + 44, lgy - 18, 30, 6);
-      ctx.fillStyle = '#c7ccd3'; ctx.fillText('TOP WEIGHT', panelX + 82 + lw + 86, lgy);
-    } else if (cpts.length < d.points.length){
-      // The headline numbers cover the whole history but the free chart only
-      // plots the recent window — say so, so the two don't look contradictory.
-      ctx.textAlign = 'right'; ctx.fillStyle = '#8b929c'; ctx.fillText('LAST 3 MONTHS', panelX + panelW - 40, lgy); ctx.textAlign = 'left';
-    }
-    // plot (shared kg scale for both lines, like the in-app chart)
-    var pl = panelX + 56, pr = panelX + panelW - 56, pt = panelY + 100, pb = panelY + panelH - 70;
-    var n = cpts.length, all = [];
-    cpts.forEach(function(p){ all.push(p.e1rm); if (pro) all.push(p.topKg); });
-    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
-    if (lo === hi){ lo -= 1; hi += 1; }
-    function px(i){ return n === 1 ? (pl + pr) / 2 : pl + (i / (n - 1)) * (pr - pl); }
-    function py(v){ return pb - ((v - lo) / (hi - lo)) * (pb - pt); }
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1.5;
-    [0, 0.5, 1].forEach(function(f){ var yy = pt + (pb - pt) * f; ctx.beginPath(); ctx.moveTo(pl, yy); ctx.lineTo(pr, yy); ctx.stroke(); });
-    var trend = chartTrendHex(cpts), trgb = hexToRgbString(trend);
-    // area + 1RM line
-    var area = ctx.createLinearGradient(0, pt, 0, pb);
-    area.addColorStop(0, 'rgba(' + trgb + ',0.30)'); area.addColorStop(1, 'rgba(' + trgb + ',0)');
-    ctx.beginPath(); ctx.moveTo(px(0), py(cpts[0].e1rm));
-    cpts.forEach(function(p, i){ if (i) ctx.lineTo(px(i), py(p.e1rm)); });
-    ctx.lineTo(px(n - 1), pb); ctx.lineTo(px(0), pb); ctx.closePath(); ctx.fillStyle = area; ctx.fill();
-    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    ctx.beginPath(); cpts.forEach(function(p, i){ if (i) ctx.lineTo(px(i), py(p.e1rm)); else ctx.moveTo(px(i), py(p.e1rm)); });
-    ctx.strokeStyle = trend; ctx.lineWidth = 7; ctx.stroke();
-    // weight as a step line (flat until the weight changes, then a step) — Pro / trial only
-    if (pro){
-      ctx.beginPath(); ctx.moveTo(px(0), py(cpts[0].topKg));
-      cpts.forEach(function(p, i){ if (i){ ctx.lineTo(px(i), py(cpts[i - 1].topKg)); ctx.lineTo(px(i), py(p.topKg)); } });
-      ctx.strokeStyle = WEIGHT_LINE_HEX; ctx.globalAlpha = 0.92; ctx.lineWidth = 5; ctx.stroke(); ctx.globalAlpha = 1;
-    }
-    if (n <= 40){
-      cpts.forEach(function(p, i){
-        ctx.beginPath(); ctx.arc(px(i), py(p.e1rm), 9, 0, Math.PI * 2); ctx.fillStyle = trend; ctx.fill();
-        if (pro){ ctx.beginPath(); ctx.arc(px(i), py(p.topKg), 7, 0, Math.PI * 2); ctx.fillStyle = WEIGHT_LINE_HEX; ctx.fill(); }
-      });
-    }
-    ctx.font = '500 25px ' + MONO; spacing(1); ctx.fillStyle = '#8b929c';
-    ctx.textAlign = 'left'; ctx.fillText(shareShortDate(cpts[0].date).toUpperCase(), pl, pb + 50);
-    ctx.textAlign = 'right'; ctx.fillText(shareShortDate(cpts[n - 1].date).toUpperCase(), pr, pb + 50);
+    // ---- three small facts under a hairline
+    var divY = labelY + 228 + 70;
+    ctx.fillStyle = 'rgba(255,255,255,0.09)'; ctx.fillRect(72, divY, W - 144, 2);
+    var tileW = (W - 144) / 3, tileValueY = divY + 120;
+    var tiles = [
+      [String(d.points.length), d.points.length === 1 ? 'SESSION' : 'SESSIONS'],
+      [String(d.prs), d.prs === 1 ? 'PERSONAL RECORD' : 'PERSONAL RECORDS'],
+      [shareSpanText(d.first.date, d.last.date), 'TRACKED']
+    ];
+    tiles.forEach(function(t, i){
+      var tx = 72 + i * tileW + (i ? 28 : 0);
+      if (i){ ctx.fillStyle = 'rgba(255,255,255,0.09)'; ctx.fillRect(72 + i * tileW - 1, tileValueY - 56, 2, 100); }
+      var fs = 64;
+      spacing(0);
+      for (; fs >= 36; fs -= 4){ ctx.font = '700 ' + fs + 'px ' + HEAD; if (ctx.measureText(t[0]).width <= tileW - 56) break; }
+      ctx.font = '700 ' + fs + 'px ' + HEAD; ctx.fillStyle = INK; ctx.fillText(t[0], tx, tileValueY);
+      ctx.font = '500 22px ' + MONO; spacing(2); ctx.fillStyle = FAINT; ctx.fillText(t[1], tx, tileValueY + 40);
+    });
 
     // ---- footer
     ctx.textAlign = 'center';
-    ctx.font = '600 32px ' + MONO; spacing(1); ctx.fillStyle = '#e9e6df';
-    ctx.fillText(d.points.length + ' SESSIONS  \u00b7  ' + d.prs + ' PR' + (d.prs === 1 ? '' : 'S'), W / 2, 1190);
-    ctx.font = '500 26px ' + MONO; spacing(1); ctx.fillStyle = '#8b929c';
+    ctx.font = '500 26px ' + MONO; spacing(1); ctx.fillStyle = FAINT;
     ctx.fillText('Tracked with SaviorFit Logger', W / 2, 1262);
     ctx.fillStyle = accent; ctx.fillText('saviorfitlogger.com', W / 2, 1302);
     ctx.textAlign = 'left'; spacing(0);
   }
+
   function shareFontsReady(){
     if (!(document.fonts && document.fonts.load)) return Promise.resolve();
     var loads = Promise.all([
