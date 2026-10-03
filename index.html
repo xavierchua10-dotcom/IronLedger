@@ -1755,37 +1755,95 @@
     background:var(--line);
     margin:0 2px 14px;
   }
-  /* Category cards (step 1 of the template picker) wear the same dark-gym
-     scenes as the exercise cards' "Card background" setting (the images/*-bg.jpg
-     files the app already ships for it), one per category — so the picker
-     matches the rest of the app instead of the old bright cartoon photos, and
-     the Beginner card, which used to have no picture at all, gets one too.
-       Beginner         -> exercise-card-bg  (dumbbell rack + bench, the app's default look)
-       Push / Pull / Legs -> chest-bg         (squat rack + bench)
-       Upper / Lower    -> shoulder-bg       (machine + plates)
-       Full Body        -> legs-bg           (power rack + brick wall)
-     The gradient keeps the label / description / count readable over whatever
-     is busy in the scene. */
+  /* Template picker backgrounds: the same look as the setup wizard / login
+     screen — a faint grid, thin accent-colored light rays, weight-plate rings
+     and a soft glow — drawn in CSS (no image files), so it follows whatever
+     accent color is chosen and the Corners setting. Each category gets its own
+     arrangement, with a meaning:
+       Beginner          one spotlight, one ray, one plate     (a single first step)
+       Push / Pull / Legs  three rays, three plates            (three days)
+       Upper / Lower     a dividing line: rays above, plates below
+       Full Body         a full fan of rays and nested rings   (everything)
+     Everything sits on the RIGHT so the text on the left stays on a clean dark
+     base. Step-2 template cards (Push Day A ...) wear a softer version
+     (.tpl-bg--sub) of their category's look. */
+  .template-card{position:relative;overflow:hidden;}
+  .template-card > *:not(.tpl-bg){position:relative;z-index:1;}
   .template-cat-card{
-    position:relative;
     min-height:110px;
-    background-size:cover;
-    background-position:center;
-    background-repeat:no-repeat;
+    background-color:#14171b;
+    background-image:none;
   }
   .template-cat-card:active{border-color:var(--accent);filter:brightness(1.12);}
-  .template-cat-card[data-category="beginner"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.50), rgba(8,9,12,0.90)), url('images/exercise-card-bg.jpg');
+  .tpl-bg{
+    position:absolute;
+    top:0;right:0;bottom:0;left:0;
+    z-index:0;
+    overflow:hidden;
+    pointer-events:none;
+    border-radius:inherit;
   }
-  .template-cat-card[data-category="ppl"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.50), rgba(8,9,12,0.90)), url('images/chest-bg.jpg');
+  .tpl-bg i{position:absolute;display:block;}
+  .tpl-bg .g{
+    top:0;right:0;bottom:0;left:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size:22px 22px;
+    -webkit-mask-image:linear-gradient(90deg, transparent 15%, #000 70%);
+    mask-image:linear-gradient(90deg, transparent 15%, #000 70%);
   }
-  .template-cat-card[data-category="upperLower"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.50), rgba(8,9,12,0.90)), url('images/shoulder-bg.jpg');
+  .tpl-bg .glow{
+    width:240px;height:240px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(var(--accent-rgb),0.30) 0%, rgba(var(--accent-rgb),0.10) 38%, rgba(var(--accent-rgb),0) 66%);
   }
-  .template-cat-card[data-category="fullBody"]{
-    background-image:linear-gradient(180deg, rgba(8,9,12,0.50), rgba(8,9,12,0.90)), url('images/legs-bg.jpg');
+  .tpl-bg .ray{
+    top:-30px;
+    width:2px;height:160px;
+    background:linear-gradient(180deg, rgba(var(--accent-rgb),0.30), rgba(var(--accent-rgb),0));
+    transform-origin:top center;
   }
+  .tpl-bg .plate{
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,0.06);
+  }
+  .tpl-bg .split{
+    left:46%;right:0;top:50%;
+    height:1px;
+    background:linear-gradient(90deg, rgba(var(--accent-rgb),0), rgba(var(--accent-rgb),0.30));
+  }
+  /* Beginner */
+  .tpl-bg--beginner .glow{right:-70px;top:-110px;}
+  .tpl-bg--beginner .ray.a{left:80%;transform:rotate(9deg);}
+  .tpl-bg--beginner .plate.p1{width:130px;height:130px;right:-34px;bottom:-62px;}
+  /* Push / Pull / Legs */
+  .tpl-bg--ppl .glow{right:-60px;top:-120px;}
+  .tpl-bg--ppl .ray.a{left:62%;transform:rotate(-11deg);}
+  .tpl-bg--ppl .ray.b{left:76%;transform:rotate(0deg);}
+  .tpl-bg--ppl .ray.c{left:90%;transform:rotate(11deg);}
+  .tpl-bg--ppl .plate.p1{width:96px;height:96px;right:70px;bottom:-52px;}
+  .tpl-bg--ppl .plate.p2{width:96px;height:96px;right:30px;bottom:-52px;}
+  .tpl-bg--ppl .plate.p3{width:96px;height:96px;right:-10px;bottom:-52px;}
+  /* Upper / Lower */
+  .tpl-bg--upperLower .glow{right:-60px;top:-130px;}
+  .tpl-bg--upperLower .ray.a{left:68%;transform:rotate(-7deg);}
+  .tpl-bg--upperLower .ray.b{left:86%;transform:rotate(7deg);}
+  .tpl-bg--upperLower .plate.p1{width:92px;height:92px;right:62px;bottom:-48px;}
+  .tpl-bg--upperLower .plate.p2{width:92px;height:92px;right:8px;bottom:-48px;}
+  /* Full Body */
+  .tpl-bg--fullBody .glow{right:-40px;top:-80px;width:280px;height:280px;}
+  .tpl-bg--fullBody .ray.a{left:52%;transform:rotate(-17deg);}
+  .tpl-bg--fullBody .ray.b{left:64%;transform:rotate(-8deg);}
+  .tpl-bg--fullBody .ray.c{left:76%;transform:rotate(0deg);}
+  .tpl-bg--fullBody .ray.d{left:88%;transform:rotate(8deg);}
+  .tpl-bg--fullBody .ray.e{left:98%;transform:rotate(17deg);}
+  .tpl-bg--fullBody .plate.p1{width:150px;height:150px;right:-36px;bottom:-72px;}
+  .tpl-bg--fullBody .plate.p2{width:104px;height:104px;right:-13px;bottom:-49px;}
+  .tpl-bg--fullBody .plate.p3{width:58px;height:58px;right:10px;bottom:-26px;}
+  /* Softer version for the individual template cards on step 2 */
+  .tpl-bg--sub{opacity:0.7;}
+  .tpl-bg--sub .glow{width:200px;height:200px;}
   .template-cat-card .template-card-sub{color:#d7dae0;}
   .template-cat-card .template-card-count{color:#aab0b8;}
   .template-card-name{
@@ -8947,6 +9005,20 @@
     return cat.keys.filter(function(k){ return WORKOUT_TEMPLATES[k]; });
   }
 
+  // Decorative background layer for the template picker (see .tpl-bg in the
+  // CSS): same grid / rays / plate rings / glow look as the setup wizard,
+  // arranged per category. Purely visual (aria-hidden, pointer-events:none).
+  var TPL_BG_PARTS = {
+    beginner:   '<i class="glow"></i><i class="ray a"></i><i class="plate p1"></i>',
+    ppl:        '<i class="glow"></i><i class="ray a"></i><i class="ray b"></i><i class="ray c"></i><i class="plate p1"></i><i class="plate p2"></i><i class="plate p3"></i>',
+    upperLower: '<i class="glow"></i><i class="split"></i><i class="ray a"></i><i class="ray b"></i><i class="plate p1"></i><i class="plate p2"></i>',
+    fullBody:   '<i class="glow"></i><i class="ray a"></i><i class="ray b"></i><i class="ray c"></i><i class="ray d"></i><i class="ray e"></i><i class="plate p1"></i><i class="plate p2"></i><i class="plate p3"></i>'
+  };
+  function templateBgHtml(catId, soft){
+    var parts = TPL_BG_PARTS[catId] || TPL_BG_PARTS.beginner;
+    return '<span class="tpl-bg tpl-bg--' + (TPL_BG_PARTS[catId] ? catId : 'beginner') + (soft ? ' tpl-bg--sub' : '') + '" aria-hidden="true"><i class="g"></i>' + parts + '</span>';
+  }
+
   function renderTemplatePickerOverlay(){
     var overlay = document.getElementById('templatePickerOverlay');
     var panel = document.getElementById('templatePickerPanel');
@@ -8972,6 +9044,7 @@
             var keys = templatesInCategory(c);
             if (!keys.length) return '';
             return '<button type="button" class="template-card template-cat-card" data-action="select-template-category" data-category="'+c.id+'">' +
+              templateBgHtml(c.id, false) +
               '<div class="template-card-name">'+esc(c.label)+'</div>' +
               '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
               '<div class="template-card-count">'+keys.length+' template'+(keys.length===1?'':'s')+'</div>' +
@@ -9004,6 +9077,7 @@
             }
           }
           return divider + '<button type="button" class="template-card" data-action="select-template" data-template="'+key+'">' +
+            templateBgHtml(cat.id, true) +
             '<div class="template-card-name">'+esc(tpl.label)+'</div>' +
             '<div class="template-card-sub">'+esc(templateSummaryLine(tpl))+'</div>' +
             '<div class="template-card-count">'+tpl.exercises.length+' exercises</div>' +
