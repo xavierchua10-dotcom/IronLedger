@@ -3371,45 +3371,28 @@
     letter-spacing:0.05em;margin:4px 0 16px;position:relative;
   }
 
-  /* ---------- Progress lock (Basic tier, 3-day/month window) ---------- */
-  .progress-tab-wrap{position:relative;min-height:100%;}
-  .progress-blur{
-    filter:blur(6px);
-    user-select:none;
-    pointer-events:none;
-  }
-  .progress-dim{
-    position:absolute;
-    inset:0;
-    background:rgba(14,15,18,0.55);
-    pointer-events:none;
-    z-index:1;
-  }
-  .progress-lock-overlay{
-    position:fixed;
-    top:50%;
-    left:50%;
-    transform:translate(-50%,-50%);
-    display:flex;flex-direction:column;
-    align-items:center;justify-content:center;text-align:center;
-    padding:28px 24px;
-    width:calc(100% - 56px);
-    max-width:320px;
-    background:var(--panel-2);
-    border:1px solid var(--line);
-    border-radius:var(--radius-lg);
-    box-shadow:0 14px 36px rgba(0,0,0,0.5);
-    z-index:6;
-  }
-  .progress-lock-icon{color:var(--accent);margin-bottom:10px;display:flex;justify-content:center;}
-  .progress-lock-icon svg{width:30px;height:30px;}
-  .progress-lock-title{font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;}
-  .progress-lock-sub{font-size:12px;color:var(--text-dim);line-height:1.5;max-width:310px;margin-bottom:16px;}
+  /* ---------- Progress: free view (after the 30-day trial) ----------
+     Pro / trial users see everything. Everyone else gets a useful free view
+     instead of a locked screen: headline numbers, the last 3 months of the
+     est. 1RM trend, the PR list and Share — with the weight trend, bar chart,
+     weekly/monthly/all-time views and Tips & Target marked as Pro. */
   .progress-lock-cta{
     background:var(--accent);color:#1c1500;border:none;border-radius:var(--radius);
-    padding:12px 20px;font-family:'Oswald',sans-serif;font-weight:700;font-size:12.5px;
-    letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:6px;
+    padding:11px 18px;font-family:'Oswald',sans-serif;font-weight:700;font-size:12.5px;
+    letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
   }
+  .chart-pro-teaser{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:8px;
+    height:100%;min-height:190px;
+    padding:14px 22px;
+    text-align:center;
+  }
+  .chart-pro-teaser .cpt-icon{color:var(--accent);display:flex;}
+  .chart-pro-teaser .cpt-icon svg{width:26px;height:26px;}
+  .chart-pro-teaser .cpt-title{font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;color:var(--text);}
+  .chart-pro-teaser .cpt-sub{font-size:12px;color:var(--text-dim);line-height:1.5;max-width:270px;margin-bottom:4px;}
+  .chart-window-note{font-size:11px;color:var(--text-faint);text-align:center;padding:4px 0 2px;}
 
   /* ---------- Google sign-in button ---------- */
   .auth-google-btn{
@@ -8319,14 +8302,6 @@
     return '';
   }
 
-  // Progress is Pro/trial only now — no Basic-tier grace period. Kept as
-  // its own function (rather than inlining isProActive() at each call
-  // site) so the {locked} shape stays the same for renderProgress() below,
-  // and so a future access-model change only has one place to touch.
-  function progressAccessState(){
-    return { locked: !isProActive() };
-  }
-
   // Set/session timestamp — shown for everyone (was Basic-tier redacted
   // behind a lock glyph, Pro-only). Kept the label/flash args in the
   // signature since call sites still pass them.
@@ -12104,8 +12079,13 @@
     // and the top weight per session. The swatches next to the two stat
     // labels below are the legend.
     var showWeightLine = points.length >= 2 && shouldShowWeightLine(ui.progressExercise, points);
-    var swatch1RM = showWeightLine ? '<i class="cs-swatch" style="background:'+chartTrendHex(points)+'"></i>' : '';
-    var swatchWeight = showWeightLine ? '<i class="cs-swatch" style="background:'+WEIGHT_LINE_HEX+'"></i>' : '';
+    // Free view: just the est. 1RM line (the weight line, the bar chart and the
+    // weekly / monthly / all-time views are Pro), so no weight legend either.
+    var pro = isProActive();
+    if (!pro) ui.chartView = 'session';
+    var weightLineOn = showWeightLine && pro;
+    var swatch1RM = weightLineOn ? '<i class="cs-swatch" style="background:'+chartTrendHex(points)+'"></i>' : '';
+    var swatchWeight = weightLineOn ? '<i class="cs-swatch" style="background:'+WEIGHT_LINE_HEX+'"></i>' : '';
     html += '<div class="chart-wrap">';
     html += '<div class="chart-stats">' +
               '<div class="cs-block"><div class="cs-label">'+swatch1RM+'Est. best 1RM'+infoDotHtml('1rm')+'</div><div class="cs-val" id="csValBest1RM" data-target="'+best.e1rm+'">0 '+unitLabel()+'</div></div>' +
@@ -12115,16 +12095,20 @@
       chartCarouselPage = 0;
       html += '<div class="chart-carousel" id="chartCarousel">' +
                 '<div class="chart-carousel-track" id="chartCarouselTrack">' +
-                  buildChartPagesHtml(ui.progressExercise, ui.chartView, showWeightLine) +
+                  buildChartPagesHtml(ui.progressExercise, ui.chartView, weightLineOn) +
                 '</div>' +
               '</div>' +
               '<div class="chart-dots">' +
-                '<button type="button" class="chart-view-btn'+(ui.chartView !== 'session' ? ' active' : '')+'" id="chartViewBtn" data-action="open-chart-range" aria-label="'+chartViewBtnAria(ui.chartView)+'" aria-haspopup="dialog">'+chartViewBtnHtml(ui.chartView)+'</button>' +
+                (pro ? '' : '<button type="button" class="chart-view-btn chart-view-lock" data-action="open-pricing" aria-label="Weekly, monthly and all-time views are part of Pro">' + lockIconHtml(11) + '<span>Pro views</span></button>') +
+                (pro ? '<button type="button" class="chart-view-btn'+(ui.chartView !== 'session' ? ' active' : '')+'" id="chartViewBtn" data-action="open-chart-range" aria-label="'+chartViewBtnAria(ui.chartView)+'" aria-haspopup="dialog">'+chartViewBtnHtml(ui.chartView)+'</button>' : '') +
                 '<button class="chart-dot active" data-action="chart-carousel-goto" data-page="0" aria-label="Trend line"></button>' +
                 '<button class="chart-dot" data-action="chart-carousel-goto" data-page="1" aria-label="Bar chart"></button>' +
                 // Same condition as the weight line: not for holds, not when there is no weight to show.
                 (showWeightLine ? '<button type="button" class="chart-share-btn" id="chartShareBtn" data-action="share-progress" aria-label="Share your progress for this exercise">' + shareIconHtml() + '<span>Share</span></button>' : '') +
               '</div>';
+      if (!pro && collectChartPoints(ui.progressExercise).length < points.length){
+        html += '<div class="chart-window-note">Showing your last 3 months &middot; Pro shows your full history</div>';
+      }
     } else {
       html += '<div class="chart-empty-note">Log this exercise once more to start seeing a trend line.</div>';
     }
@@ -12144,8 +12128,9 @@
       }
     } else {
       html += '<div class="progress-tip-teaser">' +
-                '<span>Unlock <b>Tips &amp; Target</b> \u2014 a specific weight or rep target for next session.</span>' +
-                '<button class="sr-action" data-action="open-pricing">Upgrade</button>' +
+                '<span>' + (isTrialExpired() ? 'Your free trial has ended. ' : '') +
+                  'Go Pro for <b>Tips &amp; Target</b> (a specific weight or rep target for next session), all-time charts, weekly &amp; monthly views and the weight trend.</span>' +
+                '<button class="sr-action" data-action="open-pricing">' + (trialAvailable() ? 'Try free' : 'Go Pro') + '</button>' +
               '</div>';
     }
 
@@ -12175,29 +12160,13 @@
       document.getElementById('view').innerHTML = html;
       return;
     }
-    // Progress is a hard Pro/trial lock now (see progressAccessState) —
-    // this call just gets the current {locked} state, nothing is
-    // recorded or started by checking it.
-    var access = progressAccessState();
     if (!ui.progressExercise || names.indexOf(ui.progressExercise) === -1){
       ui.progressExercise = names[0];
     }
     // Volume Overview moved out to its own Insight tab, so Progress only
-    // ever renders the exercise view now.
-    var result = renderProgressExerciseView(names);
-    html += result.html;
-    var skipLock = result.skipLock;
-
-    if (access.locked && !skipLock){
-      var lockHtml =
-        '<div class="progress-lock-overlay">' +
-          '<div class="progress-lock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>' +
-          '<div class="progress-lock-title">Progress is a Pro feature</div>' +
-          '<div class="progress-lock-sub">Track your estimated 1-rep max, PRs, and trend lines for every exercise — available on Pro or during your free trial.</div>' +
-          '<button class="progress-lock-cta" data-action="open-pricing"><span><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="vertical-align:-2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg></span> ' + (state.currentAccount === 'guest' ? 'Create an account to go Pro' : 'See Pro plans') + '</button>' +
-        '</div>';
-      html = '<div class="progress-tab-wrap"><div class="progress-blur">' + html + '</div><div class="progress-dim"></div>' + lockHtml + '</div>';
-    }
+    // ever renders the exercise view now. Pro / trial users see everything;
+    // everyone else gets the free view (see renderProgressExerciseView).
+    html += renderProgressExerciseView(names).html;
 
     document.getElementById('view').innerHTML = html;
     var best1RMEl = document.getElementById('csValBest1RM');
@@ -12282,8 +12251,24 @@
   var CHART_MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var CHART_VIEW_ORDER = ['session', 'week', 'month'];
   var CHART_VIEW_LABEL = { session: 'Session', week: 'Week', month: 'Month' };
+  // The 3 months before the latest logged session (not "today", so someone
+  // who took a break still sees their last stretch). At least 2 points so a
+  // line can be drawn.
+  var FREE_CHART_DAYS = 90;
+  function freeWindowPoints(all){
+    if (all.length <= 2) return all;
+    var cutoff = new Date(all[all.length - 1].date).getTime() - FREE_CHART_DAYS * 86400000;
+    var w = all.filter(function(p){ return new Date(p.date).getTime() >= cutoff; });
+    return w.length >= 2 ? w : all.slice(-2);
+  }
+  // What the CHART plots: everything for Pro/trial, the recent window for free.
+  // (Stats, PRs, tips and Share still use the full history.)
+  function collectChartPoints(name){
+    var all = collectExercisePoints(name);
+    return isProActive() ? all : freeWindowPoints(all);
+  }
   function chartViewData(name, view){
-    var pts = collectExercisePoints(name);
+    var pts = collectChartPoints(name);
     if (view !== 'week' && view !== 'month') return { points: pts, opts: null, labels: null };
     var isWeek = view === 'week';
     function startOf(d){
@@ -12342,8 +12327,24 @@
       return '<div class="chart-carousel-page">' + note + '</div><div class="chart-carousel-page">' + note + '</div>';
     }
     var labelsHtml = d.labels ? chartXLabelsHtml(d.labels, view) : '';
+    var second = isProActive()
+      ? buildBarChartSVG(d.points, showWeight, d.opts) + labelsHtml
+      : proChartTeaserHtml();
     return '<div class="chart-carousel-page">' + buildChartSVG(d.points, showWeight, d.opts) + labelsHtml + '</div>' +
-           '<div class="chart-carousel-page">' + buildBarChartSVG(d.points, showWeight, d.opts) + labelsHtml + '</div>';
+           '<div class="chart-carousel-page">' + second + '</div>';
+  }
+  function lockIconHtml(size){
+    return '<svg viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
+  }
+  function proCtaLabel(){ return trialAvailable() ? 'Try Pro free for 30 days' : 'Go Pro'; }
+  // What the free chart's second slide shows instead of the bar chart.
+  function proChartTeaserHtml(){
+    return '<div class="chart-pro-teaser">' +
+             '<div class="cpt-icon">' + lockIconHtml(26) + '</div>' +
+             '<div class="cpt-title">Weight trend &amp; bar chart</div>' +
+             '<div class="cpt-sub">Part of Pro \u2014 along with all-time history and weekly &amp; monthly views.</div>' +
+             '<button type="button" class="progress-lock-cta" data-action="open-pricing">' + proCtaLabel() + '</button>' +
+           '</div>';
   }
   function chartViewBtnHtml(view){
     return '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
