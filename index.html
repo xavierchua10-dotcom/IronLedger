@@ -1749,7 +1749,6 @@
     margin-bottom:10px;
   }
   .template-card:last-child{margin-bottom:0;}
-  .template-card:not(.template-cat-card):active{border-color:var(--accent);background:var(--panel-3);}
   .template-divider{
     height:1px;
     background:var(--line);
@@ -1764,14 +1763,19 @@
      single design. Everything sits on the RIGHT so the text on the left stays
      on a clean dark base. The individual template cards on step 2 use it at
      exactly the same strength as the category cards. */
-  .template-card{position:relative;overflow:hidden;}
-  .template-card > *:not(.tpl-bg){position:relative;z-index:1;}
-  .template-cat-card{
-    min-height:110px;
+  /* One card style for BOTH screens. The individual template cards used the
+     panel colour (the same colour as the panel behind them), so the glow
+     looked washed out next to the category cards; they now share the category
+     cards' darker base and the same press feedback. */
+  .template-card{
+    position:relative;
+    overflow:hidden;
     background-color:#14171b;
     background-image:none;
   }
-  .template-cat-card:active{border-color:var(--accent);filter:brightness(1.12);}
+  .template-card > *:not(.tpl-bg){position:relative;z-index:1;}
+  .template-card:active{border-color:var(--accent);filter:brightness(1.12);}
+  .template-cat-card{min-height:110px;}
   .tpl-bg{
     position:absolute;
     top:0;right:0;bottom:0;left:0;
