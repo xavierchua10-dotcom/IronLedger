@@ -12369,6 +12369,7 @@
   // when a different slide is swiped/tapped into view.
   function playChartAnim(pageEl){
     if (!pageEl) return;
+    if (pageEl.querySelector('.chart-pro-teaser')) return;   // the padlock isn't a chart
     var svg = pageEl.querySelector('svg');
     if (!svg) return;
     var i = 0;
@@ -13082,7 +13083,10 @@
     }, 140);
   }
 
+  // Pro access the screen was last drawn for (see syncProState below).
+  var lastRenderedPro = null;
   function renderApp(){
+    lastRenderedPro = isProActive();
     // renderLog() below replaces the Log view's DOM wholesale, which
     // would leave openSwipeRow pointing at a detached element (and the
     // fresh markup never includes .swipe-open in the first place) --
@@ -17347,7 +17351,25 @@
   // left" -> "1 day left", or a trial crossing into the "ending soon"
   // urgent window) without needing any other interaction to trigger it —
   // updates the bell's dot, and the dropdown's contents if it's open.
+  // Pro access is decided by dates (trial end, plan period end), so it can
+  // run out while the app sits open — or while it's in the background. Nothing
+  // used to redraw when that happened, so the Pro view (charts, tips, the Pro
+  // panel...) stayed on screen until some unrelated tap. This compares the
+  // access level the screen was drawn for with the current one and redraws only
+  // when they differ (so it never disturbs typing in the normal case). Runs
+  // every minute and whenever the app comes back to the foreground.
+  function syncProState(){
+    if (document.getElementById('app').classList.contains('hidden')) return;
+    if (lastRenderedPro === null || isProActive() === lastRenderedPro) return;
+    renderApp();
+    renderPricingPanel();
+    renderExTipOverlay();
+  }
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) syncProState();
+  });
   setInterval(function(){
+    syncProState();
     var appShellVisible = !document.getElementById('app').classList.contains('hidden');
     if (!appShellVisible) return;
     var notifBellDotEl = document.getElementById('notifBellDot');
