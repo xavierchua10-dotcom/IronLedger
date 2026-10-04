@@ -1442,6 +1442,21 @@
     padding:2px 6px;
     border-radius:var(--radius);
   }
+  /* Green up-arrow: this set beat the same set from last time (not necessarily a PR). */
+  .up-tag{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    margin-left:6px;
+    padding:3px 6px;
+    border-radius:var(--radius);
+    background:rgba(95,184,106,0.16);
+    color:#5fb86a;
+    cursor:pointer;
+    line-height:1;
+  }
+  .up-tag svg{display:block;width:12px;height:12px;}
   .set-actions{display:flex;gap:4px;justify-content:flex-end;}
   .set-act-btn{
     background:none;
@@ -10356,6 +10371,55 @@
     document.getElementById('view').innerHTML = html;
   }
 
+  /* "Up from last time": did this logged set beat the SAME-NUMBERED set from the
+     last time you did this exercise (the very sets the Last time panel shows)?
+     It's measured by total work — weight x reps — so more reps at the same
+     weight, more weight for the same reps, or a lighter weight for many more
+     reps all count (the PR badge is the all-time record; this is the
+     "better than last time" signal, which matters most for lighter, higher-rep
+     training where a PR may be a long way off). Holds, and bodyweight moves
+     with no load to multiply, compare reps / seconds instead. Returns null
+     when there's nothing to compare with (first time, or no set with this
+     number last time) or the set didn't beat it. */
+  function setUpFromLast(ex, refSets, setIndex){
+    if (!refSets || !refSets[setIndex] || !ex.sets[setIndex]) return null;
+    var prev = refSets[setIndex], cur = ex.sets[setIndex];
+    var prevLoad = effectiveLoadKg(ex.name, prev.weightKg), curLoad = effectiveLoadKg(ex.name, cur.weightKg);
+    var repsOnly = isHoldExercise(ex.name) || prevLoad <= 0 || curLoad <= 0;
+    var prevVal = repsOnly ? prev.reps : prevLoad * prev.reps;
+    var curVal = repsOnly ? cur.reps : curLoad * cur.reps;
+    if (!(curVal > prevVal + 0.001)) return null;
+    return { prev: prev, cur: cur, prevVal: prevVal, curVal: curVal, repsOnly: repsOnly, hold: isHoldExercise(ex.name), index: setIndex };
+  }
+  function upTagHtml(ex, st){
+    return '<span class="up-tag" data-action="explain-up" data-ex="' + ex.id + '" data-set="' + st.id + '" role="button" aria-label="Up from last time">' +
+             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>' +
+           '</span>';
+  }
+  function upNumText(n){ return (Math.round(n * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 }); }
+  // Plain-language explanation shown when the arrow is tapped.
+  function openUpInfo(exId, setId){
+    var session = getActiveSession();
+    var ex = session ? findExercise(session, exId) : null;
+    if (!ex) return;
+    var idx = -1;
+    ex.sets.forEach(function(x, i){ if (x.id === setId) idx = i; });
+    var u = idx >= 0 ? setUpFromLast(ex, getReferenceSets(session, ex.name), idx) : null;
+    if (!u) return;
+    var unit = unitLabel(), secs = u.hold ? 's' : '';
+    var was = u.hold || u.repsOnly ? u.prev.reps + (u.hold ? ' s' : ' reps') : fmtWeight(u.prev.weightKg) + ' ' + unit + ' \u00d7 ' + u.prev.reps;
+    var now = u.hold || u.repsOnly ? u.cur.reps + (u.hold ? ' s' : ' reps') : fmtWeight(u.cur.weightKg) + ' ' + unit + ' \u00d7 ' + u.cur.reps;
+    var detail = (u.hold || u.repsOnly)
+      ? (u.hold ? 'Hold time: ' : 'Reps: ') + upNumText(u.prevVal) + secs + ' \u2192 ' + upNumText(u.curVal) + secs
+      : 'Total work: ' + upNumText(toDisplay(u.prevVal)) + ' ' + unit + ' \u2192 ' + upNumText(toDisplay(u.curVal)) + ' ' + unit;
+    ui.confirmModal = {
+      kind: 'info', title: 'Up from last time',
+      message: 'Set ' + (idx + 1) + ' last time: ' + was + '. Today: ' + now + '. A green arrow means you did more than the same set last time \u2014 more reps, more weight, or both. It isn\u2019t an all-time record; that\u2019s the PR badge.',
+      how: detail, confirmLabel: 'Got it', variant: 'primary', infoOnly: true
+    };
+    renderApp();
+  }
+
   function renderExerciseCard(session, ex){
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
@@ -10415,6 +10479,8 @@
         if (isEditingRow) editingSetObj = st;
         var isFreshSet = st.id === ui.freshSetId;
         var isFreshPR = st.id === ui.freshPRSetId;
+        // The PR badge already says "better than ever", so the arrow only shows when it isn't a PR.
+        var upFromLast = st.isPR ? null : setUpFromLast(ex, refSets, i);
         html += '<div class="set-row-swipe" data-ex="'+ex.id+'" data-set="'+st.id+'">' +
                 '<button class="set-row-delete-btn" data-action="delete-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Delete set">Delete</button>' +
                 '<div class="set-row'+(isEditingRow ? ' editing' : '')+(isFreshPR ? ' pr-fresh' : '')+'">' +
@@ -10423,6 +10489,7 @@
                     '<span class="set-wr'+(isFreshSet ? ' flash' : '')+'">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
                     (st.timestamp ? '<span class="set-time'+(isFreshSet ? ' flash' : '')+'"> &middot; '+tsOrLock(st.timestamp, null, isFreshSet)+'</span>' : '') +
                     (st.isPR ? '<span class="pr-tag-wrap"><span class="pr-tag'+(isFreshPR?' fresh':'')+'"'+prTagAttrs(st)+'>PR</span>'+(isFreshPR ? prBurstHtml() : '')+'</span>' : '') +
+                    (upFromLast ? upTagHtml(ex, st) : '') +
                   '</span>' +
                   '<span class="set-actions">' +
                     '<button class="set-act-btn" data-action="open-set-menu" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Set options">&#8942;</button>' +
@@ -16383,6 +16450,8 @@
       renderApp();
     } else if (action === 'explain-term'){
       openInfo(el.dataset.term);
+    } else if (action === 'explain-up'){
+      openUpInfo(el.dataset.ex, el.dataset.set);
     } else if (action === 'explain-pr'){
       openInfo('pr', el.dataset.prType);
     } else if (action === 'toggle-quick-add'){
