@@ -5600,6 +5600,7 @@
     authMode: 'login',     // 'login' | 'signup'
     authError: null,
     authBusy: false,
+    progressBackToHistory: false, // true while you're on Progress because you tapped an exercise's button in History: Android back then returns to History (see the back-button section)
     chartView: 'session',   // Progress chart range: 'session' (default) | 'week' | 'month'. Not persisted — resets on exercise change / reopen.
     authDraft: { email: '', avatar: DEFAULT_AVATAR },
     awaitingAvatarPick: false,   // true right after a brand-new account is created, until they pick an icon
@@ -13014,12 +13015,17 @@
     ui.savingRoutine = false;
     ui.pendingDeleteAccount = false;
     switchTabWithFade('progress');
+    // Android back from here goes back to History (then behaves as usual).
+    ui.progressBackToHistory = true;
+    queueBackSync();
   }
   function switchTabWithFade(newTab){
     if (newTab === state.tab){
       renderApp();
       return;
     }
+    // Any real tab change ends the "back returns to History" step.
+    if (ui.progressBackToHistory){ ui.progressBackToHistory = false; queueBackSync(); }
     var oldIndex = TAB_ORDER.indexOf(state.tab);
     var newIndex = TAB_ORDER.indexOf(newTab);
     var viewEl = document.getElementById('view');
@@ -13173,6 +13179,9 @@
   }
   function showAuthGateShell(){
     hideBootLoading();
+    // logging out (or no account) ends any "back returns to History" step
+    ui.progressBackToHistory = false;
+    queueBackSync();
     document.getElementById('app').classList.add('hidden');
     document.getElementById('authGate').classList.remove('hidden');
   }
@@ -13195,6 +13204,7 @@
     state.activityLog = loadActivityLog();
     purgeStaleActivity();
     state.tab = 'log';
+    ui.progressBackToHistory = false;
     ui.editingSet = null;
     ui.selectedMuscle = null;
     ui.showMuscleMap = false;
@@ -15961,11 +15971,26 @@
     var panel = document.getElementById('mmOverlayPanel');
     return !!(panel && panel.querySelector('[data-action="mm-back-to-grid"]'));
   }
+  // "Came to Progress from a History exercise" counts as the BOTTOM layer: back
+  // closes any panel open on top of Progress first, then returns to History,
+  // then behaves normally (so nothing extra is left in the history stack).
+  function progressBackStepActive(){
+    return !!ui.progressBackToHistory && !document.getElementById('app').classList.contains('hidden');
+  }
+  function returnToHistoryFromProgress(){
+    ui.progressBackToHistory = false;
+    // A tap on the History button starts a 140ms tab fade; if back is pressed
+    // inside that window, wait for it to finish so the fade can't land us on
+    // Progress after all.
+    if (ui.tabAnimating) setTimeout(function(){ switchTabWithFade('history'); }, 200);
+    else switchTabWithFade('history');
+  }
   function backLayerCount(){
     var els = backLayerEls();
     var n = els.length;
     var hasMm = els.some(function(el){ return el.id === 'mmOverlay'; });
     if (hasMm && mmListOpen()) n++;
+    if (progressBackStepActive()) n++;
     return n;
   }
   function syncBackHistory(){
@@ -16002,7 +16027,10 @@
   }
   function closeTopBackLayer(){
     var els = backLayerEls();
-    if (!els.length) return;
+    if (!els.length){
+      if (progressBackStepActive()) returnToHistoryFromProgress();
+      return;
+    }
     var top = els[els.length - 1];
     if (top.id === 'rowActionMenu'){ closeRowActionMenu(); return; }
     if (top.id === 'mmOverlay' && mmListOpen()){
