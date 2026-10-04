@@ -55,28 +55,31 @@
   <h2>1. What we collect</h2>
   <p>If you use Guest mode, nothing leaves your device — no account, no data collection. If you create an account, we store:</p>
   <ul>
-    <li>Your email address (for login)</li>
+    <li>Your email address (for login). If you sign in with Google, Firebase receives the basic profile Google shares (your email, and your name and photo if Google provides them); the app only uses your email.</li>
     <li>Your workout data — sessions, sets, routines, bodyweight, training goals, and app preferences — so it syncs across your devices</li>
-    <li>Basic subscription status (Pro/trial/free), managed through Stripe (web) or Google Play Billing (Android app)</li>
-    <li>If you use the in-app AI assistant (a Pro feature): the messages you type to it, and a little context so it can answer (see section 2)</li>
+    <li>Basic subscription status (Pro/trial/free) and a purchase reference, managed through Stripe (web) or Google Play Billing (Android app), so we can confirm your plan</li>
+    <li>A notification token for your device, only if you turn notifications on</li>
+    <li>Coming soon: an in-app AI assistant (a Pro feature). It isn't available yet, and nothing is sent anywhere for it today. Once it launches, if you use it, the messages you type to it and a little context so it can answer will be processed (see section 2)</li>
     <li>Ratings and feedback you choose to submit, which are sent to the developer along with your account email</li>
   </ul>
 
   <h2>2. Who we share it with</h2>
-  <p>We don't sell your data or share it with advertisers. A few services help run the app under the hood:</p>
+  <p>We don't sell your data or share it with advertisers, and we don't run analytics or advertising trackers in the app. A few services help run the app under the hood:</p>
   <table>
     <tr><th>Service</th><th>What it handles</th></tr>
     <tr><td>Firebase (Google)</td><td>Account login, storing/syncing your workout data, and running backend functions for payments and notifications</td></tr>
     <tr><td>Stripe</td><td>Payment processing — we never see or store your card details</td></tr>
     <tr><td>Google Play Billing</td><td>Payment processing for purchases made in the Android app — we verify your subscription status with Google but never see or store your card details</td></tr>
     <tr><td>Resend</td><td>Delivers transactional emails (verification, trial started, receipt) and any rating or feedback you send us</td></tr>
-    <tr><td>Google Gemini (AI assistant)</td><td>If you use the in-app AI assistant, the message you type is sent to Google's Gemini service to work out what you're asking for. To answer, it's also given limited context: which tab you have open, your unit setting, the exercises logged in your current session, your last few messages with the assistant, and any notes you've asked it to remember. It is only available to signed-in Pro and trial accounts. How Google handles that data is covered by Google's own terms.</td></tr>
+    <tr><td>Public CDNs (Google Fonts, cdnjs, jsDelivr)</td><td>The app loads its fonts and a few code libraries from these public services, which can see your IP address the same way any website you visit does. They don't receive your workout data.</td></tr>
+    <tr><td>Google Gemini (AI assistant &mdash; coming soon)</td><td>Not in use yet. Once the AI assistant launches, if you use it, the message you type is sent to Google's Gemini service to work out what you're asking for. To answer, it's also given limited context: which tab you have open, your unit setting, the exercises logged in your current session, your last few messages with the assistant, and any notes you've asked it to remember. It is only available to signed-in Pro and trial accounts. How Google handles that data is covered by Google's own terms.</td></tr>
   </table>
 
-  <h2>3. Push notifications</h2>
+  <h2>3. Push notifications and sharing</h2>
   <p>If you enable notifications, we use Firebase Cloud Messaging to send an occasional nudge (like an inactivity reminder). You can disable this anytime in Settings.</p>
+  <p>If you tap Share on the Progress tab, the app creates a picture of that exercise's numbers on your device and opens your phone's share sheet. Nothing is uploaded to our servers &mdash; you choose where it goes. The Share App button in Settings shares the app's website address.</p>
 
-  <h2>4. Your rights</h2>
+  <h2 id="delete">4. Your rights</h2>
   <p>From Settings, at any time, you can:</p>
   <ul>
     <li><strong>Export</strong> a full JSON backup of your data</li>
@@ -86,7 +89,7 @@
   <p><strong>What we keep after deletion:</strong> a small record that a free trial has already been used with your email address and account ID, so the free trial can't be claimed again. It contains no workout data. Stripe and Google Play also keep payment records under their own policies and legal obligations.</p>
 
   <h2>5. Data security</h2>
-  <p>Your data is stored in Firebase's Firestore database with access rules restricting it to your own account. No system is 100% immune to risk, but standard industry security practices are followed.</p>
+  <p>Your data is stored in Firebase's Firestore database with access rules restricting it to your own account. Data is encrypted in transit (HTTPS). No system is 100% immune to risk, but standard industry security practices are followed.</p>
 
   <h2>6. Children's privacy</h2>
   <p>SaviorFit Logger isn't directed at children under 13, and we don't knowingly collect data from them.</p>
