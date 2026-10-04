@@ -9727,6 +9727,8 @@
   // user actually owns, independent of what happened client-side.
   // Runs quietly on every app open inside the TWA (see enterAccount);
   // no-ops if there's nothing to restore.
+  // Told once per app launch, so a restore on every screen refresh can't nag.
+  var playLinkedWarned = false;
   function restorePlayPurchases(){
     if (!isTWA() || !window.getDigitalGoodsService) return;
     window.getDigitalGoodsService('https://play.google.com/billing').then(function(service){
@@ -9745,10 +9747,20 @@
             renderPricingPanel();
           }
         }).catch(function(err){
-          // Silent by design — this runs on every app open and most
-          // calls find nothing to restore. Logged for our own
-          // debugging only, no user-facing toast.
+          // Silent by design for ordinary failures — this runs on every app
+          // open and most calls find nothing to restore. Logged for our own
+          // debugging only.
           console.error('restorePlayPurchases: verify failed for', sku, err);
+          // ...except one case worth explaining: this Google Play account HAS
+          // a subscription, but it's linked to a DIFFERENT SaviorFit account
+          // (one subscription unlocks Pro for exactly one account). Without
+          // this the person just sees Google say "you already own this" and
+          // gets no Pro here, with no idea why.
+          var code = err && err.code;
+          if ((code === 'functions/already-exists' || code === 'already-exists') && !playLinkedWarned){
+            playLinkedWarned = true;
+            showToast('Your Google Play subscription is linked to another SaviorFit account \u2014 log in with that one to use Pro');
+          }
         });
       });
     }).catch(function(err){
