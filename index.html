@@ -2864,6 +2864,37 @@
   }
   .hi-edit-btn svg{width:14px;height:14px;display:block;}
   .hi-edit-btn:active{background:var(--panel-2);border-color:var(--accent-dim);color:var(--accent);}
+  /* ---------- Session summary (shown after Finish Session) ---------- */
+  .session-summary-panel{max-width:440px;}
+  .ss-sub{font-size:12px;color:var(--text-faint);}
+  .ss-tally{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px;}
+  .ss-chip{
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:0.03em;
+    text-transform:uppercase;padding:4px 9px;border-radius:var(--radius-pill);
+    background:var(--panel);border:1px solid var(--line);color:var(--text-dim);
+  }
+  .ss-chip.up{color:#5fb86a;border-color:rgba(95,184,106,0.4);background:rgba(95,184,106,0.10);}
+  .ss-chip.down{color:#e07a73;border-color:rgba(193,68,60,0.45);background:rgba(193,68,60,0.10);}
+  .ss-chip.first{color:var(--accent);border-color:var(--accent-dim);}
+  .ss-ex{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-md);padding:12px 12px 10px;margin-bottom:10px;}
+  .ss-ex-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;}
+  .ss-ex-name{font-family:'Oswald',sans-serif;font-weight:700;font-size:13.5px;letter-spacing:0.02em;text-transform:uppercase;color:var(--text);min-width:0;overflow-wrap:anywhere;}
+  .ss-ex-name .pr-tag{margin-left:6px;vertical-align:middle;}
+  .ss-verdict{flex-shrink:0;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:3px 8px;border-radius:var(--radius-pill);white-space:nowrap;}
+  .ss-verdict.up{background:rgba(95,184,106,0.16);color:#5fb86a;}
+  .ss-verdict.same{background:var(--panel-3);color:var(--text-dim);}
+  .ss-verdict.down{background:rgba(193,68,60,0.16);color:#e07a73;}
+  .ss-verdict.first{background:rgba(var(--accent-rgb),0.14);color:var(--accent);}
+  .ss-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .ss-m-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-faint);margin-bottom:3px;}
+  .ss-m-val{font-family:'Oswald',sans-serif;font-weight:700;font-size:16px;color:var(--text);line-height:1.15;overflow-wrap:anywhere;}
+  .ss-d{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;margin-top:2px;}
+  .ss-d.up{color:#5fb86a;} .ss-d.down{color:#e07a73;} .ss-d.same{color:var(--text-faint);}
+  .ss-note{font-size:11.5px;color:var(--text-faint);line-height:1.45;margin-top:8px;}
+  .ss-foot-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;}
+  .ss-last{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-faint);min-width:0;line-height:1.5;}
+  .ss-last span{white-space:nowrap;}   /* wrap between the numbers, never inside "25.4 kg" */
+  .ss-chart-btn{flex-shrink:0;background:none;border:1px solid var(--line);color:var(--accent);border-radius:var(--radius-sm);padding:5px 10px;font-family:'Oswald',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;}
   .hi-delete{
     margin-top:0;
     background:none;
@@ -5037,6 +5068,9 @@
 <div class="confirm-overlay hidden" id="printMenuOverlay">
   <div class="pro-panel print-menu-panel" id="printMenuPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="sessionSummaryOverlay">
+  <div class="pro-panel session-summary-panel" id="sessionSummaryPanel"></div>
+</div>
 <div class="confirm-overlay hidden" id="avatarPickOverlay">
   <div class="pro-panel" id="avatarPickPanel"></div>
 </div>
@@ -5600,6 +5634,8 @@
     authMode: 'login',     // 'login' | 'signup'
     authError: null,
     authBusy: false,
+    showSessionSummary: false,  // post-finish "how did I do vs last time" overlay open state
+    sessionSummary: null,       // the data it shows (computed once when it opens)
     progressBackToHistory: false, // true while you're on Progress because you tapped an exercise's button in History: Android back then returns to History (see the back-button section)
     chartView: 'session',   // Progress chart range: 'session' (default) | 'week' | 'month'. Not persisted — resets on exercise change / reopen.
     authDraft: { email: '', avatar: DEFAULT_AVATAR },
@@ -10314,6 +10350,181 @@
     renderApp();
   }
 
+  /* ---------- Session summary: this session vs the last time ----------
+     Shown after Finish Session when at least one exercise has a "last time" to
+     compare with (the same sets the Last time panel and the green arrow use).
+     Per exercise it shows three numbers side by side — total volume, top set
+     and estimated 1RM — each with how it moved, plus ONE plain verdict, so you
+     can tell "I did more work" from "I got stronger":
+       Stronger   est. 1RM is up (>= 1%)
+       More work  total volume is up (>= 1%) but est. 1RM isn't
+       Heavier    a heavier top set, with less volume / a lower est. 1RM
+       Same       nothing moved by 1%
+       Down       volume and/or est. 1RM dropped (>= 1%)
+     Holds compare seconds and bodyweight moves with no load compare reps. */
+  function exerciseSummaryMetrics(name, sets){
+    var m = { vol: 0, top: 0, e1: 0, reps: 0, bestReps: 0, hold: isHoldExercise(name) };
+    sets.forEach(function(st){
+      var load = effectiveLoadKg(name, st.weightKg);
+      m.vol += load * st.reps;
+      if (load > m.top) m.top = load;
+      var e = e1rm(load, st.reps);
+      if (e > m.e1) m.e1 = e;
+      m.reps += st.reps;
+      if (st.reps > m.bestReps) m.bestReps = st.reps;
+    });
+    return m;
+  }
+  function summaryPct(cur, prev){ return prev > 0 ? (cur - prev) / prev * 100 : 0; }
+  function compareExerciseToLast(ex, prevSets){
+    var cur = exerciseSummaryMetrics(ex.name, ex.sets);
+    var hasPR = ex.sets.some(function(st){ return st.isPR; });
+    var out = { name: ex.name, cur: cur, hasPR: hasPR, first: false };
+    if (!prevSets || !prevSets.length){ out.first = true; out.verdict = { key: 'first', label: 'First time' }; return out; }
+    var prev = exerciseSummaryMetrics(ex.name, prevSets);
+    out.prev = prev;
+    out.mode = cur.hold ? 'hold' : ((cur.top <= 0 || prev.top <= 0) ? 'reps' : 'load');
+    out.dVol = summaryPct(cur.vol, prev.vol);
+    out.dE1 = summaryPct(cur.e1, prev.e1);
+    out.dReps = summaryPct(cur.reps, prev.reps);
+    out.dTop = cur.top - prev.top;
+    var v;
+    if (out.mode === 'load'){
+      var strong = out.dE1 >= 1, more = out.dVol >= 1, heavier = cur.top > prev.top * 1.005;
+      if (strong) v = { key: 'up', label: 'Stronger', sub: more ? 'and more total work too' : 'even though total volume was lower' };
+      else if (more) v = { key: 'up', label: 'More work', sub: out.dE1 <= -1 ? 'more total volume, but your best set was a little lower' : null };
+      else if (heavier) v = { key: 'up', label: 'Heavier', sub: 'a heavier top set, with fewer reps overall' };
+      else if (out.dE1 <= -1 || out.dVol <= -1) v = { key: 'down', label: 'Down from last time' };
+      else v = { key: 'same', label: 'About the same' };
+      if (strong && !more && out.dVol <= -1) v.sub = 'your best set got stronger, total volume was lower';
+    } else {
+      var better = out.dReps >= 1 || cur.bestReps > prev.bestReps;
+      var worse = out.dReps <= -1 || cur.bestReps < prev.bestReps;
+      if (better) v = { key: 'up', label: out.mode === 'hold' ? 'Longer holds' : 'More reps' };
+      else if (worse) v = { key: 'down', label: 'Down from last time' };
+      else v = { key: 'same', label: 'About the same' };
+    }
+    out.verdict = v;
+    return out;
+  }
+  function buildSessionSummary(session){
+    var items = [];
+    session.exercises.forEach(function(ex){
+      if (!ex.sets || !ex.sets.length) return;
+      items.push(compareExerciseToLast(ex, getReferenceSets(session, ex.name)));
+    });
+    var tally = { up: 0, same: 0, down: 0, first: 0 };
+    items.forEach(function(it){ tally[it.verdict.key]++; });
+    return {
+      sessionId: session.id, name: session.name || 'Untitled session', date: session.finishedAt || session.date,
+      items: items, tally: tally, anyBaseline: items.some(function(it){ return !it.first; }),
+      exercises: items.length, sets: sessionSetCount(session), volume: sessionVolume(session)
+    };
+  }
+  function ssArrow(d, epsilon){
+    if (Math.abs(d) < epsilon) return { cls: 'same', txt: 'same' };
+    return { cls: d > 0 ? 'up' : 'down', txt: (d > 0 ? '\u25b2 ' : '\u25bc ') };
+  }
+  function ssPct(d){
+    var a = ssArrow(d, 0.5);
+    return a.cls === 'same' ? a : { cls: a.cls, txt: a.txt + Math.abs(Math.round(d * 10) / 10) + '%' };
+  }
+  function ssVol(kg){ return Math.round(toDisplay(kg)).toLocaleString() + ' ' + unitLabel(); }
+  function sessionSummaryItemHtml(it){
+    var unit = unitLabel(), c = it.cur;
+    var head = '<div class="ss-ex-head"><span class="ss-ex-name">' + esc(it.name) + (it.hasPR ? '<span class="pr-tag">PR</span>' : '') + '</span>' +
+               '<span class="ss-verdict ' + it.verdict.key + '">' + esc(it.verdict.label) + '</span></div>';
+    var html = '<div class="ss-ex">' + head;
+    function metric(label, val, d){
+      return '<div><div class="ss-m-label">' + label + '</div><div class="ss-m-val">' + val + '</div>' +
+             (d ? '<div class="ss-d ' + d.cls + '">' + d.txt + '</div>' : '') + '</div>';
+    }
+    if (it.first){
+      var best = c.hold ? c.bestReps + ' s' : (c.top > 0 ? fmtWeight(c.top) + ' ' + unit : c.bestReps + ' reps');
+      html += '<div class="ss-metrics">' +
+                metric(c.hold ? 'TOTAL TIME' : (c.top > 0 ? 'VOLUME' : 'TOTAL REPS'), c.hold ? c.reps + ' s' : (c.top > 0 ? ssVol(c.vol) : String(c.reps)), null) +
+                metric(c.top > 0 || c.hold ? 'TOP SET' : 'BEST SET', best, null) +
+                metric(c.top > 0 && !c.hold ? 'EST. 1RM' : '', c.top > 0 && !c.hold ? fmtWeight(c.e1) + ' ' + unit : '', null) +
+              '</div><div class="ss-note">First time logging this \u2014 these numbers are your baseline for next time.</div>';
+    } else if (it.mode === 'load'){
+      var last = '<span>' + ssVol(it.prev.vol) + '</span> \u00b7 <span>' + fmtWeight(it.prev.top) + ' ' + unit + '</span> \u00b7 <span>' + fmtWeight(it.prev.e1) + ' ' + unit + '</span>';
+      var topD = ssArrow(it.dTop, 0.01);
+      if (topD.cls !== 'same') topD.txt += fmtWeight(Math.abs(it.dTop)) + ' ' + unit;
+      html += '<div class="ss-metrics">' +
+                metric('VOLUME', ssVol(c.vol), ssPct(it.dVol)) +
+                metric('TOP SET', fmtWeight(c.top) + ' ' + unit, topD) +
+                metric('EST. 1RM', fmtWeight(c.e1) + ' ' + unit, ssPct(it.dE1)) +
+              '</div>' + (it.verdict.sub ? '<div class="ss-note">' + esc(it.verdict.sub.charAt(0).toUpperCase() + it.verdict.sub.slice(1)) + '.</div>' : '') +
+              '<div class="ss-foot-row"><div class="ss-last">Last time: ' + last + '</div>' +
+              '<button type="button" class="ss-chart-btn" data-action="open-ex-progress" data-name="' + esc(it.name) + '">Chart</button></div>';
+    } else {
+      var unitTxt = it.mode === 'hold' ? ' s' : ' reps';
+      var bestD = ssArrow(c.bestReps - it.prev.bestReps, 0.5); if (bestD.cls !== 'same') bestD.txt += Math.abs(c.bestReps - it.prev.bestReps) + (it.mode === 'hold' ? ' s' : '');
+      html += '<div class="ss-metrics">' +
+                metric(it.mode === 'hold' ? 'TOTAL TIME' : 'TOTAL REPS', c.reps + (it.mode === 'hold' ? ' s' : ''), ssPct(it.dReps)) +
+                metric(it.mode === 'hold' ? 'BEST HOLD' : 'BEST SET', c.bestReps + (it.mode === 'hold' ? ' s' : ' reps'), bestD) +
+                '<div></div></div>' +
+              '<div class="ss-foot-row"><div class="ss-last">Last time: ' + it.prev.reps + (it.mode === 'hold' ? ' s' : ' reps') + ' total \u00b7 best ' + it.prev.bestReps + unitTxt + '</div>' +
+              '<button type="button" class="ss-chart-btn" data-action="open-ex-progress" data-name="' + esc(it.name) + '">Chart</button></div>';
+    }
+    return html + '</div>';
+  }
+  function renderSessionSummaryOverlay(){
+    var overlay = document.getElementById('sessionSummaryOverlay');
+    var panel = document.getElementById('sessionSummaryPanel');
+    if (!overlay || !panel) return;
+    var sum = ui.sessionSummary;
+    if (!ui.showSessionSummary || !sum){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var t = sum.tally, chips = '';
+    if (t.up) chips += '<span class="ss-chip up">' + t.up + ' up</span>';
+    if (t.same) chips += '<span class="ss-chip">' + t.same + ' same</span>';
+    if (t.down) chips += '<span class="ss-chip down">' + t.down + ' down</span>';
+    if (t.first) chips += '<span class="ss-chip first">' + t.first + ' new</span>';
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Session done</h3><button class="pro-panel-close" data-action="close-session-summary" aria-label="Close">&#10005;</button></div>' +
+      '<div class="pro-panel-sub">' + esc(sum.name) + ' &middot; ' + sum.exercises + ' exercise' + (sum.exercises === 1 ? '' : 's') + ' &middot; ' + sum.sets + ' sets &middot; ' + ssVol(sum.volume) + '</div>' +
+      '<div class="pro-panel-body">' +
+        '<div class="ss-tally">' + chips + '</div>' +
+        sum.items.map(sessionSummaryItemHtml).join('') +
+        '<div class="ss-note" style="margin:2px 0 0;">Compared with the last time you did each exercise. Volume is weight \u00d7 reps added up; est. 1RM comes from your single best set.</div>' +
+      '</div>' +
+      '<div class="pro-panel-footer"><button class="pro-print-btn" data-action="close-session-summary">Done</button></div>';
+    var body = panel.querySelector('.pro-panel-body'); if (body) body.scrollTop = 0;
+  }
+  function openSessionSummary(session){
+    var sum = buildSessionSummary(session);
+    if (!sum.anyBaseline) return;           // nothing to compare with yet (e.g. your very first session)
+    ui.sessionSummary = sum;
+    ui.showSessionSummary = true;
+    renderSessionSummaryOverlay();
+  }
+  function closeSessionSummary(){
+    ui.showSessionSummary = false;
+    ui.sessionSummary = null;
+    renderSessionSummaryOverlay();
+  }
+  (function wireSessionSummary(){
+    var overlayEl = document.getElementById('sessionSummaryOverlay');
+    if (!overlayEl) return;
+    overlayEl.addEventListener('click', function(e){
+      if (e.target === overlayEl){ closeSessionSummary(); return; }
+      var el = e.target.closest('[data-action]');
+      if (!el) return;
+      var action = el.getAttribute('data-action');
+      if (action === 'close-session-summary') closeSessionSummary();
+      else if (action === 'open-ex-progress'){
+        var name = el.getAttribute('data-name');
+        closeSessionSummary();
+        openExerciseInProgress(name);       // Android back from there returns to History
+      }
+    });
+  })();
+
   function renderExerciseCard(session, ex){
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
@@ -12849,6 +13060,11 @@
                 '<button data-action="toggle-quick-add" data-val="on" class="'+(state.settings.quickAdd === true ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-quick-add" data-val="off" class="'+(state.settings.quickAdd !== true ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Session summary</div><div class="sr-sub">When you finish a session, see how each exercise did compared with last time.</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="toggle-session-summary" data-val="on" class="'+(state.settings.sessionSummary !== false ? 'active' : '')+'">ON</button>' +
+                '<button data-action="toggle-session-summary" data-val="off" class="'+(state.settings.sessionSummary === false ? 'active' : '')+'">OFF</button>' +
+              '</div></div>';
     if (state.currentAccount !== 'guest'){
       // A saved token only means the ACCOUNT registered a device once. Whether
       // THIS device will actually get pushes also depends on its current
@@ -13182,6 +13398,7 @@
     // logging out (or no account) ends any "back returns to History" step
     ui.progressBackToHistory = false;
     queueBackSync();
+    if (ui.showSessionSummary) closeSessionSummary();
     document.getElementById('app').classList.add('hidden');
     document.getElementById('authGate').classList.remove('hidden');
   }
@@ -14595,6 +14812,8 @@
     showToast('Session saved');
     if (state.settings.hapticFeedback !== false && navigator.vibrate) navigator.vibrate([15, 30, 15]);
     flashSessionFinished(session.id);
+    // How did it go vs last time? (skipped when there's nothing to compare with)
+    if (state.settings.sessionSummary !== false) openSessionSummary(session);
 
     // First-ever finished session: prompt for a rating once, then never
     // again automatically — reachable afterward only via Settings ->
@@ -16395,6 +16614,10 @@
       openUpInfo(el.dataset.ex, el.dataset.set);
     } else if (action === 'explain-pr'){
       openInfo('pr', el.dataset.prType);
+    } else if (action === 'toggle-session-summary'){
+      state.settings.sessionSummary = (el.dataset.val === 'on');
+      saveSettings();
+      renderApp();
     } else if (action === 'toggle-quick-add'){
       state.settings.quickAdd = (el.dataset.val === 'on');
       saveSettings();
