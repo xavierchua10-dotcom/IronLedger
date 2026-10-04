@@ -13561,6 +13561,10 @@
     });
   }
 
+  // Device-level (not per-account): has this device already offered the guest
+  // welcome? Testers who tapped "Continue as Guest" never saw the setup wizard
+  // or the tour, since both only started after a signup.
+  var STORAGE_GUEST_WELCOME = 'il_guest_welcome_v1';
   function continueAsGuest(){
     setCurrentAccountId('guest');
     state.currentAccount = 'guest';
@@ -13568,6 +13572,16 @@
     bootAccountData();
     showAppShell();
     renderApp();
+    // First-time guests get the same welcome a new signup gets (setup wizard,
+    // then the guided tour) — once per device, and never for a guest who
+    // already has data or has already been through the wizard.
+    var offered = false;
+    try { offered = !!localStorage.getItem(STORAGE_GUEST_WELCOME); } catch (e) { offered = true; }
+    if (!offered){
+      safeSetItem(STORAGE_GUEST_WELCOME, '1');
+      var hasData = state.sessions.some(function(x){ return x.status === 'done'; }) || !!(state.settings && state.settings.experienceLevel);
+      if (!hasData) openOnboardingWizard(true);
+    }
   }
 
   function logOut(){
