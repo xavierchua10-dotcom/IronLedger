@@ -2828,7 +2828,8 @@
   .hi-ex-name{font-size:12px;color:var(--text-dim);font-weight:600;margin-bottom:4px;}
   .hi-ex-sets{font-family:'JetBrains Mono',monospace;font-size:12px;color:#a9aeb5;line-height:1.7;}
   .hi-ex-sets .pr-tag{margin-left:6px;}
-  .hi-tip-btn{
+  /* "See this exercise in Progress" button on a History exercise row. */
+  .hi-go-btn{
     width:26px;
     height:26px;
     flex-shrink:0;
@@ -2844,24 +2845,8 @@
     padding:0;
     position:relative;
   }
-  .hi-tip-btn svg{width:15px;height:15px;display:block;}
-  .hi-tip-btn:active{background:var(--accent-dim);border-color:var(--accent-dim);}
-  .hi-tip-btn.locked{color:var(--text-faint);border-color:var(--line);background:var(--panel);}
-  .hi-tip-btn.locked::after{
-    content:'\1F512';
-    position:absolute;
-    bottom:-4px;
-    right:-4px;
-    font-size:7px;
-    background:var(--panel-2);
-    border-radius:50%;
-    width:12px;
-    height:12px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    line-height:1;
-  }
+  .hi-go-btn svg{width:15px;height:15px;display:block;}
+  .hi-go-btn:active{background:var(--accent-dim);border-color:var(--accent-dim);}
   .hi-ex-actions{display:flex;gap:6px;flex-shrink:0;}
   .hi-edit-btn{
     width:26px;
@@ -2879,30 +2864,6 @@
   }
   .hi-edit-btn svg{width:14px;height:14px;display:block;}
   .hi-edit-btn:active{background:var(--panel-2);border-color:var(--accent-dim);color:var(--accent);}
-  .ex-tip-panel-ex{font-family:'Oswald',sans-serif;font-weight:700;font-size:14px;color:var(--text);text-transform:uppercase;letter-spacing:0.02em;margin-bottom:2px;}
-  .ex-tip-panel-last{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-faint);margin-bottom:12px;}
-  .ex-tip-panel-empty{font-size:12.5px;color:var(--text-faint);line-height:1.5;padding:4px 0;}
-  /* Scoped to the panel's own id (not the shared .pro-panel class other
-     overlays also use) so only the Tips/Target popup gets the photo
-     background. The image (images/tips-target-bg.jpg) ships as a separate file
-     uploaded alongside this index.html, not baked in. The tip callout box
-     (.prc-tip) is switched from its usual translucent accent tint to a
-     solid dark card here specifically, since it's the main thing the
-     person needs to read on this screen — everything else just gets its
-     text brightened enough to hold up against the photo. */
-  #exTipPanel{
-    background-color:var(--panel-2);
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.6), rgba(10,12,16,0.88)), url('images/tips-target-bg.jpg');
-    background-size:cover;
-    background-position:center;
-    background-repeat:no-repeat;
-  }
-  #exTipPanel .ex-tip-panel-last{color:#c7ccd3;}
-  #exTipPanel .ex-tip-panel-empty{color:#c7ccd3;}
-  #exTipPanel .prc-tip{background:#2b2620;}
-  #exTipPanel .prc-tip{color:#d7dae0;}
-  #exTipPanel .prc-tip-badge{background:#332a16;border-color:var(--accent-dim);}
-  #exTipPanel .pro-panel-close{color:#c7ccd3;}
   .hi-delete{
     margin-top:0;
     background:none;
@@ -5076,9 +5037,6 @@
 <div class="confirm-overlay hidden" id="printMenuOverlay">
   <div class="pro-panel print-menu-panel" id="printMenuPanel"></div>
 </div>
-<div class="confirm-overlay hidden" id="exTipOverlay">
-  <div class="pro-panel" id="exTipPanel"></div>
-</div>
 <div class="confirm-overlay hidden" id="avatarPickOverlay">
   <div class="pro-panel" id="avatarPickPanel"></div>
 </div>
@@ -5666,9 +5624,6 @@
     proReceiptSessionId: null,  // sessionId the Pro receipt overlay is showing, or null
     showPrintMenu: false,    // Print menu overlay open state (choose PDF vs PDF Pro)
     printMenuSessionId: null,  // sessionId the print menu overlay is showing, or null
-    showExTip: false,       // Exercise Tips/Target overlay open state (preview or paywall)
-    exTipSessionId: null,   // sessionId the Tips/Target overlay is showing, or null
-    exTipExId: null,        // exId (within that session) the Tips/Target overlay is showing, or null
     editingExerciseName: null,  // exId currently being renamed, or null
     newExerciseId: null,        // exId of a just-added blank exercise awaiting its name, or null
     justAddedExIds: [],         // exIds that should play the "just added" glow pulse once (see flashExerciseAdded / flashExercisesAdded)
@@ -8917,68 +8872,6 @@
      TIPS / TARGET  (per-exercise progressive-overload overlay,
      opened from the light bulb button on a History exercise row)
      ========================================================= */
-  function openExTip(sessionId, exId){
-    ui.exTipSessionId = sessionId;
-    ui.exTipExId = exId;
-    ui.showExTip = true;
-    renderExTipOverlay();
-  }
-  function closeExTip(){
-    ui.showExTip = false;
-    ui.exTipSessionId = null;
-    ui.exTipExId = null;
-    renderExTipOverlay();
-  }
-  function renderExTipOverlay(){
-    var overlay = document.getElementById('exTipOverlay');
-    var panel = document.getElementById('exTipPanel');
-    if (!ui.showExTip){
-      overlay.classList.add('hidden');
-      panel.innerHTML = '';
-      return;
-    }
-    var s = state.sessions.find(function(x){ return x.id === ui.exTipSessionId; });
-    var ex = s && s.exercises.find(function(x){ return x.id === ui.exTipExId; });
-    if (!s || !ex){
-      overlay.classList.add('hidden');
-      ui.showExTip = false;
-      panel.innerHTML = '';
-      return;
-    }
-    overlay.classList.remove('hidden');
-    if (!isProActive()){
-      panel.innerHTML =
-        '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Tips / Target</h3>' +
-          '<button class="pro-panel-close" data-action="close-ex-tip" aria-label="Close">&#10005;</button>' +
-        '</div>' +
-        '<div class="paywall-body">' +
-          '<div class="paywall-icon">&#128161;</div>' +
-          '<div class="paywall-title">Unlock Tips &amp; Target</div>' +
-          '<div class="paywall-sub">See exactly what to do next time on \u201c'+esc(ex.name)+'\u201d \u2014 maintain, add reps, or add weight, worked out from your logged history.</div>' +
-          '<ul class="paywall-features">' +
-            '<li><span class="chk">&#10003;</span> A specific weight or rep target for next session</li>' +
-            '<li><span class="chk">&#10003;</span> Add-weight or add-reps guidance per exercise</li>' +
-            '<li><span class="chk">&#10003;</span> Updates automatically as you log new sets</li>' +
-          '</ul>' +
-          '<button class="paywall-unlock-btn" data-action="open-pricing">' + (state.currentAccount === 'guest' ? 'Create an account to go Pro' : 'See Pro plans') + '</button>' +
-          '<div class="paywall-note">' + (state.currentAccount === 'guest' ? 'Guest data doesn\u2019t sync or hold a subscription.' : 'Monthly $'+PRICE_MONTHLY.toFixed(2)+' or Annual $'+PRICE_ANNUAL.toFixed(2)+' \u2014 cancel anytime.') + '</div>' +
-        '</div>';
-      return;
-    }
-    var tip = overloadTipForExercise(ex);
-    var lastSet = ex.sets && ex.sets.length ? ex.sets[ex.sets.length - 1] : null;
-    panel.innerHTML =
-      '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Tips / Target</h3>' +
-        '<button class="pro-panel-close" data-action="close-ex-tip" aria-label="Close">&#10005;</button>' +
-      '</div>' +
-      '<div class="pro-panel-body">' +
-        '<div class="ex-tip-panel-ex">'+esc(ex.name)+'</div>' +
-        (lastSet ? '<div class="ex-tip-panel-last">Last logged: '+fmtWeight(lastSet.weightKg)+' '+unitLabel()+' &times; '+lastSet.reps+'</div>' : '') +
-        (tip
-          ? renderTipHtml(tip)
-          : '<div class="ex-tip-panel-empty">Log a set on this exercise to get a target for next session.</div>') +
-      '</div>';
-  }
 
   /* =========================================================
      PROFILE ICON PICKER (Settings → Account)
@@ -10659,7 +10552,6 @@
     if (expanded){
       html += '<div class="history-item-body">';
       s.exercises.forEach(function(ex){
-        var tipLocked = !isProActive();
         html += '<div class="hi-ex">' +
                   '<div class="hi-ex-main">' +
                     '<div class="hi-ex-name">'+esc(ex.name)+
@@ -10674,7 +10566,7 @@
         html += '</div></div>' +
                 '<div class="hi-ex-actions">' +
                   '<button class="hi-edit-btn" data-action="edit-session-exercise" data-session="'+s.id+'" data-ex="'+ex.id+'" aria-label="Edit '+esc(ex.name)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>' +
-                  '<button class="hi-tip-btn'+(tipLocked ? ' locked' : '')+'" data-action="open-ex-tip" data-session="'+s.id+'" data-ex="'+ex.id+'" aria-label="Tips and target for '+esc(ex.name)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg></button>' +
+                  '<button class="hi-go-btn" data-action="open-ex-progress" data-name="'+esc(ex.name)+'" aria-label="See '+esc(ex.name)+' in Progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg></button>' +
                 '</div>' +
                 '</div>';
       });
@@ -13101,6 +12993,28 @@
   // as any other in-memory UI state.
   var tabScrollPositions = {};
 
+  // History -> Progress in one tap: opens the Progress tab with this exercise
+  // already selected. The name comes straight from a logged exercise, so it is
+  // always one of the names Progress lists (allExerciseNames). Resets the same
+  // transient UI state a normal tab tap does, and starts at the top of the page
+  // rather than wherever Progress was last scrolled.
+  function openExerciseInProgress(name){
+    var n = String(name || '').trim();
+    if (!n) return;
+    ui.progressExercise = n;
+    ui.chartView = 'session';              // same reset the Progress picker does on an exercise change
+    ui.progressExerciseListOpen = false;   // never land on the exercise list instead of the chart
+    tabScrollPositions.progress = 0;
+    ui.pendingMuscle = null;
+    ui.editingSet = null;
+    discardPendingNewExercise();
+    ui.editingExerciseName = null;
+    ui.showAccountMenu = false;
+    ui.confirmModal = null;
+    ui.savingRoutine = false;
+    ui.pendingDeleteAccount = false;
+    switchTabWithFade('progress');
+  }
   function switchTabWithFade(newTab){
     if (newTab === state.tab){
       renderApp();
@@ -13312,7 +13226,6 @@
       state.userDoc = docData;
       renderApp();
       renderPricingPanel();
-      renderExTipOverlay();
     });
   }
 
@@ -16423,8 +16336,8 @@
       openRepeatSessionConfirm(el.dataset.session);
     } else if (action === 'open-print-menu'){
       openPrintMenu(el.dataset.session);
-    } else if (action === 'open-ex-tip'){
-      openExTip(el.dataset.session, el.dataset.ex);
+    } else if (action === 'open-ex-progress'){
+      openExerciseInProgress(el.dataset.name);
     } else if (action === 'set-unit'){
       state.settings.unit = el.dataset.unit;
       saveSettings();
@@ -16933,22 +16846,6 @@
     }
   });
 
-  var exTipOverlayEl = document.getElementById('exTipOverlay');
-  exTipOverlayEl.addEventListener('click', function(e){
-    if (e.target === exTipOverlayEl){
-      closeExTip();
-      return;
-    }
-    var el = e.target.closest('[data-action]');
-    if (!el) return;
-    if (el.dataset.action === 'close-ex-tip'){
-      closeExTip();
-    } else if (el.dataset.action === 'open-pricing'){
-      closeExTip();
-      openPricing();
-    }
-  });
-
   var avatarPickOverlayEl = document.getElementById('avatarPickOverlay');
   avatarPickOverlayEl.addEventListener('click', function(e){
     if (e.target === avatarPickOverlayEl){
@@ -17318,8 +17215,6 @@
       closePricing();
     } else if (ui.showPrintMenu){
       closePrintMenu();
-    } else if (ui.showExTip){
-      closeExTip();
     } else if (ui.showAvatarPick){
       closeAvatarPick();
     } else if (ui.showTemplatePicker){
@@ -17432,7 +17327,6 @@
     if (lastRenderedPro === null || isProActive() === lastRenderedPro) return;
     renderApp();
     renderPricingPanel();
-    renderExTipOverlay();
   }
   document.addEventListener('visibilitychange', function(){
     if (!document.hidden) syncProState();
