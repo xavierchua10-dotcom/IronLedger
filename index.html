@@ -1382,6 +1382,10 @@
     color:var(--text-faint);
     padding:2px 0 10px;
   }
+  /* "Last best: 85 kg × 9" — same family as the Suggested line; tap opens the Last time panel. */
+  .ex-last-best{cursor:pointer;}
+  .ex-target-hint + .ex-last-best{margin-top:-6px;}   /* sits snug under the Suggested line */
+  .ex-last-best b{color:var(--text);font-family:'JetBrains Mono',monospace;font-weight:600;}
   /* Tiny "i" next to jargon (1RM, top set, volume, PR list): tap for a
      plain-language explanation. The ::after widens the tap area. */
   .info-dot{
@@ -10335,6 +10339,23 @@
     if (!(curVal > prevVal + 0.001)) return null;
     return { prev: prev, cur: cur, prevVal: prevVal, curVal: curVal, repsOnly: repsOnly, hold: isHoldExercise(ex.name), index: setIndex };
   }
+  /* "Last best": the best set from the last time you did this exercise (the
+     same sets the Last time panel shows) — heaviest first, then most reps;
+     for holds, the longest hold. Shown at the top of the card so you can see
+     what to beat without opening anything. */
+  function lastBestSetOf(name, sets){
+    if (!sets || !sets.length) return null;
+    var hold = isHoldExercise(name), best = null, bestLoad = -1;
+    sets.forEach(function(st){
+      var load = hold ? 0 : effectiveLoadKg(name, st.weightKg);
+      if (!best || load > bestLoad + 0.001 || (Math.abs(load - bestLoad) <= 0.001 && st.reps > best.reps)){ best = st; bestLoad = load; }
+    });
+    return best;
+  }
+  function lastBestText(name, st){
+    if (isHoldExercise(name)) return st.reps + ' s';
+    return st.weightKg > 0 ? fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps : st.reps + ' reps';
+  }
   function upTagHtml(ex, st){
     return '<span class="up-tag" data-action="explain-up" data-ex="' + ex.id + '" data-set="' + st.id + '" role="button" aria-label="Up from last time">' +
              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>' +
@@ -10580,6 +10601,11 @@
     if (ex.targetSets){
       var hintRange = currentRepRange();
       html += '<div class="ex-target-hint">Suggested: ' + ex.targetSets + ' sets \u00d7 ' + hintRange.min + '\u2013' + hintRange.max + ' reps</div>';
+    }
+
+    var lastBest = lastBestSetOf(ex.name, refSets);
+    if (lastBest){
+      html += '<div class="ex-target-hint ex-last-best" data-action="open-exercise-reference" data-ex-name="' + esc(ex.name) + '" role="button">Last best: <b>' + esc(lastBestText(ex.name, lastBest)) + '</b></div>';
     }
 
     // First time doing this exercise? A gentle one-liner, only for people who
