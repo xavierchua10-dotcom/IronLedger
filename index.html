@@ -4959,6 +4959,111 @@
   }
   @keyframes bootLetterIn{ from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:none;} }
   @keyframes bootPulse{ 0%,100%{opacity:.9;} 50%{opacity:.5;} }
+
+  /* ---------- Liquid Glass card style (Settings > Appearance > Card style) ----------
+     iPhone-style: very see-through panels, heavy blur + colour boost of what is
+     behind, a bright specular rim (top-left), a faint inner glow along the
+     bottom edge and a soft drop shadow so the panel looks like a lens floating
+     above the page. Only active when html[data-card-style="glass"]. */
+  /* #app is itself a backdrop root: if it also blurred, the cards inside would
+     only ever see its flat colour. In Liquid Glass it is a light tint instead, and
+     the photo behind it is brightened a little so the glass has something to bend. */
+  html[data-card-style="glass"] #app{
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+    background:rgba(20,23,27,0.34);
+  }
+  html[data-card-style="glass"] body{
+    background:
+      linear-gradient(rgba(10,11,14,0.66), rgba(10,11,14,0.78)),
+      url('images/hero-background.jpg') center / cover no-repeat fixed;
+  }
+  html[data-card-style="glass"] .settings-group,
+  html[data-card-style="glass"] .settings-group.sg-deco,
+  html[data-card-style="glass"] .pro-panel,
+  html[data-card-style="glass"] .notif-dropdown,
+  html[data-card-style="glass"] .row-action-menu,
+  html[data-card-style="glass"] .toast{
+    background-color:rgba(255,255,255,0.045);
+    background-image:
+      linear-gradient(135deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.05) 28%, rgba(255,255,255,0.00) 55%, rgba(255,255,255,0.07) 100%);
+    background-size:auto;
+    animation:none;
+    -webkit-backdrop-filter:blur(26px) saturate(185%) brightness(1.06);
+    backdrop-filter:blur(26px) saturate(185%) brightness(1.06);
+    border:1px solid rgba(255,255,255,0.16);
+    border-radius:22px;
+    box-shadow:
+      inset 1.5px 1.5px 0 rgba(255,255,255,0.38),
+      inset -1px -1px 0 rgba(255,255,255,0.10),
+      inset 0 0 22px rgba(255,255,255,0.05),
+      0 10px 34px rgba(0,0,0,0.38);
+  }
+  html[data-card-style="glass"] .pro-panel,
+  html[data-card-style="glass"] .notif-dropdown{ animation:none; }
+  html[data-card-style="glass"] .notif-dropdown{ animation:notifSlideDown 0.18s ease; }
+  html[data-card-style="glass"] .row-action-menu{ animation:notifSlideDown 0.15s ease; border-radius:18px; }
+  html[data-card-style="glass"] .toast{ border-radius:999px; }
+  /* the gold/grid decoration layer inside Settings cards: keep, but soften so
+     the glass reads through it */
+  html[data-card-style="glass"] .settings-group.sg-deco .tpl-bg{ opacity:0.35; }
+  html[data-card-style="glass"] .settings-row{ border-top-color:rgba(255,255,255,0.10); }
+  html[data-card-style="glass"] .pro-panel{ background-color:rgba(26,30,36,0.50); }
+  /* keep small grey text readable on the lighter glass */
+  html[data-card-style="glass"] .settings-row .sr-sub{ color:rgba(233,230,223,0.78); }
+  html[data-card-style="glass"] #view .section-label{ text-shadow:0 1px 6px rgba(0,0,0,0.75); color:rgba(233,230,223,0.85); }
+  /* buttons and the segmented control become small glass pills */
+  html[data-card-style="glass"] .settings-row .sr-action,
+  html[data-card-style="glass"] .settings-row button.sr-action{
+    background:rgba(255,255,255,0.10);
+    border:1px solid rgba(255,255,255,0.20);
+    border-radius:999px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.32), 0 2px 8px rgba(0,0,0,0.25);
+    -webkit-backdrop-filter:blur(10px);
+    backdrop-filter:blur(10px);
+  }
+  html[data-card-style="glass"] .settings-row button.sr-action-danger{ border-color:rgba(193,68,60,0.55); }
+  html[data-card-style="glass"] .settings-row .seg{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.14);
+    box-shadow:inset 0 1px 2px rgba(0,0,0,0.25);
+  }
+  html[data-card-style="glass"] .settings-row .seg .seg-thumb,
+  html[data-card-style="glass"] .settings-row .seg button.active{
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.45), 0 2px 8px rgba(0,0,0,0.30);
+  }
+  html[data-card-style="glass"] .card-style-option{
+    background:rgba(255,255,255,0.06);
+    border-radius:16px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  /* bottom tab bar + top bar: glass strips with a hairline rim */
+  html[data-card-style="glass"] .tabbar{
+    background:rgba(24,27,32,0.38);
+    border-top:1px solid rgba(255,255,255,0.14);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  html[data-card-style="glass"] .topbar{
+    background:rgba(24,27,32,0.34);
+    border-bottom:1px solid rgba(255,255,255,0.12);
+  }
+  /* browsers without backdrop-filter get a more opaque panel so text stays readable */
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+    html[data-card-style="glass"] .settings-group,
+    html[data-card-style="glass"] .settings-group.sg-deco,
+    html[data-card-style="glass"] .pro-panel,
+    html[data-card-style="glass"] .notif-dropdown,
+    html[data-card-style="glass"] .row-action-menu,
+    html[data-card-style="glass"] .toast{ background-color:rgba(28,31,36,0.92); }
+  }
+  @media (prefers-reduced-transparency: reduce){
+    html[data-card-style="glass"] .settings-group,
+    html[data-card-style="glass"] .settings-group.sg-deco,
+    html[data-card-style="glass"] .pro-panel,
+    html[data-card-style="glass"] .notif-dropdown,
+    html[data-card-style="glass"] .row-action-menu,
+    html[data-card-style="glass"] .toast{ background-color:rgba(28,31,36,0.92); -webkit-backdrop-filter:none; backdrop-filter:none; }
+  }
 </style>
   <!-- Three.js r128 + the matching GLTFLoader/OrbitControls examples
        builds, for the 3D model in Muscle Volume Overview (Insight tab). -->
@@ -7413,11 +7518,12 @@
   // those already have deliberately strong contrast for dense content.
   var CARD_STYLE_DEFAULTS = {
     default: { '--panel':'#1c1f24', '--panel-2':'#242830', '--panel-3':'#2a2f38', '--line':'#2e333b', '--glass-blur':'none', '--card-sheen':'linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0))', '--card-sheen-size':'auto', '--card-sheen-anim':'none' },
-    glass:   { '--panel':'rgba(28,31,36,0.58)', '--panel-2':'rgba(36,40,48,0.58)', '--panel-3':'rgba(42,47,56,0.58)', '--line':'rgba(255,255,255,0.09)', '--glass-blur':'blur(18px)', '--card-sheen':'linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0))', '--card-sheen-size':'auto', '--card-sheen-anim':'none' }
+    glass:   { '--panel':'rgba(44,49,58,0.34)', '--panel-2':'rgba(52,58,68,0.40)', '--panel-3':'rgba(60,67,78,0.44)', '--line':'rgba(255,255,255,0.16)', '--glass-blur':'blur(26px) saturate(185%) brightness(1.06)', '--card-sheen':'linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0))', '--card-sheen-size':'auto', '--card-sheen-anim':'none' }
   };
   function applyCardStyle(styleId){
     var root = document.documentElement.style;
     var vars = CARD_STYLE_DEFAULTS[styleId] || CARD_STYLE_DEFAULTS.default;
+    document.documentElement.setAttribute('data-card-style', CARD_STYLE_DEFAULTS[styleId] ? styleId : 'default');
     Object.keys(vars).forEach(function(varName){
       root.setProperty(varName, vars[varName]);
     });
@@ -7459,7 +7565,7 @@
   // already used for Accent color and Card background).
   var CARD_STYLE_PICKER_OPTIONS = [
     { id: 'default', label: 'Default', desc: 'The original look — solid cards, no extra effects.' },
-    { id: 'glass', label: 'Glass', desc: 'Adds blur and transparency to the app\'s main panels.' }
+    { id: 'glass', label: 'Liquid Glass', desc: 'iPhone-style frosted glass: see-through, softly blurred panels with a bright edge highlight.' }
   ];
   var CARD_BG_OPTIONS = [
     { id: 'default', label: 'Default' },
@@ -13172,7 +13278,7 @@
               '</div></div>';
     var chosenCardStyle = (state.settings && state.settings.cardStyle) || 'default';
     var cardStyleObj = CARD_STYLE_PICKER_OPTIONS.filter(function(o){ return o.id === chosenCardStyle; })[0] || CARD_STYLE_PICKER_OPTIONS[0];
-    html += '<div class="settings-row"><div><div class="sr-label">Card style</div><div class="sr-sub">Sheen and Glass add extra visual effects to cards</div></div>' +
+    html += '<div class="settings-row"><div><div class="sr-label">Card style</div><div class="sr-sub">Sheen and Liquid Glass add extra visual effects to cards</div></div>' +
               '<button class="sr-action" data-action="open-settings-picker" data-kind="cardStyle">'+esc(cardStyleObj.label)+'</button></div>';
     html += '</div>';
 
