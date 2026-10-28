@@ -5288,6 +5288,16 @@
   // redirect because popups never hand their result back there, which left
   // the login spinner stuck forever. This runs on every load to finish the
   // redirect, and reports a failure instead of silently doing nothing.
+  // Tiny on-screen trail of the Google sign-in steps (shown under the build
+  // stamp on the login screen) so a failure can be diagnosed from one screenshot.
+  function sfTrace(m){
+    try{
+      var a = JSON.parse(localStorage.getItem('sf_trace') || '[]');
+      a.push(new Date().toTimeString().slice(0, 8) + ' ' + m);
+      localStorage.setItem('sf_trace', JSON.stringify(a.slice(-10)));
+    }catch(e){}
+  }
+  window.sfTrace = sfTrace;
   var GOOGLE_REDIRECT_KEY = 'sf_google_redirect_pending';
   function reportGoogleRedirectFail(code){
     if (typeof window.__sfGoogleRedirectFailed === 'function') window.__sfGoogleRedirectFailed(code);
@@ -5304,6 +5314,7 @@
     return !!GOOGLE_WEB_CLIENT_ID && location.origin === 'https://saviorfitlogger.com';
   }
   function startGoogleIdTokenFlow(){
+    sfTrace('go google (idtoken)');
     var bytes = new Uint8Array(16);
     crypto.getRandomValues(bytes);
     var nonce = Array.prototype.map.call(bytes, function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
@@ -5321,6 +5332,13 @@
   }
   (function finishGoogleIdTokenFlow(){
     var h = location.hash || '';
+    var hasNonce = false;
+    try{ hasNonce = !!localStorage.getItem(GOOGLE_NONCE_KEY); }catch(e){}
+    if (h || hasNonce){
+      sfTrace('load sa=' + ((window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ? 1 : 0) +
+              ' ref=' + (document.referrer || '-').slice(0, 22) +
+              ' hash=' + (h.indexOf('id_token=') > -1 ? 'idtoken' : (h.slice(0, 50) || '-')));
+    }
     if (h.indexOf('id_token=') === -1 && h.indexOf('error=') === -1) return;
     var params = new URLSearchParams(h.replace(/^#/, ''));
     try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
@@ -5332,8 +5350,12 @@
       nonceOk = payload.nonce === localStorage.getItem(GOOGLE_NONCE_KEY);
     }catch(e){}
     try{ localStorage.removeItem(GOOGLE_NONCE_KEY); }catch(e){}
+    sfTrace('nonce ' + (nonceOk ? 'ok' : 'BAD'));
     if (!nonceOk){ reportGoogleRedirectFail('auth/google-bad-nonce'); return; }
-    signInWithCredential(auth, GoogleAuthProvider.credential(idToken)).catch(function(err){
+    signInWithCredential(auth, GoogleAuthProvider.credential(idToken)).then(function(){
+      sfTrace('firebase sign-in ok');
+    }).catch(function(err){
+      sfTrace('firebase err ' + ((err && err.code) || 'unknown'));
       console.error('Google ID-token sign-in failed:', err && err.code, err);
       reportGoogleRedirectFail((err && err.code) || 'unknown');
     });
@@ -14117,6 +14139,7 @@
     renderAuthGate();
     var inApp = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                 (document.referrer || '').indexOf('android-app://') === 0;
+    if (window.sfTrace) window.sfTrace('tap inApp=' + (inApp ? 1 : 0));
     if (inApp){
       // Never leave the spinner up forever in the installed app.
       setTimeout(function(){
@@ -14166,7 +14189,10 @@
             '</button>';
     html += '<button class="auth-guest-btn" data-action="continue-guest"'+(busy?' disabled':'')+'>Continue as Guest</button>';
     html += '<div class="auth-note">Accounts sync your workout log across devices. Guest mode stays on this device only.</div>';
-    html += '<div class="auth-note" style="opacity:.45;font-size:10px;">build 28oct-d</div>';
+    html += '<div class="auth-note" style="opacity:.45;font-size:10px;">build 28oct-e</div>';
+    var __tr = '';
+    try{ __tr = (JSON.parse(localStorage.getItem('sf_trace') || '[]')).join('\n'); }catch(e){}
+    if (__tr) html += '<div class="auth-note" style="opacity:.5;font-size:10px;text-align:left;white-space:pre-wrap;word-break:break-all;">'+esc(__tr)+'</div>';
     html += '</div>';
     if (busy){
       html += '<div class="auth-loading-overlay" role="status" aria-live="polite" aria-label="Please wait"><div class="auth-spinner"></div></div>';
