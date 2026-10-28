@@ -2760,6 +2760,7 @@
   .rating-feedback-input:focus{outline:none;border-color:var(--accent);}
   .rating-submit-btn{width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:var(--radius-md);padding:14px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13.5px;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;}
   .rating-submit-btn:active{background:var(--accent-dim);}
+  .rating-playstore{display:block;margin-top:14px;text-align:center;font-size:13px;font-weight:600;color:var(--accent);text-decoration:underline;}
   .history-no-match{
     text-align:center;
     color:var(--text-faint);
@@ -11640,6 +11641,7 @@
       '<div class="pro-panel-body rating-panel-body">' +
         '<div class="rating-stars-row">' + starsHtml + '</div>' +
         body +
+        '<a class="rating-playstore" href="https://play.google.com/store/apps/details?id=com.saviorfitlogger.app" target="_blank" rel="noopener">Rate us on Google Play</a>' +
       '</div>';
   }
 
@@ -13428,8 +13430,6 @@
               '<button class="sr-action" data-action="start-tour">Start</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Rate SaviorFit Logger</div><div class="sr-sub">'+(state.settings.appRating ? 'You rated '+state.settings.appRating+' star'+(state.settings.appRating === 1 ? '' : 's')+' \u2014 tap to update' : 'Let us know how it\u2019s going')+'</div></div>' +
               '<button class="sr-action" data-action="open-rating-panel">Rate</button></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Rate on Google Play</div><div class="sr-sub">Leave a review on the Play Store</div></div>' +
-              '<a class="sr-action" href="https://play.google.com/store/apps/details?id=com.saviorfitlogger.app" target="_blank" rel="noopener">Open</a></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Share App</div><div class="sr-sub">Know someone who\u2019d like this? Send them the link</div></div>' +
               '<button class="sr-action" data-action="share-app">Share</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Instagram</div><div class="sr-sub">@im.savior_</div></div>' +
