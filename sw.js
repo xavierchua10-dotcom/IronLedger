@@ -40,7 +40,7 @@ messaging.onBackgroundMessage(function(payload){
   });
 });
 
-var CACHE_NAME = 'iron-ledger-v4';
+var CACHE_NAME = 'iron-ledger-v5';
 var CORE_ASSETS = [
   './',
   './index.html',
@@ -76,6 +76,26 @@ self.addEventListener('activate', function(event){
 // is the only case this app needs to work without a connection at all.
 self.addEventListener('fetch', function(event){
   if (event.request.method !== 'GET') return;
+
+  // Firebase's code comes from Google's CDN at a pinned version. Keep a copy so
+  // the app can still start with no connection (it used to hang on the splash
+  // screen forever when that download failed).
+  var reqUrl = new URL(event.request.url);
+  if (reqUrl.hostname === 'www.gstatic.com' && reqUrl.pathname.indexOf('/firebasejs/') === 0){
+    event.respondWith(
+      caches.match(event.request).then(function(hit){
+        if (hit) return hit;
+        return fetch(event.request).then(function(res){
+          if (res && res.status === 200){
+            var c = res.clone();
+            caches.open(CACHE_NAME).then(function(cache){ cache.put(event.request, c); });
+          }
+          return res;
+        });
+      })
+    );
+    return;
+  }
 
   // Pages are fetched with cache:'no-cache' so the browser's own HTTP cache
   // (GitHub Pages sets ~10 min) can never serve an old index.html.
