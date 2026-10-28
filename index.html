@@ -11583,6 +11583,19 @@
     ui.ratingDraftStars = n;
     renderRatingOverlay();
   }
+  // Opens the Play Store listing. On Android this launches the Play Store app
+  // through an intent (a plain https link did nothing inside the installed app);
+  // elsewhere it opens the web listing in a new tab.
+  function openPlayStoreReview(){
+    var id = 'com.saviorfitlogger.app';
+    if (/Android/i.test(navigator.userAgent || '')){
+      window.location.href = 'intent://details?id=' + id +
+        '#Intent;scheme=market;package=com.android.vending;' +
+        'S.browser_fallback_url=' + encodeURIComponent('https://play.google.com/store/apps/details?id=' + id) + ';end';
+    } else {
+      window.open('https://play.google.com/store/apps/details?id=' + id, '_blank', 'noopener');
+    }
+  }
   function submitRating(){
     var stars = ui.ratingDraftStars;
     if (!stars) return;
@@ -11605,6 +11618,8 @@
     ui.showRatingPanel = false;
     renderRatingOverlay();
     showToast(stars >= 4 ? 'Thanks so much! \ud83d\ude4f' : 'Thanks for the feedback!');
+    // Happy raters go straight on to post the public review on Google Play.
+    if (stars >= 4) openPlayStoreReview();
   }
   function renderRatingOverlay(){
     var overlay = document.getElementById('ratingOverlay');
@@ -11626,9 +11641,9 @@
     if (stars === 0){
       body = '<div class="rating-subtitle">Let us know how it\u2019s going</div>';
     } else if (stars >= 4){
-      body = '<div class="rating-subtitle rating-subtitle-positive">Awesome, glad to hear it! \ud83c\udf89</div>' +
+      body = '<div class="rating-subtitle rating-subtitle-positive">Awesome, glad to hear it! \ud83c\udf89 Tap below to post your review on Google Play</div>' +
              '<textarea id="ratingFeedbackInput" class="rating-feedback-input" rows="3" placeholder="Anything you\u2019d love to see next? (optional)"></textarea>' +
-             '<button type="button" class="rating-submit-btn" data-action="submit-rating">Submit</button>';
+             '<button type="button" class="rating-submit-btn" data-action="submit-rating">Submit &amp; rate on Google Play</button>';
     } else {
       body = '<div class="rating-subtitle">Thanks for the honesty \u2014 what could we do better?</div>' +
              '<textarea id="ratingFeedbackInput" class="rating-feedback-input" rows="3" placeholder="Tell us what\u2019s not working (optional)"></textarea>' +
@@ -13428,8 +13443,8 @@
     html += '<div class="settings-group">';
     html += '<div class="settings-row"><div><div class="sr-label">Guided tour</div><div class="sr-sub">A quick walkthrough of the app\u2019s main features</div></div>' +
               '<button class="sr-action" data-action="start-tour">Start</button></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Rate SaviorFit Logger</div><div class="sr-sub">Rate us on Google Play</div></div>' +
-              '<a class="sr-action rate-play" href="https://play.google.com/store/apps/details?id=com.saviorfitlogger.app" target="_blank" rel="noopener">Rate</a></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Rate SaviorFit Logger</div><div class="sr-sub">'+(state.settings.appRating ? 'You rated '+state.settings.appRating+' star'+(state.settings.appRating === 1 ? '' : 's')+' \u2014 tap to update' : 'Tap the stars to rate us')+'</div></div>' +
+              '<button class="sr-action" data-action="open-rating-panel">Rate</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Share App</div><div class="sr-sub">Know someone who\u2019d like this? Send them the link</div></div>' +
               '<button class="sr-action" data-action="share-app">Share</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Instagram</div><div class="sr-sub">@im.savior_</div></div>' +
@@ -15140,6 +15155,7 @@
       if (doneCount === 1){
         state.settings.ratingPromptShown = true;
         saveSettings();
+        setTimeout(openRatingPanel, 1500);
       }
     }
   }
@@ -17127,14 +17143,12 @@
   // "Rate" in Settings: on Android, open the Play Store app directly through an
   // intent (a plain https link to play.google.com did nothing inside the
   // installed app); everywhere else the normal link opens the web listing.
+  // The panel's "Rate us on Google Play" link: on Android open the Play Store app.
   document.addEventListener('click', function(e){
-    var a = e.target.closest ? e.target.closest('a.rate-play') : null;
+    var a = e.target.closest ? e.target.closest('a.rating-playstore') : null;
     if (!a || !/Android/i.test(navigator.userAgent || '')) return;
     e.preventDefault();
-    var id = 'com.saviorfitlogger.app';
-    window.location.href = 'intent://details?id=' + id +
-      '#Intent;scheme=market;package=com.android.vending;' +
-      'S.browser_fallback_url=' + encodeURIComponent('https://play.google.com/store/apps/details?id=' + id) + ';end';
+    openPlayStoreReview();
   });
 
   document.addEventListener('click', function(e){
