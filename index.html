@@ -13429,7 +13429,7 @@
     html += '<div class="settings-row"><div><div class="sr-label">Guided tour</div><div class="sr-sub">A quick walkthrough of the app\u2019s main features</div></div>' +
               '<button class="sr-action" data-action="start-tour">Start</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Rate SaviorFit Logger</div><div class="sr-sub">Rate us on Google Play</div></div>' +
-              '<a class="sr-action" href="https://play.google.com/store/apps/details?id=com.saviorfitlogger.app" target="_blank" rel="noopener">Rate</a></div>';
+              '<a class="sr-action rate-play" href="https://play.google.com/store/apps/details?id=com.saviorfitlogger.app" target="_blank" rel="noopener">Rate</a></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Share App</div><div class="sr-sub">Know someone who\u2019d like this? Send them the link</div></div>' +
               '<button class="sr-action" data-action="share-app">Share</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Instagram</div><div class="sr-sub">@im.savior_</div></div>' +
@@ -17124,6 +17124,19 @@
   }
 
   // Close the notifications dropdown when tapping anywhere outside it.
+  // "Rate" in Settings: on Android, open the Play Store app directly through an
+  // intent (a plain https link to play.google.com did nothing inside the
+  // installed app); everywhere else the normal link opens the web listing.
+  document.addEventListener('click', function(e){
+    var a = e.target.closest ? e.target.closest('a.rate-play') : null;
+    if (!a || !/Android/i.test(navigator.userAgent || '')) return;
+    e.preventDefault();
+    var id = 'com.saviorfitlogger.app';
+    window.location.href = 'intent://details?id=' + id +
+      '#Intent;scheme=market;package=com.android.vending;' +
+      'S.browser_fallback_url=' + encodeURIComponent('https://play.google.com/store/apps/details?id=' + id) + ';end';
+  });
+
   document.addEventListener('click', function(e){
     if (!ui.showNotifications) return;
     var wrap = document.querySelector('.account-wrap');
