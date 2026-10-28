@@ -40,7 +40,7 @@ messaging.onBackgroundMessage(function(payload){
   });
 });
 
-var CACHE_NAME = 'iron-ledger-v3';
+var CACHE_NAME = 'iron-ledger-v4';
 var CORE_ASSETS = [
   './',
   './index.html',
@@ -77,8 +77,11 @@ self.addEventListener('activate', function(event){
 self.addEventListener('fetch', function(event){
   if (event.request.method !== 'GET') return;
 
+  // Pages are fetched with cache:'no-cache' so the browser's own HTTP cache
+  // (GitHub Pages sets ~10 min) can never serve an old index.html.
+  var isDoc = event.request.mode === 'navigate' || event.request.destination === 'document';
   event.respondWith(
-    fetch(event.request).then(function(response){
+    (isDoc ? fetch(event.request.url, { cache: 'no-cache' }) : fetch(event.request)).then(function(response){
       if (response && response.status === 200 && response.type === 'basic'){
         var copy = response.clone();
         caches.open(CACHE_NAME).then(function(cache){ cache.put(event.request, copy); });
