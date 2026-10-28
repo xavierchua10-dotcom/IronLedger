@@ -11588,12 +11588,13 @@
   // elsewhere it opens the web listing in a new tab.
   function openPlayStoreReview(){
     var id = 'com.saviorfitlogger.app';
-    if (/Android/i.test(navigator.userAgent || '')){
+    var ua = navigator.userAgent || '';
+    if (/Android/i.test(ua) && !/; wv\)/.test(ua)){
       window.location.href = 'intent://details?id=' + id +
         '#Intent;scheme=market;package=com.android.vending;' +
         'S.browser_fallback_url=' + encodeURIComponent('https://play.google.com/store/apps/details?id=' + id) + ';end';
     } else {
-      window.open('https://play.google.com/store/apps/details?id=' + id, '_blank', 'noopener');
+      window.location.href = 'https://play.google.com/store/apps/details?id=' + id;
     }
   }
   function submitRating(){
@@ -17143,6 +17144,19 @@
   // "Rate" in Settings: on Android, open the Play Store app directly through an
   // intent (a plain https link to play.google.com did nothing inside the
   // installed app); everywhere else the normal link opens the web listing.
+  // Links marked target="_blank" (Terms, Privacy, Instagram...) did nothing inside
+  // the installed app, because it can't open new tabs/windows. Open them in the
+  // same window instead (Terms/Privacy have their own "Back" link; the phone's
+  // back button also returns here).
+  document.addEventListener('click', function(e){
+    var a = e.target.closest ? e.target.closest('a[target="_blank"]') : null;
+    if (!a || a.classList.contains('rating-playstore')) return;
+    var href = a.href || '';
+    if (!href || /^(mailto:|tel:|sms:)/i.test(href)) return;
+    e.preventDefault();
+    window.location.href = href;
+  }, true);
+
   // The panel's "Rate us on Google Play" link: on Android open the Play Store app.
   document.addEventListener('click', function(e){
     var a = e.target.closest ? e.target.closest('a.rating-playstore') : null;
