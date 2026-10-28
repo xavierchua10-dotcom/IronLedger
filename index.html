@@ -5298,7 +5298,7 @@
   // Unlike Firebase's redirect/popup it needs no helper iframe on another domain,
   // which is what loses the result inside the installed app. Stays off until a
   // web client ID is filled in below.
-  var GOOGLE_WEB_CLIENT_ID = '';
+  var GOOGLE_WEB_CLIENT_ID = '978680753798-do7gibjom81ie9qf87a63e6f7tm17pbb.apps.googleusercontent.com';
   var GOOGLE_NONCE_KEY = 'sf_google_nonce';
   function googleIdTokenFlowAvailable(){
     return !!GOOGLE_WEB_CLIENT_ID && location.origin === 'https://saviorfitlogger.com';
@@ -14166,7 +14166,7 @@
             '</button>';
     html += '<button class="auth-guest-btn" data-action="continue-guest"'+(busy?' disabled':'')+'>Continue as Guest</button>';
     html += '<div class="auth-note">Accounts sync your workout log across devices. Guest mode stays on this device only.</div>';
-    html += '<div class="auth-note" style="opacity:.45;font-size:10px;">build 28oct-c</div>';
+    html += '<div class="auth-note" style="opacity:.45;font-size:10px;">build 28oct-d</div>';
     html += '</div>';
     if (busy){
       html += '<div class="auth-loading-overlay" role="status" aria-live="polite" aria-label="Please wait"><div class="auth-spinner"></div></div>';
