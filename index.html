@@ -5252,7 +5252,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-    signOut, onAuthStateChanged, deleteUser, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
+    signOut, onAuthStateChanged, deleteUser, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signInWithCredential,
     reauthenticateWithCredential, EmailAuthProvider, reauthenticateWithPopup,
     sendPasswordResetEmail, updatePassword, sendEmailVerification
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
@@ -5293,6 +5293,52 @@
     if (typeof window.__sfGoogleRedirectFailed === 'function') window.__sfGoogleRedirectFailed(code);
     else window.__sfGoogleRedirectFailCode = code;
   }
+  // Preferred in-app flow: send the user to Google and get an ID token straight
+  // back on our own domain (in the URL fragment), then hand it to Firebase.
+  // Unlike Firebase's redirect/popup it needs no helper iframe on another domain,
+  // which is what loses the result inside the installed app. Stays off until a
+  // web client ID is filled in below.
+  var GOOGLE_WEB_CLIENT_ID = '';
+  var GOOGLE_NONCE_KEY = 'sf_google_nonce';
+  function googleIdTokenFlowAvailable(){
+    return !!GOOGLE_WEB_CLIENT_ID && location.origin === 'https://saviorfitlogger.com';
+  }
+  function startGoogleIdTokenFlow(){
+    var bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    var nonce = Array.prototype.map.call(bytes, function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
+    try{ localStorage.setItem(GOOGLE_NONCE_KEY, nonce); }catch(e){}
+    var p = new URLSearchParams({
+      client_id: GOOGLE_WEB_CLIENT_ID,
+      redirect_uri: location.origin + '/',
+      response_type: 'id_token',
+      scope: 'openid email profile',
+      nonce: nonce,
+      prompt: 'select_account'
+    });
+    location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + p.toString();
+    return new Promise(function(){ /* page is navigating away */ });
+  }
+  (function finishGoogleIdTokenFlow(){
+    var h = location.hash || '';
+    if (h.indexOf('id_token=') === -1 && h.indexOf('error=') === -1) return;
+    var params = new URLSearchParams(h.replace(/^#/, ''));
+    try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
+    var idToken = params.get('id_token');
+    if (!idToken){ reportGoogleRedirectFail('auth/google-' + (params.get('error') || 'failed')); return; }
+    var nonceOk = false;
+    try{
+      var payload = JSON.parse(atob(idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      nonceOk = payload.nonce === localStorage.getItem(GOOGLE_NONCE_KEY);
+    }catch(e){}
+    try{ localStorage.removeItem(GOOGLE_NONCE_KEY); }catch(e){}
+    if (!nonceOk){ reportGoogleRedirectFail('auth/google-bad-nonce'); return; }
+    signInWithCredential(auth, GoogleAuthProvider.credential(idToken)).catch(function(err){
+      console.error('Google ID-token sign-in failed:', err && err.code, err);
+      reportGoogleRedirectFail((err && err.code) || 'unknown');
+    });
+  })();
+
   getRedirectResult(auth).then(function(res){
     var pending = false;
     try{ pending = localStorage.getItem(GOOGLE_REDIRECT_KEY) === '1'; localStorage.removeItem(GOOGLE_REDIRECT_KEY); }catch(e){}
@@ -5373,6 +5419,7 @@
       var inApp = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                   (document.referrer || '').indexOf('android-app://') === 0;
       if (inApp){
+        if (googleIdTokenFlowAvailable()) return startGoogleIdTokenFlow();
         try{ localStorage.setItem(GOOGLE_REDIRECT_KEY, '1'); }catch(e){}
         return signInWithRedirect(auth, googleProvider);
       }
@@ -14119,7 +14166,7 @@
             '</button>';
     html += '<button class="auth-guest-btn" data-action="continue-guest"'+(busy?' disabled':'')+'>Continue as Guest</button>';
     html += '<div class="auth-note">Accounts sync your workout log across devices. Guest mode stays on this device only.</div>';
-    html += '<div class="auth-note" style="opacity:.45;font-size:10px;">build 28oct-b</div>';
+    html += '<div class="auth-note" style="opacity:.45;font-size:10px;">build 28oct-c</div>';
     html += '</div>';
     if (busy){
       html += '<div class="auth-loading-overlay" role="status" aria-live="polite" aria-label="Please wait"><div class="auth-spinner"></div></div>';
