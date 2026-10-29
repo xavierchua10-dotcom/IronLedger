@@ -3205,6 +3205,7 @@
     white-space:pre-wrap;
     word-break:break-word;
   }
+  .chat-link{color:var(--accent);text-decoration:underline;font-weight:600;word-break:break-all;-webkit-user-select:text;user-select:text;}
   .chat-msg-bot{
     align-self:flex-start;
     background:var(--panel-2);
@@ -15514,6 +15515,12 @@
   // being acted on.
   var LOG_CHAT_NO_ACTIONS_REPLY = 'I don\u2019t log or change workouts any more \u2014 use the Log tab for that (+ to add an exercise, then Add Set). I\u2019m here for questions: how to do an exercise, what a split day covers, your PRs and stats, or how the app works.';
 
+  // Bug reports / feedback go to the app's Instagram. The handle in the
+  // reply is rendered as a tappable link (see logChatAppendMessageText).
+  var LOG_CHAT_BUG_HANDLE = '@saviorfitlogger.app';
+  var LOG_CHAT_BUG_URL = 'https://www.instagram.com/saviorfitlogger.app/';
+  var LOG_CHAT_BUG_REPLY = 'Reach out to ' + LOG_CHAT_BUG_HANDLE + ' on Instagram.';
+
   function logChatIsActionRequest(text, lower){
     // Questions are always fair game, even ones about logging.
     if (/^(what|whats|what's|how|why|when|where|who|which|can|could|does|do|is|are|should|explain|tell me|describe)\b/.test(lower)) return false;
@@ -15554,6 +15561,9 @@
     if (logChatIsMemoryListQuestion(text)) return logChatListMemory();
     var forgetParsed = logChatParseForget(text);
     if (forgetParsed) return logChatRequestForget(forgetParsed);
+
+    // Bug reports / feedback / contacting the developer.
+    if (/\b(bugs?|glitch(es|y)?|crash(es|ed|ing)?|broken|feedback|report (a |an )?(problem|issue)|contact (you|support|the dev\w*)|support|something'?s wrong)\b/.test(lower)) return LOG_CHAT_BUG_REPLY;
 
     // Anything that would log, edit, delete or finish \u2014 not done here.
     if (logChatIsActionRequest(text, lower)) return LOG_CHAT_NO_ACTIONS_REPLY;
@@ -16211,6 +16221,7 @@
       if (!hasUserMessage){
         var starterChips = [];
         tabPills.forEach(function(p){ starterChips.push({ label: p.label, value: p.text }); });
+        starterChips.push({ label: 'Report a bug', value: 'report a bug' });
         return starterChips;
       }
       // Mid-conversation — keep offering a tappable way in instead of
@@ -16236,9 +16247,25 @@
       }
       var freshTabPill = tabPills.filter(function(p){ return ui.logChatUsedPillValues.indexOf(p.text) === -1; })[0];
       if (freshTabPill) midChips.push({ label: freshTabPill.label, value: freshTabPill.text });
+      if (ui.logChatUsedPillValues.indexOf('report a bug') === -1) midChips.push({ label: 'Report a bug', value: 'report a bug' });
       return midChips;
     }
     return [];
+  }
+
+  // Plain text, except the bug-report Instagram handle becomes a real link.
+  function logChatAppendMessageText(node, text){
+    var at = text.indexOf(LOG_CHAT_BUG_HANDLE);
+    if (at === -1){ node.textContent = text; return; }
+    node.appendChild(document.createTextNode(text.slice(0, at)));
+    var a = document.createElement('a');
+    a.href = LOG_CHAT_BUG_URL;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.className = 'chat-link';
+    a.textContent = LOG_CHAT_BUG_HANDLE;
+    node.appendChild(a);
+    node.appendChild(document.createTextNode(text.slice(at + LOG_CHAT_BUG_HANDLE.length)));
   }
 
   function renderLogChatOverlay(){
@@ -16324,7 +16351,7 @@
       if (m.pending){
         node.innerHTML = '<span class="chat-typing" aria-label="Thinking"><span></span><span></span><span></span></span>';
       } else {
-        node.textContent = m.text;
+        logChatAppendMessageText(node, m.text);
       }
       node._chatMsg = m;
       body.appendChild(node);
