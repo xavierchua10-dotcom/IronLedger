@@ -4675,27 +4675,27 @@
     border-radius:var(--radius-lg);
     background:#fff;
   }
+  /* Caption reuses the search-card text styles (.ex-suggest-name / -tag / -how)
+     so the popup reads exactly like the exercise cards in the picker. */
   .img-preview-caption{
+    flex:none;
     width:100%;
     max-height:28vh;
     overflow-y:auto;
-    text-align:center;
-  }
-  .img-preview-caption[hidden]{display:none;}
-  .img-preview-name{
+    text-align:left;
+    background:var(--panel-3);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:12px 14px 14px;
     color:var(--text);
-    font-size:17px;
-    font-weight:700;
-    letter-spacing:.03em;
-    text-transform:uppercase;
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    font-weight:600;
   }
-  .img-preview-how{
-    margin-top:6px;
-    color:var(--text-dim);
-    font-size:14.5px;
-    line-height:1.5;
-  }
-  .img-preview-how:empty{display:none;}
+  .img-preview-caption[hidden],
+  .img-preview-caption [hidden]{display:none;}
+  .img-preview-caption .ex-suggest-how{font-size:13.5px;}
+  .img-preview-caption .ex-suggest-how:empty{display:none;}
   .img-preview-close{
     position:absolute;
     top:calc(16px + var(--safe-top, 0px));
@@ -5279,9 +5279,12 @@
 <div class="img-preview-overlay hidden" id="imgPreviewOverlay">
   <div class="img-preview-body">
     <img class="img-preview-img" id="imgPreviewImg" alt="">
-    <div class="img-preview-caption" id="imgPreviewCaption" hidden>
-      <div class="img-preview-name" id="imgPreviewName"></div>
-      <div class="img-preview-how" id="imgPreviewHow"></div>
+    <div class="img-preview-caption ex-suggest-content" id="imgPreviewCaption" hidden>
+      <div class="ex-suggest-top">
+        <span class="ex-suggest-name" id="imgPreviewName"></span>
+        <span class="ex-suggest-tag" id="imgPreviewTag" hidden></span>
+      </div>
+      <div class="ex-suggest-how" id="imgPreviewHow"></div>
     </div>
   </div>
   <button class="img-preview-close" aria-label="Close">&times;</button>
@@ -16728,14 +16731,19 @@
       var imgPreviewHowEl = document.getElementById('imgPreviewHow');
       var imgPreviewExName = el.dataset.exName || '';
       var imgPreviewHow = '';
+      var imgPreviewEquip = '';
       var imgPreviewKey = imgPreviewExName.toLowerCase();
       for (var ipi = 0; ipi < EXERCISE_LIBRARY_FLAT.length; ipi++){
         if (EXERCISE_LIBRARY_FLAT[ipi].name.toLowerCase() === imgPreviewKey){
           imgPreviewHow = EXERCISE_LIBRARY_FLAT[ipi].how || '';
+          imgPreviewEquip = EXERCISE_LIBRARY_FLAT[ipi].equipment || '';
           break;
         }
       }
+      var imgPreviewTagEl = document.getElementById('imgPreviewTag');
       imgPreviewNameEl.textContent = imgPreviewExName;
+      imgPreviewTagEl.textContent = imgPreviewEquip;
+      imgPreviewTagEl.hidden = !imgPreviewEquip;
       imgPreviewHowEl.textContent = imgPreviewHow;
       imgPreviewCaptionEl.hidden = !(imgPreviewExName || imgPreviewHow);
       imgPreviewOverlayEl.classList.remove('hidden');
