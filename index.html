@@ -65,6 +65,8 @@
     --text:#e9e6df;
     --text-dim:#8b9098;
     --text-faint:#82878f;
+    --glass-bg:rgba(20,22,26,0.55);
+    --glass-border:rgba(255,255,255,0.14);
     --accent:#f2b134;
     --accent-dim:#7a6224;
     --accent-rgb:242,177,52;
@@ -3087,7 +3089,195 @@
   }
   .he-cancel-btn{color:var(--text-dim);}
   .he-save-btn{color:var(--accent);}
+  .log-chat-ai-usage{
+    font-size:11px;font-weight:600;color:var(--text-dim);
+    white-space:nowrap;min-width:52px;text-align:right;
+  }
+  .log-chat-ai-usage.log-chat-ai-usage-low{color:var(--accent-2);}
   .he-body{padding:14px 16px 20px;overflow-y:auto;}
+
+  /* ---------- Log Assistant chat ---------- */
+  // Full-screen + glass, unlike every other .confirm-overlay/.pro-panel
+  // modal in the app (those stay centered cards on purpose — this one's
+  // deliberately different, a dedicated look for the chat specifically).
+  #logChatOverlay{
+    position:absolute;
+    inset:0;
+    padding:0;
+    align-items:stretch;
+    justify-content:stretch;
+    z-index:92;
+  }
+  @keyframes logChatSlideIn{
+    from{ transform:translateX(100%); }
+    to{ transform:translateX(0); }
+  }
+  @keyframes logChatSlideOut{
+    from{ transform:translateX(0); }
+    to{ transform:translateX(100%); }
+  }
+  /* ID+class beats the plain #logChatPanel rule below on specificity,
+     no !important needed; forwards keeps it parked off-screen once the
+     animation ends instead of snapping back before the JS hide runs. */
+  #logChatPanel.log-chat-closing{
+    animation: logChatSlideOut 0.22s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  }
+  @media (prefers-reduced-motion: reduce){
+    #logChatPanel, #logChatPanel.log-chat-closing{ animation: none; }
+  }
+  #logChatPanel{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    max-width:none;
+    max-height:none;
+    border-radius:0;
+    border:none;
+    box-shadow:none;
+    background:var(--glass-bg);
+    background-image:none;
+    backdrop-filter:blur(24px) saturate(180%);
+    -webkit-backdrop-filter:blur(24px) saturate(180%);
+    animation:logChatSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #logChatPanel .he-header{
+    padding-top:calc(14px + env(safe-area-inset-top, 0px));
+    border-bottom:1px solid var(--glass-border);
+    background:transparent;
+  }
+  #logChatPanel .chat-input-row{
+    border-top:1px solid var(--glass-border);
+    background:transparent;
+  }
+  .chat-body{
+    flex:1;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:14px 16px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    /* min-height:0 lets this flex child actually shrink and scroll.
+       Bottom-anchoring is done with margin-top:auto on the first
+       message instead of justify-content:flex-end — flex-end made
+       overflow spill off the TOP, where it can't be scrolled to. */
+    min-height:0;
+    overscroll-behavior:contain;
+  }
+  .chat-body > :first-child{margin-top:auto;}
+  @keyframes chatMsgUp{
+    from{ opacity:0; transform:translateY(14px) scale(0.98); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+  .chat-msg-new{animation:chatMsgUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;}
+  .chat-msg-user.chat-msg-new{transform-origin:bottom right;}
+  .chat-msg-bot.chat-msg-new{transform-origin:bottom left;}
+  .chat-typing{display:inline-flex;gap:4px;align-items:center;padding:2px 0;}
+  .chat-typing span{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--text-dim);
+    animation:chatTyping 1.1s infinite ease-in-out;
+  }
+  .chat-typing span:nth-child(2){animation-delay:0.15s;}
+  .chat-typing span:nth-child(3){animation-delay:0.3s;}
+  @keyframes chatTyping{
+    0%, 60%, 100%{ transform:translateY(0); opacity:0.4; }
+    30%{ transform:translateY(-4px); opacity:1; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .chat-msg-new, .chat-typing span{animation:none;}
+  }
+  .chat-msg{
+    max-width:82%;
+    padding:10px 13px;
+    border-radius:var(--radius-md);
+    font-size:13.5px;
+    line-height:1.4;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  .chat-msg-bot{
+    align-self:flex-start;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-bottom-left-radius:4px;
+  }
+  .chat-msg-pending{
+    font-style:italic;
+    color:var(--text-dim);
+    opacity:0.8;
+  }
+  .chat-msg-user{
+    align-self:flex-end;
+    background:var(--accent);
+    color:#1c1500;
+    border-bottom-right-radius:4px;
+  }
+  .chat-input-row{
+    display:flex;
+    align-items:flex-end; /* send button stays at the bottom as the box grows */
+    gap:8px;
+    padding:10px 14px calc(10px + var(--safe-bottom));
+    border-top:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .chat-input{
+    flex:1;
+    min-width:0;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius-xl);
+    color:var(--text);
+    font-size:16px;
+    font-family:inherit;
+    line-height:1.35;
+    padding:11px 16px;
+    resize:none;
+    max-height:122px; /* ~5 lines, then it scrolls inside */
+    overflow-y:auto;
+    display:block;
+  }
+  .chat-input:focus{outline:none;border-color:var(--accent);}
+  .chat-send-btn{
+    width:40px;
+    height:40px;
+    flex-shrink:0;
+    border-radius:50%;
+    background:var(--accent);
+    border:none;
+    color:#1c1500;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+  }
+  .chat-send-btn svg{width:18px;height:18px;display:block;}
+  .chat-send-btn:active{background:var(--accent-dim);}
+  .chat-chip-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    padding:2px 14px 10px;
+    flex-shrink:0;
+  }
+  .chat-chip{
+    background:var(--panel-2);
+    border:1px solid var(--accent);
+    color:var(--accent);
+    font-size:13px;
+    font-weight:600;
+    padding:8px 14px;
+    border-radius:var(--radius-xl);
+    cursor:pointer;
+    white-space:nowrap;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .chat-chip:active{background:var(--accent);color:#1c1500;}
   .he-name-input{
     width:100%;box-sizing:border-box;background:var(--panel-3);
     border:1px solid var(--line);border-radius:var(--radius-sm);
@@ -4606,6 +4796,23 @@
     transition:opacity 160ms ease, transform 160ms ease;
   }
 
+  /* ---------- Log Assistant chat context bar — sits inside the chat
+     panel itself, directly under .he-header, showing which tab the
+     assistant's context is currently tied to. No show/hide toggle
+     needed like the old under-header version: renderLogChatOverlay()
+     only builds this markup at all while the panel is open. ---------- */
+  .chat-context-bar{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:8px 16px;
+    font-size:12px;
+    color:var(--text-faint);
+    border-bottom:1px solid var(--glass-border);
+    flex-shrink:0;
+  }
+  .chat-context-bar svg{flex-shrink:0;width:13px;height:13px;color:var(--accent);}
+
   .toast{
     position:fixed;
     bottom:calc(90px + var(--safe-bottom));
@@ -5566,6 +5773,14 @@
     callVerifyPlayPurchase: function(sku, purchaseToken){
       return httpsCallable(cloudFunctions, 'verifyPlayPurchase')({ sku: sku, purchaseToken: purchaseToken }).then(function(res){ return res.data; });
     },
+    // Log Assistant's AI fallback — only called when the free, offline,
+    // regex-based parser genuinely can't handle a message (see
+    // processLogChatMessage). Requires a signed-in user; the Cloud
+    // Function itself also rate-limits per user server-side, so the
+    // client doesn't need to duplicate that logic here.
+    callChatAssistant: function(message, context){
+      return httpsCallable(cloudFunctions, 'chatAssistant')({ message: message, context: context || {} }).then(function(res){ return res.data; });
+    },
     // NOTE: merge:true is essential here — this doc also holds tier/
     // subscription/trial fields (see ensureUserDoc below). A plain
     // (non-merge) setDoc on every workout save would silently wipe
@@ -5575,6 +5790,7 @@
         sessions: data.sessions || [],
         routines: data.routines || [],
         settings: data.settings || {},
+        chatMemory: data.chatMemory || [],
         updatedAt: Date.now()
       }, { merge: true });
     },
@@ -5747,6 +5963,7 @@
   var STORAGE_SETTINGS = 'il_settings_v1';
   var STORAGE_CURRENT_ACCOUNT = 'il_current_account_v1';
   var STORAGE_ROUTINES = 'il_routines_v1';
+  var STORAGE_CHAT_MEMORY = 'il_chat_memory_v1'; // Log Assistant's persistent "remember this" notes — { id, text, createdAt }[], synced the same way as routines
   var STORAGE_ACTIVITY_LOG = 'il_activity_log_v1';
   var STORAGE_PROGRESS_ACCESS = 'il_progress_access_v1';
   // Set (per account) whenever this device holds changes the cloud may not
@@ -5773,6 +5990,8 @@
      ========================================================= */
   var DEV_OVERRIDE_EMAIL = 'xavierchua10@gmail.com';
   var TRIAL_DAYS = 30;
+  // Display-only — must match CHAT_DAILY_LIMIT_PER_USER in Iron-Ledge-Webhook/functions/index.js. The actual limit is enforced server-side regardless of this value; this is only used to render "X/60" in the chat header.
+  var CHAT_DAILY_LIMIT_CLIENT = 60;
   // Bump manually on meaningful releases — shown at the bottom of
   // Settings so a bug report or support email can be matched to the
   // build that produced it, without needing to ask "what version are
@@ -5849,6 +6068,7 @@
   var state = {
     sessions: [],
     routines: [],          // [{ id, name, exercises: [{ name, muscle }] }]
+    chatMemory: [],        // [{ id, text, createdAt }] — Log Assistant's persistent "remember this" notes
     settings: { unit: 'kg', avatar: null },
     activityLog: [],       // [{ id, time, message, tag }, ...] newest first — the "Brief"
     tab: 'log',
@@ -5942,6 +6162,29 @@
     freshAddSetRow: null,       // exId whose Add Set input row should play the same glow pulse once it opens (see openAddSetPanel)
     justFinishedSessionId: null, // sessionId that should play the "just finished" glow pulse once in History (see flashSessionFinished)
     editDraft: null,             // { sessionId, name, exercises } — working copy while the History-edit overlay is open. Fully detached from state.sessions; nothing in it touches the real session until commitHistoryEditSave(). Cancel just discards it, no revert logic needed. See openHistoryEditOverlay.
+    logChatOpen: false,          // Log Assistant chat overlay — rule-based (no LLM/backend), see processLogChatMessage
+    logChatByTab: {},            // tab name -> saved snapshot of the fields below (see logChatSaveTabState/logChatLoadTabState) — each tab keeps its own separate conversation, swapped in/out on open
+    logChatGreetedTab: null,     // which tab's conversation is currently loaded into the fields below — openLogChat() saves the outgoing tab's snapshot and loads the incoming one when this differs from state.tab
+    logChatMessages: [],         // { role: 'user'|'bot', text } — in-memory only, not persisted; resets on app reload
+    logChatUndoStack: [],        // { label, undo: fn } — most recent chat-driven change last; "undo" pops and reverses it. In-memory, not persisted; survives closing/reopening the chat but not a reload
+    logChatGreetedPendingKey: null, // the last pending-exercise signature that was announced to the chat — re-fires only when it actually changes
+    logChatClosing: false,       // true while the panel is mid slide-out — guards closeLogChat() against running twice (its own history.back() re-triggers it via popstate)
+    logChatAutoCloseAfterReply: false, // set right before returning the "Session saved!" reply — logChatShowReplyWithDelay closes the chat shortly after showing it, then clears this flag
+    logChatAIRemainingToday: null, // AI calls left today, per the server's own counter — null until the first AI call (success or limit-hit) this session reveals it; shown as "X/60 AI" in the chat header, Pro only
+    logChatPendingFinish: false, // true right after the assistant asks "finish this session?" — the very next message is read as yes/no instead of a normal command
+    logChatPendingDeleteExercise: null, // { exId } right after the assistant asks "delete this WHOLE exercise?" — next message is read as yes/no
+    logChatPendingRename: null, // { exId, oldName, newName } right after the assistant asks "rename this to X?" — next message is read as yes/no
+    logChatPendingDelete: null, // { exId, setId } right after the assistant asks "delete this set?" — next message is read as yes/no
+    logChatPendingEdit: null,   // { exId, setId, newWeightKg, newReps, oldWeightKg, oldReps } right after the assistant asks "change this set to X?" — next message is read as yes/no
+    logChatPendingFlowSwitch: null, // { newExName, newExMuscle } right after the guided flow asks "switch to X instead?" because a different real exercise was mentioned mid-flow — next message is read as yes/no
+    logChatPendingNavigateSuggestion: null, // { target } right after the assistant asks "that sounds like a <Tab> thing — want me to take you there?" — next message is read as yes/no
+    logChatLastReplyKind: null, // 'logged_set' | 'prs' | 'stats' | null — what the last reply was, so logChatCurrentChips() can offer a natural follow-up pill (e.g. PRs -> "Stats this week"). Reset to null at the top of every processLogChatMessage call; only a few handlers set it.
+    logChatUsedPillValues: [], // chip values already tapped once in this tab's conversation — the tab pill/contextual follow-up in logChatCurrentChips() won't offer the same one again once it's in here, so a suggestion doesn't keep resurfacing after it's already been used
+    logChatPendingForgetNote: null, // { noteId, text } right after the assistant asks "forget this note?" — next message is read as yes/no
+    logChatPendingForgetAll: false, // true right after the assistant asks "forget everything?" — next message is read as yes/no
+    logChatPendingDeleteChoice: null, // { exId } right after the assistant asks "which set?" for an exercise with several sets today
+    logChatPendingExerciseChoice: null, // { options, weightKg, reps } or { options, sets } right after the assistant asks "which one did you mean?" for an ambiguous exercise name
+    logChatFlow: null,           // { step, exName, exMuscle, setCount, setsLogged } — active guided flow (title -> exercise -> sets -> reps), see processLogChatFlowStep
     historyEditFocusExId: null,  // when set, the overlay renders as a focused "Edit Exercise" panel showing only this one exercise from editDraft.exercises, instead of the whole session's list. Set via the per-exercise edit button in History; null for the session-level "\u22ee > Edit" entry point.
     historyEditOpenRow: null,    // { type: 'add'|'edit', exId, setId? } — which single inline weight/reps row is currently open inside the edit overlay (only one at a time)
     historyEditRowDraft: { weight: null, reps: null }, // typed-but-unconfirmed values for whichever row historyEditOpenRow points at
@@ -5957,7 +6200,7 @@
     showTemplatePicker: false,  // Start-from-template overlay open state
     templatePickerCategory: null, // null = showing category cards; a category id = drilled into that category's template list
     showRestTimerPicker: false, // Rest timer duration picker overlay open state
-    showLogChat: false, // Log Assistant overlay open state (currently just a "coming soon" panel)
+ // Log Assistant overlay open state (currently just a "coming soon" panel)
     restTimerDraftSeconds: 90,  // Duration currently being tuned in the picker, before Start is pressed
     showBodyweightPicker: false, // Bodyweight edit overlay open state
     bodyweightDraft: '',         // Draft value in the bodyweight overlay's input, before Confirm is pressed
@@ -6144,6 +6387,17 @@
     if (!ok) warnStorageUnavailableOnce();
     scheduleFirestoreSync();
   }
+  function loadChatMemory(){
+    try{
+      var raw = localStorage.getItem(scopedKey(STORAGE_CHAT_MEMORY));
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveChatMemory(){
+    var ok = safeSetItem(scopedKey(STORAGE_CHAT_MEMORY), JSON.stringify(state.chatMemory));
+    if (!ok) warnStorageUnavailableOnce();
+    scheduleFirestoreSync();
+  }
   function saveSettings(){
     var ok = safeSetItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(state.settings));
     if (!ok) warnStorageUnavailableOnce();
@@ -6247,7 +6501,7 @@
     if (!acct || acct === 'guest' || !firestorePullSettled) return;
     if (!window.SaviorFirebase || !window.SaviorFirebase.saveUserData) return;
     var seq = cloudSyncSeq;
-    var payload = { sessions: state.sessions, routines: state.routines, settings: state.settings };
+    var payload = { sessions: state.sessions, routines: state.routines, settings: state.settings, chatMemory: state.chatMemory };
     if (!cloudSizeWarned){
       try {
         if (JSON.stringify(payload).length > CLOUD_DOC_WARN_BYTES){
@@ -9413,39 +9667,6 @@
   function closeRestTimerPicker(){
     ui.showRestTimerPicker = false;
     renderRestTimerPickerOverlay();
-  }
-
-  // Log Assistant — entry point is live, but the actual assistant isn't
-  // built out here yet (it's still being developed in the sandbox).
-  // Tapping the header button shows a simple "coming soon" panel rather
-  // than a real chat, so the icon can ship now without promising
-  // functionality that doesn't exist yet.
-  function openLogChat(){
-    ui.showLogChat = true;
-    renderLogChatOverlay();
-  }
-  function closeLogChat(){
-    ui.showLogChat = false;
-    renderLogChatOverlay();
-  }
-  function renderLogChatOverlay(){
-    var overlay = document.getElementById('logChatOverlay');
-    var panel = document.getElementById('logChatPanel');
-    if (!ui.showLogChat){
-      overlay.classList.add('hidden');
-      panel.innerHTML = '';
-      return;
-    }
-    overlay.classList.remove('hidden');
-    panel.innerHTML =
-      '<div class="pro-panel-header"><h3>Log Assistant</h3>' +
-        '<button class="pro-panel-close" data-action="close-log-chat" aria-label="Close">&#10005;</button>' +
-      '</div>' +
-      '<div class="paywall-body">' +
-        '<div class="paywall-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg></div>' +
-        '<div class="paywall-title">Coming soon</div>' +
-        '<div class="paywall-sub">A built-in assistant for logging sets, checking stats, and answering quick questions \u2014 on its way.</div>' +
-      '</div>';
   }
 
   function adjustRestTimerDraft(deltaSeconds){
@@ -13642,6 +13863,75 @@
     }, 140);
   }
 
+  // The most-trained exercise OTHER than whichever one Progress is
+  // currently showing (ui.progressExercise) — same top-trained-by-set-
+  // count ranking logChatPRs' overview branch uses, just excluding the
+  // current one so the second Progress pill offers a genuinely
+  // different exercise instead of repeating the first pill's answer.
+  function logChatSecondProgressExercise(){
+    var counts = {};
+    state.sessions.forEach(function(s){
+      (s.exercises || []).forEach(function(ex){
+        if (!ex.sets.length || isHoldExercise(ex.name)) return;
+        var k = ex.name.trim();
+        counts[k] = (counts[k] || 0) + ex.sets.length;
+      });
+    });
+    var sorted = Object.keys(counts).sort(function(a, b){ return counts[b] - counts[a]; });
+    for (var i = 0; i < sorted.length; i++){
+      if (sorted[i] !== ui.progressExercise) return sorted[i];
+    }
+    return null;
+  }
+
+  // Per-tab suggested pills — 1-3 genuinely distinct, already-safely-
+  // routed things to ask on that tab, so a fresh conversation there has
+  // more than one obvious starting point. A function rather than a
+  // static table because Settings' toggle target and Progress' second
+  // exercise both depend on live state. Consumed by
+  // logChatCurrentChips() below, inside the chat itself. Every value
+  // here hits an already-covered, guaranteed rule-based trigger:
+  // session summary, stats/recap, PRs, the day-lookup added for
+  // History, the insight over/under-target check and its single-
+  // worst-muscle variant, the progress trend check (which on Progress
+  // resolves via ui.progressExercise the same way typing "is this
+  // improving" there would), the guided-flow starter, the screen-
+  // question FAQ for Settings, and an actual setting change.
+  function logChatTabPills(){
+    if (state.tab === 'log'){
+      return [
+        { label: 'What am I working on today?', text: 'what am I working on today' },
+        { label: 'What is push day?', text: 'what is push day' }
+      ];
+    }
+    if (state.tab === 'history'){
+      return [
+        { label: 'Recap my training', text: 'give me a recap' },
+        { label: 'My PRs', text: 'my prs' },
+        { label: 'What did I do yesterday?', text: 'yesterday' }
+      ];
+    }
+    if (state.tab === 'insight'){
+      return [
+        { label: 'Am I overtrained?', text: 'am I overtrained' },
+        { label: 'Which muscle needs work?', text: 'which muscle needs the most work' }
+      ];
+    }
+    if (state.tab === 'progress'){
+      var pills = [{ label: 'Is this improving?', text: 'is this improving' }];
+      var altEx = logChatSecondProgressExercise();
+      if (altEx) pills.push({ label: 'Is my ' + altEx + ' improving?', text: 'is my ' + altEx + ' improving' });
+      return pills;
+    }
+    if (state.tab === 'settings'){
+      return [
+        { label: 'What can I do here?', text: 'what can I do here?' },
+        { label: 'How do I change the accent color?', text: 'how do I change the accent color' }
+      ];
+    }
+    return [];
+  }
+
   // Pro access the screen was last drawn for (see syncProState below).
   var lastRenderedPro = null;
   function renderApp(){
@@ -13763,6 +14053,7 @@
     state.sessions = loadSessions();
     fixUprightRowMuscleTag();
     state.routines = loadRoutines();
+    state.chatMemory = loadChatMemory();
     state.settings = loadSettings();
     applyAccentTheme(state.settings.accentTheme || 'gold');
     applyCornerStyle(state.settings.cornerStyle || 'rounded');
@@ -13872,6 +14163,7 @@
         } else {
           if (Array.isArray(remote.sessions)) safeSetItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(remote.sessions));
           if (Array.isArray(remote.routines)) safeSetItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(remote.routines));
+          if (Array.isArray(remote.chatMemory)) safeSetItem(scopedKey(STORAGE_CHAT_MEMORY), JSON.stringify(remote.chatMemory));
           if (isPlainObject(remote.settings)) safeSetItem(scopedKey(STORAGE_SETTINGS), JSON.stringify(remote.settings));
         }
       }
@@ -13962,6 +14254,7 @@
     ui.awaitingAvatarPick = false;
     ui.pendingDeleteAccount = false;
     ui.showPricing = false;
+    logChatResetState();
     if (!wasGuest && window.SaviorFirebase) window.SaviorFirebase.logOut();
     showAuthGateShell();
     renderAuthGate();
@@ -13981,6 +14274,7 @@
     safeRemoveItem(STORAGE_ROUTINES + '::' + id);
     safeRemoveItem(STORAGE_ACTIVITY_LOG + '::' + id);
     safeRemoveItem(STORAGE_PROGRESS_ACCESS + '::' + id);
+    safeRemoveItem(STORAGE_CHAT_MEMORY + '::' + id);
     if (window.SaviorFirebase){
       var wipeRemote = window.SaviorFirebase.deleteUserData
         ? window.SaviorFirebase.deleteUserData(id).catch(function(){})
@@ -14367,6 +14661,1699 @@
     ui.pendingMuscle = null;
     if (muscle) showToast('Added ' + name);
     flashExerciseAdded(newExId);
+  }
+
+  /* =========================================================
+     LOG ASSISTANT — Q&A only. A chat-style way to ask "what am I
+     doing today" / "what's my squat PR" / "how do I do a Romanian
+     deadlift" / "how does this app work". It does NOT log, edit or
+     delete sets, finish sessions or change settings — requests like
+     that are pointed at the real screens (see LOG_CHAT_NO_ACTIONS_REPLY).
+     Answers are rule-based (regex matching + the app's own library and
+     data) so they're free and instant, with the AI fallback only for
+     questions the rules can't place.
+     ========================================================= */
+
+  // Same matching as exerciseSuggestions(), minus the passesExFilters()
+  // gate — that gate is meant for the exercise-picker UI's own filter
+  // chips, and would silently make chat matches vanish if the person
+  // happened to have an unrelated muscle/equipment filter left active
+  // from browsing the picker earlier. Chat should never be affected by
+  // that leftover state.
+  // Small edit-distance calculation used only as a typo-tolerance
+  // fallback below — library is small (~100-200 names) and this only
+  // runs when exact matching already found nothing, so cost is a
+  // non-issue.
+  function levenshteinDistance(a, b){
+    var m = a.length, n = b.length;
+    if (!m) return n;
+    if (!n) return m;
+    var prev = [];
+    for (var j = 0; j <= n; j++) prev[j] = j;
+    for (var i = 1; i <= m; i++){
+      var cur = [i];
+      for (var j2 = 1; j2 <= n; j2++){
+        cur[j2] = a[i - 1] === b[j2 - 1]
+          ? prev[j2 - 1]
+          : 1 + Math.min(prev[j2 - 1], prev[j2], cur[j2 - 1]);
+      }
+      prev = cur;
+    }
+    return prev[n];
+  }
+
+  // How many typo'd characters a word of this length can tolerate —
+  // 0 for very short words (3 letters or fewer), where even a 1-edit
+  // tolerance risks matching an unrelated short word.
+  /* ---- Persistent memory: "remember I have a bad shoulder", "what
+     do you remember", "forget that" — notes that survive a reload and
+     get sent to the AI as context on every message, unlike everything
+     else in the chat (which resets when the app reloads). Capped so it
+     can't grow unbounded; oldest note drops first past the cap. ---- */
+  var LOG_CHAT_MEMORY_CAP = 50;
+
+  function logChatParseRemember(text){
+    var m = text.match(/^remember\s+(?:that\s+)?([\s\S]+)$/i);
+    if (!m) return null;
+    var note = m[1].trim().replace(/[.!]+$/, '');
+    if (!note) return null;
+    return note;
+  }
+
+  function logChatCommitRemember(noteText){
+    var entry = { id: uid(), text: noteText, createdAt: Date.now() };
+    state.chatMemory.push(entry);
+    if (state.chatMemory.length > LOG_CHAT_MEMORY_CAP){
+      state.chatMemory.splice(0, state.chatMemory.length - LOG_CHAT_MEMORY_CAP);
+    }
+    saveChatMemory();
+    logChatPushUndo('remembered \u201c' + noteText + '\u201d', function(){
+      return logChatUndoRemember(entry.id);
+    });
+    return 'Got it \u2014 I\u2019ll remember that: \u201c' + noteText + '\u201d.';
+  }
+
+  function logChatUndoRemember(noteId){
+    var before = state.chatMemory.length;
+    state.chatMemory = state.chatMemory.filter(function(n){ return n.id !== noteId; });
+    if (state.chatMemory.length === before) return { ok: false, msg: 'That note isn\u2019t there anymore.' };
+    saveChatMemory();
+    renderApp();
+  }
+
+  function logChatIsMemoryListQuestion(text){
+    var t = text.trim().toLowerCase().replace(/[?.!]+$/, '');
+    return /^(what (do you|'?d you) remember( about me)?|what do you know about me|what have i told you to remember|show( me)? (my|what you remember|the)? ?(memory|memories|notes))$/.test(t);
+  }
+
+  function logChatListMemory(){
+    if (!state.chatMemory.length) return 'Nothing saved yet \u2014 say \u201cremember [something]\u201d and I\u2019ll keep it for next time.';
+    var lines = state.chatMemory.map(function(n, i){ return (i + 1) + '. ' + n.text; });
+    return 'Here\u2019s what I\u2019ve got saved:\n' + lines.join('\n');
+  }
+
+  function logChatParseForget(text){
+    var lower = text.toLowerCase().trim();
+    if (/^(forget|clear|delete)\s+(everything|all|my memory|memories|all notes)$/.test(lower)) return { all: true };
+    var m = lower.match(/^forget\s+(?:that\s+)?(.+)$/);
+    if (!m) return null;
+    var query = m[1].trim().replace(/[.!]+$/, '');
+    if (/^(that|it|the last (one|note)|my last note|the last thing)$/.test(query)) return { last: true };
+    return { query: query };
+  }
+
+  function logChatRequestForget(parsed){
+    if (!state.chatMemory.length) return 'There\u2019s nothing saved to forget.';
+    if (parsed.all){
+      ui.logChatPendingForgetAll = true;
+      return 'Forget everything I\u2019ve remembered (' + state.chatMemory.length + ' note' + (state.chatMemory.length === 1 ? '' : 's') + ')? Reply \u201cyes\u201d to confirm.';
+    }
+    var target;
+    if (parsed.last){
+      target = state.chatMemory[state.chatMemory.length - 1];
+    } else {
+      var q = parsed.query.toLowerCase();
+      target = state.chatMemory.filter(function(n){ return n.text.toLowerCase().indexOf(q) !== -1; })[0];
+      if (!target){
+        // typo-tolerant fallback, same spirit as exercise matching
+        var qWords = q.split(/\s+/).filter(function(w){ return w.length > 3; });
+        target = state.chatMemory.filter(function(n){
+          var noteLower = n.text.toLowerCase();
+          return qWords.some(function(w){
+            return noteLower.split(/\s+/).some(function(nw){
+              var budget = logChatFuzzyBudget(w);
+              return budget > 0 && Math.abs(nw.length - w.length) <= budget && levenshteinDistance(w, nw) <= budget;
+            });
+          });
+        })[0];
+      }
+      if (!target) return 'I don\u2019t see a saved note matching that. Say \u201cwhat do you remember\u201d to see the list.';
+    }
+    ui.logChatPendingForgetNote = { noteId: target.id, text: target.text };
+    return 'Forget \u201c' + target.text + '\u201d? Reply \u201cyes\u201d to confirm.';
+  }
+
+  function logChatConfirmForgetNote(){
+    var p = ui.logChatPendingForgetNote;
+    ui.logChatPendingForgetNote = null;
+    var idx = state.chatMemory.findIndex(function(n){ return n.id === p.noteId; });
+    if (idx === -1) return 'That\u2019s already gone \u2014 nothing to forget.';
+    var removed = state.chatMemory[idx];
+    state.chatMemory.splice(idx, 1);
+    saveChatMemory();
+    logChatPushUndo('forgot \u201c' + removed.text + '\u201d', function(){
+      return logChatUndoRestoreMemory(removed);
+    });
+    return 'Forgotten.';
+  }
+
+  function logChatConfirmForgetAll(){
+    ui.logChatPendingForgetAll = false;
+    var removed = state.chatMemory.slice();
+    state.chatMemory = [];
+    saveChatMemory();
+    logChatPushUndo('cleared all ' + removed.length + ' remembered note' + (removed.length === 1 ? '' : 's'), function(){
+      return logChatUndoRestoreAllMemory(removed);
+    });
+    return 'Cleared everything I had remembered.';
+  }
+
+  function logChatUndoRestoreMemory(entry){
+    state.chatMemory.push(entry);
+    state.chatMemory.sort(function(a, b){ return a.createdAt - b.createdAt; });
+    saveChatMemory();
+    renderApp();
+  }
+
+  function logChatUndoRestoreAllMemory(entries){
+    state.chatMemory = entries.slice();
+    saveChatMemory();
+    renderApp();
+  }
+
+  function logChatFuzzyBudget(word){
+    if (word.length <= 3) return 0;
+    if (word.length <= 6) return 1;
+    return 2;
+  }
+
+  function chatExerciseMatches(query){
+    var tokens = exerciseQueryTokens(query);
+    if (!tokens.length) return [];
+    var matchesAllTokensExact = function(nameLower){
+      return tokens.every(function(t){ return nameLower.indexOf(t) !== -1; });
+    };
+    var libraryByName = {};
+    EXERCISE_LIBRARY_FLAT.forEach(function(item){ libraryByName[item.name.toLowerCase()] = item; });
+
+    function runPass(matchFn){
+      var seen = {};
+      var results = [];
+      allExerciseNames().forEach(function(name){
+        var key = name.toLowerCase();
+        if (seen[key] || !matchFn(key)) return;
+        var libMatch = libraryByName[key];
+        seen[key] = true;
+        results.push({ name: name, muscle: libMatch ? libMatch.muscle : null });
+      });
+      EXERCISE_LIBRARY_FLAT.forEach(function(item){
+        var key = item.name.toLowerCase();
+        if (seen[key] || !matchFn(key)) return;
+        seen[key] = true;
+        results.push({ name: item.name, muscle: item.muscle });
+      });
+      return results;
+    }
+
+    var exact = runPass(matchesAllTokensExact);
+    if (exact.length) return exact;
+
+    // Typo tolerance — only tried when exact matching found nothing,
+    // so it can never change behavior for anything that already
+    // worked. A token that doesn't appear verbatim in the name still
+    // counts as a match if it's within a small edit distance of one of
+    // the name's own words ("bemch" ~ "bench").
+    var matchesAllTokensFuzzy = function(nameLower){
+      var nameWords = nameLower.split(/[\s-]+/);
+      return tokens.every(function(t){
+        if (nameLower.indexOf(t) !== -1) return true;
+        var budget = logChatFuzzyBudget(t);
+        if (!budget) return false;
+        return nameWords.some(function(w){
+          return Math.abs(w.length - t.length) <= budget && levenshteinDistance(t, w) <= budget;
+        });
+      });
+    };
+    return runPass(matchesAllTokensFuzzy);
+  }
+
+  // Tries "<weight><unit?> x/for <reps>" first (the common phrasing —
+  // "60kg x10", "135 for 8", "60x10"), then falls back to
+  // "<reps> reps? at/@ <weight><unit?>" ("10 reps at 60kg"). Whatever
+  // text is left after removing the matched chunk, minus filler words
+  // like "log"/"did"/"on", is taken as the exercise name. Returns null
+  // rather than guessing when nothing usable is found, so the caller
+  // can fall through to treating the message as a plain exercise-name
+  // lookup instead.
+  // Core "<weight><unit?> x/for <reps>" / "<reps> reps at <weight><unit?>" match,
+  // shared by parseWeightRepsExercise (also pulls an exercise name out of
+  // whatever's left) and parseWeightReps (used mid-guided-flow, where the
+  // exercise is already known so there's nothing left to extract).
+  // A "Set 1" / "Set #2" label inside a longer message is metadata, not
+  // the lift itself — strip it before hunting for numbers, or a stray
+  // list-position digit gets misread as the weight (e.g. "Set 1 - 60kg
+  // x10" read as 1kg x10 instead of 60kg x10).
+  function stripSetLabelForParsing(text){
+    return text.replace(/\bset\s*#?\s*\d+\b/gi, ' ');
+  }
+
+  function parseWeightRepsCore(rawText){
+    var text = stripSetLabelForParsing(rawText);
+    var reWeightFirst = /(\d+(?:\.\d+)?)\s*(kgs?|lbs?)?\s*(?:x|\*|for|@)\s*(\d+)/i;
+    var reRepsFirst = /(\d+)\s*reps?\s*(?:at|@)\s*(\d+(?:\.\d+)?)\s*(kgs?|lbs?)?/i;
+    var weight, unit, reps, matchedStr;
+    var m = text.match(reWeightFirst);
+    if (m){
+      weight = parseFloat(m[1]);
+      unit = (m[2] || '').toLowerCase();
+      reps = parseInt(m[3], 10);
+      matchedStr = m[0];
+    } else {
+      m = text.match(reRepsFirst);
+      if (!m) return null;
+      reps = parseInt(m[1], 10);
+      weight = parseFloat(m[2]);
+      unit = (m[3] || '').toLowerCase();
+      matchedStr = m[0];
+    }
+    if (!(weight >= 0) || !(reps > 0)) return null;
+    return { weight: weight, unit: unit, reps: reps, matchedStr: matchedStr };
+  }
+
+  // Action verbs that imply a specific exercise even when the person
+  // doesn't say its name — "benched 60 for 10" never says "bench press".
+  // Hand-maintained, not exhaustive on purpose: add more as real phrasing
+  // shows up rather than trying to guess every verb up front.
+  var EXERCISE_VERB_HINTS = {
+    bench: 'bench press', benched: 'bench press', benching: 'bench press',
+    squat: 'squat', squatted: 'squat', squatting: 'squat', squats: 'squat',
+    deadlift: 'deadlift', deadlifted: 'deadlift', deadlifting: 'deadlift', deadlifts: 'deadlift',
+    press: 'press', pressed: 'press', pressing: 'press',
+    row: 'row', rowed: 'row', rowing: 'row', rows: 'row',
+    curl: 'curl', curled: 'curl', curling: 'curl', curls: 'curl',
+    pulldown: 'pulldown', pulldowns: 'pulldown',
+    dip: 'dips', dips: 'dips', dipped: 'dips',
+    lunge: 'lunge', lunged: 'lunge', lunges: 'lunge',
+    fly: 'fly', flyes: 'fly', flies: 'fly'
+  };
+
+  // App FAQ — a small curated keyword-matched knowledge base, not a real
+  // search engine: picks whichever entry shares the most keywords with
+  // the message. Deliberately conservative keyword lists (avoid generic
+  // single words like "change"/"fix") to keep it from firing on
+  // unrelated messages.
+  var APP_FAQ = [
+    { keywords: ['accent', 'colour', 'color', 'appearance'], answer: 'Accent color is in Settings \u203a Appearance \u203a Accent Color \u2014 pick from the swatches to recolor highlights across the app.' },
+    { keywords: ['unit', 'kilogram', 'pound', 'lbs'], answer: 'Tap the KG/LB button at the top of the Log tab, or set your default unit in Settings.' },
+    { keywords: ['rest', 'timer'], answer: 'The rest timer starts automatically after you log a set. Tap the clock icon in the header to open or adjust it, and set the default duration, sound, and vibration in Settings.' },
+    { keywords: ['pr', 'record', 'badge'], answer: 'A "PR" badge shows up on a set when it beats your previous best for that exercise.' },
+    { keywords: ['history', 'editing'], answer: 'In History, tap an exercise\u2019s pencil icon to edit just that exercise, or the \u22ee menu on a session to edit the whole thing, delete it, or "Repeat" it to start a new session with the same exercises. Nothing saves until you tap Save.' },
+    { keywords: ['routine', 'template'], answer: '"Save as Routine" on the Log tab saves your current exercise list as a reusable template — tap a saved routine to start a workout pre-loaded with it. The template picker separately offers ready-made templates by category.' },
+    { keywords: ['pro', 'subscription', 'upgrade', 'premium'], answer: 'Pro unlocks extra features \u2014 check Settings \u203a Plan for what\u2019s included and pricing.' },
+    { keywords: ['insight', 'muscle', 'volume', '3d', 'model'], answer: 'The Insight tab shows your weekly muscle volume on a 3D model \u2014 tap a muscle group to focus on it.' },
+    { keywords: ['tour', 'onboarding'], answer: 'There\u2019s a guided tour that walks through the app\u2019s features \u2014 look for it in Settings if you want to run it again.' },
+    { keywords: ['card', 'sheen', 'glass'], answer: 'Settings \u203a Appearance \u203a Card Style switches between a plain, glass, or sheen look for cards.' },
+    { keywords: ['bodyweight', 'goal', 'goals'], answer: 'Set your bodyweight and training goals in Settings for more accurate load calculations and suggestions.' },
+    { keywords: ['reset'], answer: '"Reset Log" clears every exercise and set from today\u2019s session \u2014 the session itself stays, just empty. History and other sessions aren\u2019t touched. That\u2019s different from "Clear Data" (Settings \u203a Data), which erases everything on the device.' },
+    { keywords: ['export', 'backup'], answer: 'Settings \u203a Data has Export (downloads a JSON backup of your sessions, routines, and settings) and Import (restores from a backup file).' },
+    { keywords: ['password'], answer: 'Change your password in Settings \u203a Account.' },
+    { keywords: ['print', 'receipt'], answer: 'A session\u2019s \u22ee menu in History has a print option that generates a workout "receipt" as a PDF \u2014 Pro accounts get an upgraded version.' },
+    { keywords: ['install', 'homescreen'], answer: 'A banner may offer to install SaviorFit Logger to your home screen as an app \u2014 you can dismiss it permanently if you\u2019d rather not.' },
+    { keywords: ['rating', 'review'], answer: 'SaviorFit Logger may show a star-rating prompt now and then \u2014 it\u2019s dismissible.' },
+    { keywords: ['avatar'], answer: 'Pick your profile icon in Settings \u203a Account.' },
+    { keywords: ['haptic', 'vibration'], answer: 'Haptic feedback (vibration on actions) can be toggled in Settings, along with a visual "flash" effect when a set is logged.' },
+    { keywords: ['log', 'logging', 'logged'], answer: 'To log a set: open the Log tab, tap + to add an exercise, then tap Add Set and enter the weight and reps. I can\u2019t log for you \u2014 I\u2019m just here for questions.' },
+    { keywords: ['density'], answer: 'Settings \u203a Appearance also has list Density (compact/comfortable) and card corner roundness, alongside Card Style and Accent color.' }
+  ];
+  function faqMatch(text){
+    var tokens = (text || '').toLowerCase().split(/\s+/).filter(Boolean);
+    var best = null, bestScore = 0;
+    APP_FAQ.forEach(function(entry){
+      var score = entry.keywords.filter(function(k){ return tokens.indexOf(k) !== -1; }).length;
+      if (score > bestScore){ bestScore = score; best = entry; }
+    });
+    return best ? best.answer : null;
+  }
+
+  // "What is a Romanian deadlift" etc — reuses the same library data the
+  // exercise picker already shows (muscle, equipment, the how-to line),
+  // just formatted as a chat answer instead of a picker row.
+  // Which muscle groups a split-day word covers, using this library's
+  // own muscle keys (Chest/Back/Shoulders/Traps/Biceps/Triceps/
+  // Forearms/Abs/Quads/Hamstrings/Glutes/Calves) — not a generic
+  // fitness-knowledge answer, but one grounded in what this app can
+  // actually suggest and log.
+  var LOG_CHAT_SPLIT_MUSCLES = {
+    push: ['Chest', 'Shoulders', 'Triceps'],
+    pull: ['Back', 'Traps', 'Biceps', 'Forearms'],
+    leg: ['Quads', 'Hamstrings', 'Glutes', 'Calves'],
+    upper: ['Chest', 'Back', 'Shoulders', 'Traps', 'Biceps', 'Triceps', 'Forearms'],
+    lower: ['Quads', 'Hamstrings', 'Glutes', 'Calves'],
+    chest: ['Chest'],
+    back: ['Back'],
+    arm: ['Biceps', 'Triceps', 'Forearms'],
+    shoulder: ['Shoulders'],
+    core: ['Abs'],
+    fullbody: ['Chest', 'Back', 'Quads', 'Shoulders']
+  };
+
+  // Maps the broader Insight-tab muscle buckets (Chest/Back/Shoulders/
+  // Arms/Legs/Core — see MUSCLE_GROUP_TARGETS) to the finer muscle tags
+  // EXERCISE_LIBRARY_FLAT actually uses, by reusing LOG_CHAT_SPLIT_MUSCLES'
+  // existing groupings (its "arm"/"leg" keys already list exactly the
+  // right finer tags) instead of maintaining a second, separate list.
+  var LOG_CHAT_INSIGHT_TO_SPLIT_KEY = { Chest: 'chest', Back: 'back', Shoulders: 'shoulder', Arms: 'arm', Legs: 'leg', Core: 'core' };
+
+  // Real exercises from the library for a set of muscle tags, one pick
+  // per muscle (preferring something already logged before over an
+  // unfamiliar one) rather than just the first few library entries
+  // overall — otherwise a multi-muscle request ends up suggesting four
+  // variants of one muscle and nothing for the others. Shared by
+  // logChatExplainSplitDay (named split days) and logChatRecoverySuggestion
+  // (volume-driven) below.
+  function logChatPicksForMuscles(muscles){
+    var loggedNames = {};
+    state.sessions.forEach(function(s){
+      (s.exercises || []).forEach(function(e){
+        if (e.sets && e.sets.length) loggedNames[e.name.trim().toLowerCase()] = true;
+      });
+    });
+    var picks = [];
+    muscles.forEach(function(m){
+      var forMuscle = EXERCISE_LIBRARY_FLAT.filter(function(item){ return item.muscle === m; });
+      if (!forMuscle.length) return;
+      var knownForMuscle = forMuscle.filter(function(item){ return loggedNames[item.name.toLowerCase()]; });
+      var chosen = knownForMuscle[0] || forMuscle[0];
+      picks.push(chosen.name);
+    });
+    return picks.slice(0, 4);
+  }
+
+  // Turns the same "which muscle is furthest behind this week" signal
+  // logChatInsightWorstMuscle reports into an actual thing to go log —
+  // real exercises from the library, the same way logChatExplainSplitDay
+  // turns a named split day into concrete picks. Returns null (not a
+  // "balanced week" message) when nothing is meaningfully behind, so
+  // callers can silently fall back to their own default prompt instead
+  // of always leading with this.
+  function logChatRecoverySuggestion(){
+    var hasHistory = state.sessions.some(function(s){
+      return s.status === 'done' && (s.exercises || []).some(function(e){ return e.sets && e.sets.length; });
+    });
+    if (!hasHistory) return null;
+    var weeklyData = computeWeeklyMuscleVolume();
+    var profile = getActiveProfile();
+    var worst = null, worstGap = -Infinity;
+    weeklyData.forEach(function(g){
+      var cap = profile.caps[g.key];
+      if (cap === undefined) return;
+      var greenFloor = profile.isCustom ? Math.ceil(cap * CUSTOM_GREEN_PCT) : profile.greenMinSets;
+      var gap = greenFloor - g.sets;
+      if (gap > worstGap){ worstGap = gap; worst = g; }
+    });
+    if (!worst || worstGap <= 0) return null;
+    var muscles = LOG_CHAT_SPLIT_MUSCLES[LOG_CHAT_INSIGHT_TO_SPLIT_KEY[worst.key]];
+    if (!muscles) return null;
+    var picks = logChatPicksForMuscles(muscles);
+    if (!picks.length) return null;
+    return worst.label + ' is the furthest behind this week (' + worst.sets + ' set' + (worst.sets === 1 ? '' : 's') + ' so far). From your library, you could try: ' + picks.join(', ') + '.';
+  }
+
+  function logChatExplainSplitDay(dayWord){
+    var key = dayWord.toLowerCase().replace(/[-\s]/g, '');
+    if (key === 'rest'){
+      return 'Rest day \u2014 no lifting, just recovery. Enjoy it \ud83d\udcaa';
+    }
+    if (key === 'cardio'){
+      return 'Cardio day \u2014 running, cycling, rowing, that kind of work. SaviorFit Logger focuses on weight training, so there\u2019s nothing to track for cardio here.';
+    }
+    var muscles = LOG_CHAT_SPLIT_MUSCLES[key];
+    if (!muscles) return null;
+
+    var picks = logChatPicksForMuscles(muscles);
+    if (!picks.length) return null;
+
+    var label = dayWord.replace(/-/g, ' ');
+    var labelCap = label.charAt(0).toUpperCase() + label.slice(1);
+    return labelCap + ' day usually means ' + muscles.join(', ') + ' work. From your library, you could try: ' + picks.join(', ') + '. Ask me how to do any of them.';
+  }
+
+  function logChatExplainExercise(query){
+    var matches = chatExerciseMatches(query);
+    if (!matches.length) return null;
+    var libItem = EXERCISE_LIBRARY_FLAT.find(function(i){ return i.name === matches[0].name; });
+    if (!libItem) return null;
+    if (!libItem.how) return libItem.name + ' \u2014 a ' + (libItem.muscle || 'general') + ' exercise. I don\u2019t have form notes for this one yet.';
+    return libItem.name + ' (' + libItem.muscle + ', ' + libItem.equipment + ') \u2014 ' + libItem.how;
+  }
+
+  var LOG_CHAT_WEEKDAYS = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+
+  // Resolves "last Tuesday", "Friday", "yesterday" to an actual
+  // calendar date — always the most recent PAST occurrence, never
+  // today even if today happens to be that weekday (today already has
+  // its own dedicated handler, logChatSessionSummary below). Returns
+  // null if the message doesn't reference a day at all.
+  function logChatResolveDayReference(text){
+    var lower = text.toLowerCase();
+    var now = new Date();
+    if (/\byesterday\b/.test(lower)){
+      var y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      return { date: y, label: 'yesterday' };
+    }
+    var weekdayMatch = lower.match(/\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+    if (!weekdayMatch) return null;
+    var name = weekdayMatch[1];
+    var targetDow = LOG_CHAT_WEEKDAYS[name];
+    var d = new Date(now);
+    var diff = (d.getDay() - targetDow + 7) % 7;
+    if (diff === 0) diff = 7;
+    d.setDate(d.getDate() - diff);
+    return { date: d, label: name.charAt(0).toUpperCase() + name.slice(1) };
+  }
+
+  // "What did I do last Tuesday" / "what did I train Friday" — a real
+  // per-day lookup against actual finished sessions, not the weekly
+  // stats catch-all (which was answering every one of these with the
+  // same generic 7-day recap regardless of which specific day was
+  // actually asked about).
+  function logChatDaySummary(targetDate, dayLabel){
+    var sessions = state.sessions.filter(function(s){
+      return s.status === 'done' && isSameLocalDay(s.finishedAt || s.date, targetDate);
+    });
+    if (!sessions.length) return 'Nothing logged on ' + dayLabel + '.';
+    var lines = sessions.map(function(s){
+      var vol = Math.round(toDisplay(sessionVolume(s))).toLocaleString() + ' ' + unitLabel();
+      return (s.name || 'Untitled session') + ' \u2014 ' + s.exercises.length + ' ex, ' + sessionSetCount(s) + ' sets, ' + vol + ' vol';
+    });
+    return 'On ' + dayLabel + ': ' + lines.join(' \u00b7 ') + '. Anything else you\u2019d like to check?';
+  }
+
+  function logChatSessionSummary(){
+    var session = getActiveSession();
+    if (!session || !session.exercises || session.exercises.length === 0){
+      var recovery = logChatRecoverySuggestion();
+      if (recovery) return recovery;
+      return 'Nothing logged yet today.';
+    }
+    var parts = session.exercises.map(function(ex){
+      return ex.name + ' (' + ex.sets.length + ' set' + (ex.sets.length === 1 ? '' : 's') + ')';
+    });
+    return (session.name || 'Today\u2019s session') + ': ' + parts.join(', ') + '.';
+  }
+
+  // Distinguishes actual keyboard-mashing ("asdkfj") from a real but
+  // unmatched exercise name ("Bulgarian split squat") — real words have
+  // a normal vowel ratio, mashing usually doesn't. Deliberately narrow
+  // (single word, 5+ letters, near-zero vowels) so it only fires on
+  // genuine nonsense rather than short abbreviations like "rdl"/"ohp"
+  // or legitimate exercise names it just doesn't have in the library.
+  function looksLikeGibberish(text){
+    if (/\s/.test(text.trim())) return false;
+    var letters = text.replace(/[^a-zA-Z]/g, '');
+    if (letters.length < 5) return false;
+    var vowels = (letters.match(/[aeiou]/gi) || []).length;
+    return (vowels / letters.length) < 0.2;
+  }
+  var GIBBERISH_REPLIES = [
+    'That\u2019s either a new PR in keyboard smashing or I\u2019m missing something \ud83d\ude02 try an exercise name or a question.',
+    'I got absolutely nothing from that one. An exercise name or a question \u2014 your call.',
+    'My rule-based brain just short-circuited. One more try? An exercise name or a question works.'
+  ];
+
+  function logChatExerciseLookup(text){
+    var matches = chatExerciseMatches(text);
+    if (!matches.length){
+      if (looksLikeGibberish(text)){
+        return GIBBERISH_REPLIES[Math.floor(Math.random() * GIBBERISH_REPLIES.length)];
+      }
+      // Not gibberish, just nothing the rule-based matcher recognizes \u2014
+      // hand it to the AI fallback (see processLogChatMessage /
+      // handleLogChatSend) instead of giving up outright.
+      return { needsAI: true, text: text };
+    }
+    var best = matches[0];
+    // A bare exercise name is answered with what it is and how to do it,
+    // plus the last time it was done if there's history.
+    var explained = logChatExplainExercise(best.name) || (best.name + ' \u2014 ask me how to do it, or for its PR and stats.');
+    var entry = mostRecentExerciseEntry(best.name);
+    if (!entry) return explained;
+    var lastSet = entry.sets[entry.sets.length - 1];
+    var lastLine = ' Last time was ' + fmtWeight(lastSet.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + lastSet.reps + '.';
+    // The overload tip/target is the app's own explicitly Pro-badged
+    // "Tips / Target" feature (see renderExTipPanel's paywall for
+    // non-Pro) \u2014 only surfaced here for Pro users, so chat can't hand
+    // it out for free through a side door.
+    if (isProActive()){
+      var tip = overloadTipForExercise(entry);
+      var tipLine = tip ? (' ' + tip.headline + ': ' + tip.target + '.') : '';
+      return explained + lastLine + tipLine;
+    }
+    return explained + lastLine;
+  }
+
+  // --- Undo stack: reverses the most recent chat-driven change,
+  // whatever kind it was (a logged set, a deletion, a finished
+  // session, a settings change) — one shared stack rather than a
+  // separate "undo" per feature, so "undo" always means "undo the
+  // last thing I just did in here."
+  function logChatPushUndo(label, undoFn){
+    ui.logChatUndoStack.push({ label: label, undo: undoFn });
+    if (ui.logChatUndoStack.length > 20) ui.logChatUndoStack.shift();
+  }
+
+  function logChatPendingExercises(){
+    var session = getActiveSession();
+    if (!session) return [];
+    return session.exercises.filter(function(e){ return !e.sets || e.sets.length === 0; });
+  }
+
+  /* ---- Free rule-based coverage for things that used to need the AI:
+     navigating tabs, changing a setting, and basic small talk. Same
+     three "extra" capabilities Gemini has always had, now handled
+     instantly and for free whenever the wording is a fairly direct
+     match — genuinely unclear phrasing still falls through to the AI
+     exactly as before. ------------------------------------------- */
+
+  // Answers "what am I looking at" style questions about whichever tab
+  // is actually open right now — only ever on request, never proactive
+  // (see logChatComposeGreeting, which deliberately stays generic).
+  var LOG_CHAT_SCREEN_EXPLANATIONS = {
+    log: 'This is the Log tab \u2014 where you add exercises and log sets for today\u2019s workout. Tap + to add an exercise, then Add Set to log it.',
+    history: 'This is History \u2014 a record of your past finished sessions. Tap a session to see its exercises and sets, or use the calendar icon to filter by date.',
+    progress: 'This is Progress \u2014 charts and PRs for your lifts over time, including e1RM trends and exercise comparisons.',
+    insight: 'This is Insight \u2014 a 3D view of your weekly muscle volume, so you can see which muscle groups you\u2019ve trained the most (or least).',
+    settings: 'This is Settings \u2014 appearance (accent color, card style, density), units, rest timer, notifications, backups, your plan, and account options.'
+  };
+
+  function logChatIsScreenQuestion(text){
+    var t = text.trim().toLowerCase().replace(/[?.!]+$/, '');
+    return /^(what\s+am\s+i\s+(seeing|looking\s+at|on)|what\s+is\s+this(\s+(screen|tab|page))?|what'?s\s+this(\s+(screen|tab|page))?|explain\s+this(\s+(screen|tab|page))?|what\s+does\s+this\s+(show|do)|where\s+am\s+i|what'?s\s+(going\s+on|happening)(\s+here)?|what\s+is\s+(going\s+on|happening)(\s+here)?|what'?s\s+here|what\s+is\s+here|tell\s+me\s+about\s+this(\s+(screen|tab|page))?|describe\s+this(\s+(screen|tab|page))?|what\s+can\s+i\s+do\s+here|what'?s\s+this\s+(page|screen|tab)\s+about|what\s+is\s+this\s+(page|screen|tab)\s+about)$/.test(t);
+  }
+
+  var LOG_CHAT_NAV_TARGETS = {
+    history: ['history'],
+    progress: ['progress'],
+    insight: ['insight', 'muscle volume', 'volume overview', 'muscle map'],
+    settings: ['settings'],
+    log: ['log tab', 'logging tab']
+  };
+  var LOG_CHAT_NAV_LABELS = { log: 'Log', history: 'History', progress: 'Progress', insight: 'Insight', settings: 'Settings' };
+
+  function logChatParseNavigate(text){
+    var lower = text.toLowerCase();
+    if (!/\b(show|open|go\s+to|take\s+me\s+to|switch\s+to|view|see|pull\s+up)\b/.test(lower)) return null;
+    for (var key in LOG_CHAT_NAV_TARGETS){
+      var words = LOG_CHAT_NAV_TARGETS[key];
+      for (var i = 0; i < words.length; i++){
+        if (lower.indexOf(words[i]) !== -1) return key;
+      }
+    }
+    return null;
+  }
+
+  function logChatCommitNavigate(target){
+    ui.logChatMessages.push({ role: 'bot', text: 'Opening ' + LOG_CHAT_NAV_LABELS[target] + ' for you.' });
+    renderLogChatOverlay();
+    closeLogChat();
+    switchTabWithFade(target);
+    return { handled: true };
+  }
+
+  var LOG_CHAT_SETTING_LABELS = {
+    accentColor: { gold: 'Gold', ice: 'Ice Blue', emerald: 'Emerald', violet: 'Violet' },
+    cardStyle: { default: 'Default', sheen: 'Sheen', glass: 'Glass' },
+    unit: { kg: 'kilograms', lb: 'pounds' }
+  };
+
+  // Common small talk that isn't worth an AI round-trip — a short,
+  // deliberately narrow list; anything not an exact match here just
+  // falls through as always.
+  var LOG_CHAT_SMALLTALK = [
+    { re: /^(thanks|thank\s*you|thx|ty|cheers|appreciate\s*it)[.!\s]*$/i, reply: 'Anytime! Let me know if you need anything else.' },
+    { re: /^(ok|okay|k|kk|cool|nice|great|sweet|alright|got\s*it)[.!\s]*$/i, reply: 'Got it \u2014 I\u2019m here if you need anything else.' },
+    { re: /^(bye|goodbye|later|see\s*ya|see\s*you)[.!\s]*$/i, reply: 'See you next session \ud83d\udcaa' },
+    { re: /^(lol|haha+|lmao)[.!\s]*$/i, reply: '\ud83d\ude04 Anything you want to know?' }
+  ];
+  function logChatSmallTalk(text){
+    var trimmed = text.trim();
+    // Same tab-aware/pending-aware copy as the initial chat-open
+    // greeting, so a mid-conversation "hi" matches whatever opening the
+    // chat fresh right now (on this same tab) would have said — kept
+    // out of the table above since it needs live state, not a fixed
+    // reply string.
+    if (/^(hi|hey|hello|yo|sup|hiya|howdy)[.!\s]*$/i.test(trimmed)){
+      return logChatComposeGreeting(logChatPendingExercises(), false);
+    }
+    for (var i = 0; i < LOG_CHAT_SMALLTALK.length; i++){
+      if (LOG_CHAT_SMALLTALK[i].re.test(trimmed)) return LOG_CHAT_SMALLTALK[i].reply;
+    }
+    return null;
+  }
+
+  /* ---- Delete set / PRs / Stats ------------------------------------
+     All three are computed entirely client-side from state.sessions —
+     the AI fallback only ever decides WHICH of these was asked for
+     (intent + exercise/period), never the numbers themselves, so it
+     can't hallucinate a PR or a volume total. Deleting is limited to
+     the active session and always goes through a yes/no confirm;
+     past-session corrections still route to the History edit screen. */
+
+  var LOG_CHAT_FILLER = /\b(delete|remove|undo|scratch|erase|cancel|my|the|a|an|last|latest|previous|recent|one|set|sets|of|for|on|from|in|that|this|just|logged|did|please|pls|show|me|list|see|what|whats|what's|is|are|was|were|all|best|top|heaviest|max|maxes|pr|prs|pb|pbs|personal|record|records|1rm|one-rep|rep|lift|lifts|ever|current|currently|how|am|i|doing|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|progress|progressing|trend|trending|improving|getting|stronger|weaker)\b/g;
+
+  var ORDINAL_WORD_NUM = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10 };
+  var ORDINAL_WORDS_RE = '(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)';
+
+  function logChatExerciseFromRemainder(text){
+    var rest = text.toLowerCase().replace(/set\s*#?\s*\d+|\d+(st|nd|rd|th)\s+set/g, ' ')
+      .replace(/['\u2019]s\b/g, '').replace(/[^a-z0-9\s-]/g, ' ').replace(LOG_CHAT_FILLER, ' ').replace(/\s+/g, ' ').trim();
+    if (!rest) return { query: null, match: null };
+    var m = chatExerciseMatches(rest);
+    // "squats"/"curls" -> "squat"/"curl" if the plural didn't match
+    if (!m.length) m = chatExerciseMatches(rest.replace(/(\w{3,})s\b/g, '$1'));
+    return { query: rest, match: m.length ? m[0] : null };
+  }
+
+  function logChatSetLabel(exName, st){
+    return fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps + (isHoldExercise(exName) ? 's' : '');
+  }
+
+  // Open the Equipment Guide or the activity Brief panel — pure
+  // navigation, fully anchored so it can't misfire on ordinary chat
+  // that happens to mention either word in passing.
+  function logChatParseOpenPanel(text){
+    var lower = text.toLowerCase().trim();
+    if (/^(open|show|view|see)\s+(the\s+|my\s+)?equipment\s+guide$/.test(lower)) return 'equipmentGuide';
+    if (/^(open|show|view|see)\s+(the\s+|my\s+|today.s\s+)?(activity\s+)?brief$/.test(lower)) return 'brief';
+    return null;
+  }
+
+  function logChatOpenPanel(panel){
+    closeLogChat();
+    if (panel === 'equipmentGuide') openEquipmentGuide();
+    else openBrief();
+    return { handled: true };
+  }
+
+  function logChatAllSetsFor(name){
+    var key = name.trim().toLowerCase();
+    var out = [];
+    state.sessions.forEach(function(s){
+      (s.exercises || []).forEach(function(ex){
+        if (ex.name.trim().toLowerCase() !== key) return;
+        ex.sets.forEach(function(st){ out.push({ ex: ex, st: st, date: s.finishedAt || s.date }); });
+      });
+    });
+    return out;
+  }
+
+  function logChatPRs(exerciseName){
+    if (exerciseName){
+      var m = chatExerciseMatches(exerciseName);
+      var name = m.length ? m[0].name : exerciseName;
+      var all = logChatAllSetsFor(name);
+      if (!all.length) return 'No logged sets for ' + name + ' yet, so no PRs to show.';
+      if (isHoldExercise(name)){
+        var longest = all.reduce(function(a, b){ return b.st.reps > a.st.reps ? b : a; });
+        return name + ' \u2014 longest hold: ' + longest.st.reps + 's (' + fmtDateShort(longest.date) + '). Anything else you\u2019d like to check?';
+      }
+      var heaviest = all.reduce(function(a, b){
+        return (b.st.weightKg > a.st.weightKg || (b.st.weightKg === a.st.weightKg && b.st.reps > a.st.reps)) ? b : a;
+      });
+      // Just the heaviest lift — no estimated-1RM figure, no PR count.
+      // Keeping this to the one plain fact someone's actually asking
+      // for when they say "my PR".
+      return name + ' PR \u2014 heaviest: ' + logChatSetLabel(name, heaviest.st) + ' (' + fmtDateShort(heaviest.date) + '). Anything else you\u2019d like to check?';
+    }
+    // No exercise: best e1RM for your 5 most-trained exercises.
+    var counts = {};
+    state.sessions.forEach(function(s){
+      (s.exercises || []).forEach(function(ex){
+        if (!ex.sets.length || isHoldExercise(ex.name)) return;
+        var k = ex.name.trim();
+        counts[k] = (counts[k] || 0) + ex.sets.length;
+      });
+    });
+    var top = Object.keys(counts).sort(function(a, b){ return counts[b] - counts[a]; }).slice(0, 5);
+    if (!top.length) return 'No lifts logged yet \u2014 PRs show up here once you do.';
+    var lines = top.map(function(n){
+      var all = logChatAllSetsFor(n);
+      var best = all.reduce(function(a, b){
+        return e1rm(effectiveLoadKg(n, b.st.weightKg), b.st.reps) > e1rm(effectiveLoadKg(n, a.st.weightKg), a.st.reps) ? b : a;
+      });
+      return n + ': ' + logChatSetLabel(n, best.st);
+    });
+    return 'Your best sets (by estimated 1RM) on your most-trained lifts \u2014 ' + lines.join(' \u00b7 ') + '. Ask \u201cbench PR\u201d for details on one.';
+  }
+
+  function logChatStats(period){
+    period = ['today', 'week', 'month', 'all'].indexOf(period) !== -1 ? period : 'week';
+    var DAY = 86400000;
+    var now = Date.now();
+    var spans = { today: null, week: 7 * DAY, month: 30 * DAY, all: Infinity };
+    function inRange(s, offset){
+      var t = Date.parse(s.finishedAt || s.date);
+      if (isNaN(t)) return false;
+      if (period === 'today') return offset === 0 && isSameLocalDay(s.finishedAt || s.date);
+      var span = spans[period];
+      if (span === Infinity) return offset === 0;
+      return t <= now - offset * span && t > now - (offset + 1) * span;
+    }
+    function summarize(offset){
+      var list = state.sessions.filter(function(s){ return s.exercises && s.exercises.some(function(e){ return e.sets.length; }) && inRange(s, offset); });
+      var sets = 0, vol = 0, prs = 0, exSets = {};
+      list.forEach(function(s){
+        sets += sessionSetCount(s);
+        vol += sessionVolume(s);
+        s.exercises.forEach(function(e){
+          exSets[e.name] = (exSets[e.name] || 0) + e.sets.length;
+          e.sets.forEach(function(st){ if (st.isPR) prs++; });
+        });
+      });
+      var fav = Object.keys(exSets).sort(function(a, b){ return exSets[b] - exSets[a]; })[0] || null;
+      return { sessions: list.length, sets: sets, vol: vol, prs: prs, fav: fav };
+    }
+    var cur = summarize(0);
+    var label = { today: 'Today', week: 'Last 7 days', month: 'Last 30 days', all: 'All time' }[period];
+    if (!cur.sessions) return label + ': nothing logged yet.';
+    var volTxt = Math.round(toDisplay(cur.vol)).toLocaleString() + ' ' + unitLabel();
+    var txt = label + ': ' + cur.sessions + ' session' + (cur.sessions === 1 ? '' : 's') + ', ' + cur.sets + ' sets, ' + volTxt + ' total volume' +
+      (cur.prs ? ', ' + cur.prs + ' PR' + (cur.prs === 1 ? '' : 's') : '') + '.' +
+      (cur.fav ? ' Most trained: ' + cur.fav + '.' : '');
+    if (period === 'week' || period === 'month'){
+      var prev = summarize(1);
+      if (prev.vol > 0){
+        var pct = Math.round((cur.vol - prev.vol) / prev.vol * 100);
+        txt += ' Volume ' + (pct >= 0 ? 'up ' : 'down ') + Math.abs(pct) + '% vs the ' + (period === 'week' ? 'week' : '30 days') + ' before.';
+      }
+    }
+    return txt + ' Anything else you\u2019d like to check?';
+  }
+
+  // Weekly muscle-volume summary for chat — same over/under-target tips
+  // Insight's own panel shows (buildMuscleVolumeInsight), just as plain
+  // sentences. Keeps the AI fallback from ever having to guess a volume
+  // number: it calls this, we compute it for real.
+  function logChatInsightSummary(){
+    var weeklyData = computeWeeklyMuscleVolume();
+    var profile = getActiveProfile();
+    var tips = buildMuscleVolumeInsight(profile, weeklyData);
+    return tips.map(function(t){ return t.detail; }).join(' ') + ' Anything else you\u2019d like to check?';
+  }
+
+  // Narrower complement to logChatInsightSummary above — same
+  // computeWeeklyMuscleVolume/getActiveProfile data and the same
+  // cap/greenFloor math buildMuscleVolumeInsight uses, but picks out
+  // just the single muscle furthest from its weekly target (largest
+  // shortfall if anything's under, else largest excess) instead of
+  // grouping every off-target muscle into one summary.
+  function logChatInsightWorstMuscle(){
+    var weeklyData = computeWeeklyMuscleVolume();
+    var profile = getActiveProfile();
+    var worstUnder = null, worstUnderGap = -Infinity;
+    var worstOver = null, worstOverGap = -Infinity;
+    weeklyData.forEach(function(g){
+      var cap = profile.caps[g.key];
+      if (cap === undefined) return;
+      var greenFloor = profile.isCustom ? Math.ceil(cap * CUSTOM_GREEN_PCT) : profile.greenMinSets;
+      if (g.sets < greenFloor){
+        var underGap = greenFloor - g.sets;
+        if (underGap > worstUnderGap){ worstUnderGap = underGap; worstUnder = g; }
+      } else if (g.sets > cap){
+        var overGap = g.sets - cap;
+        if (overGap > worstOverGap){ worstOverGap = overGap; worstOver = g; }
+      }
+    });
+    if (worstUnder) return worstUnder.label + ' is the furthest behind this week \u2014 ' + worstUnder.sets + ' set' + (worstUnder.sets === 1 ? '' : 's') + ' so far. Anything else you\u2019d like to check?';
+    if (worstOver) return worstOver.label + ' is the furthest past its weekly cap \u2014 ' + worstOver.sets + ' sets so far. Anything else you\u2019d like to check?';
+    return 'Nothing stands out this week \u2014 every muscle group is in a healthy range. Anything else you\u2019d like to check?';
+  }
+
+  // Est-1RM trend for one exercise, from the same per-session points the
+  // Progress tab charts (collectExercisePoints) — first logged session
+  // vs the most recent one. Same reasoning as logChatPRs: real numbers
+  // from app data, never left for the AI to estimate.
+  function logChatProgressSummary(exerciseName){
+    if (!exerciseName) return 'Which exercise\u2019s progress do you want to see?';
+    var m = chatExerciseMatches(exerciseName);
+    var name = m.length ? m[0].name : exerciseName;
+    var pts = collectExercisePoints(name);
+    if (!pts.length) return 'No logged sets for ' + name + ' yet, so no progress to show.';
+    var first = pts[0], last = pts[pts.length - 1];
+    var e1rmTxt = Math.round(toDisplay(last.e1rm)) + ' ' + unitLabel();
+    if (pts.length === 1){
+      return name + ' \u2014 est. 1RM ' + e1rmTxt + ' from your only logged session so far. Anything else you\u2019d like to check?';
+    }
+    var deltaPct = first.e1rm > 0 ? Math.round((last.e1rm - first.e1rm) / first.e1rm * 100) : 0;
+    var dirTxt = deltaPct === 0 ? 'holding steady' : (deltaPct > 0 ? 'up ' + deltaPct + '%' : 'down ' + Math.abs(deltaPct) + '%');
+    return name + ' \u2014 est. 1RM ' + e1rmTxt + ', ' + dirTxt + ' since your first logged session (' + fmtDateShort(first.date) + '). Anything else you\u2019d like to check?';
+  }
+
+  // The assistant is Q&A-only now: it no longer logs, edits or deletes
+  // sets, finishes sessions, runs a guided flow or undoes anything. A
+  // request for one of those gets pointed at the real screens instead of
+  // being acted on.
+  var LOG_CHAT_NO_ACTIONS_REPLY = 'I don\u2019t log or change workouts any more \u2014 use the Log tab for that (+ to add an exercise, then Add Set). I\u2019m here for questions: how to do an exercise, what a split day covers, your PRs and stats, or how the app works.';
+
+  function logChatIsActionRequest(text, lower){
+    // Questions are always fair game, even ones about logging.
+    if (/^(what|whats|what's|how|why|when|where|who|which|can|could|does|do|is|are|should|explain|tell me|describe)\b/.test(lower)) return false;
+    if (/^(undo|revert|delete|remove|scratch|erase|edit|rename|reorder|finish|end|wrap up|let'?s start|start\s+(a\s+)?(workout|session)|new\s+(workout|session|log)|guide me|add|log(?!\s+tab)|logged)\b/.test(lower)) return true;
+    if (/^(i'?m\s+)?done\b|^that'?s\s+it\b/.test(lower)) return true;
+    // A bare "60kg x10" (with or without an exercise name) is a logging attempt.
+    return !!parseWeightRepsCore(text);
+  }
+
+  function processLogChatMessage(text){
+    var lower = text.toLowerCase().trim();
+    // Cleared on every turn \u2014 only the handlers below that actually
+    // earn a follow-up pill (PRs, stats) set this back, so
+    // logChatCurrentChips() knows whether to offer one this time.
+    ui.logChatLastReplyKind = null;
+
+    if (ui.logChatPendingNavigateSuggestion){
+      var pns = ui.logChatPendingNavigateSuggestion;
+      ui.logChatPendingNavigateSuggestion = null;
+      if (/^(y|yes|yeah|yep|yup|confirm|take me|bring me|sure|do it|please)\b/.test(lower)) return logChatCommitNavigate(pns.target);
+      if (/^(n|no|nope|nah|cancel|not now|stay)\b/.test(lower)) return 'No worries \u2014 I\u2019ll stick to what I can help with here.';
+    }
+
+    // Persistent memory \u2014 "remember I have a bad shoulder", "what do
+    // you remember", "forget that".
+    if (ui.logChatPendingForgetNote){
+      if (/^(y|yes|yeah|yep|yup|confirm|forget|do it)\b/.test(lower)) return logChatConfirmForgetNote();
+      ui.logChatPendingForgetNote = null;
+      if (/^(n|no|nope|nah|cancel|keep)\b/.test(lower)) return 'Kept it \u2014 nothing forgotten.';
+    }
+    if (ui.logChatPendingForgetAll){
+      if (/^(y|yes|yeah|yep|yup|confirm|forget|do it)\b/.test(lower)) return logChatConfirmForgetAll();
+      ui.logChatPendingForgetAll = false;
+      if (/^(n|no|nope|nah|cancel|keep)\b/.test(lower)) return 'Kept it \u2014 nothing forgotten.';
+    }
+    var rememberNote = logChatParseRemember(text);
+    if (rememberNote) return logChatCommitRemember(rememberNote);
+    if (logChatIsMemoryListQuestion(text)) return logChatListMemory();
+    var forgetParsed = logChatParseForget(text);
+    if (forgetParsed) return logChatRequestForget(forgetParsed);
+
+    // Anything that would log, edit, delete or finish \u2014 not done here.
+    if (logChatIsActionRequest(text, lower)) return LOG_CHAT_NO_ACTIONS_REPLY;
+
+    // PRs \u2014 "my PRs", "bench PR", "what's my squat max". A bare
+    // "what is a PR" stays with the FAQ below.
+    if (/\b(prs?|pbs?|personal (best|record)s?|1rm|one[- ]rep max|max(es)?|heaviest)\b/.test(lower) &&
+        !/^what(?:'s| is| are)\s+(?:a|an)\s+(pr|pb)/.test(lower)){
+      var prEx = logChatExerciseFromRemainder(text);
+      if (prEx.match || !prEx.query){
+        ui.logChatLastReplyKind = 'prs';
+        return logChatPRs(prEx.match ? prEx.match.name : null);
+      }
+    }
+
+    // Stats \u2014 "stats", "this week", "how many workouts this month",
+    // "all-time volume". Checked before the "today" session summary so
+    // "stats today" gets numbers, not the exercise list.
+    if (/\b(stats|statistics|numbers|recap|total volume|how many (workouts|sessions|sets)|how much volume|weekly|monthly)\b/.test(lower) ||
+        /\b(volume|workouts|sessions)\b.*\b(this|last|past)\s+(week|month)\b/.test(lower)){
+      var per = /\b(all[- ]?time|ever|overall|total|lifetime)\b/.test(lower) && !/\b(week|month|today)\b/.test(lower) ? 'all' :
+                /\bmonth|monthly|30\s*days\b/.test(lower) ? 'month' :
+                /\btoday\b/.test(lower) ? 'today' : 'week';
+      ui.logChatLastReplyKind = 'stats';
+      return logChatStats(per);
+    }
+
+    // What a split day covers ("what is pull day", "push day") \u2014 answered
+    // from this app's own library instead of an AI call.
+    var dayMatch = lower.match(/\b(leg|push|pull|upper|lower|chest|back|arm|shoulder|core|cardio|rest|full[- ]?body)\s+day\b/);
+    if (dayMatch){
+      var splitAnswer = logChatExplainSplitDay(dayMatch[1]);
+      if (splitAnswer) return splitAnswer;
+      // else fall through \u2014 genuinely unclear, let the AI take it
+    }
+
+    // Real per-day lookup \u2014 "what did I do last Tuesday", "yesterday's
+    // session" \u2014 checked BEFORE the today-session trigger right below so a
+    // past-day reference isn't mistaken for a question about today.
+    var dayRef = logChatResolveDayReference(text);
+    if (dayRef) return logChatDaySummary(dayRef.date, dayRef.label);
+
+    if (/\b(today|working on|what.*(doing|lifting|done|logged)|(did|have|had) i (log|done|do)|current session|this session)\b/.test(lower)){
+      return logChatSessionSummary();
+    }
+
+    if (logChatIsScreenQuestion(text)){
+      return LOG_CHAT_SCREEN_EXPLANATIONS[state.tab] || LOG_CHAT_SCREEN_EXPLANATIONS.log;
+    }
+
+    var navTarget = logChatParseNavigate(text);
+    if (navTarget) return logChatCommitNavigate(navTarget);
+
+    // Single worst-off muscle \u2014 "which muscle needs work", "what needs
+    // the most work", "what's furthest behind".
+    if (/\bwhich\s+muscle|what.{0,15}(needs?|needing)\s+(the\s+)?most\s+work|furthest\s+behind\b/i.test(lower)){
+      return logChatInsightWorstMuscle();
+    }
+
+    // Muscle-volume insight \u2014 "am I overtrained", "hitting my targets",
+    // "muscle volume". Checked after navigate above so "show me insight"
+    // still opens the tab instead of answering in-chat.
+    if (/\b(overtrained|undertrained|over-?trained|under-?trained|hitting my targets?|under target|over target|volume (overview|insight|breakdown)|muscle volume)\b/.test(lower)){
+      return logChatInsightSummary();
+    }
+
+    // Exercise progress/trend \u2014 "how's my bench progress", "is my squat
+    // improving", "bench trend".
+    if (/\b(progress(ing)?|trend(ing)?|improving|getting (stronger|weaker)|going up|going down)\b/.test(lower)){
+      var progEx = logChatExerciseFromRemainder(text);
+      if (progEx.match) return logChatProgressSummary(progEx.match.name);
+      // No exercise named in the message \u2014 if Progress is the tab
+      // that's actually open right now ("is this improving"), use
+      // whatever exercise it's showing instead of asking again.
+      if (state.tab === 'progress' && ui.progressExercise) return logChatProgressSummary(ui.progressExercise);
+      if (!progEx.query) return logChatProgressSummary(null);
+    }
+
+    var openPanelTarget = logChatParseOpenPanel(text);
+    if (openPanelTarget) return logChatOpenPanel(openPanelTarget);
+
+    // "What is X" / "explain X" \u2014 checked before the general FAQ match so
+    // an explicitly-phrased question about an exercise wins over any
+    // stray keyword overlap with an FAQ entry.
+    var explainMatch = text.match(/^(?:what\s+is|what'?s|what|explain|how do i do|how to do)\s+(?:a|an|the)?\s*(.+?)\??$/i);
+    if (explainMatch){
+      var topic = explainMatch[1].trim();
+      var faqForTopic = faqMatch(text);
+      if (faqForTopic) return faqForTopic;
+      var explained = logChatExplainExercise(topic);
+      if (explained) return explained;
+    }
+
+    var faqDirect = faqMatch(text);
+    if (faqDirect) return faqDirect;
+
+    var smallTalk = logChatSmallTalk(text);
+    if (smallTalk) return smallTalk;
+
+    return logChatExerciseLookup(text);
+  }
+
+  // The greeting text for whatever's true right now — a pending
+  // exercise wins (most actionable), otherwise it's whichever tab
+  // they're on. Shared by the first-ever open and by re-greets below,
+  // so both stay in sync automatically.
+  function logChatComposeGreeting(pendingOnOpen, isFreshSession){
+    // Q&A-only: every tab shows its own copy, nothing about logging.
+    if (state.tab === 'history'){
+      return 'Hey \ud83d\udc4b Ask me about your past sessions \u2014 like \u201cwhat did I do last Tuesday\u201d or \u201cwhat\u2019s my squat PR\u201d.';
+    }
+    if (state.tab === 'insight'){
+      return 'Hey \ud83d\udc4b Ask about your weekly training balance \u2014 like \u201cam I overtrained\u201d or \u201chow\u2019s my volume looking\u201d.';
+    }
+    if (state.tab === 'progress'){
+      return 'Hey \ud83d\udc4b Ask how a lift\u2019s progressing \u2014 like \u201cis my bench improving\u201d or \u201cwhat\u2019s my squat PR\u201d.';
+    }
+    if (state.tab === 'settings'){
+      return 'Hey \ud83d\udc4b Ask how something here works \u2014 like \u201chow do I change the accent color\u201d or \u201cwhat does Card Style do\u201d.';
+    }
+    return (isFreshSession && logChatRecoverySuggestion()) ||
+      'Hey \ud83d\udc4b Ask me anything about training or the app \u2014 like \u201chow do I do a Romanian deadlift\u201d, \u201cwhat is push day\u201d, or \u201cwhat are my PRs\u201d.';
+  }
+
+  // A pending exercise is dynamic and worth re-mentioning whenever it
+  // actually changes (a card added, logged, or cleared) — unlike a tab,
+  // which only needs to be acknowledged once. null when nothing's
+  // pending, so the caller falls back to the once-per-tab rule below.
+  function logChatPendingKey(pendingOnOpen){
+    if (!pendingOnOpen.length) return null;
+    return pendingOnOpen.map(function(e){ return e.id; }).sort().join(',');
+  }
+
+  // The chat fields that make up one tab's actual conversation state —
+  // swapped as a unit between the live ui.* fields and ui.logChatByTab
+  // whenever the tab changes. Deliberately excludes logChatOpen/
+  // logChatClosing/logChatAutoCloseAfterReply (overlay/animation state,
+  // not conversation content) and logChatAIRemainingToday (a daily
+  // server quota, not per-tab).
+  var LOG_CHAT_TAB_STATE_FIELDS = [
+    'logChatMessages', 'logChatUndoStack', 'logChatGreetedPendingKey',
+    'logChatPendingFinish', 'logChatPendingDelete', 'logChatPendingDeleteExercise',
+    'logChatPendingRename', 'logChatPendingEdit', 'logChatPendingFlowSwitch',
+    'logChatPendingForgetNote', 'logChatPendingForgetAll',
+    'logChatPendingDeleteChoice', 'logChatPendingExerciseChoice', 'logChatFlow',
+    'logChatPendingNavigateSuggestion', 'logChatLastReplyKind', 'logChatUsedPillValues'
+  ];
+
+  function logChatSaveTabState(tab){
+    if (!tab) return;
+    var snap = {};
+    LOG_CHAT_TAB_STATE_FIELDS.forEach(function(f){ snap[f] = ui[f]; });
+    ui.logChatByTab[tab] = snap;
+  }
+
+  // Loads a previously-saved conversation for this tab if one exists —
+  // resuming a guided flow, an unanswered "delete this set?", the undo
+  // stack, everything exactly as it was left — or starts genuinely
+  // empty for a tab that's never had the chat opened on it before.
+  function logChatLoadTabState(tab){
+    var snap = ui.logChatByTab[tab];
+    if (snap){
+      LOG_CHAT_TAB_STATE_FIELDS.forEach(function(f){ ui[f] = snap[f]; });
+    } else {
+      ui.logChatMessages = [];
+      ui.logChatUndoStack = [];
+      ui.logChatGreetedPendingKey = null;
+      ui.logChatPendingFinish = false;
+      ui.logChatPendingDelete = null;
+      ui.logChatPendingDeleteExercise = null;
+      ui.logChatPendingRename = null;
+      ui.logChatPendingEdit = null;
+      ui.logChatPendingFlowSwitch = null;
+      ui.logChatPendingForgetNote = null;
+      ui.logChatPendingForgetAll = false;
+      ui.logChatPendingDeleteChoice = null;
+      ui.logChatPendingExerciseChoice = null;
+      ui.logChatFlow = null;
+      ui.logChatPendingNavigateSuggestion = null;
+      ui.logChatLastReplyKind = null;
+      ui.logChatUsedPillValues = [];
+    }
+  }
+
+  function openLogChat(){
+    ui.logChatOpen = true;
+    ui.logChatClosing = false; // cancel any in-flight close (e.g. a rapid close-then-reopen tap) so its trailing timeout doesn't hide the panel we're reopening
+    // Gives Android's back button something to pop, so it closes the
+    // chat and returns to the Log screen instead of exiting the app.
+    if (!(history.state && history.state.logChat)){
+      try { history.pushState({ logChat: true }, ''); } catch (e){}
+    }
+    // A genuinely different tab than whichever one this chat last
+    // greeted for — reopening on the SAME tab, or just switching tabs
+    // in the background without reopening, stays silent/unchanged as
+    // before. On an actual switch, each tab keeps its own separate,
+    // resumable conversation rather than either bleeding into a shared
+    // one or being thrown away: save the outgoing tab's state, load
+    // whatever the incoming tab already had (or start it empty).
+    if (ui.logChatGreetedTab !== state.tab){
+      logChatSaveTabState(ui.logChatGreetedTab);
+      logChatLoadTabState(state.tab);
+    }
+    var session = getActiveSession();
+    var pendingOnOpen = []; // Q&A-only: no "exercise ready to log" nudge any more
+    var pendingKey = logChatPendingKey(pendingOnOpen);
+    var pendingChanged = pendingKey && pendingKey !== ui.logChatGreetedPendingKey;
+    var greetingText = logChatComposeGreeting(pendingOnOpen, session && session.exercises.length === 0);
+
+    if (ui.logChatMessages.length === 0){
+      // Deliberately NOT calling startLogChatFlow() for a fresh session —
+      // doing so used to set ui.logChatFlow immediately on open, and
+      // processLogChatMessage checks that before anything else, so
+      // literally the first thing typed (a question, a command,
+      // anything) got swallowed as the answer to "what are you training
+      // today?" instead of being parsed normally. The guided flow only
+      // starts if they actually ask for it ("let's start").
+      ui.logChatMessages.push({ role: 'bot', text: greetingText, isGreeting: true });
+    } else if (pendingChanged){
+      // Same tab, just a pending exercise appearing/changing — update
+      // the last message in place if it's still an unanswered greeting,
+      // rather than stacking another one.
+      var lastMsg = ui.logChatMessages[ui.logChatMessages.length - 1];
+      if (lastMsg && lastMsg.role === 'bot' && lastMsg.isGreeting){
+        lastMsg.text = greetingText;
+        lastMsg._shown = false;
+      } else {
+        ui.logChatMessages.push({ role: 'bot', text: greetingText, isGreeting: true });
+      }
+    }
+    if (pendingKey) ui.logChatGreetedPendingKey = pendingKey;
+    ui.logChatGreetedTab = state.tab;
+
+    renderLogChatOverlay();
+    focusLogChatInput();
+  }
+
+  // Wipes the whole Log Assistant chat state back to first-run
+  // defaults — called on logout/account switch, since none of this
+  // (messages, undo stack, pending confirmations) is otherwise cleared
+  // when one account hands the browser tab off to another. Persistent
+  // memory (state.chatMemory) isn't touched here — it's already
+  // properly account-scoped via scopedKey() and reloads correctly on
+  // its own when the next account's data boots in.
+  function logChatResetState(){
+    ui.logChatOpen = false;
+    ui.logChatByTab = {};
+    ui.logChatMessages = [];
+    ui.logChatUndoStack = [];
+    ui.logChatGreetedPendingKey = null;
+    ui.logChatGreetedTab = null;
+    ui.logChatClosing = false;
+    ui.logChatAutoCloseAfterReply = false;
+    ui.logChatPendingFinish = false;
+    ui.logChatPendingDelete = null;
+    ui.logChatPendingDeleteExercise = null;
+    ui.logChatPendingRename = null;
+    ui.logChatAIRemainingToday = null;
+    ui.logChatPendingEdit = null;
+    ui.logChatPendingFlowSwitch = null;
+    ui.logChatPendingForgetNote = null;
+    ui.logChatPendingForgetAll = false;
+    ui.logChatPendingDeleteChoice = null;
+    ui.logChatPendingExerciseChoice = null;
+    ui.logChatFlow = null;
+    ui.logChatPendingNavigateSuggestion = null;
+    ui.logChatLastReplyKind = null;
+    ui.logChatUsedPillValues = [];
+  }
+
+  function closeLogChat(){
+    // Guards against running twice: the history.back() below fires the
+    // popstate listener, which calls closeLogChat() again on its own —
+    // without this, a Close-button tap would double up with the Back
+    // press it triggers and restart the exit animation mid-flight.
+    if (ui.logChatClosing || !ui.logChatOpen) return;
+    ui.logChatClosing = true;
+
+    // Closed via the Close button / an action rather than Back — drop
+    // the history entry openLogChat() pushed so the next Back press
+    // behaves normally.
+    if (history.state && history.state.logChat){
+      try { history.back(); } catch (e){}
+    }
+    ui.logChatPendingFinish = false;
+    ui.logChatPendingEdit = null;
+    ui.logChatPendingDeleteExercise = null;
+    ui.logChatPendingRename = null;
+    ui.logChatPendingFlowSwitch = null;
+    ui.logChatPendingForgetNote = null;
+    ui.logChatPendingForgetAll = false;
+    ui.logChatPendingDelete = null;
+    ui.logChatPendingDeleteChoice = null;
+    ui.logChatPendingExerciseChoice = null;
+    ui.logChatFlow = null;
+
+    // Slide the panel back out before actually tearing it down, rather
+    // than vanishing instantly — mirrors the slide-in on open.
+    var panel = document.getElementById('logChatPanel');
+    if (panel){
+      panel.classList.add('log-chat-closing');
+      setTimeout(function(){
+        if (!ui.logChatClosing) return; // reopened before the animation finished — leave the reopened state alone
+        ui.logChatOpen = false;
+        ui.logChatClosing = false;
+        renderLogChatOverlay();
+      }, 220);
+    } else {
+      ui.logChatOpen = false;
+      ui.logChatClosing = false;
+      renderLogChatOverlay();
+    }
+  }
+
+  function focusLogChatInput(){
+    setTimeout(function(){
+      var inp = document.getElementById('logChatInput');
+      if (!inp) return;
+      if (document.activeElement !== inp) inp.focus();
+      // The input persists across ordinary message renders now (see
+      // renderLogChatOverlay) instead of being destroyed and recreated
+      // each time, so without this guard every reply would stack
+      // another pair of listeners on the same node — firing the Enter-
+      // to-send handler multiple times per keystroke the longer a
+      // conversation ran.
+      if (inp.dataset.chatBound) return;
+      inp.dataset.chatBound = '1';
+      // Phone keyboards: Enter = new line, send with the button.
+      // Physical keyboards: Enter sends, Shift+Enter = new line.
+      var touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      inp.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' && !touch && !e.shiftKey){ e.preventDefault(); handleLogChatSend(); }
+      });
+      inp.addEventListener('input', function(){
+        inp.style.height = 'auto';
+        inp.style.height = Math.min(inp.scrollHeight + 2, 122) + 'px';
+      });
+    }, 30);
+  }
+
+  // The AI fallback is a Pro feature — it's the one part of the chat
+  // with a real, ongoing per-message cost (Gemini calls), unlike
+  // everything else here which is free/instant. Free users still get
+  // the full rule-based feature set (log, edit, delete, undo, PRs,
+  // stats, navigate, settings, memory) — this only gates the small
+  // slice of messages that need actual natural-language understanding.
+  function logChatHandleNeedsAI(aiText){
+    if (isProActive()){
+      runLogChatAIFallback(aiText);
+      return;
+    }
+    logChatShowReplyWithDelay(
+      'That one needs the full AI assistant to understand \u2014 a Pro feature. Try rephrasing it more directly, or upgrade for natural conversation, coaching tips, and more.',
+      { isAIUpsell: true }
+    );
+  }
+
+  function handleLogChatSend(){
+    var inp = document.getElementById('logChatInput');
+    if (!inp) return;
+    var text = inp.value.trim();
+    if (!text) return;
+    ui.logChatMessages.push({ role: 'user', text: text });
+    inp.value = '';
+    inp.style.height = 'auto';
+    var reply = processLogChatMessage(text);
+
+    if (reply && reply.needsAI){
+      logChatHandleNeedsAI(reply.text);
+      return;
+    }
+    if (reply && reply.handled) return; // already pushed its own message(s) and/or navigated
+
+    logChatShowReplyWithDelay(reply);
+  }
+
+  // A rule-based reply is computed instantly, so showing it the moment
+  // the person hits send feels like it beat them to it rather than
+  // "replying." A short typing-dots pause (matching the AI path's own
+  // "Thinking\u2026" bubble, just shorter) makes it read as a
+  // conversation instead of an instant lookup.
+  function logChatShowReplyWithDelay(reply, extraFields){
+    var pending = { role: 'bot', text: '', pending: true };
+    ui.logChatMessages.push(pending);
+    renderLogChatOverlay();
+    focusLogChatInput();
+    setTimeout(function(){
+      var idx = ui.logChatMessages.indexOf(pending);
+      var msg = { role: 'bot', text: reply };
+      if (extraFields){ for (var k in extraFields){ msg[k] = extraFields[k]; } }
+      if (idx !== -1) ui.logChatMessages[idx] = msg;
+      renderLogChatOverlay();
+      focusLogChatInput();
+      if (ui.logChatAutoCloseAfterReply){
+        ui.logChatAutoCloseAfterReply = false;
+        // A beat to actually read "Session saved!" before it slides away.
+        setTimeout(function(){ closeLogChat(); }, 1200);
+      }
+    }, 400);
+  }
+
+  // Tapping a quick-reply chip acts exactly like typing its value and
+  // hitting send — same parsing, same confirm/undo logic — except the
+  // chat shows the chip's readable label as what was "said" rather
+  // than the short coded value ("1", "yes") actually sent for parsing.
+  function handleLogChatChip(value, label){
+    ui.logChatMessages.push({ role: 'user', text: label });
+    if (ui.logChatUsedPillValues.indexOf(value) === -1) ui.logChatUsedPillValues.push(value);
+    var reply = processLogChatMessage(value);
+
+    if (reply && reply.needsAI){
+      logChatHandleNeedsAI(reply.text);
+      return;
+    }
+    if (reply && reply.handled) return;
+
+    logChatShowReplyWithDelay(reply);
+  }
+
+  // The AI fallback path — only reached when the free, offline parser
+  // (see logChatExerciseLookup) couldn't make sense of a message that
+  // also isn't obvious keyboard-mashing. Shows a "Thinking…" placeholder
+  // immediately (this is a real network round-trip, unlike everything
+  // else in the chat which replies instantly), then swaps it for the
+  // real reply once the Cloud Function responds. The AI only ever
+  // proposes an intent + numbers — logging or finishing the session
+  // still goes through the exact same commitSet/weightRepsError/
+  // finish-confirm path the rule-based parser uses, so nothing the
+  // model says can write bad data without passing the same checks.
+  // A short "name (today: ..., last: ..., PR: ...)" line per exercise
+  // in today's session — richer than a bare name, so the AI can
+  // naturally reference real numbers ("your PR here is 95kg", "last
+  // time was 90kg x5") instead of only working from your typed notes.
+  // Stays a plain string per entry, same shape the server already
+  // expects (context.loggedExercises.join(', ')), so no server change
+  // needed to light this up.
+  function logChatExerciseContextLine(ex){
+    var bits = [ex.name];
+    if (ex.sets.length){
+      bits.push('today: ' + ex.sets.map(function(s){
+        return fmtWeight(s.weightKg) + unitLabel() + (isHoldExercise(ex.name) ? 's hold' : ('\u00d7' + s.reps));
+      }).join(', '));
+    } else {
+      var histEntry = mostRecentExerciseEntry(ex.name);
+      if (histEntry){
+        var lastSet = histEntry.sets[histEntry.sets.length - 1];
+        bits.push('last time: ' + fmtWeight(lastSet.weightKg) + unitLabel() + (isHoldExercise(ex.name) ? 's hold' : ('\u00d7' + lastSet.reps)));
+      }
+    }
+    var allSets = logChatAllSetsFor(ex.name);
+    if (allSets.length){
+      if (isHoldExercise(ex.name)){
+        var longest = allSets.reduce(function(a, b){ return b.st.reps > a.st.reps ? b : a; });
+        bits.push('PR: ' + longest.st.reps + 's hold');
+      } else {
+        var best = allSets.reduce(function(a, b){
+          return e1rm(effectiveLoadKg(ex.name, b.st.weightKg), b.st.reps) > e1rm(effectiveLoadKg(ex.name, a.st.weightKg), a.st.reps) ? b : a;
+        });
+        bits.push('PR: ' + fmtWeight(best.st.weightKg) + unitLabel() + '\u00d7' + best.st.reps);
+      }
+    }
+    return bits.join(' | ');
+  }
+
+  function runLogChatAIFallback(text){
+    if (!window.SaviorFirebase || !window.SaviorFirebase.callChatAssistant){
+      ui.logChatMessages.push({ role: 'bot', text: 'AI assistant isn\u2019t available right now \u2014 try asking about an exercise or how the app works.' });
+      renderLogChatOverlay();
+      focusLogChatInput();
+      return;
+    }
+
+    var thinkingMsg = { role: 'bot', text: 'Thinking\u2026', pending: true };
+    ui.logChatMessages.push(thinkingMsg);
+    renderLogChatOverlay();
+    focusLogChatInput();
+
+    var session = getActiveSession();
+    // Everything before the message just sent and the "Thinking..."
+    // placeholder just pushed — the last 10 real turns, so a reply like
+    // "same weight" can actually be resolved against what was said
+    // before it instead of the AI having to guess with no context.
+    var recentMessages = ui.logChatMessages.slice(0, -2)
+      .filter(function(m){ return !m.pending; })
+      .slice(-10)
+      .map(function(m){ return { role: m.role === 'bot' ? 'model' : 'user', text: m.text }; });
+    var context = {
+      loggedExercises: session ? session.exercises.map(logChatExerciseContextLine) : [],
+      unit: unitLabel(),
+      recentMessages: recentMessages,
+      // Persistent "remember this" notes — survive reloads, unlike
+      // recentMessages above. Plain strings, newest last.
+      rememberedNotes: state.chatMemory.map(function(n){ return n.text; }),
+      // Which tab the chat was opened from — the header button is
+      // reachable from any tab, but until now the AI fallback never
+      // knew which screen the person was actually looking at.
+      currentTab: state.tab,
+      // Whichever exercise Progress currently has open, so "is this
+      // improving" resolves without naming it again — only meaningful
+      // when currentTab is 'progress', but harmless to include either way.
+      progressViewingExercise: ui.progressExercise || null,
+      // An Add Set panel with something typed but not yet logged — lets
+      // the AI notice a stuck/incomplete entry and follow up on it (or
+      // fold a "log it" / missing weight or reps into the right set)
+      // instead of asking from scratch. Same draft the rule-based
+      // reps-only/weight-only fill above uses, just exposed for cases
+      // that don't match those tight patterns.
+      draftSet: (function(){
+        var draftEx = activeSessionUnsavedDraftExercise();
+        if (!draftEx) return null;
+        var d = ui.draftSets[draftEx.id] || {};
+        return {
+          exercise: draftEx.name,
+          weight: (d.weight != null && String(d.weight).trim() !== '') ? d.weight : null,
+          reps: (d.reps != null && String(d.reps).trim() !== '') ? d.reps : null
+        };
+      })()
+    };
+
+    window.SaviorFirebase.callChatAssistant(text, context).then(function(result){
+      var finalText = result.reply || 'Got it.';
+      var idx = ui.logChatMessages.indexOf(thinkingMsg);
+      if (typeof result.remaining === 'number') ui.logChatAIRemainingToday = result.remaining;
+
+      if (result.intent === 'log_set' || result.intent === 'finish_session' || result.intent === 'delete_set' || result.intent === 'edit_history'){
+        // Q&A-only: the model may still propose these, but nothing in the
+        // workout log is ever changed from chat any more.
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: LOG_CHAT_NO_ACTIONS_REPLY };
+        renderLogChatOverlay();
+        focusLogChatInput();
+
+      } else if (result.intent === 'navigate' && result.target){
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
+        closeLogChat();
+        switchTabWithFade(result.target);
+
+      } else if (result.intent === 'suggest_navigate' && result.target){
+        // Gemini inferring cross-tab intent rather than an explicit
+        // "show me X" (that's the plain "navigate" case above, which
+        // stays instant) — arm the same yes/no pending state the rule-
+        // based path uses, so the next message confirms before jumping.
+        ui.logChatPendingNavigateSuggestion = { target: result.target };
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
+        renderLogChatOverlay();
+        focusLogChatInput();
+
+      } else if (result.intent === 'change_setting'){
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: 'I can\u2019t change settings from here \u2014 head to the Settings tab for that.' };
+        renderLogChatOverlay();
+        focusLogChatInput();
+
+      } else if (result.intent === 'show_prs'){
+        finalText = logChatPRs(result.exercise || null);
+        ui.logChatLastReplyKind = 'prs';
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
+        renderLogChatOverlay();
+        focusLogChatInput();
+
+      } else if (result.intent === 'show_stats'){
+        finalText = logChatStats(result.period || 'week');
+        ui.logChatLastReplyKind = 'stats';
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
+        renderLogChatOverlay();
+        focusLogChatInput();
+
+      } else if (result.intent === 'show_insight'){
+        finalText = logChatInsightSummary();
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
+        renderLogChatOverlay();
+        focusLogChatInput();
+
+      } else if (result.intent === 'show_worst_muscle'){
+        finalText = logChatInsightWorstMuscle();
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
+        renderLogChatOverlay();
+        focusLogChatInput();
+
+      } else if (result.intent === 'show_day' && result.dayOfWeek){
+        // logChatResolveDayReference just regex-searches its input for
+        // a weekday name or "yesterday" — Gemini's already-resolved
+        // dayOfWeek value works as that input directly, no need to
+        // re-parse the original free-text message.
+        var dayRef = logChatResolveDayReference(result.dayOfWeek);
+        finalText = dayRef ? logChatDaySummary(dayRef.date, dayRef.label) : (finalText || 'Not sure which day you meant \u2014 try naming it directly, like "last Tuesday".');
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
+        renderLogChatOverlay();
+        focusLogChatInput();
+
+      } else if (result.intent === 'show_progress'){
+        // Gemini left exercise blank — if they're actually on the
+        // Progress tab looking at one, that's almost certainly what
+        // "this"/"it" meant. Same reasoning as the log_set single-
+        // pending-exercise fallback above.
+        var progressFallback = (!result.exercise && state.tab === 'progress') ? ui.progressExercise : null;
+        finalText = logChatProgressSummary(result.exercise || progressFallback || null);
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
+        renderLogChatOverlay();
+        focusLogChatInput();
+
+      } else if (result.intent === 'open_panel' && result.panel){
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
+        closeLogChat();
+        if (result.panel === 'equipmentGuide') openEquipmentGuide();
+        else if (result.panel === 'brief') openBrief();
+
+      } else {
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
+        renderLogChatOverlay();
+        focusLogChatInput();
+      }
+    }).catch(function(err){
+      console.error('AI assistant call failed:', err);
+      var msg = 'AI assistant is unavailable right now \u2014 try again in a bit, or ask about an exercise or how the app works.';
+      var wasUpsell = false;
+      if (err && err.code === 'functions/resource-exhausted'){
+        msg = 'Hit today\u2019s AI assistant limit \u2014 the built-in answers (exercises, PRs, stats, app help) still work.';
+        ui.logChatAIRemainingToday = (err.details && typeof err.details.remaining === 'number') ? err.details.remaining : 0;
+      } else if (err && err.code === 'functions/unauthenticated'){
+        msg = 'Sign in to use the AI assistant \u2014 the built-in answers (exercises, PRs, stats, app help) still work in guest mode.';
+      } else if (err && err.code === 'functions/permission-denied'){
+        msg = 'That one needs the full AI assistant to understand \u2014 a Pro feature. Try rephrasing it more directly, or upgrade for natural conversation, coaching tips, and more.';
+        wasUpsell = true;
+      }
+      var idx = ui.logChatMessages.indexOf(thinkingMsg);
+      if (idx !== -1) ui.logChatMessages[idx] = wasUpsell ? { role: 'bot', text: msg, isAIUpsell: true } : { role: 'bot', text: msg };
+      renderLogChatOverlay();
+      focusLogChatInput();
+    });
+  }
+
+  // Which quick-reply chips (if any) fit the current chat state — a
+  // yes/no confirm, a numbered choice, or (only before the person has
+  // sent a single message) a few starter prompts. Returns [] when free
+  // typing is the only option, e.g. mid guided-flow where the answer
+  // is a name or a number that varies too much for a fixed chip.
+  function logChatCurrentChips(){
+    var lastChatMsg = ui.logChatMessages[ui.logChatMessages.length - 1];
+    if (lastChatMsg && lastChatMsg.role === 'bot' && lastChatMsg.isAIUpsell && !isProActive()){
+      return [{ label: 'See Pro plans', action: 'open-pricing' }];
+    }
+    if (ui.logChatPendingNavigateSuggestion){
+      return [{ label: '\ud83d\udccd Take me there', value: 'yes' }, { label: 'Not now', value: 'no' }];
+    }
+    if (ui.logChatPendingForgetNote || ui.logChatPendingForgetAll){
+      return [{ label: 'Yes, forget it', value: 'yes' }, { label: 'Keep it', value: 'no' }];
+    }
+    if (!ui.logChatFlow){
+      // openLogChat() swaps ui.logChatMessages to whichever tab is
+      // active (see logChatSaveTabState/logChatLoadTabState), so this
+      // is always scoped to the current tab's own conversation — a
+      // returning tab with earlier messages correctly stays quiet here,
+      // same as it would mid-conversation on a single tab.
+      var tabPills = logChatTabPills();
+      var hasUserMessage = ui.logChatMessages.some(function(m){ return m.role === 'user'; });
+      if (!hasUserMessage){
+        var starterChips = [];
+        tabPills.forEach(function(p){ starterChips.push({ label: p.label, value: p.text }); });
+        return starterChips;
+      }
+      // Mid-conversation — keep offering a tappable way in instead of
+      // going quiet after the first reply: whatever specific follow-up
+      // the last reply actually earned (see logChatLastReplyKind, set
+      // by logChatCommitSet/logChatPRs/logChatStats — only shown
+      // because that topic was just actually discussed, so it's never
+      // a random cross-tab pill), plus ONE tab-specific pill (the
+      // first from logChatTabPills() not already used) for ongoing
+      // continuity. Deliberately capped to one here even though the
+      // starter row above can show up to three — offering the whole
+      // set after every single reply would be exactly the clutter the
+      // starter-only generic third option got pushed back on before;
+      // this just keeps one still-fresh suggestion in rotation. Either
+      // slot is skipped once its value is already in
+      // logChatUsedPillValues — once you've actually tapped a
+      // suggestion and gotten its answer, it stops resurfacing.
+      var midChips = [];
+      if (ui.logChatLastReplyKind === 'prs' && ui.logChatUsedPillValues.indexOf('stats this week') === -1){
+        midChips.push({ label: 'Stats this week', value: 'stats this week' });
+      } else if (ui.logChatLastReplyKind === 'stats' && ui.logChatUsedPillValues.indexOf('my prs') === -1){
+        midChips.push({ label: 'My PRs', value: 'my prs' });
+      }
+      var freshTabPill = tabPills.filter(function(p){ return ui.logChatUsedPillValues.indexOf(p.text) === -1; })[0];
+      if (freshTabPill) midChips.push({ label: freshTabPill.label, value: freshTabPill.text });
+      return midChips;
+    }
+    return [];
+  }
+
+  function renderLogChatOverlay(){
+    var overlay = document.getElementById('logChatOverlay');
+    var panel = document.getElementById('logChatPanel');
+    if (!ui.logChatOpen){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    panel.classList.remove('log-chat-closing'); // clear any leftover exit animation from a prior close
+
+    // The shell (header/context-bar/input row) is built once per open,
+    // not on every message. Rebuilding panel.innerHTML wholesale on
+    // every reply used to destroy and recreate the textarea each time —
+    // which drops and reopens the keyboard, sometimes twice in a row
+    // (once for the "thinking" placeholder, again for the real reply),
+    // reading as the keyboard visibly jumping. closeLogChat() clears
+    // panel.innerHTML entirely, so "#chatBody missing" reliably means
+    // "this is a fresh open" — never a false negative mid-conversation.
+    if (!document.getElementById('chatBody')){
+      var aiUsageHtml = '<div style="width:52px;"></div>';
+      if (isProActive() && ui.logChatAIRemainingToday != null){
+        aiUsageHtml = '<div class="log-chat-ai-usage' + (ui.logChatAIRemainingToday <= 10 ? ' log-chat-ai-usage-low' : '') + '" id="logChatAIUsage">' + ui.logChatAIRemainingToday + '/' + CHAT_DAILY_LIMIT_CLIENT + ' AI</div>';
+      }
+      var shellHtml = '<div class="he-header">' +
+          '<button class="he-cancel-btn" data-action="close-log-chat">Close</button>' +
+          '<div class="he-title">Log Assistant</div>' +
+          aiUsageHtml +
+        '</div>';
+      // Static for the life of this open chat — the tab can't change
+      // while this full-screen overlay is up, so no re-render hook is
+      // needed beyond reading state.tab once here at shell-build time.
+      shellHtml += '<div class="chat-context-bar">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>' +
+          esc('Chatting about your ' + (LOG_CHAT_NAV_LABELS[state.tab] || 'Log') + ' tab') +
+        '</div>';
+      shellHtml += '<div class="chat-body" id="chatBody"></div>';
+      shellHtml += '<div class="chat-chip-row" id="chatChipRow"></div>';
+      shellHtml += '<div class="chat-input-row">' +
+          '<textarea id="logChatInput" class="chat-input" rows="1" maxlength="300" placeholder="Type here\u2026" autocomplete="off" enterkeyhint="enter"></textarea>' +
+          '<button class="chat-send-btn" data-action="send-log-chat" aria-label="Send">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' +
+          '</button>' +
+        '</div>';
+      panel.innerHTML = shellHtml;
+      focusLogChatInput();
+    } else {
+      // Shell already up — just patch the AI-usage count in place
+      // rather than touching anything else (input included).
+      var usageEl = document.getElementById('logChatAIUsage');
+      if (usageEl && isProActive() && ui.logChatAIRemainingToday != null){
+        usageEl.textContent = ui.logChatAIRemainingToday + '/' + CHAT_DAILY_LIMIT_CLIENT + ' AI';
+        usageEl.classList.toggle('log-chat-ai-usage-low', ui.logChatAIRemainingToday <= 10);
+      }
+    }
+
+    var body = document.getElementById('chatBody');
+    var bodyHtml = '';
+    // Only messages not shown before get the slide-up class, so a
+    // re-render (which rebuilds this div's innerHTML) doesn't replay it
+    // on the whole history. A pending "thinking" bubble swapped for the
+    // real reply is a new object, so the reply animates in too.
+    ui.logChatMessages.forEach(function(m){
+      var isNew = !m._shown;
+      m._shown = true;
+      var content = m.pending ? '<span class="chat-typing" aria-label="Thinking"><span></span><span></span><span></span></span>' : esc(m.text);
+      bodyHtml += '<div class="chat-msg chat-msg-' + m.role + (m.pending ? ' chat-msg-pending' : '') + (isNew ? ' chat-msg-new' : '') + '">' + content + '</div>';
+    });
+    body.innerHTML = bodyHtml;
+    body.scrollTop = body.scrollHeight;
+    ui.logChatStickBottom = true;
+    pinLogChatToBottom(body);
+
+    var chipRow = document.getElementById('chatChipRow');
+    var chatChips = logChatCurrentChips();
+    if (chatChips.length){
+      chipRow.style.display = 'flex';
+      chipRow.innerHTML = chatChips.map(function(c){
+        if (c.action) return '<button type="button" class="chat-chip" data-action="' + esc(c.action) + '">' + esc(c.label) + '</button>';
+        return '<button type="button" class="chat-chip" data-action="log-chat-chip" data-chip-value="' + esc(c.value) + '" data-chip-label="' + esc(c.label) + '">' + esc(c.label) + '</button>';
+      }).join('');
+    } else {
+      chipRow.style.display = 'none';
+      chipRow.innerHTML = '';
+    }
+  }
+
+  // The keyboard opens AFTER the chat renders (focus is deferred), which
+  // shrinks .chat-body while its scrollTop stays put — so the latest
+  // messages ended up hidden below the fold and you had to scroll down.
+  // Whenever the body resizes (keyboard open/close, rotation) and the
+  // user was at the bottom, re-pin it there. If they've scrolled up to
+  // read older messages, leave them where they are.
+  window.addEventListener('popstate', function(){
+    if (ui.logChatOpen) closeLogChat();
+  });
+
+  var logChatResizeObs = null;
+  function pinLogChatToBottom(body){
+    if (logChatResizeObs) logChatResizeObs.disconnect();
+    if (!body.dataset.scrollBound){
+      body.dataset.scrollBound = '1';
+      body.addEventListener('scroll', function(){
+        ui.logChatStickBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
+      }, { passive: true });
+    }
+    if (window.ResizeObserver){
+      logChatResizeObs = new ResizeObserver(function(){
+        if (ui.logChatStickBottom) body.scrollTop = body.scrollHeight;
+      });
+      logChatResizeObs.observe(body);
+    }
+  }
+  if (window.visualViewport){
+    // Backup for browsers where the keyboard doesn't resize the element
+    // itself until its animation ends.
+    window.visualViewport.addEventListener('resize', function(){
+      if (!ui.logChatOpen || !ui.logChatStickBottom) return;
+      var b = document.getElementById('chatBody');
+      if (b) requestAnimationFrame(function(){ b.scrollTop = b.scrollHeight; });
+    });
   }
 
   function deleteExercise(exId){
@@ -16867,6 +18854,10 @@
       openLogChat();
     } else if (action === 'close-log-chat'){
       closeLogChat();
+    } else if (action === 'send-log-chat'){
+      handleLogChatSend();
+    } else if (action === 'log-chat-chip'){
+      handleLogChatChip(el.dataset.chipValue, el.dataset.chipLabel);
     } else if (action === 'skip-rest-timer'){
       skipRestTimer();
     } else if (action === 'toggle-muscle-map'){
@@ -18106,6 +20097,28 @@
     var appShellEl = document.getElementById('app');
     var syncAppHeight = function(){
       appShellEl.style.height = window.visualViewport.height + 'px';
+      // #app is position:fixed;top:0;bottom:0 — fixed relative to the
+      // *layout* viewport, not the visual one. html/body both have
+      // overflow:hidden (no normal page scroll is possible), so the
+      // *only* mechanism left for "scroll the focused input into view"
+      // is the browser offsetting the visual viewport itself
+      // (visualViewport.offsetTop), which a plain top:0 fixed element
+      // doesn't automatically follow.
+      //
+      // Using transform here rather than also setting .style.top:
+      // #app's CSS already has both top:0 and bottom:0, and setting
+      // .style.height on top of that already leaves the browser to
+      // resolve an over-constrained box (top + bottom + height all
+      // present) — which one wins there isn't something this codebase
+      // controls or has verified across browsers. Adding .style.top
+      // into that same already-ambiguous mix (tried previously, did
+      // not fix the Log Assistant header disappearing above the
+      // screen when the keyboard opens) stacks a second ambiguous
+      // property on top of the first rather than resolving anything.
+      // transform is applied after layout is resolved, independent of
+      // the top/bottom/height box model entirely, so it can't run into
+      // that same conflict.
+      appShellEl.style.transform = window.visualViewport.offsetTop ? 'translateY(' + window.visualViewport.offsetTop + 'px)' : '';
       // The shell resizing doesn't by itself guarantee whatever's being
       // typed into is still inside the now-shorter visible area — a field
       // low on the page can end up sitting right at (or past) the new
@@ -18116,8 +20129,23 @@
         active.scrollIntoView({ block: 'nearest' });
       }
       syncExSearchOverlayHeight();
+      // Log Assistant's own coverage/positioning is handled by CSS
+      // (position:absolute;inset:0 within #app — see #logChatOverlay/
+      // #logChatPanel — the same technique the exercise-search overlay
+      // already uses), which is why it inherits #app's height/transform
+      // sync above for free rather than needing its own JS. This
+      // scroll-into-view is still worth keeping regardless — harmless
+      // when nothing needs to move, and still catches the case where
+      // the input would otherwise end up hidden behind the keyboard.
+      if (ui.logChatOpen){
+        var chatActiveEl = document.activeElement;
+        if (chatActiveEl && chatActiveEl.id === 'logChatInput'){
+          chatActiveEl.scrollIntoView({ block: 'nearest' });
+        }
+      }
     };
     window.visualViewport.addEventListener('resize', syncAppHeight);
+    window.visualViewport.addEventListener('scroll', syncAppHeight);
     syncAppHeight();
   }
 
