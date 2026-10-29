@@ -17996,6 +17996,9 @@
     var session = getActiveSession();
     if (!session) return;
     session.exercises = [];
+    // Blank slate includes the title: a template start (or typing) names the
+    // session, so clear it back to "Untitled session" too.
+    session.name = '';
     // A reset is meant to be a genuinely blank slate — without this, the
     // session still remembered which past session it was "repeating",
     // so re-adding an exercise with the same name afterward would silently
@@ -19255,7 +19258,7 @@
       ui.confirmModal = {
         kind: 'reset-log',
         title: 'Reset log?',
-        message: 'This clears every exercise and set from today\u2019s session \u2014 the session itself stays, just empty. Your History and other sessions aren\u2019t touched.',
+        message: 'This clears every exercise, set and the session title from today\u2019s session \u2014 the session itself stays, just empty. Your History and other sessions aren\u2019t touched.',
         confirmLabel: 'Reset Log',
         variant: 'danger'
       };
