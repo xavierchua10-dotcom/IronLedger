@@ -3107,6 +3107,8 @@
     align-items:stretch;
     justify-content:stretch;
     z-index:92;
+    background:transparent;
+    animation:none;
   }
   @keyframes logChatSlideIn{
     from{ transform:translateX(100%); }
@@ -3135,10 +3137,11 @@
     border-radius:0;
     border:none;
     box-shadow:none;
-    background:var(--glass-bg);
+    /* Solid (not translucent + backdrop-filter): a blurred backdrop on an
+       element that is sliding in/out flashes white for a frame. */
+    background:#14161a;
     background-image:none;
-    backdrop-filter:blur(24px) saturate(180%);
-    -webkit-backdrop-filter:blur(24px) saturate(180%);
+    will-change:transform;
     animation:logChatSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
   #logChatPanel .he-header{
@@ -15733,11 +15736,10 @@
   function openLogChat(){
     ui.logChatOpen = true;
     ui.logChatClosing = false; // cancel any in-flight close (e.g. a rapid close-then-reopen tap) so its trailing timeout doesn't hide the panel we're reopening
-    // Gives Android's back button something to pop, so it closes the
-    // chat and returns to the Log screen instead of exiting the app.
-    if (!(history.state && history.state.logChat)){
-      try { history.pushState({ logChat: true }, ''); } catch (e){}
-    }
+    // Android's back button: #logChatOverlay is a .confirm-overlay, so the
+    // app-wide back-layer system (syncBackHistory) already pushes/pops the
+    // history entry and routes Back to the Close button. Doing it here too
+    // doubled the entries and made open/close navigate back and forth.
     // A genuinely different tab than whichever one this chat last
     // greeted for — reopening on the SAME tab, or just switching tabs
     // in the background without reopening, stays silent/unchanged as
@@ -15826,12 +15828,6 @@
     if (ui.logChatClosing || !ui.logChatOpen) return;
     ui.logChatClosing = true;
 
-    // Closed via the Close button / an action rather than Back — drop
-    // the history entry openLogChat() pushed so the next Back press
-    // behaves normally.
-    if (history.state && history.state.logChat){
-      try { history.back(); } catch (e){}
-    }
     ui.logChatPendingFinish = false;
     ui.logChatPendingEdit = null;
     ui.logChatPendingDeleteExercise = null;
@@ -15854,7 +15850,7 @@
         ui.logChatOpen = false;
         ui.logChatClosing = false;
         renderLogChatOverlay();
-      }, 220);
+      }, 240);
     } else {
       ui.logChatOpen = false;
       ui.logChatClosing = false;
@@ -16349,9 +16345,6 @@
   // Whenever the body resizes (keyboard open/close, rotation) and the
   // user was at the bottom, re-pin it there. If they've scrolled up to
   // read older messages, leave them where they are.
-  window.addEventListener('popstate', function(){
-    if (ui.logChatOpen) closeLogChat();
-  });
   // Tapping Send or a chip normally moves focus onto that button, which
   // drops the keyboard; the post-reply refocus then raised it again —
   // the screen visibly jumped twice per message. Cancelling the default
