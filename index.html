@@ -1867,22 +1867,44 @@
   .tpl-bg .plate.p3{right:-10px;}
   .template-cat-card .template-card-sub{color:#d7dae0;}
   .template-cat-card .template-card-count{color:#aab0b8;}
-  .template-card-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
-  .template-card-top .template-card-name{margin-bottom:0;}
+  /* Template category cards: roomy, with a big faint emblem, chip row and
+     a round chevron button. Beginner is the taller, gold "featured" one. */
+  .template-cat-card{padding:22px 76px 22px 22px;min-height:136px;display:flex !important;flex-direction:column;justify-content:center;}
+  .template-cat-card .template-card-name{font-size:21px;margin-bottom:6px;letter-spacing:.04em;}
+  .template-cat-card .template-card-sub{font-size:14px;margin-bottom:12px;}
+  .log-tpl-list .log-tpl-card{padding:22px 76px 22px 22px;min-height:136px;margin-bottom:16px;}
+  .log-tpl-list .log-tpl-card.tpl-featured{min-height:168px;}
+  .template-cat-card.tpl-featured{min-height:168px;}
+  .tpl-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .tpl-chip{
+    font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+    padding:4px 10px;border-radius:999px;
+    background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.10);color:#c9ced6;
+  }
+  .template-cat-card.tpl-featured .tpl-chip{background:rgba(var(--accent-rgb),0.14);border-color:rgba(var(--accent-rgb),0.45);color:var(--accent);}
   .template-card-badge{
+    align-self:flex-start;
     font-family:'Oswald',sans-serif;
-    font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-    padding:3px 8px;border-radius:999px;
+    font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    padding:4px 10px;border-radius:999px;margin-bottom:10px;
     background:var(--accent);color:#1c1500;
   }
   .template-card > .template-card-chev{
-    position:absolute;right:16px;top:50%;transform:translateY(-50%);
-    z-index:1;font-size:26px;line-height:1;color:var(--accent);opacity:.85;
+    position:absolute;right:18px;top:50%;transform:translateY(-50%);
+    z-index:1;width:40px;height:40px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:26px;line-height:1;padding-bottom:3px;
+    color:var(--accent);background:rgba(var(--accent-rgb),0.12);border:1.5px solid rgba(var(--accent-rgb),0.5);
   }
-  .template-cat-card{padding-right:44px;}
+  .template-cat-card.tpl-featured .template-card-chev{background:var(--accent);color:#1c1500;border-color:var(--accent);}
+  .template-card > .tpl-watermark{
+    position:absolute;right:66px;top:50%;transform:translateY(-50%);
+    width:78px;height:78px;z-index:0;color:var(--accent);opacity:.14;pointer-events:none;
+  }
+  .template-cat-card.tpl-featured .tpl-watermark{opacity:.22;width:96px;height:96px;}
   .template-cat-card.tpl-featured{
     border-color:var(--accent);
-    box-shadow:0 0 0 1px rgba(var(--accent-rgb),0.25), 0 6px 22px rgba(var(--accent-rgb),0.14);
+    box-shadow:0 0 0 1px rgba(var(--accent-rgb),0.25), 0 8px 28px rgba(var(--accent-rgb),0.18);
   }
   .template-cat-card.tpl-featured .tpl-bg .glow{
     background:radial-gradient(circle, rgba(var(--accent-rgb),0.45) 0%, rgba(var(--accent-rgb),0.16) 38%, rgba(var(--accent-rgb),0) 66%);
@@ -8249,7 +8271,7 @@
   // a key that gets removed later just quietly drops that card instead of
   // breaking.
   var WORKOUT_TEMPLATE_CATEGORIES = [
-    { id: 'beginner', label: 'Beginner', description: 'New to lifting? Start here.', badge: 'Best for new lifters', meta: '6 exercises \u00b7 machine-based', keys: ['beginnerFullBody'] },
+    { id: 'beginner', label: 'Beginner', description: 'New to lifting? Start here.', badge: 'Best for new lifters', chips: ['6 exercises', 'Machine-based'], keys: ['beginnerFullBody'] },
     { id: 'ppl', label: 'Push / Pull / Legs', description: 'The classic 3-day split.', meta: '3\u20136 days / week', keys: ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB'] },
     { id: 'upperLower', label: 'Upper / Lower', description: 'Balanced, efficient, repeatable.', meta: '4 days / week', keys: ['upper', 'lower', 'upperB', 'lowerB'] },
     { id: 'fullBody', label: 'Full Body', description: 'Everything, every session.', meta: '3 days / week', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] }
@@ -9576,16 +9598,26 @@
   // description, a meta line (days/week etc.), the template count, and a
   // chevron. The category flagged with a badge (Beginner) gets the gold
   // "featured" treatment so a newcomer knows where to start.
+  var TPL_CAT_ICONS = {
+    beginner: '<path d="M6.5 6.5v11M4 9v6M17.5 6.5v11M20 9v6M6.5 12h11"/>',
+    ppl: '<path d="M5 20V10M12 20V4M19 20V13"/>',
+    upperLower: '<rect x="6" y="3" width="12" height="7" rx="2"/><rect x="6" y="14" width="12" height="7" rx="2"/>',
+    fullBody: '<circle cx="12" cy="5" r="2.5"/><path d="M12 8v7M7 11h10M12 15l-4 6M12 15l4 6"/>'
+  };
   function templateCategoryCardHtml(c, keys, action, extraClass){
     var featured = !!c.badge;
+    var icon = TPL_CAT_ICONS[c.id] || '';
     return '<button type="button" class="template-card template-cat-card'+(extraClass ? ' '+extraClass : '')+(featured ? ' tpl-featured' : '')+'" data-action="'+action+'" data-category="'+c.id+'">' +
       templateBgHtml() +
-      '<div class="template-card-top">' +
-        '<div class="template-card-name">'+esc(c.label)+'</div>' +
-        (featured ? '<span class="template-card-badge">'+esc(c.badge)+'</span>' : '') +
-      '</div>' +
+      (icon ? '<svg class="tpl-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+icon+'</svg>' : '') +
+      (featured ? '<span class="template-card-badge">'+esc(c.badge)+'</span>' : '') +
+      '<div class="template-card-name">'+esc(c.label)+'</div>' +
       '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
-      '<div class="template-card-count">'+keys.length+' template'+(keys.length===1?'':'s')+(c.meta ? ' \u00b7 '+esc(c.meta) : '')+'</div>' +
+      '<div class="tpl-chips">' +
+        (c.chips ? c.chips.map(function(t){ return '<span class="tpl-chip">'+esc(t)+'</span>'; }).join('') :
+          '<span class="tpl-chip">'+keys.length+' template'+(keys.length===1?'':'s')+'</span>' +
+          (c.meta ? '<span class="tpl-chip">'+esc(c.meta)+'</span>' : '')) +
+      '</div>' +
       '<span class="template-card-chev" aria-hidden="true">&#8250;</span>' +
     '</button>';
   }
