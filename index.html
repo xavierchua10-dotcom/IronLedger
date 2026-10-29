@@ -14282,10 +14282,6 @@
             '</button>';
     html += '<button class="auth-guest-btn" data-action="continue-guest"'+(busy?' disabled':'')+'>Continue as Guest</button>';
     html += '<div class="auth-note">Accounts sync your workout log across devices. Guest mode stays on this device only.</div>';
-    html += '<div class="auth-note" style="opacity:.45;font-size:10px;">build 29oct-a</div>';
-    var __tr = '';
-    try{ __tr = (JSON.parse(localStorage.getItem('sf_trace') || '[]')).join('\n'); }catch(e){}
-    if (__tr) html += '<div class="auth-note" style="opacity:.5;font-size:10px;text-align:left;white-space:pre-wrap;word-break:break-all;">'+esc(__tr)+'</div>';
     html += '</div>';
     if (busy){
       html += '<div class="auth-loading-overlay" role="status" aria-live="polite" aria-label="Please wait"><div class="auth-spinner"></div></div>';
