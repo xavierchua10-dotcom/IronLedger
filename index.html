@@ -8244,6 +8244,64 @@
         { name: 'Ab Wheel Rollout', muscle: 'Abs', sets: 3 }
       ]
     },
+    broChest: {
+      label: 'Chest Day',
+      category: 'broSplit',
+      exercises: [
+        { name: 'Barbell Bench Press', muscle: 'Chest', sets: 4 },
+        { name: 'Dumbbell Incline Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Machine Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Cable Chest Fly (Centered)', muscle: 'Chest', sets: 3 },
+        { name: 'Dips', muscle: 'Chest', sets: 3 }
+      ]
+    },
+    broBack: {
+      label: 'Back Day',
+      category: 'broSplit',
+      exercises: [
+        { name: 'Pull-ups', muscle: 'Back', sets: 4 },
+        { name: 'Barbell Row', muscle: 'Back', sets: 4 },
+        { name: 'Lat Pulldown', muscle: 'Back', sets: 3 },
+        { name: 'Seated Cable Row', muscle: 'Back', sets: 3 },
+        { name: 'Dumbbell Row', muscle: 'Back', sets: 3 }
+      ]
+    },
+    broShoulders: {
+      label: 'Shoulders Day',
+      category: 'broSplit',
+      exercises: [
+        { name: 'Barbell Shoulder Press', muscle: 'Shoulders', sets: 4 },
+        { name: 'Dumbbell Shoulder Press', muscle: 'Shoulders', sets: 3 },
+        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders', sets: 4 },
+        { name: 'Cable Lateral Raise', muscle: 'Shoulders', sets: 3 },
+        { name: 'Cable Rear Delt Fly', muscle: 'Shoulders', sets: 3 },
+        { name: 'Face Pull', muscle: 'Shoulders', sets: 3 }
+      ]
+    },
+    broArms: {
+      label: 'Arms Day',
+      category: 'broSplit',
+      exercises: [
+        { name: 'Barbell Bicep Curl', muscle: 'Biceps', sets: 4 },
+        { name: 'Dumbbell Hammer Curl', muscle: 'Biceps', sets: 3 },
+        { name: 'Cable Curl', muscle: 'Biceps', sets: 3 },
+        { name: 'Close-Grip Bench Press', muscle: 'Triceps', sets: 4 },
+        { name: 'Tricep Pushdown', muscle: 'Triceps', sets: 3 },
+        { name: 'Cable Overhead Extension', muscle: 'Triceps', sets: 3 }
+      ]
+    },
+    broLegs: {
+      label: 'Legs Day',
+      category: 'broSplit',
+      exercises: [
+        { name: 'Back Squat', muscle: 'Quads', sets: 4 },
+        { name: 'Leg Press', muscle: 'Quads', sets: 3 },
+        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Leg Extension', muscle: 'Quads', sets: 3 },
+        { name: 'Lying Leg Curl', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Machine Standing Calf Raise', muscle: 'Calves', sets: 4 }
+      ]
+    },
     // The one auto-suggested by the setup wizard when someone picks
     // "Beginner" for experience, regardless of their training-days
     // answer — machine/dumbbell/bodyweight only, nothing that demands
@@ -8262,7 +8320,7 @@
       ]
     }
   };
-  var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB', 'upper', 'lower', 'upperB', 'lowerB', 'fullBodyA', 'fullBodyB', 'fullBodyC', 'beginnerFullBody'];
+  var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB', 'upper', 'lower', 'upperB', 'lowerB', 'fullBodyA', 'fullBodyB', 'fullBodyC', 'broChest', 'broBack', 'broShoulders', 'broArms', 'broLegs', 'beginnerFullBody'];
   // Groups the flat template list into labeled sections for the picker —
   // order here is the display order (PPL split first, then upper/lower,
   // then full body). Within a category, all "A" days are grouped first,
@@ -8275,7 +8333,8 @@
     { id: 'beginner', label: 'Beginner', description: 'New to lifting? Start here.', badge: 'Best for new lifters', chips: ['6 exercises', 'Machine-based'], keys: ['beginnerFullBody'] },
     { id: 'ppl', label: 'Push / Pull / Legs', description: 'The classic 3-day split.', meta: '3\u20136 days / week', keys: ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB'] },
     { id: 'upperLower', label: 'Upper / Lower', description: 'Balanced, efficient, repeatable.', meta: '4 days / week', keys: ['upper', 'lower', 'upperB', 'lowerB'] },
-    { id: 'fullBody', label: 'Full Body', description: 'Everything, every session.', meta: '3 days / week', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] }
+    { id: 'fullBody', label: 'Full Body', description: 'Everything, every session.', meta: '3 days / week', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] },
+    { id: 'broSplit', label: 'Bro Split', description: 'One muscle group per day.', meta: '5 days / week', keys: ['broChest', 'broBack', 'broShoulders', 'broArms', 'broLegs'] },
   ];
 
   // Pulls the trailing variant letter off a template label ('Push Day A' ->
