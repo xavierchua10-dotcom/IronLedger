@@ -9606,10 +9606,8 @@
   };
   function templateCategoryCardHtml(c, keys, action, extraClass){
     var featured = !!c.badge;
-    var icon = TPL_CAT_ICONS[c.id] || '';
     return '<button type="button" class="template-card template-cat-card'+(extraClass ? ' '+extraClass : '')+(featured ? ' tpl-featured' : '')+'" data-action="'+action+'" data-category="'+c.id+'">' +
       templateBgHtml() +
-      (icon ? '<svg class="tpl-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+icon+'</svg>' : '') +
       (featured ? '<span class="template-card-badge">'+esc(c.badge)+'</span>' : '') +
       '<div class="template-card-name">'+esc(c.label)+'</div>' +
       '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
