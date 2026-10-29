@@ -1867,6 +1867,27 @@
   .tpl-bg .plate.p3{right:-10px;}
   .template-cat-card .template-card-sub{color:#d7dae0;}
   .template-cat-card .template-card-count{color:#aab0b8;}
+  .template-card-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+  .template-card-top .template-card-name{margin-bottom:0;}
+  .template-card-badge{
+    font-family:'Oswald',sans-serif;
+    font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    padding:3px 8px;border-radius:999px;
+    background:var(--accent);color:#1c1500;
+  }
+  .template-card > .template-card-chev{
+    position:absolute;right:16px;top:50%;transform:translateY(-50%);
+    z-index:1;font-size:26px;line-height:1;color:var(--accent);opacity:.85;
+  }
+  .template-cat-card{padding-right:44px;}
+  .template-cat-card.tpl-featured{
+    border-color:var(--accent);
+    box-shadow:0 0 0 1px rgba(var(--accent-rgb),0.25), 0 6px 22px rgba(var(--accent-rgb),0.14);
+  }
+  .template-cat-card.tpl-featured .tpl-bg .glow{
+    background:radial-gradient(circle, rgba(var(--accent-rgb),0.45) 0%, rgba(var(--accent-rgb),0.16) 38%, rgba(var(--accent-rgb),0) 66%);
+  }
+  .template-cat-card:not(.tpl-featured){border-color:rgba(255,255,255,0.09);}
   .template-card-name{
     font-family:'Oswald',sans-serif;
     font-size:15px;
@@ -8228,10 +8249,10 @@
   // a key that gets removed later just quietly drops that card instead of
   // breaking.
   var WORKOUT_TEMPLATE_CATEGORIES = [
-    { id: 'beginner', label: 'Beginner', description: 'New to lifting? Start here.', keys: ['beginnerFullBody'] },
-    { id: 'ppl', label: 'Push / Pull / Legs', description: 'The classic 3-day split.', keys: ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB'] },
-    { id: 'upperLower', label: 'Upper / Lower', description: 'Balanced, efficient, repeatable.', keys: ['upper', 'lower', 'upperB', 'lowerB'] },
-    { id: 'fullBody', label: 'Full Body', description: 'Everything, every session.', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] }
+    { id: 'beginner', label: 'Beginner', description: 'New to lifting? Start here.', badge: 'Best for new lifters', meta: '6 exercises \u00b7 machine-based', keys: ['beginnerFullBody'] },
+    { id: 'ppl', label: 'Push / Pull / Legs', description: 'The classic 3-day split.', meta: '3\u20136 days / week', keys: ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB'] },
+    { id: 'upperLower', label: 'Upper / Lower', description: 'Balanced, efficient, repeatable.', meta: '4 days / week', keys: ['upper', 'lower', 'upperB', 'lowerB'] },
+    { id: 'fullBody', label: 'Full Body', description: 'Everything, every session.', meta: '3 days / week', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] }
   ];
 
   // Pulls the trailing variant letter off a template label ('Push Day A' ->
@@ -9550,6 +9571,25 @@
            '</span>';
   }
 
+  // One category card, used by both the Log empty state and the template
+  // picker so they always match: name (+ badge on the recommended one),
+  // description, a meta line (days/week etc.), the template count, and a
+  // chevron. The category flagged with a badge (Beginner) gets the gold
+  // "featured" treatment so a newcomer knows where to start.
+  function templateCategoryCardHtml(c, keys, action, extraClass){
+    var featured = !!c.badge;
+    return '<button type="button" class="template-card template-cat-card'+(extraClass ? ' '+extraClass : '')+(featured ? ' tpl-featured' : '')+'" data-action="'+action+'" data-category="'+c.id+'">' +
+      templateBgHtml() +
+      '<div class="template-card-top">' +
+        '<div class="template-card-name">'+esc(c.label)+'</div>' +
+        (featured ? '<span class="template-card-badge">'+esc(c.badge)+'</span>' : '') +
+      '</div>' +
+      '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
+      '<div class="template-card-count">'+keys.length+' template'+(keys.length===1?'':'s')+(c.meta ? ' \u00b7 '+esc(c.meta) : '')+'</div>' +
+      '<span class="template-card-chev" aria-hidden="true">&#8250;</span>' +
+    '</button>';
+  }
+
   function renderTemplatePickerOverlay(){
     var overlay = document.getElementById('templatePickerOverlay');
     var panel = document.getElementById('templatePickerPanel');
@@ -9574,12 +9614,7 @@
           WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
             var keys = templatesInCategory(c);
             if (!keys.length) return '';
-            return '<button type="button" class="template-card template-cat-card" data-action="select-template-category" data-category="'+c.id+'">' +
-              templateBgHtml() +
-              '<div class="template-card-name">'+esc(c.label)+'</div>' +
-              '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
-              '<div class="template-card-count">'+keys.length+' template'+(keys.length===1?'':'s')+'</div>' +
-            '</button>';
+            return templateCategoryCardHtml(c, keys, 'select-template-category', '');
           }).join('') +
         '</div>';
       return;
@@ -10766,12 +10801,7 @@
     var cards = WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
       var keys = templatesInCategory(c);
       if (!keys.length) return '';
-      return '<button type="button" class="template-card template-cat-card log-tpl-card" data-action="log-template-category" data-category="'+c.id+'">' +
-        templateBgHtml() +
-        '<div class="template-card-name">'+esc(c.label)+'</div>' +
-        '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
-        '<div class="template-card-count">'+keys.length+' template'+(keys.length===1?'':'s')+'</div>' +
-      '</button>';
+      return templateCategoryCardHtml(c, keys, 'log-template-category', 'log-tpl-card');
     }).join('');
     if (!cards) return '';
     return '<div class="log-tpl-or"><span>or choose an existing template</span></div>' +
