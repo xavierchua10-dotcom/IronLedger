@@ -100,6 +100,11 @@
     -webkit-tap-highlight-color: transparent;
   }
   html,body{margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none;}
+  /* Solid dark canvas behind everything. When the on-screen keyboard
+     opens/closes the visible area resizes for a few frames and the fixed
+     body background image repaints; with no colour on <html> that showed
+     as a white flash. Now the worst case is the app's own dark colour. */
+  html{background-color:#14161a;color-scheme:dark;}
   button, input, select, [data-action]{
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
@@ -115,7 +120,7 @@
   body{
     background:
       linear-gradient(rgba(10,11,14,0.80), rgba(10,11,14,0.86)),
-      url('images/hero-background.jpg') center / cover no-repeat fixed;
+      url('images/hero-background.jpg') center / cover no-repeat fixed #14161a;
     color:var(--text);
     font-family:'Inter',system-ui,sans-serif;
     -webkit-font-smoothing:antialiased;
@@ -15784,7 +15789,7 @@
     renderLogChatOverlay();
     // Same reason as the fresh-shell call in renderLogChatOverlay: let the
     // slide-in finish before the keyboard comes up.
-    focusLogChatInput(320);
+    focusLogChatInput(30, true); // bind listeners only — the keyboard now comes up when you tap the box, not automatically with the slide-in
   }
 
   // Wipes the whole Log Assistant chat state back to first-run
@@ -15827,6 +15832,9 @@
     // press it triggers and restart the exit animation mid-flight.
     if (ui.logChatClosing || !ui.logChatOpen) return;
     ui.logChatClosing = true;
+    // Put the keyboard away first so it isn't still animating while the panel slides out.
+    var closingInp = document.getElementById('logChatInput');
+    if (closingInp && document.activeElement === closingInp) closingInp.blur();
 
     ui.logChatPendingFinish = false;
     ui.logChatPendingEdit = null;
@@ -15858,11 +15866,11 @@
     }
   }
 
-  function focusLogChatInput(delay){
+  function focusLogChatInput(delay, bindOnly){
     setTimeout(function(){
       var inp = document.getElementById('logChatInput');
       if (!inp) return;
-      if (document.activeElement !== inp) inp.focus({ preventScroll: true });
+      if (!bindOnly && document.activeElement !== inp) inp.focus({ preventScroll: true });
       // The input persists across ordinary message renders now (see
       // renderLogChatOverlay) instead of being destroyed and recreated
       // each time, so without this guard every reply would stack
@@ -16281,7 +16289,7 @@
       panel.innerHTML = shellHtml;
       // Raising the keyboard during the 0.28s slide-in resized the screen
       // mid-animation (the "jump" on open) — wait until it has settled.
-      focusLogChatInput(320);
+      focusLogChatInput(30, true); // bind listeners only — the keyboard now comes up when you tap the box, not automatically with the slide-in
     } else {
       // Shell already up — just patch the AI-usage count in place
       // rather than touching anything else (input included).
