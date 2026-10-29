@@ -1659,6 +1659,15 @@
     min-width:0;
     border-style:solid;
   }
+  /* "or choose an existing template" block under Add Exercise (empty log) */
+  .log-tpl-or{
+    display:flex;align-items:center;gap:12px;
+    margin:22px 0 14px;
+    color:var(--text-dim);font-size:12.5px;letter-spacing:.04em;
+  }
+  .log-tpl-or::before,.log-tpl-or::after{content:"";flex:1;height:1px;background:var(--line);}
+  .log-tpl-list .log-tpl-card{min-height:0;padding:12px 16px;margin-bottom:10px;}
+  .log-tpl-list .log-tpl-card:last-child{margin-bottom:0;}
   .warmup-reminder{
     text-align:center;
     padding:14px 28px 0;
@@ -10475,6 +10484,25 @@
   /* =========================================================
      RENDER: LOG TAB
      ========================================================= */
+  // "— or choose an existing template —" block under Add Exercise on an empty
+  // log: the same category cards as the "Start from a Template" popup. Tapping
+  // one opens the popup straight on that category's template list.
+  function renderLogTemplateChoices(){
+    var cards = WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
+      var keys = templatesInCategory(c);
+      if (!keys.length) return '';
+      return '<button type="button" class="template-card template-cat-card log-tpl-card" data-action="log-template-category" data-category="'+c.id+'">' +
+        templateBgHtml() +
+        '<div class="template-card-name">'+esc(c.label)+'</div>' +
+        '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
+        '<div class="template-card-count">'+keys.length+' template'+(keys.length===1?'':'s')+'</div>' +
+      '</button>';
+    }).join('');
+    if (!cards) return '';
+    return '<div class="log-tpl-or"><span>or choose an existing template</span></div>' +
+           '<div class="log-tpl-list">' + cards + '</div>';
+  }
+
   function renderLog(){
     var session = getActiveSession();
     var html = '';
@@ -10517,6 +10545,7 @@
 
     if (session.exercises.length === 0){
       html += addExerciseRow;
+      html += renderLogTemplateChoices();
       html += '<div class="onboarding-tip">Thanks for using SaviorFit Logger. For accurate tracking, set your bodyweight and training goals in <button class="onboarding-tip-link" data-action="open-bodyweight-picker">Settings</button> before logging your first exercise.</div>';
       html += '<div class="warmup-reminder">Take a few minutes to <b>warm up</b> before you go heavy \u2014 some light reps and a bit of mobility now saves you an injury later.</div>';
       html += '<div class="empty log-empty-hero"><div class="glyph">' +
@@ -16755,6 +16784,9 @@
       cancelEditSet();
     } else if (action === 'finish-session'){
       openFinishSessionConfirm();
+    } else if (action === 'log-template-category'){
+      ui.showTemplatePicker = true;
+      openTemplateCategory(el.dataset.category);
     } else if (action === 'open-template-picker'){
       openTemplatePicker();
     } else if (action === 'open-rest-timer-picker'){
