@@ -3144,8 +3144,12 @@
     box-shadow:none;
     /* Solid (not translucent + backdrop-filter): a blurred backdrop on an
        element that is sliding in/out flashes white for a frame. */
-    background:#14161a;
-    background-image:none;
+    /* Logo watermark: the logo sits under a dark wash so it reads as a faint
+       backdrop behind the messages (bubbles are opaque and cover it). */
+    background:
+      linear-gradient(rgba(20,22,26,0.78), rgba(20,22,26,0.78)),
+      url('images/logo-mark.png') center 36% / 220px auto no-repeat
+      #14161a;
     will-change:transform;
     animation:logChatSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -3208,7 +3212,7 @@
   .chat-link{color:var(--accent);text-decoration:underline;font-weight:600;word-break:break-all;-webkit-user-select:text;user-select:text;}
   .chat-msg-bot{
     align-self:flex-start;
-    background:var(--panel-2);
+    background:rgba(36,40,48,0.80); /* slightly see-through so the logo watermark shows behind long chats */
     border:1px solid var(--line);
     color:var(--text);
     border-bottom-left-radius:4px;
