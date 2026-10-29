@@ -4658,12 +4658,44 @@
     z-index:160;
   }
   .img-preview-overlay.hidden{display:none;}
+  .img-preview-body{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+    width:100%;
+    max-height:100%;
+    min-height:0;
+  }
   .img-preview-img{
     max-width:100%;
-    max-height:100%;
+    max-height:62vh;
+    min-height:0;
+    object-fit:contain;
     border-radius:var(--radius-lg);
     background:#fff;
   }
+  .img-preview-caption{
+    width:100%;
+    max-height:28vh;
+    overflow-y:auto;
+    text-align:center;
+  }
+  .img-preview-caption[hidden]{display:none;}
+  .img-preview-name{
+    color:var(--text);
+    font-size:17px;
+    font-weight:700;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+  }
+  .img-preview-how{
+    margin-top:6px;
+    color:var(--text-dim);
+    font-size:14.5px;
+    line-height:1.5;
+  }
+  .img-preview-how:empty{display:none;}
   .img-preview-close{
     position:absolute;
     top:calc(16px + var(--safe-top, 0px));
@@ -5245,7 +5277,13 @@
   <div class="pro-panel" id="ratingPanel"></div>
 </div>
 <div class="img-preview-overlay hidden" id="imgPreviewOverlay">
-  <img class="img-preview-img" id="imgPreviewImg" alt="">
+  <div class="img-preview-body">
+    <img class="img-preview-img" id="imgPreviewImg" alt="">
+    <div class="img-preview-caption" id="imgPreviewCaption" hidden>
+      <div class="img-preview-name" id="imgPreviewName"></div>
+      <div class="img-preview-how" id="imgPreviewHow"></div>
+    </div>
+  </div>
   <button class="img-preview-close" aria-label="Close">&times;</button>
 </div>
 <div class="toast" id="toast"></div>
@@ -16684,6 +16722,22 @@
       var imgPreviewImgEl = document.getElementById('imgPreviewImg');
       imgPreviewImgEl.src = el.dataset.img;
       imgPreviewImgEl.alt = el.dataset.exName || '';
+      // Caption under the photo: exercise name + the library's "how" description.
+      var imgPreviewCaptionEl = document.getElementById('imgPreviewCaption');
+      var imgPreviewNameEl = document.getElementById('imgPreviewName');
+      var imgPreviewHowEl = document.getElementById('imgPreviewHow');
+      var imgPreviewExName = el.dataset.exName || '';
+      var imgPreviewHow = '';
+      var imgPreviewKey = imgPreviewExName.toLowerCase();
+      for (var ipi = 0; ipi < EXERCISE_LIBRARY_FLAT.length; ipi++){
+        if (EXERCISE_LIBRARY_FLAT[ipi].name.toLowerCase() === imgPreviewKey){
+          imgPreviewHow = EXERCISE_LIBRARY_FLAT[ipi].how || '';
+          break;
+        }
+      }
+      imgPreviewNameEl.textContent = imgPreviewExName;
+      imgPreviewHowEl.textContent = imgPreviewHow;
+      imgPreviewCaptionEl.hidden = !(imgPreviewExName || imgPreviewHow);
       imgPreviewOverlayEl.classList.remove('hidden');
     } else if (action === 'open-set-menu'){
       if (ui.openRowMenu && ui.openRowMenu.type === 'set' && ui.openRowMenu.setId === el.dataset.set){
