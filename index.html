@@ -8302,6 +8302,46 @@
         { name: 'Machine Standing Calf Raise', muscle: 'Calves', sets: 4 }
       ]
     },
+    arnoldChestBack: {
+      label: 'Chest & Back',
+      category: 'arnold',
+      exercises: [
+        { name: 'Barbell Bench Press', muscle: 'Chest', sets: 4 },
+        { name: 'Dumbbell Incline Bench Press', muscle: 'Chest', sets: 3 },
+        { name: 'Cable Chest Fly (Centered)', muscle: 'Chest', sets: 3 },
+        { name: 'Pull-ups', muscle: 'Back', sets: 4 },
+        { name: 'Barbell Row', muscle: 'Back', sets: 4 },
+        { name: 'Lat Pulldown', muscle: 'Back', sets: 3 },
+        { name: 'Seated Cable Row', muscle: 'Back', sets: 3 }
+      ]
+    },
+    arnoldShouldersArms: {
+      label: 'Shoulders & Arms',
+      category: 'arnold',
+      exercises: [
+        { name: 'Barbell Shoulder Press', muscle: 'Shoulders', sets: 4 },
+        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders', sets: 4 },
+        { name: 'Cable Rear Delt Fly', muscle: 'Shoulders', sets: 3 },
+        { name: 'Barbell Bicep Curl', muscle: 'Biceps', sets: 4 },
+        { name: 'Dumbbell Hammer Curl', muscle: 'Biceps', sets: 3 },
+        { name: 'Close-Grip Bench Press', muscle: 'Triceps', sets: 4 },
+        { name: 'Tricep Pushdown', muscle: 'Triceps', sets: 3 },
+        { name: 'Cable Overhead Extension', muscle: 'Triceps', sets: 3 }
+      ]
+    },
+    arnoldLegs: {
+      label: 'Legs & Abs',
+      category: 'arnold',
+      exercises: [
+        { name: 'Back Squat', muscle: 'Quads', sets: 4 },
+        { name: 'Leg Press', muscle: 'Quads', sets: 3 },
+        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Leg Extension', muscle: 'Quads', sets: 3 },
+        { name: 'Lying Leg Curl', muscle: 'Hamstrings', sets: 3 },
+        { name: 'Machine Standing Calf Raise', muscle: 'Calves', sets: 4 },
+        { name: 'Ab Wheel Rollout', muscle: 'Abs', sets: 3 }
+      ]
+    },
     // The one auto-suggested by the setup wizard when someone picks
     // "Beginner" for experience, regardless of their training-days
     // answer — machine/dumbbell/bodyweight only, nothing that demands
@@ -8320,7 +8360,7 @@
       ]
     }
   };
-  var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB', 'upper', 'lower', 'upperB', 'lowerB', 'fullBodyA', 'fullBodyB', 'fullBodyC', 'broChest', 'broBack', 'broShoulders', 'broArms', 'broLegs', 'beginnerFullBody'];
+  var WORKOUT_TEMPLATE_ORDER = ['push', 'pull', 'leg', 'pushB', 'pullB', 'legB', 'upper', 'lower', 'upperB', 'lowerB', 'fullBodyA', 'fullBodyB', 'fullBodyC', 'broChest', 'broBack', 'broShoulders', 'broArms', 'broLegs', 'arnoldChestBack', 'arnoldShouldersArms', 'arnoldLegs', 'beginnerFullBody'];
   // Groups the flat template list into labeled sections for the picker —
   // order here is the display order (PPL split first, then upper/lower,
   // then full body). Within a category, all "A" days are grouped first,
@@ -8335,6 +8375,7 @@
     { id: 'upperLower', label: 'Upper / Lower', description: 'Balanced, efficient, repeatable.', meta: '4 days / week', keys: ['upper', 'lower', 'upperB', 'lowerB'] },
     { id: 'fullBody', label: 'Full Body', description: 'Everything, every session.', meta: '3 days / week', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] },
     { id: 'broSplit', label: 'Bro Split', description: 'One muscle group per day.', meta: '5 days / week', keys: ['broChest', 'broBack', 'broShoulders', 'broArms', 'broLegs'] },
+    { id: 'arnold', label: 'Arnold Split', description: 'Chest & back, shoulders & arms, legs \u2014 twice a week.', meta: '6 days / week', dividerBefore: 'or go full gym rat', keys: ['arnoldChestBack', 'arnoldShouldersArms', 'arnoldLegs'] },
   ];
 
   // Pulls the trailing variant letter off a template label ('Push Day A' ->
@@ -9704,7 +9745,7 @@
           WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
             var keys = templatesInCategory(c);
             if (!keys.length) return '';
-            return templateCategoryCardHtml(c, keys, 'select-template-category', '') + (c.badge ? '<div class="log-tpl-or log-tpl-or--inner"><span>or choose a regular split</span></div>' : '');
+            return (c.dividerBefore ? '<div class="log-tpl-or log-tpl-or--inner"><span>'+esc(c.dividerBefore)+'</span></div>' : '') + templateCategoryCardHtml(c, keys, 'select-template-category', '') + (c.badge ? '<div class="log-tpl-or log-tpl-or--inner"><span>or choose a regular split</span></div>' : '');
           }).join('') +
         '</div>';
       return;
@@ -10891,7 +10932,7 @@
     var cards = WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
       var keys = templatesInCategory(c);
       if (!keys.length) return '';
-      return templateCategoryCardHtml(c, keys, 'log-template-category', 'log-tpl-card') + (c.badge ? '<div class="log-tpl-or log-tpl-or--inner"><span>or choose a regular split</span></div>' : '');
+      return (c.dividerBefore ? '<div class="log-tpl-or log-tpl-or--inner"><span>'+esc(c.dividerBefore)+'</span></div>' : '') + templateCategoryCardHtml(c, keys, 'log-template-category', 'log-tpl-card') + (c.badge ? '<div class="log-tpl-or log-tpl-or--inner"><span>or choose a regular split</span></div>' : '');
     }).join('');
     if (!cards) return '';
     return '<div class="log-tpl-or"><span>or choose an existing template</span></div>' +
