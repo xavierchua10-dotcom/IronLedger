@@ -1672,6 +1672,7 @@
     margin:22px 0 14px;
     color:var(--text-dim);font-size:12.5px;letter-spacing:.04em;
   }
+  .log-tpl-or--inner{margin:6px 0 20px;}
   .log-tpl-or::before,.log-tpl-or::after{content:"";flex:1;height:1px;background:var(--line);}
   .log-tpl-list .log-tpl-card{min-height:0;padding:12px 16px;margin-bottom:10px;}
   .log-tpl-list .log-tpl-card:last-child{margin-bottom:0;}
@@ -9644,7 +9645,7 @@
           WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
             var keys = templatesInCategory(c);
             if (!keys.length) return '';
-            return templateCategoryCardHtml(c, keys, 'select-template-category', '');
+            return templateCategoryCardHtml(c, keys, 'select-template-category', '') + (c.badge ? '<div class="log-tpl-or log-tpl-or--inner"><span>or choose a regular split</span></div>' : '');
           }).join('') +
         '</div>';
       return;
@@ -10831,7 +10832,7 @@
     var cards = WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
       var keys = templatesInCategory(c);
       if (!keys.length) return '';
-      return templateCategoryCardHtml(c, keys, 'log-template-category', 'log-tpl-card');
+      return templateCategoryCardHtml(c, keys, 'log-template-category', 'log-tpl-card') + (c.badge ? '<div class="log-tpl-or log-tpl-or--inner"><span>or choose a regular split</span></div>' : '');
     }).join('');
     if (!cards) return '';
     return '<div class="log-tpl-or"><span>or choose an existing template</span></div>' +
