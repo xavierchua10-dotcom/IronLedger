@@ -15780,7 +15780,9 @@
     ui.logChatGreetedTab = state.tab;
 
     renderLogChatOverlay();
-    focusLogChatInput();
+    // Same reason as the fresh-shell call in renderLogChatOverlay: let the
+    // slide-in finish before the keyboard comes up.
+    focusLogChatInput(320);
   }
 
   // Wipes the whole Log Assistant chat state back to first-run
@@ -15860,11 +15862,11 @@
     }
   }
 
-  function focusLogChatInput(){
+  function focusLogChatInput(delay){
     setTimeout(function(){
       var inp = document.getElementById('logChatInput');
       if (!inp) return;
-      if (document.activeElement !== inp) inp.focus();
+      if (document.activeElement !== inp) inp.focus({ preventScroll: true });
       // The input persists across ordinary message renders now (see
       // renderLogChatOverlay) instead of being destroyed and recreated
       // each time, so without this guard every reply would stack
@@ -15883,7 +15885,7 @@
         inp.style.height = 'auto';
         inp.style.height = Math.min(inp.scrollHeight + 2, 122) + 'px';
       });
-    }, 30);
+    }, delay == null ? 30 : delay);
   }
 
   // The AI fallback is a Pro feature — it's the one part of the chat
@@ -15908,6 +15910,7 @@
     if (!inp) return;
     var text = inp.value.trim();
     if (!text) return;
+    ui.logChatStickBottom = true;
     ui.logChatMessages.push({ role: 'user', text: text });
     inp.value = '';
     inp.style.height = 'auto';
@@ -15952,6 +15955,7 @@
   // chat shows the chip's readable label as what was "said" rather
   // than the short coded value ("1", "yes") actually sent for parsing.
   function handleLogChatChip(value, label){
+    ui.logChatStickBottom = true;
     ui.logChatMessages.push({ role: 'user', text: label });
     if (ui.logChatUsedPillValues.indexOf(value) === -1) ui.logChatUsedPillValues.push(value);
     var reply = processLogChatMessage(value);
@@ -16252,7 +16256,8 @@
     // reading as the keyboard visibly jumping. closeLogChat() clears
     // panel.innerHTML entirely, so "#chatBody missing" reliably means
     // "this is a fresh open" — never a false negative mid-conversation.
-    if (!document.getElementById('chatBody')){
+    var freshShell = !document.getElementById('chatBody');
+    if (freshShell){
       var aiUsageHtml = '<div style="width:52px;"></div>';
       if (isProActive() && ui.logChatAIRemainingToday != null){
         aiUsageHtml = '<div class="log-chat-ai-usage' + (ui.logChatAIRemainingToday <= 10 ? ' log-chat-ai-usage-low' : '') + '" id="logChatAIUsage">' + ui.logChatAIRemainingToday + '/' + CHAT_DAILY_LIMIT_CLIENT + ' AI</div>';
@@ -16278,7 +16283,9 @@
           '</button>' +
         '</div>';
       panel.innerHTML = shellHtml;
-      focusLogChatInput();
+      // Raising the keyboard during the 0.28s slide-in resized the screen
+      // mid-animation (the "jump" on open) — wait until it has settled.
+      focusLogChatInput(320);
     } else {
       // Shell already up — just patch the AI-usage count in place
       // rather than touching anything else (input included).
@@ -16290,20 +16297,36 @@
     }
 
     var body = document.getElementById('chatBody');
-    var bodyHtml = '';
-    // Only messages not shown before get the slide-up class, so a
-    // re-render (which rebuilds this div's innerHTML) doesn't replay it
-    // on the whole history. A pending "thinking" bubble swapped for the
-    // real reply is a new object, so the reply animates in too.
-    ui.logChatMessages.forEach(function(m){
+    // Incremental update: keep every bubble that is unchanged and only
+    // touch what's new. Rebuilding body.innerHTML on every render (twice
+    // per reply: "thinking" bubble, then the real answer) re-laid-out and
+    // re-scrolled the whole list each time, which read as the screen
+    // flickering / jumping on send.
+    var msgs = ui.logChatMessages;
+    var keep = 0;
+    while (keep < msgs.length && keep < body.children.length &&
+           body.children[keep]._chatMsg === msgs[keep] &&
+           body.children[keep].classList.contains('chat-msg-pending') === !!msgs[keep].pending){
+      keep++;
+    }
+    while (body.children.length > keep) body.removeChild(body.lastChild);
+    for (var mi = keep; mi < msgs.length; mi++){
+      var m = msgs[mi];
+      // Only messages not shown before get the slide-up class.
       var isNew = !m._shown;
       m._shown = true;
-      var content = m.pending ? '<span class="chat-typing" aria-label="Thinking"><span></span><span></span><span></span></span>' : esc(m.text);
-      bodyHtml += '<div class="chat-msg chat-msg-' + m.role + (m.pending ? ' chat-msg-pending' : '') + (isNew ? ' chat-msg-new' : '') + '">' + content + '</div>';
-    });
-    body.innerHTML = bodyHtml;
-    body.scrollTop = body.scrollHeight;
-    ui.logChatStickBottom = true;
+      var node = document.createElement('div');
+      node.className = 'chat-msg chat-msg-' + m.role + (m.pending ? ' chat-msg-pending' : '') + (isNew ? ' chat-msg-new' : '');
+      if (m.pending){
+        node.innerHTML = '<span class="chat-typing" aria-label="Thinking"><span></span><span></span><span></span></span>';
+      } else {
+        node.textContent = m.text;
+      }
+      node._chatMsg = m;
+      body.appendChild(node);
+    }
+    if (freshShell) ui.logChatStickBottom = true;
+    if (ui.logChatStickBottom) body.scrollTop = body.scrollHeight;
     pinLogChatToBottom(body);
 
     var chipRow = document.getElementById('chatChipRow');
@@ -16328,6 +16351,14 @@
   // read older messages, leave them where they are.
   window.addEventListener('popstate', function(){
     if (ui.logChatOpen) closeLogChat();
+  });
+  // Tapping Send or a chip normally moves focus onto that button, which
+  // drops the keyboard; the post-reply refocus then raised it again —
+  // the screen visibly jumped twice per message. Cancelling the default
+  // mousedown keeps focus (and the keyboard) where it is; click still fires.
+  document.addEventListener('mousedown', function(e){
+    if (!ui.logChatOpen) return;
+    if (e.target.closest && e.target.closest('#logChatPanel .chat-send-btn, #logChatPanel .chat-chip')) e.preventDefault();
   });
 
   var logChatResizeObs = null;
