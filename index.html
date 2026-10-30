@@ -5444,6 +5444,7 @@
     html[data-card-style="glass"] .toast{ background-color:rgba(28,31,36,0.92); -webkit-backdrop-filter:none; backdrop-filter:none; }
   }
 .tpl-acc{scroll-margin-top:90px;scroll-margin-bottom:90px;}
+.tpl-acc-chips{margin-top:8px;}
 </style>
   <!-- Three.js r128 + the matching GLTFLoader/OrbitControls examples
        builds, for the 3D model in Muscle Volume Overview (Insight tab). -->
@@ -10992,7 +10993,8 @@
       var rows = splitCats.map(function(x){
         return '<button type="button" class="tpl-acc-row" data-action="log-template-category" data-category="'+x.c.id+'">' +
           '<span class="tpl-acc-rowmain"><span class="tpl-acc-name">'+esc(x.c.label)+'</span>' +
-          '<span class="tpl-acc-rowsub">'+esc((x.c.description || '').replace(/\.$/, ''))+(x.c.meta ? ' \u00b7 '+esc(x.c.meta) : '')+'</span></span>' +
+          '<span class="tpl-acc-rowsub">'+esc((x.c.description || '').replace(/\.$/, ''))+'</span>' +
+          '<span class="tpl-chips tpl-acc-chips"><span class="tpl-chip">'+x.keys.length+' templates</span>'+(x.c.meta ? '<span class="tpl-chip">'+esc(x.c.meta)+'</span>' : '')+'</span></span>' +
           '<span class="tpl-acc-go" aria-hidden="true">&#8250;</span></button>';
       }).join('');
       cards += '<div class="template-card template-cat-card log-tpl-card tpl-acc'+(open ? ' open' : '')+'">' +
