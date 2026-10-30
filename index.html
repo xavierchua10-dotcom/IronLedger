@@ -1890,6 +1890,17 @@
     background-image:none;
   }
   .settings-group.sg-deco > *:not(.tpl-bg){position:relative;z-index:1;}
+  /* Settings polish: shared section titles; only the Plan card keeps the gold
+     rays + a gold border so it reads as the one special card. */
+  body.tab-settings-active #view .section-label{
+    display:flex;align-items:center;gap:10px;position:relative;padding-left:10px;
+    font-family:'Oswald',sans-serif;font-size:12.5px;font-weight:600;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:#aab0b8;margin:24px 0 10px;
+  }
+  body.tab-settings-active #view .section-label:first-child{margin-top:6px;}
+  body.tab-settings-active #view .section-label::before{content:"";position:absolute;left:0;top:-1px;bottom:-1px;width:3px;border-radius:2px;background:var(--accent);}
+  body.tab-settings-active #view .section-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(var(--accent-rgb),0.35),rgba(var(--accent-rgb),0));}
+  body.tab-settings-active .settings-group.sg-deco:not(.sg-plan) .tpl-bg{opacity:0;}
+  body.tab-settings-active .settings-group.sg-plan{border-color:rgba(var(--accent-rgb),0.45);}
   .tpl-bg{
     position:absolute;
     top:0;right:0;bottom:0;left:0;
@@ -14053,7 +14064,7 @@
     html += '</div>';
 
     html += '<div class="section-label">Plan</div>';
-    html += '<div class="settings-group">';
+    html += '<div class="settings-group sg-plan">';
     if (state.currentAccount === 'guest'){
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
                 '<div class="sr-sub">Create a free account, then start a 30-day Pro trial anytime</div></div>' +
@@ -14440,6 +14451,7 @@
     // later the render wouldn't grow with it.
     document.body.classList.toggle('tab-insight-active', state.tab === 'insight');
     document.body.classList.toggle('tab-progress-active', state.tab === 'progress');
+    document.body.classList.toggle('tab-settings-active', state.tab === 'settings');
     document.querySelectorAll('.tabbar button').forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.tab === state.tab);
     });
