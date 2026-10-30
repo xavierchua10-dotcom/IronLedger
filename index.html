@@ -3402,14 +3402,14 @@
     /* Logo watermark: the logo sits under a dark wash so it reads as a faint
        backdrop behind the messages (bubbles are opaque and cover it). */
     background:
-      linear-gradient(rgba(20,22,26,0.78), rgba(20,22,26,0.78)),
+      linear-gradient(rgba(16,18,22,0.95), rgba(16,18,22,0.95)),
       url('images/logo-mark.png') center center / 220px auto no-repeat
       #14161a;
     will-change:transform;
     animation:logChatSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
   #logChatPanel .he-header{
-    padding-top:calc(14px + env(safe-area-inset-top, 0px));
+    padding:calc(16px + env(safe-area-inset-top, 0px)) 16px 12px;
     border-bottom:1px solid var(--glass-border);
     background:transparent;
   }
@@ -3417,6 +3417,15 @@
     border-top:1px solid var(--glass-border);
     background:transparent;
   }
+  .cx-title{display:flex;flex-direction:column;gap:6px;min-width:0;}
+  .cx-title b{font-family:'Oswald',sans-serif;font-size:20px;letter-spacing:0.07em;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:10px;font-weight:700;}
+  .cx-title b::before{content:'';width:3px;height:18px;border-radius:2px;background:var(--accent);flex-shrink:0;}
+  .cx-chip{align-self:flex-start;margin-left:13px;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-dim);background:rgba(var(--accent-rgb),0.10);border:1px solid rgba(var(--accent-rgb),0.28);border-radius:999px;padding:3px 10px;}
+  .cx-chip svg{width:12px;height:12px;color:var(--accent);flex-shrink:0;}
+  .cx-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .cx-x{width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,0.18);background:transparent;color:#c7ccd3;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;padding:0;}
+  .cx-x svg{width:20px;height:20px;display:block;}
+  .cx-x:active{background:var(--panel-3);}
   .chat-body{
     flex:1;
     overflow-y:auto;
@@ -3424,7 +3433,7 @@
     padding:14px 16px;
     display:flex;
     flex-direction:column;
-    gap:10px;
+    gap:12px;
     /* min-height:0 lets this flex child actually shrink and scroll.
        Bottom-anchoring is done with margin-top:auto on the first
        message instead of justify-content:flex-end — flex-end made
@@ -3457,21 +3466,24 @@
   }
   .chat-msg{
     max-width:82%;
-    padding:10px 13px;
-    border-radius:var(--radius-md);
-    font-size:13.5px;
-    line-height:1.4;
+    padding:10px 14px;
+    border-radius:18px;
+    font-size:14px;
+    line-height:1.45;
     white-space:pre-wrap;
     word-break:break-word;
   }
   .chat-link{color:var(--accent);text-decoration:underline;font-weight:600;word-break:break-all;-webkit-user-select:text;user-select:text;}
   .chat-msg-bot{
     align-self:flex-start;
-    background:rgba(36,40,48,0.80); /* slightly see-through so the logo watermark shows behind long chats */
+    background:rgba(36,40,48,0.96);
     border:1px solid var(--line);
     color:var(--text);
-    border-bottom-left-radius:4px;
+    border-bottom-left-radius:5px;
+    margin-left:38px;
+    position:relative;
   }
+  .chat-msg-bot::before{content:'';position:absolute;left:-38px;bottom:0;width:28px;height:28px;border-radius:50%;background:#14161a url('images/logo-mark.png') center/72% auto no-repeat;border:1px solid rgba(var(--accent-rgb),0.5);}
   .chat-msg-pending{
     font-style:italic;
     color:var(--text-dim);
@@ -3481,7 +3493,8 @@
     align-self:flex-end;
     background:var(--accent);
     color:#1c1500;
-    border-bottom-right-radius:4px;
+    border-bottom-right-radius:5px;
+    box-shadow:0 4px 14px rgba(var(--accent-rgb),0.14);
   }
   .chat-input-row{
     display:flex;
@@ -3494,8 +3507,8 @@
   .chat-input{
     flex:1;
     min-width:0;
-    background:var(--panel-2);
-    border:1px solid var(--line);
+    background:rgba(36,40,48,0.7);
+    border:1px solid rgba(255,255,255,0.14);
     border-radius:var(--radius-xl);
     color:var(--text);
     font-size:16px;
@@ -3524,20 +3537,29 @@
   }
   .chat-send-btn svg{width:18px;height:18px;display:block;}
   .chat-send-btn:active{background:var(--accent-dim);}
+  .chat-input:placeholder-shown ~ .chat-send-btn{background:var(--panel-3);color:var(--text-faint);}
   .chat-chip-row{
     display:flex;
-    flex-wrap:wrap;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    scrollbar-width:none;
     gap:8px;
-    padding:2px 14px 10px;
+    padding:4px 14px 12px;
     flex-shrink:0;
   }
+  .chat-chip-row::-webkit-scrollbar{display:none;}
+  .chat-chip svg{width:14px;height:14px;flex-shrink:0;}
   .chat-chip{
-    background:var(--panel-2);
-    border:1px solid var(--accent);
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    flex-shrink:0;
+    background:rgba(var(--accent-rgb),0.08);
+    border:1px solid rgba(var(--accent-rgb),0.4);
     color:var(--accent);
-    font-size:13px;
+    font-size:12.5px;
     font-weight:600;
-    padding:8px 14px;
+    padding:8px 13px;
     border-radius:var(--radius-xl);
     cursor:pointer;
     white-space:nowrap;
@@ -16777,7 +16799,17 @@
       })()
     };
 
-    window.SaviorFirebase.callChatAssistant(text, context).then(function(result){
+    // The AI sometimes answered a non-English message in English first.
+    // For messages written in a non-Latin script (Chinese, Thai, Arabic,
+    // Cyrillic, etc.), add a one-line hint so it replies in the same
+    // language. Only the copy sent to the AI carries it — the chat bubble
+    // still shows exactly what was typed. Skipped for long messages so the
+    // hint can never push one over the server's length limit.
+    var aiMessage = text;
+    if (text.length <= 200 && /[\u0370-\u1FFF\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF]/.test(text)){
+      aiMessage = text + '\n\n(Reply in the same language as my message above.)';
+    }
+    window.SaviorFirebase.callChatAssistant(aiMessage, context).then(function(result){
       var finalText = result.reply || 'Got it.';
       var idx = ui.logChatMessages.indexOf(thinkingMsg);
       if (typeof result.remaining === 'number') ui.logChatAIRemainingToday = result.remaining;
@@ -16988,16 +17020,12 @@
         aiUsageHtml = '<div class="log-chat-ai-usage' + (ui.logChatAIRemainingToday <= 10 ? ' log-chat-ai-usage-low' : '') + '" id="logChatAIUsage">' + ui.logChatAIRemainingToday + '/' + CHAT_DAILY_LIMIT_CLIENT + ' AI</div>';
       }
       var shellHtml = '<div class="he-header">' +
-          '<button class="he-cancel-btn" data-action="close-log-chat">Close</button>' +
-          '<div class="he-title">Log Assistant</div>' +
-          aiUsageHtml +
-        '</div>';
-      // Static for the life of this open chat — the tab can't change
-      // while this full-screen overlay is up, so no re-render hook is
-      // needed beyond reading state.tab once here at shell-build time.
-      shellHtml += '<div class="chat-context-bar">' +
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>' +
-          esc('Chatting about your ' + (LOG_CHAT_NAV_LABELS[state.tab] || 'Log') + ' tab') +
+          '<div class="cx-title"><b>Log Assistant</b>' +
+            '<span class="cx-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>' + esc((LOG_CHAT_NAV_LABELS[state.tab] || 'Log') + ' tab') + '</span>' +
+          '</div>' +
+          '<div class="cx-right">' + (aiUsageHtml.indexOf('log-chat-ai-usage') !== -1 ? aiUsageHtml : '') +
+            '<button class="cx-x" data-action="close-log-chat" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>' +
+          '</div>' +
         '</div>';
       shellHtml += '<div class="chat-body" id="chatBody"></div>';
       shellHtml += '<div class="chat-chip-row" id="chatChipRow"></div>';
@@ -17058,9 +17086,14 @@
     var chatChips = logChatCurrentChips();
     if (chatChips.length){
       chipRow.style.display = 'flex';
+      var chipSvg = function(inner){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>'; };
+      var chipIcon = function(label){
+        if (/bug/i.test(label)) return chipSvg('<path d="M12 2v4M5 8l3 2M19 8l-3 2M4 14h4M16 14h4M6 20l3-3M18 20l-3-3"/><ellipse cx="12" cy="13" rx="4" ry="6"/>');
+        return chipSvg('<path d="M13 2L3 14h8l-1 8 10-12h-8z"/>');
+      };
       chipRow.innerHTML = chatChips.map(function(c){
-        if (c.action) return '<button type="button" class="chat-chip" data-action="' + esc(c.action) + '">' + esc(c.label) + '</button>';
-        return '<button type="button" class="chat-chip" data-action="log-chat-chip" data-chip-value="' + esc(c.value) + '" data-chip-label="' + esc(c.label) + '">' + esc(c.label) + '</button>';
+        if (c.action) return '<button type="button" class="chat-chip" data-action="' + esc(c.action) + '">' + chipIcon(c.label) + esc(c.label) + '</button>';
+        return '<button type="button" class="chat-chip" data-action="log-chat-chip" data-chip-value="' + esc(c.value) + '" data-chip-label="' + esc(c.label) + '">' + chipIcon(c.label) + esc(c.label) + '</button>';
       }).join('');
     } else {
       chipRow.style.display = 'none';
