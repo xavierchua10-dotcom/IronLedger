@@ -12409,6 +12409,15 @@
   };
 
 
+  // renderer.setSize() always resets the canvas, which throws away and
+  // re-allocates the whole (anti-aliased) drawing buffer even when the size is
+  // identical. The panel is rebuilt on every re-render and ResizeObserver also
+  // fires once when it starts watching, so that cost was paid on every tab
+  // revisit. Only resize when the size really changed.
+  function mg3dSetSizeIfChanged(w, h){
+    var cur = mg3dState.renderer.getSize(new THREE.Vector2());
+    if (cur.x !== w || cur.y !== h) mg3dState.renderer.setSize(w, h);
+  }
   function initMg3dViewer(){
     var wrap = document.getElementById('mg3dViewer');
     if (!wrap || typeof THREE === 'undefined') return;
@@ -12430,7 +12439,7 @@
       if (w && h){
         mg3dState.camera.aspect = w / h;
         mg3dState.camera.updateProjectionMatrix();
-        mg3dState.renderer.setSize(w, h);
+        mg3dSetSizeIfChanged(w, h);
       }
       // Every render rebuilds this whole panel's DOM from scratch,
       // wrap included -- the OLD element the observer was watching is
@@ -12502,7 +12511,7 @@
     camera.position.set(0, 1.43, 2.75);
 
     var renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 1.5 (not 2): ~44% fewer pixels to shade, barely visible on this dark figure
     renderer.setSize(wrap.clientWidth, wrap.clientHeight);
     renderer.outputEncoding = THREE.sRGBEncoding;
     wrap.appendChild(renderer.domElement);
@@ -12625,8 +12634,15 @@
         }
       });
 
+      // Warm-up: the first render compiles the shader and uploads the model's
+      // textures to the GPU, which stalls for a moment on a phone. Do it now,
+      // while the loading overlay is still covering the panel, instead of as a
+      // visible hitch on the first spinning frame.
+      try{ renderer.render(scene, camera); }catch(warmErr){}
       var loadingEl = document.getElementById('mg3dLoading');
-      if (loadingEl) loadingEl.style.display = 'none';
+      requestAnimationFrame(function(){
+        if (loadingEl) loadingEl.style.display = 'none';
+      });
     }, function(xhr){
       // xhr.total is 0/unreliable if the server response doesn't send a
       // Content-Length header -- GitHub Pages does for a static file
@@ -12683,7 +12699,7 @@
       if (!w || !h) return;
       mg3dState.camera.aspect = w / h;
       mg3dState.camera.updateProjectionMatrix();
-      mg3dState.renderer.setSize(w, h);
+      mg3dSetSizeIfChanged(w, h);
     });
     mg3dState.resizeObserver.observe(wrap);
 
