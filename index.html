@@ -1932,6 +1932,36 @@
     background:radial-gradient(circle, rgba(var(--accent-rgb),0.45) 0%, rgba(var(--accent-rgb),0.16) 38%, rgba(var(--accent-rgb),0) 66%);
   }
   .template-cat-card:not(.tpl-featured){border-color:rgba(255,255,255,0.09);}
+  /* "Training splits" expandable card — same size as the Beginner card when closed. */
+  .template-card.tpl-acc{padding:0;min-height:136px;}
+  .template-card.tpl-acc > .tpl-acc-head{
+    position:relative;z-index:1;display:flex;flex-direction:column;justify-content:center;
+    width:100%;min-height:136px;text-align:left;background:none;border:0;color:inherit;font:inherit;cursor:pointer;
+    padding:22px 76px 22px 22px;
+  }
+  .tpl-acc-head .template-card-badge{align-self:flex-start;}
+  .tpl-acc-head .template-card-name{font-size:21px;margin-bottom:6px;letter-spacing:.04em;}
+  .tpl-acc-head .template-card-sub{font-size:14px;margin-bottom:12px;}
+  .template-card.tpl-acc .tpl-acc-chev{
+    position:absolute;right:18px;top:50%;transform:translateY(-50%);
+    width:40px;height:40px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--accent);background:rgba(var(--accent-rgb),0.12);border:1.5px solid rgba(var(--accent-rgb),0.5);
+    transition:transform .2s;
+  }
+  .template-card.tpl-acc.open .tpl-acc-chev{transform:translateY(-50%) rotate(180deg);}
+  .tpl-acc-rows{position:relative;z-index:1;border-top:1px solid rgba(255,255,255,0.08);}
+  .tpl-acc-row{
+    display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+    background:none;border:0;border-top:1px solid rgba(255,255,255,0.06);color:inherit;font:inherit;cursor:pointer;
+    padding:14px 20px 14px 22px;
+  }
+  .tpl-acc-row:first-child{border-top:0;}
+  .tpl-acc-row:active{background:rgba(var(--accent-rgb),0.08);}
+  .tpl-acc-rowmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .tpl-acc-name{font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--accent);}
+  .tpl-acc-rowsub{font-size:12.5px;color:#aab0b8;}
+  .tpl-acc-go{font-size:24px;line-height:1;color:var(--accent);padding-bottom:3px;}
   /* Secondary category cards (splits) are slimmer than the hero/Beginner ones. */
   .template-cat-card.tpl-compact,.log-tpl-list .log-tpl-card.tpl-compact{min-height:0;padding:16px 62px 16px 18px;margin-bottom:12px;}
   .tpl-compact .template-card-name{font-size:18px;margin-bottom:2px;}
@@ -6299,6 +6329,7 @@
     showPricing: false,     // Pricing/upgrade modal open state
     showAvatarPick: false,  // Profile icon picker overlay open state
     showTemplatePicker: false,  // Start-from-template overlay open state
+    splitsOpen: false,          // Log empty-state "Training splits" card expanded?
     templatePickerCategory: null, // null = showing category cards; a category id = drilled into that category's template list
     showRestTimerPicker: false, // Rest timer duration picker overlay open state
  // Log Assistant overlay open state (currently just a "coming soon" panel)
@@ -10932,12 +10963,12 @@
   // log: the same category cards as the "Start from a Template" popup. Tapping
   // one opens the popup straight on that category's template list.
   function renderLogTemplateChoices(){
-    var cards = WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
-      var keys = templatesInCategory(c);
-      if (!keys.length) return '';
-      return (c.dividerBefore ? '<div class="log-tpl-or log-tpl-or--inner"><span>'+esc(c.dividerBefore)+'</span></div>' : '') + templateCategoryCardHtml(c, keys, 'log-template-category', 'log-tpl-card') + (c.badge ? '<div class="log-tpl-or log-tpl-or--inner"><span>or choose a regular split</span></div>' : '');
-    }).join('');
-    if (!cards) return '';
+    var cats = WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
+      return { c: c, keys: templatesInCategory(c) };
+    }).filter(function(x){ return x.keys.length; });
+    if (!cats.length) return '';
+    var featuredCat = cats.filter(function(x){ return x.c.badge; });
+    var splitCats = cats.filter(function(x){ return !x.c.badge; });
     // Setup-wizard card on top: the guided route for newcomers. After the
     // wizard has been completed once it reads "Redo my plan".
     var wizDone = !!(state.settings && state.settings.experienceLevel);
@@ -10949,6 +10980,32 @@
       '<div class="tpl-chips"><span class="tpl-chip">4 questions</span><span class="tpl-chip">~30 seconds</span></div>' +
       '<span class="template-card-chev" aria-hidden="true">&#8250;</span>' +
     '</button>';
+    // Beginner stays its own card.
+    var cards = featuredCat.map(function(x){
+      return templateCategoryCardHtml(x.c, x.keys, 'log-template-category', 'log-tpl-card');
+    }).join('');
+    // The regular splits + bro split are grouped into one expandable card,
+    // the same size as the Beginner card when collapsed.
+    if (splitCats.length){
+      var open = !!ui.splitsOpen;
+      var rows = splitCats.map(function(x){
+        return '<button type="button" class="tpl-acc-row" data-action="log-template-category" data-category="'+x.c.id+'">' +
+          '<span class="tpl-acc-rowmain"><span class="tpl-acc-name">'+esc(x.c.label)+'</span>' +
+          '<span class="tpl-acc-rowsub">'+esc((x.c.description || '').replace(/\.$/, ''))+(x.c.meta ? ' \u00b7 '+esc(x.c.meta) : '')+'</span></span>' +
+          '<span class="tpl-acc-go" aria-hidden="true">&#8250;</span></button>';
+      }).join('');
+      cards += '<div class="template-card template-cat-card log-tpl-card tpl-acc'+(open ? ' open' : '')+'">' +
+        templateBgHtml() +
+        '<button type="button" class="tpl-acc-head" data-action="toggle-splits" aria-expanded="'+(open ? 'true' : 'false')+'">' +
+          '<span class="template-card-badge">For regular lifters</span>' +
+          '<div class="template-card-name">Training splits</div>' +
+          '<div class="template-card-sub">Already know your routine? Pick a split.</div>' +
+          '<div class="tpl-chips"><span class="tpl-chip">'+splitCats.length+' programs</span><span class="tpl-chip">3\u20136 days / week</span></div>' +
+          '<span class="tpl-acc-chev" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>' +
+        '</button>' +
+        (open ? '<div class="tpl-acc-rows">'+rows+'</div>' : '') +
+      '</div>';
+    }
     return '<div class="log-tpl-list log-tpl-wiz">' + wizCard + '</div>' +
            '<div class="log-tpl-or"><span>or choose a template yourself</span></div>' +
            '<div class="log-tpl-list">' + cards + '</div>';
@@ -10961,15 +11018,6 @@
     html += '<div class="session-name-row">' +
             '<input type="text" class="session-name-input" placeholder="Untitled session — e.g. Push Day, Legs, Full Body" ' +
             'value="'+esc(session.name)+'" data-role="session-name">' +
-            (session.exercises.length === 0 ?
-              '<button class="template-toggle-btn" data-action="open-template-picker" title="Start from a template" aria-label="Start from a template">' +
-                '<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">' +
-                  '<rect x="3" y="4" width="18" height="3.5" rx="1"/>' +
-                  '<rect x="3" y="10.25" width="18" height="3.5" rx="1"/>' +
-                  '<rect x="3" y="16.5" width="12" height="3.5" rx="1"/>' +
-                '</svg>' +
-              '</button>'
-            : '') +
             '</div>';
     html += '<div class="session-meta">' +
               '<span>'+fmtDate(session.date)+'</span>' +
@@ -18292,7 +18340,7 @@
      person who most needs it.
      ========================================================= */
   var TOUR_STEPS = [
-    { tab: 'log', selector: '.template-toggle-btn', fallback: '#view', title: 'Start from a template', text: 'New here? Tap this to load a pre-built routine \u2014 Beginner Full Body, Push Day, Legs, and more \u2014 each with a suggested set count and rep range for every exercise.' },
+    { tab: 'log', selector: '.log-tpl-wiz', fallback: '#view', title: 'Start from a template', text: 'New here? On an empty Log, tap Build my plan to answer a few questions, or pick a template card \u2014 Beginner Full Body, Push Day, Legs, and more \u2014 each with a suggested set count and rep range for every exercise.' },
     { tab: 'log', selector: '[data-action="add-blank-exercise"]', title: 'Add an exercise', text: 'Tap here to add an exercise \u2014 search by name, or browse the full library grouped by muscle.' },
     { tab: 'log', selector: '.add-set-btn', fallback: '#view', title: 'Log a set', text: 'Type your weight and reps, then tap the checkmark \u2014 it logs instantly and the row stays open, ready for your next set right away.' },
     { tab: 'log', selector: '.mm-toggle-btn', title: 'Browse by muscle', text: 'Prefer to browse? This opens a body diagram \u2014 tap a muscle group to see matching exercises.' },
@@ -19071,6 +19119,9 @@
       cancelEditSet();
     } else if (action === 'finish-session'){
       openFinishSessionConfirm();
+    } else if (action === 'toggle-splits'){
+      ui.splitsOpen = !ui.splitsOpen;
+      renderApp();
     } else if (action === 'log-template-category'){
       ui.showTemplatePicker = true;
       openTemplateCategory(el.dataset.category);
