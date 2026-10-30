@@ -18340,7 +18340,8 @@
      person who most needs it.
      ========================================================= */
   var TOUR_STEPS = [
-    { tab: 'log', selector: '.log-tpl-wiz', fallback: '#view', title: 'Start from a template', text: 'New here? On an empty Log, tap Build my plan to answer a few questions, or pick a template card \u2014 Beginner Full Body, Push Day, Legs, and more \u2014 each with a suggested set count and rep range for every exercise.' },
+    { tab: 'log', selector: '.log-tpl-wiz', fallback: '#view', title: 'Build my plan', text: 'New here? Tap Build my plan and answer 4 quick questions \u2014 bodyweight, goal, experience and training days \u2014 and we\u2019ll pick and load the right template for you.' },
+    { tab: 'log', selector: '.log-tpl-list:not(.log-tpl-wiz)', fallback: '#view', title: 'Pick a template', text: 'Prefer to choose yourself? Beginner is a simple machine-based routine, and Training splits holds Push/Pull/Legs, Upper/Lower, Full Body and Bro Split. Each exercise comes with a suggested set count and rep range.' },
     { tab: 'log', selector: '[data-action="add-blank-exercise"]', title: 'Add an exercise', text: 'Tap here to add an exercise \u2014 search by name, or browse the full library grouped by muscle.' },
     { tab: 'log', selector: '.add-set-btn', fallback: '#view', title: 'Log a set', text: 'Type your weight and reps, then tap the checkmark \u2014 it logs instantly and the row stays open, ready for your next set right away.' },
     { tab: 'log', selector: '.mm-toggle-btn', title: 'Browse by muscle', text: 'Prefer to browse? This opens a body diagram \u2014 tap a muscle group to see matching exercises.' },
@@ -18348,7 +18349,7 @@
     { tab: 'log', selector: '#notifBellBtn', title: 'Notifications', text: 'Trial status, reminders, and other updates show up here.' },
     { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Tap the \u22ee on any session to edit, repeat, or delete it \u2014 or tap the pencil on any exercise to jump straight to editing just that one.' },
     { tab: 'insight', selector: '.mg-panel', fallback: '#view', title: 'Insight', text: 'See your weekly set volume per muscle group on the 3D model \u2014 tap a muscle to focus the camera on it.' },
-    { tab: 'settings', selector: '[data-action="open-onboarding-wizard"]', fallback: '#view', title: 'Setup Wizard', text: 'Replay the setup questions anytime \u2014 bodyweight, goal, experience, and training days \u2014 to get a freshly suggested starting routine.' },
+    { tab: 'settings', selector: '[data-action="open-onboarding-wizard"]', fallback: '#view', title: 'Setup Wizard', text: 'Replay the setup questions anytime (also from the Build my plan card on an empty Log) \u2014 bodyweight, goal, experience, and training days \u2014 to get a freshly suggested starting routine.' },
     { tab: 'settings', selector: '[data-action="open-bodyweight-picker"]', fallback: '#view', title: 'Bodyweight & goal', text: 'Set these once \u2014 they power real load tracking on bodyweight exercises and shape how Pro Tips suggests your next set.' },
     { tab: 'settings', selector: '[data-action="open-settings-picker"][data-kind="accentColor"]', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
     { tab: 'settings', selector: '[data-action="open-settings-picker"][data-kind="cardBg"]', fallback: '#view', title: 'Card style', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
