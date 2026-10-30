@@ -19019,7 +19019,7 @@
     try{
       if (!navigator.vibrate || !state.settings || state.settings.hapticFeedback === false) return;
       var a = el.dataset.action;
-      if (HAPTIC_TICK_ACTIONS[a] || (el.closest && el.closest('.seg'))) navigator.vibrate(6);
+      if (HAPTIC_TICK_ACTIONS[a] || (el.closest && el.closest('.seg'))) navigator.vibrate(15);
     }catch(err){}
   }
   document.getElementById('app').addEventListener('click', function(e){
