@@ -12425,14 +12425,34 @@
   // elsewhere it opens the web listing in a new tab.
   function openPlayStoreReview(){
     var id = 'com.saviorfitlogger.app';
+    var web = 'https://play.google.com/store/apps/details?id=' + id;
     var ua = navigator.userAgent || '';
-    if (/Android/i.test(ua) && !/; wv\)/.test(ua)){
-      window.location.href = 'intent://details?id=' + id +
-        '#Intent;scheme=market;package=com.android.vending;' +
-        'S.browser_fallback_url=' + encodeURIComponent('https://play.google.com/store/apps/details?id=' + id) + ';end';
-    } else {
-      window.location.href = 'https://play.google.com/store/apps/details?id=' + id;
+    if (!/Android/i.test(ua) || /; wv\)/.test(ua)){
+      window.location.href = web;
+      return;
     }
+    // 1) Try the Play Store app straight away with a market:// link. A tap can
+    //    launch it even inside the installed app, where the older intent://
+    //    redirect was silently ignored on some phones ("nothing happens").
+    var left = false;
+    function markLeft(){ left = true; }
+    document.addEventListener('visibilitychange', markLeft);
+    window.addEventListener('pagehide', markLeft);
+    window.addEventListener('blur', markLeft);
+    var a = document.createElement('a');
+    a.href = 'market://details?id=' + id;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // 2) If we're still on screen a moment later, nothing opened, so fall back
+    //    to the web listing instead of doing nothing.
+    setTimeout(function(){
+      document.removeEventListener('visibilitychange', markLeft);
+      window.removeEventListener('pagehide', markLeft);
+      window.removeEventListener('blur', markLeft);
+      if (!left) window.location.href = web;
+    }, 1200);
   }
   function submitRating(){
     var stars = ui.ratingDraftStars;
