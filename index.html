@@ -2189,6 +2189,8 @@
     position:fixed;
     inset:0;
     background:rgba(8,9,11,0.68);
+    backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
     display:flex;
     align-items:center;
     justify-content:center;
@@ -2207,14 +2209,14 @@
     display:flex;
     flex-direction:column;
     background-color:var(--panel-2);
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.55), rgba(10,12,16,0.88)), url('images/muscle-picker-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(12,14,18,0.82), rgba(12,14,18,0.95)), url('images/muscle-picker-bg.jpg');
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
-    border:2px solid var(--accent-dim);
-    border-radius:var(--radius-xl);
-    padding:14px 16px 14px;
-    box-shadow:0 16px 48px rgba(0,0,0,0.5);
+    border:1.5px solid rgba(var(--accent-rgb),0.45);
+    border-radius:24px;
+    padding:18px 16px 14px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(var(--accent-rgb),0.07);
     overflow:hidden;
     position:relative;
   }
@@ -2228,19 +2230,28 @@
     display:flex;
     align-items:center;
     justify-content:space-between;
-    margin-bottom:10px;
+    margin-bottom:14px;
     flex-shrink:0;
   }
   .mm-overlay-head h2{
     font-family:'Oswald',sans-serif;
-    font-size:14px;
+    font-size:19px;
     font-weight:700;
-    letter-spacing:0.05em;
+    letter-spacing:0.07em;
     text-transform:uppercase;
     color:var(--text);
     margin:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
   }
-  .mm-overlay-head .icon-btn{width:34px;height:34px;background:var(--panel-3);flex-shrink:0;}
+  .mm-overlay-head h2::before{content:'';width:3px;height:18px;border-radius:2px;background:var(--accent);flex-shrink:0;}
+  .mm-title-wrap{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .mm-title-wrap.center{align-items:center;}
+  .mm-sub{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.04em;color:var(--text-faint);padding-left:13px;}
+  .mm-title-wrap.center .mm-sub{padding-left:0;}
+  .mm-overlay-head .icon-btn{width:40px;height:40px;background:transparent;border:1px solid rgba(255,255,255,0.18);border-radius:12px;color:#c7ccd3;flex-shrink:0;}
+  .mm-overlay-head .icon-btn svg{width:20px;height:20px;}
   .mm-head-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
   .mm-help-btn.icon-btn{color:var(--text-dim);}
   .mm-help-btn.icon-btn svg{width:17px;height:17px;display:block;}
@@ -2249,7 +2260,7 @@
     position:absolute;
     left:16px;
     right:16px;
-    top:44px;
+    top:76px;
     z-index:5;
     background:var(--accent-dim);
     border:1px solid var(--accent);
@@ -2282,33 +2293,46 @@
   .mm-grid{
     display:flex;
     flex-wrap:wrap;
-    gap:8px;
+    gap:10px;
   }
   .mm-grid-item{
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap:4px;
-    flex:1 1 calc(50% - 4px);
-    min-width:calc(50% - 4px);
+    gap:7px;
+    flex:1 1 calc(33.333% - 7px);
+    min-width:calc(33.333% - 7px);
+    max-width:calc(33.333% - 7px);
     background:var(--panel-3);
-    border:1.5px solid var(--line);
-    border-radius:var(--radius-sm);
-    padding:6px 4px 8px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:5px 5px 9px;
     cursor:pointer;
     transition:border-color 0.12s ease, background 0.12s ease;
   }
-  .mm-grid-item img{width:100%;max-width:130px;height:auto;display:block;}
+  .mm-grid-item img{width:100%;height:auto;display:block;border-radius:9px;background:#fff;}
   .mm-grid-item span{
     font-family:'Oswald',sans-serif;
-    font-size:9.5px;
+    font-size:12.5px;
     font-weight:700;
-    letter-spacing:0.03em;
+    letter-spacing:0.08em;
     text-transform:uppercase;
-    color:var(--text-faint);
+    color:#e6e8eb;
+    display:flex;
+    align-items:center;
+    gap:6px;
   }
+  .mm-grid-item span i{font-style:normal;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0;color:var(--accent);background:rgba(var(--accent-rgb),0.12);border-radius:999px;padding:1px 6px;}
   .mm-grid-item:active,
   .mm-grid-item.tapped{background:var(--panel);border-color:var(--accent);}
+  @media (max-width:400px){
+    .mm-overlay-head h2{font-size:16px;letter-spacing:0.04em;}
+    .mm-sub{font-size:10px;letter-spacing:0.02em;}
+    .mm-overlay-head .icon-btn{width:36px;height:36px;}
+    .mm-grid{gap:8px;}
+    .mm-grid-item{flex-basis:calc(33.333% - 6px);min-width:calc(33.333% - 6px);max-width:calc(33.333% - 6px);}
+    .mm-grid-item span{font-size:11px;letter-spacing:0.05em;flex-wrap:wrap;justify-content:center;gap:3px 5px;}
+  }
   .mm-exercise-list{
     display:flex;
     flex-wrap:wrap;
@@ -2327,24 +2351,28 @@
     line-height:1.3;
     font-family:'Inter',sans-serif;
     font-weight:500;
-    padding:8px 8px 10px;
-    border-radius:var(--radius-sm);
+    padding:8px 8px 14px;
+    border-radius:16px;
     cursor:pointer;
+    position:relative;
   }
+  .mm-exercise-item::after{content:'+';position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#1c1500;font-weight:700;font-size:19px;line-height:27px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.35);pointer-events:none;}
+  .mm-exercise-item-custom::after{display:none;}
   .mm-exercise-item-img{
     width:100%;
     aspect-ratio:1/1;
-    border-radius:var(--radius-xs);
+    border-radius:11px;
     object-fit:cover;
     background:var(--panel);
-    margin-bottom:7px;
+    margin-bottom:11px;
   }
-  .mm-exercise-item-name{white-space:normal;}
+  .mm-exercise-item-name{white-space:normal;font-family:'Oswald',sans-serif;font-weight:600;font-size:15.5px;letter-spacing:0.02em;text-transform:uppercase;line-height:1.2;padding:0 6px;}
   .mm-exercise-item-eq{
     align-self:flex-start;
-    margin-top:6px;
-    background:var(--panel);
-    color:var(--text-faint);
+    margin:6px 0 0 6px;
+    background:transparent;
+    border:1px solid rgba(var(--accent-rgb),0.4);
+    color:var(--accent);
     font-family:'JetBrains Mono',monospace;
     font-size:9px;
     font-weight:700;
@@ -2354,7 +2382,7 @@
     border-radius:var(--radius);
   }
   .mm-exercise-item:active{background:var(--panel);border-color:var(--accent-dim);}
-  .mm-exercise-item-custom{flex-basis:100%;color:var(--accent);border-color:var(--accent-dim);background:transparent;flex-direction:row;align-items:center;justify-content:center;}
+  .mm-exercise-item-custom{flex-basis:100%;color:var(--accent);border:1.5px dashed var(--accent-dim);background:transparent;flex-direction:row;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;letter-spacing:0.06em;text-transform:uppercase;padding:14px;}
 
   /* ---------- Exercise search overlay (full-screen, blurred backdrop) ----------
      Positioned absolute (not fixed) so it sizes itself against #app's own
@@ -8815,7 +8843,7 @@
       var img = MUSCLE_IMG[muscle];
       html += '<button type="button" class="mm-grid-item" data-action="mm-select-muscle" data-muscle="'+esc(muscle)+'">' +
         (img ? '<img src="'+img+'" alt="" loading="lazy">' : '') +
-        '<span>'+esc(muscle)+'</span>' +
+        '<span>'+esc(muscle)+'<i>'+(EXERCISE_LIBRARY[muscle] || []).length+'</i></span>' +
       '</button>';
     });
     html += '</div>';
@@ -8856,12 +8884,12 @@
                '<button class="icon-btn" data-action="mm-back-to-grid" aria-label="Back to muscle groups">' +
                  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>' +
                '</button>' +
-               '<h2>'+esc(ui.selectedMuscle)+'</h2>' +
+               '<div class="mm-title-wrap center"><h2>'+esc(ui.selectedMuscle)+'</h2><div class="mm-sub">'+((EXERCISE_LIBRARY[ui.selectedMuscle] || []).length)+' exercises</div></div>' +
                '<button class="icon-btn" data-action="toggle-muscle-map" aria-label="Close">&#10005;</button>' +
              '</div>';
       html += '<div class="mm-list-col-full">'+renderMuscleExerciseList(ui.selectedMuscle)+'</div>';
     } else {
-      html = '<div class="mm-overlay-head"><h2>Pick by Muscle Group</h2>' +
+      html = '<div class="mm-overlay-head"><div class="mm-title-wrap"><h2>Pick by Muscle Group</h2><div class="mm-sub">'+Object.keys(EXERCISE_LIBRARY).length+' groups \u00b7 tap to see exercises</div></div>' +
                  '<div class="mm-head-actions">' +
                    '<button class="icon-btn mm-help-btn" data-action="toggle-muscle-map-help" aria-label="How this works">' +
                      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
