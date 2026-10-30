@@ -10982,7 +10982,7 @@
     // Setup-wizard card on top: the guided route for newcomers. After the
     // wizard has been completed once it reads "Redo my plan".
     var wizDone = !!(state.settings && state.settings.experienceLevel);
-    var wizCard = '<button type="button" class="template-card template-cat-card log-tpl-card tpl-featured" data-action="open-onboarding-wizard">' +
+    var wizCard = '<button type="button" class="template-card template-cat-card log-tpl-card" data-action="open-onboarding-wizard">' +
       templateBgHtml() +
       '<span class="template-card-badge">Quick setup</span>' +
       '<div class="template-card-name">'+(wizDone ? 'Redo my plan' : 'Build my plan')+'</div>' +
@@ -11017,10 +11017,9 @@
         (open ? '<div class="tpl-acc-rows">'+rows+'</div>' : '') +
       '</div>';
     }
-    return '<div class="log-tpl-or"><span>new here? start with a quick setup</span></div>' +
-           '<div class="log-tpl-list log-tpl-wiz">' + wizCard + '</div>' +
-           '<div class="log-tpl-or"><span>or choose a template yourself</span></div>' +
-           '<div class="log-tpl-list">' + cards + '</div>';
+    return '<div class="log-tpl-list">' + cards + '</div>' +
+           '<div class="log-tpl-or"><span>new here? start with a quick setup</span></div>' +
+           '<div class="log-tpl-list log-tpl-wiz">' + wizCard + '</div>';
   }
 
   function renderLog(){
@@ -18352,8 +18351,8 @@
      person who most needs it.
      ========================================================= */
   var TOUR_STEPS = [
-    { tab: 'log', selector: '.log-tpl-wiz', fallback: '#view', title: 'Build my plan', text: 'New here? Tap Build my plan and answer 4 quick questions \u2014 bodyweight, goal, experience and training days \u2014 and we\u2019ll pick and load the right template for you.' },
-    { tab: 'log', selector: '.log-tpl-list:not(.log-tpl-wiz)', fallback: '#view', title: 'Pick a template', text: 'Prefer to choose yourself? Beginner is a simple machine-based routine, and Training splits holds Push/Pull/Legs, Upper/Lower, Full Body and Bro Split. Each exercise comes with a suggested set count and rep range.' },
+    { tab: 'log', selector: '.log-tpl-list:not(.log-tpl-wiz)', fallback: '#view', title: 'Pick a template', text: 'Know what you want? Beginner is a simple machine-based routine, and Training splits holds Push/Pull/Legs, Upper/Lower, Full Body and Bro Split. Each exercise comes with a suggested set count and rep range.' },
+    { tab: 'log', selector: '.log-tpl-wiz', fallback: '#view', title: 'Build my plan', text: 'Not sure where to start? Tap Build my plan and answer 4 quick questions \u2014 bodyweight, goal, experience and training days \u2014 and we\u2019ll pick and load the right template for you.' },
     { tab: 'log', selector: '[data-action="add-blank-exercise"]', title: 'Add an exercise', text: 'Tap here to add an exercise \u2014 search by name, or browse the full library grouped by muscle.' },
     { tab: 'log', selector: '.add-set-btn', fallback: '#view', title: 'Log a set', text: 'Type your weight and reps, then tap the checkmark \u2014 it logs instantly and the row stays open, ready for your next set right away.' },
     { tab: 'log', selector: '.mm-toggle-btn', title: 'Browse by muscle', text: 'Prefer to browse? This opens a body diagram \u2014 tap a muscle group to see matching exercises.' },
