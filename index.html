@@ -5322,6 +5322,17 @@
   .pr-tag.fresh{animation:prpulse 0.4s ease;}
   .pr-tag-wrap{position:relative;display:inline-flex;flex-shrink:0;margin-left:6px;}
   .pr-tag-wrap .pr-tag{margin-left:0;}
+  /* Log session polish: logged sets read as big numbers + small units, and a
+     PR is a solid gold badge on a softly lit row. Scoped to the Log card so
+     the History edit panel (.he-exercise-card) is untouched. */
+  .exercise-card .set-row{grid-template-columns:28px 1fr 44px;gap:10px;}
+  .exercise-card .set-row .set-idx{display:block;width:26px;height:26px;border-radius:50%;background:#262a30;color:var(--accent);font:700 12px/26px 'JetBrains Mono',monospace;text-align:center;}
+  .exercise-card .set-row .set-detail .set-wr{font:700 21px/1 'Oswald',sans-serif;letter-spacing:.03em;color:#f4f1ea;}
+  .exercise-card .set-row .set-wr i{font:500 11px 'JetBrains Mono',monospace;font-style:normal;color:#8b9098;letter-spacing:0;margin:0 0 0 4px;}
+  .exercise-card .set-row .set-detail .x{margin:0 6px;color:#8b9098;font-size:15px;}
+  .exercise-card .set-row .set-detail .set-time{font:500 11px 'JetBrains Mono',monospace;color:#6f757d;margin-left:10px;}
+  .exercise-card .set-row .set-detail .pr-tag{background:var(--accent);color:#1c1500;font:700 11px/1 'Oswald',sans-serif;letter-spacing:.1em;padding:4px 8px;border-radius:6px;box-shadow:0 0 14px rgba(var(--accent-rgb),0.45);}
+  .exercise-card .set-row.set-row-pr{background:linear-gradient(90deg,rgba(var(--accent-rgb),0.12),transparent 65%);border-radius:10px;}
   .set-row.pr-fresh{position:relative;animation:prRowGlow 1s ease-out;}
   @keyframes prRowGlow{
     0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0);}
@@ -11605,10 +11616,10 @@
         var upFromLast = st.isPR ? null : setUpFromLast(ex, refSets, i);
         html += '<div class="set-row-swipe" data-ex="'+ex.id+'" data-set="'+st.id+'">' +
                 '<button class="set-row-delete-btn" data-action="delete-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Delete set">Delete</button>' +
-                '<div class="set-row'+(isEditingRow ? ' editing' : '')+(isFreshPR ? ' pr-fresh' : '')+'">' +
+                '<div class="set-row'+(isEditingRow ? ' editing' : '')+(isFreshPR ? ' pr-fresh' : '')+(st.isPR ? ' set-row-pr' : '')+'">' +
                   '<span class="set-idx'+(isFreshSet ? ' flash' : '')+'">'+(i+1)+'</span>' +
                   '<span class="set-detail">' +
-                    '<span class="set-wr'+(isFreshSet ? ' flash' : '')+'">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
+                    '<span class="set-wr'+(isFreshSet ? ' flash' : '')+'">'+fmtWeight(st.weightKg)+'<i>'+unitLabel()+'</i><span class="x">&times;</span>'+st.reps+'<i>'+(isHoldExercise(ex.name) ? 's' : 'reps')+'</i></span>' +
                     (st.timestamp ? '<span class="set-time'+(isFreshSet ? ' flash' : '')+'"> &middot; '+tsOrLock(st.timestamp, null, isFreshSet)+'</span>' : '') +
                     (st.isPR ? '<span class="pr-tag-wrap"><span class="pr-tag'+(isFreshPR?' fresh':'')+'"'+prTagAttrs(st)+'>PR</span>'+(isFreshPR ? prBurstHtml() : '')+'</span>' : '') +
                     (upFromLast ? upTagHtml(ex, st) : '') +
