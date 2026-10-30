@@ -11314,13 +11314,6 @@
       html += addExerciseRow;
       html += renderLogTemplateChoices();
       html += '<div class="warmup-reminder">Take a few minutes to <b>warm up</b> before you go heavy \u2014 some light reps and a bit of mobility now saves you an injury later.</div>';
-      html += '<div class="empty log-empty-hero"><div class="glyph">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                  '<path d="M6.5 6.5v11"></path><path d="M4 9v5"></path>' +
-                  '<path d="M17.5 6.5v11"></path><path d="M20 9v5"></path>' +
-                  '<path d="M6.5 12h11"></path>' +
-                '</svg>' +
-              '</div><p>Nothing logged yet \u2014 tap + Add Exercise to start</p></div>';
     } else {
       session.exercises.forEach(function(ex){
         html += renderExerciseCard(session, ex);
@@ -12588,7 +12581,7 @@
                   '</button>' +
                 '</div>' +
               '</div>' +
-              '<span class="mg-panel-sub">'+fmtWeekDay(monday)+' - '+fmtWeekDay(sunday)+' \u00b7 '+esc(activeProfile.badge)+' \u00b7 <span class="mg-3d-hint-inline">tap a muscle to focus</span></span></div>';
+              '<span class="mg-panel-sub">'+fmtWeekShort(monday)+' \u2013 '+fmtWeekShort(sunday)+' \u00b7 '+esc(activeProfile.badge)+' \u00b7 <span class="mg-3d-hint-inline">tap a muscle to focus</span></span></div>';
     html += '</div>'; // .mg-panel-content (header only now -- rows moved to their own sidebar, see below)
 
     html += '<div class="mg-rows-sidebar">' + renderMuscleOverviewRows(activeProfile, weeklyData) + '</div>';
