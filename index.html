@@ -9304,6 +9304,21 @@
     ui.onboardingDraft = null;
     var isNewSignup = ui.onboardingIsNewSignup;
     ui.onboardingIsNewSignup = false;
+    // Soft sign-up nudge: guests only, shown after they've already got their plan.
+    if (state.currentAccount === 'guest' && !isNewSignup){
+      setTimeout(function(){
+        if (state.currentAccount !== 'guest' || ui.confirmModal) return;
+        ui.confirmModal = {
+          kind: 'guest-signup-nudge',
+          title: 'Save your plan',
+          message: 'Sign up free to keep your plan and workouts safe and synced across your devices. Your current data stays with you.',
+          confirmLabel: 'Sign up',
+          cancelLabel: 'Maybe later',
+          variant: 'primary'
+        };
+        renderConfirmModal();
+      }, 700);
+    }
     if (sessionIsEmpty){
       var templateKey = recommendedOnboardingTemplateKey(d);
       applyTemplate(templateKey);
@@ -18191,7 +18206,7 @@
           // Explanations have nothing to confirm: one "Got it" button (it uses
           // cancel-confirm so Android back and the backdrop close it the same way).
           ? '<button class="confirm-btn-primary" data-action="cancel-confirm">Got it</button>'
-          : '<button class="confirm-btn-cancel" data-action="cancel-confirm">Cancel</button>' +
+          : '<button class="confirm-btn-cancel" data-action="cancel-confirm">'+esc(m.cancelLabel || 'Cancel')+'</button>' +
             '<button class="'+confirmClass+'" id="confirmActionBtn" data-action="confirm-modal-action"'+(counting?' disabled':'')+'>'+esc(counting ? confirmLabel + ' (' + m.countdown + ')' : confirmLabel)+'</button>') +
       '</div>';
 
@@ -19702,6 +19717,7 @@
       }
       else if (m && m.kind === 'start-routine') startRoutine(m.routineId);
       else if (m && m.kind === 'start-template') applyTemplate(m.templateKey);
+      else if (m && m.kind === 'guest-signup-nudge') promptGuestSignUp();
       else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
       else if (m && m.kind === 'clear-data') clearAllData();
       else if (m && m.kind === 'clear-brief') clearBrief();
