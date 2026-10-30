@@ -13894,7 +13894,7 @@
                 '<button data-action="toggle-rest-timer-vibrate" data-val="on" class="'+(state.settings.restTimerVibrate !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="off" class="'+(state.settings.restTimerVibrate === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Haptic feedback</div><div class="sr-sub">Short vibration when you log a set, hit a PR, or finish a session</div></div>' +
+    html += '<div class="settings-row"><div><div class="sr-label">Haptic feedback</div><div class="sr-sub">Short vibration when you log a set, hit a PR, finish a session, or tap tabs and switches</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-haptic-feedback" data-val="on" class="'+(state.settings.hapticFeedback !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-haptic-feedback" data-val="off" class="'+(state.settings.hapticFeedback === false ? 'active' : '')+'">OFF</button>' +
@@ -19008,6 +19008,20 @@
     if (mmPanel) mo.observe(mmPanel, { childList: true });   // muscle grid <-> muscle list
   })();
 
+  // Very light tick for navigation-style taps (tabs, on/off switches, template
+  // and picker choices). Uses the same "Haptic feedback" setting as logging a
+  // set; set logging, PRs and finishing keep their own stronger patterns.
+  var HAPTIC_TICK_ACTIONS = {
+    'set-tab': 1, 'toggle-splits': 1, 'log-template-category': 1, 'select-template': 1,
+    'open-settings-picker': 1, 'pick-settings-value': 1, 'open-template-picker': 1
+  };
+  function hapticTick(el){
+    try{
+      if (!navigator.vibrate || !state.settings || state.settings.hapticFeedback === false) return;
+      var a = el.dataset.action;
+      if (HAPTIC_TICK_ACTIONS[a] || (el.closest && el.closest('.seg'))) navigator.vibrate(6);
+    }catch(err){}
+  }
   document.getElementById('app').addEventListener('click', function(e){
     if (e.target.id === 'mmOverlay'){
       ui.showMuscleMap = false;
@@ -19028,6 +19042,7 @@
     }
     var el = e.target.closest('[data-action]');
     if (!el) return;
+    hapticTick(el);
     var action = el.dataset.action;
     captureSegSlide(el);
 
