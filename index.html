@@ -12426,32 +12426,52 @@
   function openPlayStoreReview(){
     var id = 'com.saviorfitlogger.app';
     var web = 'https://play.google.com/store/apps/details?id=' + id;
+    var market = 'market://details?id=' + id;
     var ua = navigator.userAgent || '';
-    if (!/Android/i.test(ua) || /; wv\)/.test(ua)){
+    if (!/Android/i.test(ua)){
       window.location.href = web;
       return;
     }
-    // 1) Try the Play Store app straight away with a market:// link. A tap can
-    //    launch it even inside the installed app, where the older intent://
-    //    redirect was silently ignored on some phones ("nothing happens").
+    var isWebView = /; wv\)/.test(ua);
     var left = false;
     function markLeft(){ left = true; }
     document.addEventListener('visibilitychange', markLeft);
     window.addEventListener('pagehide', markLeft);
     window.addEventListener('blur', markLeft);
-    var a = document.createElement('a');
-    a.href = 'market://details?id=' + id;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    // 2) If we're still on screen a moment later, nothing opened, so fall back
-    //    to the web listing instead of doing nothing.
+    if (isWebView){
+      // A plain Android web view can't hand off to another app, and sending the
+      // whole page to Google Play lands on an "ERR_UNKNOWN_URL_SCHEME" error
+      // page. So try the hand-off from a hidden frame (harmless if unsupported).
+      var f = document.createElement('iframe');
+      f.style.display = 'none';
+      f.src = market;
+      document.body.appendChild(f);
+      setTimeout(function(){ if (f.parentNode) f.parentNode.removeChild(f); }, 2000);
+    } else {
+      // The Play Store app via a market:// tap (the old intent:// redirect was
+      // silently ignored on some phones).
+      var a = document.createElement('a');
+      a.href = market;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    // Still on screen a moment later = nothing opened.
     setTimeout(function(){
       document.removeEventListener('visibilitychange', markLeft);
       window.removeEventListener('pagehide', markLeft);
       window.removeEventListener('blur', markLeft);
-      if (!left) window.location.href = web;
+      if (left) return;
+      if (!isWebView){ window.location.href = web; return; }
+      var msg = 'Couldn\u2019t open Google Play from here. Open Google Play and search \u201cSaviorFit Logger\u201d to rate us.';
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(web).then(function(){
+          showToast('Link copied \u2014 paste it in Chrome, or search \u201cSaviorFit Logger\u201d in Google Play.');
+        }).catch(function(){ showToast(msg); });
+      } else {
+        showToast(msg);
+      }
     }, 1200);
   }
   function submitRating(){
