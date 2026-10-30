@@ -1703,19 +1703,19 @@
   /* "or choose an existing template" block under Add Exercise (empty log) */
   .log-tpl-or{
     display:flex;align-items:center;gap:12px;
-    margin:26px 0 14px;
+    margin:22px 0 10px;
   }
   /* Section title: bold Oswald caps, gold bar on the left, gold line fading out to the right */
   .log-tpl-or span{
-    position:relative;padding-left:14px;white-space:nowrap;
-    font-family:'Oswald',sans-serif;font-weight:700;font-size:19px;line-height:1;letter-spacing:.1em;text-transform:uppercase;color:#f4f1ea;
+    position:relative;padding-left:10px;white-space:nowrap;
+    font-family:'Oswald',sans-serif;font-weight:600;font-size:12.5px;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:#aab0b8;
   }
-  .log-tpl-or span::before{content:"";position:absolute;left:0;top:-2px;bottom:-2px;width:4px;border-radius:2px;background:var(--accent);box-shadow:0 0 10px rgba(var(--accent-rgb),0.6);}
+  .log-tpl-or span::before{content:"";position:absolute;left:0;top:-1px;bottom:-1px;width:3px;border-radius:2px;background:var(--accent);}
   .log-tpl-wiz{margin-top:6px;}
   .log-tpl-wiz .log-tpl-card{margin-bottom:0;}
   .log-tpl-wiz + .log-tpl-or{margin-top:20px;}
   .log-tpl-or--inner{margin:6px 0 20px;}
-  .log-tpl-or::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(var(--accent-rgb),0.55),rgba(var(--accent-rgb),0));}
+  .log-tpl-or::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(var(--accent-rgb),0.35),rgba(var(--accent-rgb),0));}
   .log-tpl-list .log-tpl-card{min-height:0;padding:12px 16px;margin-bottom:10px;}
   .log-tpl-list .log-tpl-card:last-child{margin-bottom:0;}
   .warmup-reminder{
@@ -1917,6 +1917,9 @@
   .template-cat-card .template-card-sub{font-size:14px;margin-bottom:12px;}
   .log-tpl-list .log-tpl-card{padding:22px 76px 22px 22px;min-height:136px;margin-bottom:16px;}
   .log-tpl-list .log-tpl-card.tpl-featured{min-height:168px;}
+  /* Calmer Log: the section title above each card already says what it is, so the badge pill is dropped and the cards are as short as their content */
+  .log-tpl-card .template-card-badge{display:none;}
+  .log-tpl-list .log-tpl-card,.log-tpl-list .log-tpl-card.tpl-featured{min-height:0;margin-bottom:12px;}
   .template-cat-card.tpl-featured{min-height:168px;}
   .tpl-chips{display:flex;flex-wrap:wrap;gap:6px;}
   .tpl-chip{
