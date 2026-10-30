@@ -2131,7 +2131,7 @@
      this index.html, not baked in here. */
   #restTimerPickerPanel{
     background-color:var(--panel-2);
-    background-image:linear-gradient(180deg, rgba(10,12,16,0.6), rgba(10,12,16,0.88)), url('images/rest-timer-bg.jpg');
+    background-image:linear-gradient(180deg, rgba(10,12,16,0.78), rgba(10,12,16,0.95)), url('images/rest-timer-bg.jpg');
     background-size:cover;
     background-position:center;
     background-repeat:no-repeat;
@@ -2140,42 +2140,47 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:22px;
-    padding:20px 0 8px;
+    gap:18px;
+    padding:26px 0 6px;
   }
   .rest-timer-adjust-btn{
-    width:46px;height:46px;
+    width:54px;height:54px;
     border-radius:50%;
-    border:none;
-    background:var(--accent);
-    color:#1c1500;
-    font-size:22px;
+    border:1.5px solid var(--accent);
+    background:transparent;
+    color:var(--accent);
+    font-size:26px;
     font-weight:700;
     line-height:1;
     cursor:pointer;
     display:flex;align-items:center;justify-content:center;
     flex-shrink:0;
-    box-shadow:0 2px 8px rgba(0,0,0,0.4);
   }
   .rest-timer-adjust-btn:active{background:var(--accent-dim);transform:scale(0.94);}
   .rest-timer-adjust-btn:disabled{opacity:0.35;}
   .rest-timer-picker-time{
     font-family:'JetBrains Mono',monospace;
-    font-size:36px;
+    font-size:58px;
     font-weight:700;
+    letter-spacing:-0.02em;
     color:var(--text);
-    min-width:110px;
+    min-width:150px;
     text-align:center;
+    text-shadow:0 0 28px rgba(var(--accent-rgb),0.28);
   }
   .rest-timer-picker-sub{
     text-align:center;
     font-size:11px;
-    color:#c7ccd3;
+    color:#9aa1ab;
     text-transform:uppercase;
     letter-spacing:0.05em;
-    padding-bottom:10px;
+    padding-bottom:16px;
   }
-  .rest-timer-start-btn{width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:var(--radius-md);padding:17px;font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;}
+  .rt-presets{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:4px 0 6px;}
+  .rt-preset{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:700;color:#c7ccd3;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.04);border-radius:999px;padding:8px 11px;cursor:pointer;}
+  .rt-preset:active{transform:scale(0.95);}
+  .rt-preset.on{color:#1c1500;background:var(--accent);border-color:var(--accent);}
+  .rest-timer-start-btn{display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 22px rgba(var(--accent-rgb),0.25);width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:var(--radius-md);padding:17px;font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;}
   .rest-timer-start-btn:active{opacity:0.9;transform:scale(0.98);}
   .rest-timer-start-btn:active{opacity:0.85;}
 
@@ -2647,7 +2652,14 @@
     text-transform:uppercase;
     letter-spacing:0.02em;
   }
-  .ex-search-input:focus{outline:none;border-color:var(--accent);}
+  .ex-search-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.08);}
+  .ex-suggest-list .section-label{
+    position:sticky;top:-4px;z-index:3;
+    background:linear-gradient(180deg,rgba(20,22,26,0.96) 70%,rgba(20,22,26,0));
+    padding:10px 0 14px;margin:0;
+    display:flex;align-items:center;gap:10px;
+  }
+  .ex-suggest-list .section-label .cnt{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.04em;color:var(--accent);background:rgba(var(--accent-rgb),0.12);border-radius:999px;padding:2px 8px;}
   .ex-suggest-list{
     flex:1;
     min-height:0;
@@ -2665,6 +2677,7 @@
     gap:10px;
   }
   .ex-suggest-item{
+    position:relative;
     flex:1 1 calc(50% - 5px);
     min-width:calc(50% - 5px);
     display:flex;
@@ -2676,8 +2689,8 @@
     font-size:13.5px;
     font-family:'Inter',sans-serif;
     font-weight:500;
-    padding:10px 10px 12px;
-    border-radius:var(--radius);
+    padding:8px 8px 14px;
+    border-radius:16px;
     cursor:pointer;
     transition:border-color 0.12s ease, background 0.12s ease;
   }
@@ -2685,12 +2698,22 @@
     width:100%;
     aspect-ratio:1/1;
     flex-shrink:0;
-    border-radius:var(--radius-sm);
+    border-radius:11px;
     background:var(--panel);
     object-fit:cover;
-    margin-bottom:9px;
+    margin-bottom:11px;
+  }
+  .ex-suggest-item[data-action="pick-ex-suggestion"]::after{
+    content:'+';
+    position:absolute;top:16px;right:16px;
+    width:28px;height:28px;border-radius:50%;
+    background:var(--accent);color:#1c1500;
+    font-weight:700;font-size:19px;line-height:27px;text-align:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.35);
+    pointer-events:none;
   }
   .ex-suggest-content{
+    padding:0 6px;
     flex:1;
     min-width:0;
     display:flex;
@@ -2712,11 +2735,12 @@
   }
   .ex-suggest-item:active,
   .ex-suggest-item.tapped{background:var(--panel);border-color:var(--accent);}
-  .ex-suggest-name{white-space:normal;}
+  .ex-suggest-name{white-space:normal;font-family:'Oswald',sans-serif;font-weight:600;font-size:16px;letter-spacing:0.02em;text-transform:uppercase;line-height:1.2;}
   .ex-suggest-tag{
     flex-shrink:0;
-    background:var(--panel);
-    color:var(--text-faint);
+    background:transparent;
+    border:1px solid rgba(var(--accent-rgb),0.4);
+    color:var(--accent);
     font-family:'JetBrains Mono',monospace;
     font-size:9.5px;
     font-weight:700;
@@ -7376,7 +7400,7 @@
         items = items.filter(function(item){ return f.equipment.indexOf(item.equipment) !== -1; });
       }
       if (!items.length) return '';
-      return '<div class="section-label">'+esc(muscle)+'</div>' +
+      return '<div class="section-label">'+esc(muscle)+' <span class="cnt">'+items.length+'</span></div>' +
         '<div class="ex-suggest-grid">' +
         items.map(function(item){
           // item.muscle is a per-item override (e.g. Upright Row is filed
@@ -10130,10 +10154,13 @@
           '<span class="rest-timer-picker-time">'+fmtMMSS(secs)+'</span>' +
           '<button class="rest-timer-adjust-btn" data-action="rest-timer-adjust" data-delta="15" aria-label="Increase 15 seconds"'+(secs>=300?' disabled':'')+'>&#43;</button>' +
         '</div>' +
-        '<div class="rest-timer-picker-sub">0:15 \u2013 5:00</div>' +
+        '<div class="rest-timer-picker-sub">15s steps \u00b7 0:15 \u2013 5:00</div>' +
+        '<div class="rt-presets">' + [60,90,120,150,180].map(function(p){
+          return '<button type="button" class="rt-preset'+(p===secs?' on':'')+'" data-action="rest-timer-set" data-secs="'+p+'">'+fmtMMSS(p)+'</button>';
+        }).join('') + '</div>' +
       '</div>' +
       '<div class="pro-panel-footer">' +
-        '<button class="rest-timer-start-btn" data-action="start-rest-timer">Start</button>' +
+        '<button class="rest-timer-start-btn" data-action="start-rest-timer"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21"/></svg>Start rest</button>' +
       '</div>';
   }
 
@@ -20332,6 +20359,9 @@
       closeRestTimerPicker();
     } else if (el.dataset.action === 'rest-timer-adjust'){
       adjustRestTimerDraft(parseInt(el.dataset.delta, 10));
+    } else if (el.dataset.action === 'rest-timer-set'){
+      ui.restTimerDraftSeconds = parseInt(el.dataset.secs, 10) || 90;
+      renderRestTimerPickerOverlay();
     } else if (el.dataset.action === 'start-rest-timer'){
       startRestTimer();
     }
