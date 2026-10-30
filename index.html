@@ -6332,6 +6332,7 @@
     showAvatarPick: false,  // Profile icon picker overlay open state
     showTemplatePicker: false,  // Start-from-template overlay open state
     splitsOpen: false,          // Log empty-state "Training splits" card expanded?
+    templatePickerDirect: false,
     templatePickerCategory: null, // null = showing category cards; a category id = drilled into that category's template list
     showRestTimerPicker: false, // Rest timer duration picker overlay open state
  // Log Assistant overlay open state (currently just a "coming soon" panel)
@@ -9695,11 +9696,13 @@
      ========================================================= */
   function openTemplatePicker(){
     ui.showTemplatePicker = true;
+    ui.templatePickerDirect = false;
     ui.templatePickerCategory = null;
     renderTemplatePickerOverlay();
   }
   function closeTemplatePicker(){
     ui.showTemplatePicker = false;
+    ui.templatePickerDirect = false;
     ui.templatePickerCategory = null;
     renderTemplatePickerOverlay();
   }
@@ -9708,6 +9711,8 @@
     renderTemplatePickerOverlay();
   }
   function backToTemplateCategories(){
+    // Opened straight from a Log card (Beginner / a split)? Back returns to the Log, not the old category list.
+    if (ui.templatePickerDirect){ closeTemplatePicker(); return; }
     ui.templatePickerCategory = null;
     renderTemplatePickerOverlay();
   }
@@ -19137,6 +19142,7 @@
       }
     } else if (action === 'log-template-category'){
       ui.showTemplatePicker = true;
+      ui.templatePickerDirect = true;
       openTemplateCategory(el.dataset.category);
     } else if (action === 'open-template-picker'){
       openTemplatePicker();
