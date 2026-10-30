@@ -3039,6 +3039,19 @@
   .hi-ex-name{font-size:12px;color:var(--text-dim);font-weight:600;margin-bottom:4px;}
   .hi-ex-sets{font-family:'JetBrains Mono',monospace;font-size:12px;color:#a9aeb5;line-height:1.7;}
   .hi-ex-sets .pr-tag{margin-left:6px;}
+  /* History detail polish: exercise names + set rows in the Log's style */
+  .hi-ex-name{font:600 16px/1.2 'Oswald',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#f4f1ea;margin-bottom:6px;}
+  .hi-ex-name .muscle-badge{letter-spacing:.08em;}
+  .hx-rows{margin:8px 0 4px;}
+  .hx-row{display:flex;align-items:center;gap:10px;padding:5px 0;}
+  .hx-n{flex:0 0 22px;height:22px;border-radius:50%;background:#262a30;color:var(--accent);font:700 11px/22px 'JetBrains Mono',monospace;text-align:center;}
+  .hx-w{font:700 19px/1 'Oswald',sans-serif;color:#f4f1ea;letter-spacing:.03em;white-space:nowrap;}
+  .hx-w i{font:500 10.5px 'JetBrains Mono',monospace;font-style:normal;color:#8b9098;letter-spacing:0;margin-left:4px;}
+  .hx-w em{font-style:normal;color:#8b9098;font-size:14px;margin:0 6px;}
+  .hx-row .pr-tag{margin-left:0;background:var(--accent);color:#1c1500;font:700 10px/1 'Oswald',sans-serif;letter-spacing:.1em;padding:3px 6px;border-radius:5px;box-shadow:0 0 12px rgba(var(--accent-rgb),0.45);}
+  .hx-time{margin-left:auto;padding-right:6px;font:500 11px 'JetBrains Mono',monospace;color:#6f757d;white-space:nowrap;}
+  .hx-row.pr{background:linear-gradient(90deg,rgba(var(--accent-rgb),0.12),transparent 65%);border-radius:8px;margin:0 -8px;padding-left:8px;padding-right:8px;}
+  .hi-ex .hi-go-btn{background:transparent;color:var(--accent);border:1.5px solid rgba(var(--accent-rgb),0.55);}
   /* "See this exercise in Progress" button on a History exercise row. */
   .hi-go-btn{
     width:26px;
@@ -11816,11 +11829,15 @@
                     (ex.muscle ? ' <span class="muscle-badge sm">'+esc(ex.muscle)+'</span>' : '') +
                     '</div>' +
                     '<div class="hi-ex-sets">';
-        html += ex.sets.map(function(st){
-          return fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps +
-                 (st.timestamp ? ' <span class="set-time">&middot; '+tsOrLock(st.timestamp)+'</span>' : '') +
-                 (st.isPR ? '<span class="pr-tag"'+prTagAttrs(st)+'>PR</span>' : '');
-        }).join('<br>');
+        var hxHold = isHoldExercise(ex.name);
+        html += '<div class="hx-rows">' + ex.sets.map(function(st, i){
+          return '<div class="hx-row'+(st.isPR ? ' pr' : '')+'">' +
+                   '<span class="hx-n">'+(i+1)+'</span>' +
+                   '<span class="hx-w">'+fmtWeight(st.weightKg)+'<i>'+unitLabel()+'</i><em>&times;</em>'+st.reps+'<i>'+(hxHold ? 's' : 'reps')+'</i></span>' +
+                   (st.isPR ? '<span class="pr-tag"'+prTagAttrs(st)+'>PR</span>' : '') +
+                   (st.timestamp ? '<span class="hx-time">'+tsOrLock(st.timestamp)+'</span>' : '') +
+                 '</div>';
+        }).join('') + '</div>';
         html += '</div></div>' +
                 '<div class="hi-ex-actions">' +
                   '<button class="hi-edit-btn" data-action="edit-session-exercise" data-session="'+s.id+'" data-ex="'+ex.id+'" aria-label="Edit '+esc(ex.name)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>' +
