@@ -1689,6 +1689,9 @@
     margin:22px 0 14px;
     color:var(--text-dim);font-size:12.5px;letter-spacing:.04em;
   }
+  .log-tpl-wiz{margin-top:6px;}
+  .log-tpl-wiz .log-tpl-card{margin-bottom:0;}
+  .log-tpl-wiz + .log-tpl-or{margin-top:20px;}
   .log-tpl-or--inner{margin:6px 0 20px;}
   .log-tpl-or::before,.log-tpl-or::after{content:"";flex:1;height:1px;background:var(--line);}
   .log-tpl-list .log-tpl-card{min-height:0;padding:12px 16px;margin-bottom:10px;}
@@ -1905,8 +1908,9 @@
     font-family:'Oswald',sans-serif;
     font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
     padding:4px 10px;border-radius:999px;margin-bottom:10px;
-    background:var(--accent);color:#1c1500;
+    background:transparent;color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.5);
   }
+  .template-cat-card.tpl-featured .template-card-badge{background:var(--accent);color:#1c1500;border-color:var(--accent);}
   .template-card > .template-card-chev{
     position:absolute;right:18px;top:50%;transform:translateY(-50%);
     z-index:1;width:40px;height:40px;border-radius:50%;
@@ -9699,10 +9703,10 @@
     fullBody: '<circle cx="12" cy="5" r="2.5"/><path d="M12 8v7M7 11h10M12 15l-4 6M12 15l4 6"/>'
   };
   function templateCategoryCardHtml(c, keys, action, extraClass){
-    var featured = !!c.badge;
+    var featured = !!c.featured;
     return '<button type="button" class="template-card template-cat-card'+(extraClass ? ' '+extraClass : '')+(featured ? ' tpl-featured' : '')+'" data-action="'+action+'" data-category="'+c.id+'">' +
       templateBgHtml() +
-      (featured ? '<span class="template-card-badge">'+esc(c.badge)+'</span>' : '') +
+      (c.badge ? '<span class="template-card-badge">'+esc(c.badge)+'</span>' : '') +
       '<div class="template-card-name">'+esc(c.label)+'</div>' +
       '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
       '<div class="tpl-chips">' +
@@ -10928,7 +10932,19 @@
       return (c.dividerBefore ? '<div class="log-tpl-or log-tpl-or--inner"><span>'+esc(c.dividerBefore)+'</span></div>' : '') + templateCategoryCardHtml(c, keys, 'log-template-category', 'log-tpl-card') + (c.badge ? '<div class="log-tpl-or log-tpl-or--inner"><span>or choose a regular split</span></div>' : '');
     }).join('');
     if (!cards) return '';
-    return '<div class="log-tpl-or"><span>or choose an existing template</span></div>' +
+    // Setup-wizard card on top: the guided route for newcomers. After the
+    // wizard has been completed once it reads "Redo my plan".
+    var wizDone = !!(state.settings && state.settings.experienceLevel);
+    var wizCard = '<button type="button" class="template-card template-cat-card log-tpl-card tpl-featured" data-action="open-onboarding-wizard">' +
+      templateBgHtml() +
+      '<span class="template-card-badge">Quick setup</span>' +
+      '<div class="template-card-name">'+(wizDone ? 'Redo my plan' : 'Build my plan')+'</div>' +
+      '<div class="template-card-sub">'+(wizDone ? 'Update your bodyweight, goal and schedule \u2014 we\u2019ll pick a fresh template.' : 'Answer 4 quick questions and we\u2019ll pick the right template for you.')+'</div>' +
+      '<div class="tpl-chips"><span class="tpl-chip">4 questions</span><span class="tpl-chip">~30 seconds</span></div>' +
+      '<span class="template-card-chev" aria-hidden="true">&#8250;</span>' +
+    '</button>';
+    return '<div class="log-tpl-list log-tpl-wiz">' + wizCard + '</div>' +
+           '<div class="log-tpl-or"><span>or choose a template yourself</span></div>' +
            '<div class="log-tpl-list">' + cards + '</div>';
   }
 
