@@ -3875,6 +3875,50 @@
     letter-spacing:0.05em;margin:4px 0 16px;position:relative;
   }
 
+  /* ---------- Go Pro panel (polished) + free-tier teaser ---------- */
+
+.pricing-panel .pm-hero{text-align:center;padding:2px 4px 14px}
+.pricing-panel .pm-hero b{display:block;font-family:'Oswald',sans-serif;font-size:22px;letter-spacing:.02em;text-transform:uppercase;color:var(--text);line-height:1.1}
+.pricing-panel .pm-hero b em{font-style:normal;color:var(--accent)}
+.pricing-panel .pm-hero span{display:block;margin-top:5px;font-size:12.5px;color:#c7ccd3}
+.pricing-panel .pm-feats{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:6px}
+.pricing-panel .pm-feats li{display:flex;gap:11px;align-items:center;background:rgba(20,22,26,.72);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:9px 12px}
+.pricing-panel .pm-ico{flex:0 0 34px;height:34px;border-radius:9px;background:rgba(242,177,52,.12);border:1px solid rgba(242,177,52,.28);color:var(--accent);display:flex;align-items:center;justify-content:center}
+.pricing-panel .pm-feats b{display:block;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.03em;text-transform:uppercase;color:var(--text);font-weight:600}
+.pricing-panel .pm-feats small{display:block;font-size:11.5px;color:#aeb4bd;line-height:1.35;margin-top:1px}
+.pricing-panel .pm-trial{background:linear-gradient(180deg,rgba(242,177,52,.16),rgba(242,177,52,.06));border:1px solid var(--accent);border-radius:14px;padding:14px;text-align:center;margin-bottom:12px}
+.pricing-panel .pm-trial .t{font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;color:var(--text);display:flex;gap:6px;justify-content:center;align-items:center}
+.pricing-panel .pm-trial .t svg{color:var(--accent)}
+.pricing-panel .pm-trial .s{font-size:11.5px;color:#c7ccd3;margin:3px 0 11px}
+.pricing-panel .pm-btn{width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:var(--radius);padding:13px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+.pricing-panel .pm-or{display:flex;align-items:center;gap:10px;color:#9aa1ab;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;margin:2px 0 10px}
+.pricing-panel .pm-or:before,.pricing-panel .pm-or:after{content:'';flex:1;height:1px;background:rgba(255,255,255,.12)}
+.pricing-panel .pm-seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.pricing-panel .pm-plan{position:relative;background:rgba(20,22,26,.8);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 8px 10px;text-align:center}
+.pricing-panel .pm-plan.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:rgba(242,177,52,.08)}
+.pricing-panel .pm-plan .n{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#aeb4bd}
+.pricing-panel .pm-plan .p{font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.15}
+.pricing-panel .pm-plan .p i{font-style:normal;font-size:11px;font-weight:500;color:#aeb4bd}
+.pricing-panel .pm-plan .d{font-size:10.5px;color:#9aa1ab}
+.pricing-panel .pm-plan .tag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--accent);color:#1c1500;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.pricing-panel .pm-btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.pricing-panel .pm-note{text-align:center;font-size:10.5px;color:#9aa1ab;margin-top:9px}
+
+.pricing-panel .pm-plan{cursor:pointer;font:inherit}
+.pricing-panel .pm-plan:active{opacity:.9}
+.pricing-panel .pm-btn:disabled{opacity:.6}
+.pricing-panel .pm-btn.pm-btn-ghost-cancel{background:none;border:1px solid var(--line);color:var(--text-dim)}
+.pricing-panel .pm-trial .trial-offer-confirm-row{margin-top:2px}
+.progress-tip-teaser.pm{display:flex;flex-direction:column;gap:10px;align-items:stretch;padding:14px;background:linear-gradient(135deg,rgba(242,177,52,.14),rgba(242,177,52,.03) 60%),var(--panel);border:1px solid rgba(242,177,52,.4);border-radius:14px;color:var(--text-dim)}
+.progress-tip-teaser.pm .tr-top{display:flex;gap:11px;align-items:center}
+.progress-tip-teaser.pm .tr-ico{flex:0 0 36px;height:36px;border-radius:10px;background:rgba(242,177,52,.14);border:1px solid rgba(242,177,52,.35);color:var(--accent);display:flex;align-items:center;justify-content:center}
+.progress-tip-teaser.pm .tr-t{font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--text);line-height:1.1}
+.progress-tip-teaser.pm .tr-s{font-size:11.5px;color:var(--text-faint);margin-top:2px}
+.progress-tip-teaser.pm .tr-chips{display:flex;flex-wrap:wrap;gap:6px}
+.progress-tip-teaser.pm .tr-chips span{font-size:11px;color:var(--text-dim);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:99px;padding:3px 9px}
+.progress-tip-teaser.pm .tr-btn{width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:var(--radius);padding:11px;font-family:'Oswald',sans-serif;font-weight:700;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;display:flex;gap:6px;align-items:center;justify-content:center;cursor:pointer}
+.chart-view-lock{border-color:rgba(242,177,52,.45)!important;color:var(--accent)!important}
+
   /* ---------- Progress: free view (after the 30-day trial) ----------
      Pro / trial users see everything. Everyone else gets a useful free view
      instead of a locked screen: headline numbers, the last 3 months of the
@@ -6639,6 +6683,7 @@
     openRowMenu: null,         // { type: 'exercise'|'set', exId, setId } for the shared "⋮" popover, or null when closed
     avatarPickDraft: null,  // staged icon selection, applied only on confirm
     startingTrial: false,   // true while the "Start Free Trial" write is in flight
+    pricingPlan: 'annual',  // which plan card is selected in the Go Pro panel
     confirmingTrial: false, // true while the inline "Start trial?" confirm step is shown
     openingPortal: false,    // true while a Stripe Customer Portal link is being requested
     pushBusy: false,          // true while requesting notification permission / saving the FCM token
@@ -11062,6 +11107,19 @@
     });
   }
 
+  var PM_ICONS = {
+    target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>',
+    chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>',
+    spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
+    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 14h6M9 17h4"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+    star: '<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"/></svg>'
+  };
+  function pmFeat(icon, title, sub){
+    return '<li><span class="pm-ico">' + PM_ICONS[icon] + '</span><div><b>' + title + '</b><small>' + sub + '</small></div></li>';
+  }
+
   function renderPricingPanel(){
     var overlay = document.getElementById('pricingOverlay');
     var panel = document.getElementById('pricingPanel');
@@ -11116,46 +11174,45 @@
     }
 
     var showTrialOffer = trialAvailable();
+    var plan = (ui.pricingPlan === 'monthly') ? 'monthly' : 'annual';
     panel.innerHTML =
       '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Go Pro</h3>' +
         '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
       '</div>' +
       '<div class="pricing-body">' +
-        '<ul class="paywall-features">' +
-          '<li><span class="chk">&#10003;</span> Tips &amp; Target \u2014 a specific weight or rep goal for your next session</li>' +
-          '<li><span class="chk">&#10003;</span> Unlimited Progress \u2014 charts, PRs, trends</li>' +
-          '<li><span class="chk">&#10003;</span> Print Pro PDF \u2014 modern layout + overload tips</li>' +
+        '<div class="pm-hero"><b>Lift smarter with <em>Pro</em></b><span>Everything in Basic, plus:</span></div>' +
+        '<ul class="pm-feats">' +
+          pmFeat('target', 'Tips &amp; Target', 'A clear weight or rep goal for your next session') +
+          pmFeat('chart', 'Full Progress', 'All-time charts, weekly &amp; monthly views, weight trend') +
+          pmFeat('spark', 'AI Log Assistant', 'Ask your gym coach anything, any time') +
+          pmFeat('clock', '7-day Brief', 'Keep your activity feed for 7 days, not 24h') +
+          pmFeat('pdf', 'Print Pro PDF', 'Modern layout with overload tips') +
         '</ul>' +
         (showTrialOffer
           ? (ui.confirmingTrial
-              ? '<div class="trial-offer-card">' +
-                  '<div class="trial-offer-title">Start your free trial?</div>' +
-                  '<div class="trial-offer-sub">30 days of full Pro access begins right now. You can only do this once per account.</div>' +
+              ? '<div class="pm-trial">' +
+                  '<div class="t">Start your free trial?</div>' +
+                  '<div class="s">30 days of full Pro access begins right now. You can only do this once per account.</div>' +
                   '<div class="trial-offer-confirm-row">' +
                     '<button class="trial-offer-cancel-btn" data-action="cancel-start-trial"'+(ui.startingTrial?' disabled':'')+'>Cancel</button>' +
-                    '<button class="trial-offer-btn" data-action="start-free-trial"'+(ui.startingTrial?' disabled':'')+'>'+(ui.startingTrial?'Starting\u2026':'Yes, Start Trial')+'</button>' +
+                    '<button class="trial-offer-btn" data-action="start-free-trial"'+(ui.startingTrial?' disabled':'')+'>'+(ui.startingTrial?'Starting…':'Yes, Start Trial')+'</button>' +
                   '</div>' +
                 '</div>'
-              : '<div class="trial-offer-card">' +
-                  '<div class="trial-offer-title"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" style="vertical-align:-2px;margin-right:2px;"><path d="M12 2l2.9 6.4 7.1.7-5.3 4.8 1.6 7-6.3-3.7-6.3 3.7 1.6-7-5.3-4.8 7.1-.7z"></path></svg> Try Pro free for 30 days</div>' +
-                  '<div class="trial-offer-sub">No card needed. Cancel anytime \u2014 or just let it lapse back to Basic.</div>' +
-                  '<button class="trial-offer-btn" data-action="request-start-trial">Start Free Trial</button>' +
+              : '<div class="pm-trial">' +
+                  '<div class="t">'+PM_ICONS.star+' Try Pro free for 30 days</div>' +
+                  '<div class="s">No card needed. Lapses back to Basic if you don’t continue.</div>' +
+                  '<button class="pm-btn" data-action="request-start-trial">Start free trial</button>' +
                 '</div>') +
-            '<div class="trial-offer-divider">or subscribe now</div>'
+            '<div class="pm-or">or subscribe</div>'
           : '') +
-        '<div class="price-card" id="priceCardMonthly">' +
-          '<div class="price-card-amount">$'+PRICE_MONTHLY.toFixed(2)+'<span>/month</span></div>' +
-          '<div class="price-card-sub">Cancel anytime</div>' +
-          '<button class="price-cta-btn" data-action="start-checkout" data-plan="monthly">Start Monthly \u2014 $'+PRICE_MONTHLY.toFixed(2)+'/mo</button>' +
+        '<div class="pm-seg">' +
+          '<button type="button" class="pm-plan'+(plan==='monthly'?' on':'')+'" id="priceCardMonthly" data-action="pricing-select-plan" data-plan="monthly">' +
+            '<div class="n">Monthly</div><div class="p">$'+PRICE_MONTHLY.toFixed(2)+'<i>/mo</i></div><div class="d">Cancel anytime</div></button>' +
+          '<button type="button" class="pm-plan'+(plan==='annual'?' on':'')+'" id="priceCardAnnual" data-action="pricing-select-plan" data-plan="annual">' +
+            '<span class="tag">Save ~42%</span><div class="n">Annual</div><div class="p">$'+PRICE_ANNUAL.toFixed(2)+'<i>/yr</i></div><div class="d">$'+(PRICE_ANNUAL/12).toFixed(2)+'/mo &middot; 5 months free</div></button>' +
         '</div>' +
-        '<div class="price-card-divider">or</div>' +
-        '<div class="price-card featured" id="priceCardAnnual">' +
-          '<div class="price-savings-badge">Save ~42% \u00b7 5 months free</div>' +
-          '<div class="price-card-amount">$'+PRICE_ANNUAL.toFixed(2)+'<span>/year</span></div>' +
-          '<div class="price-card-sub">$'+(PRICE_ANNUAL/12).toFixed(2)+'/mo billed annually</div>' +
-          '<button class="price-cta-btn" data-action="start-checkout" data-plan="annual">Start Annual \u2014 $'+PRICE_ANNUAL.toFixed(2)+'/yr</button>' +
-        '</div>' +
-        '<div class="paywall-note">Secure checkout via '+(isTWA() ? 'Google Play' : 'Stripe')+'. Manage or cancel anytime.</div>' +
+        '<button class="pm-btn'+(showTrialOffer?' ghost':'')+'" data-action="start-checkout" data-plan="'+plan+'">Subscribe — $'+(plan==='annual'?PRICE_ANNUAL.toFixed(2)+'/yr':PRICE_MONTHLY.toFixed(2)+'/mo')+'</button>' +
+        '<div class="pm-note">Secure checkout via '+(isTWA() ? 'Google Play' : 'Stripe')+'. Manage or cancel anytime.</div>' +
       '</div>';
   }
 
@@ -13580,10 +13637,13 @@
                 '</div>';
       }
     } else {
-      html += '<div class="progress-tip-teaser">' +
-                '<span>' + (isTrialExpired() ? 'Your free trial has ended. ' : '') +
-                  'Go Pro for <b>Tips &amp; Target</b> (a specific weight or rep target for next session), all-time charts, weekly &amp; monthly views and the weight trend.</span>' +
-                '<button class="sr-action" data-action="open-pricing">' + (trialAvailable() ? 'Try free' : 'Go Pro') + '</button>' +
+      html += '<div class="progress-tip-teaser pm">' +
+                '<div class="tr-top"><span class="tr-ico">' + PM_ICONS.lock + '</span><div>' +
+                  '<div class="tr-t">' + (isTrialExpired() ? 'Your trial has ended' : 'Unlock the full picture') + '</div>' +
+                  '<div class="tr-s">' + (trialAvailable() ? 'Free for 30 days \u00b7 no card needed' : 'Get Pro to bring it all back') + '</div>' +
+                '</div></div>' +
+                '<div class="tr-chips"><span>Tips &amp; Target</span><span>All-time charts</span><span>Weekly &amp; monthly</span><span>Weight trend</span></div>' +
+                '<button class="tr-btn" data-action="open-pricing">' + PM_ICONS.star + (trialAvailable() ? 'Try Pro free' : 'Go Pro') + '</button>' +
               '</div>';
     }
 
@@ -14281,7 +14341,7 @@
                 '<button class="sr-action" data-action="open-pricing">Start Trial</button></div>';
     } else {
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
-                '<div class="sr-sub">Upgrade for Tips &amp; Target, unlimited Progress &amp; Pro PDF</div></div>' +
+                '<div class="sr-sub">Upgrade for Tips &amp; Target, full Progress, AI assistant &amp; Pro PDF</div></div>' +
                 '<button class="sr-action" data-action="open-pricing">Upgrade</button></div>';
     }
     html += '</div>';
@@ -16630,7 +16690,7 @@
       return;
     }
     logChatShowReplyWithDelay(
-      'That one needs the full AI assistant to understand \u2014 a Pro feature. Try rephrasing it more directly, or upgrade for natural conversation, coaching tips, and more.',
+      'That one needs the AI Log Assistant \u2014 a Pro feature. Try rephrasing it more directly, or go Pro to ask your gym coach anything.',
       { isAIUpsell: true }
     );
   }
@@ -16910,7 +16970,7 @@
       } else if (err && err.code === 'functions/unauthenticated'){
         msg = 'Sign in to use the AI assistant \u2014 the built-in answers (exercises, PRs, stats, app help) still work in guest mode.';
       } else if (err && err.code === 'functions/permission-denied'){
-        msg = 'That one needs the full AI assistant to understand \u2014 a Pro feature. Try rephrasing it more directly, or upgrade for natural conversation, coaching tips, and more.';
+        msg = 'That one needs the AI Log Assistant \u2014 a Pro feature. Try rephrasing it more directly, or go Pro to ask your gym coach anything.';
         wasUpsell = true;
       }
       var idx = ui.logChatMessages.indexOf(thinkingMsg);
@@ -20369,6 +20429,9 @@
     } else if (el.dataset.action === 'start-checkout'){
       var p = el.dataset.plan;
       startCheckout((p === 'annual') ? p : 'monthly');
+    } else if (el.dataset.action === 'pricing-select-plan'){
+      ui.pricingPlan = (el.dataset.plan === 'monthly') ? 'monthly' : 'annual';
+      renderPricingPanel();
     } else if (el.dataset.action === 'request-start-trial'){
       ui.confirmingTrial = true;
       renderPricingPanel();
