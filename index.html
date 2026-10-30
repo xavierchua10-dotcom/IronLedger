@@ -1932,6 +1932,12 @@
     background:radial-gradient(circle, rgba(var(--accent-rgb),0.45) 0%, rgba(var(--accent-rgb),0.16) 38%, rgba(var(--accent-rgb),0) 66%);
   }
   .template-cat-card:not(.tpl-featured){border-color:rgba(255,255,255,0.09);}
+  /* Secondary category cards (splits) are slimmer than the hero/Beginner ones. */
+  .template-cat-card.tpl-compact,.log-tpl-list .log-tpl-card.tpl-compact{min-height:0;padding:16px 62px 16px 18px;margin-bottom:12px;}
+  .tpl-compact .template-card-name{font-size:18px;margin-bottom:2px;}
+  .tpl-compact .template-card-sub{font-size:13px;margin-bottom:8px;}
+  .tpl-compact .tpl-chip{font-size:10px;padding:3px 8px;}
+  .template-card.tpl-compact > .template-card-chev{width:32px;height:32px;font-size:22px;right:14px;}
   .template-card-name{
     font-family:'Oswald',sans-serif;
     font-size:15px;
@@ -9704,7 +9710,7 @@
   };
   function templateCategoryCardHtml(c, keys, action, extraClass){
     var featured = !!c.featured;
-    return '<button type="button" class="template-card template-cat-card'+(extraClass ? ' '+extraClass : '')+(featured ? ' tpl-featured' : '')+'" data-action="'+action+'" data-category="'+c.id+'">' +
+    return '<button type="button" class="template-card template-cat-card'+(extraClass ? ' '+extraClass : '')+(featured ? ' tpl-featured' : (c.badge ? '' : ' tpl-compact'))+'" data-action="'+action+'" data-category="'+c.id+'">' +
       templateBgHtml() +
       (c.badge ? '<span class="template-card-badge">'+esc(c.badge)+'</span>' : '') +
       '<div class="template-card-name">'+esc(c.label)+'</div>' +
