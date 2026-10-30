@@ -5346,6 +5346,27 @@
   .exercise-card .set-row .set-detail .set-time{font:500 11px 'JetBrains Mono',monospace;color:#6f757d;margin-left:10px;}
   .exercise-card .set-row .set-detail .pr-tag{background:var(--accent);color:#1c1500;font:700 11px/1 'Oswald',sans-serif;letter-spacing:.1em;padding:4px 8px;border-radius:6px;box-shadow:0 0 14px rgba(var(--accent-rgb),0.45);}
   .exercise-card .set-row.set-row-pr{background:linear-gradient(90deg,rgba(var(--accent-rgb),0.12),transparent 65%);border-radius:10px;}
+  /* Small phones (<= 420px wide): keep set rows, stat tiles and History rows
+     from truncating or colliding with the buttons. */
+  @media (max-width:420px){
+    .exercise-card .set-row{grid-template-columns:26px 1fr 40px;gap:8px;}
+    .exercise-card .set-row .set-detail{flex-wrap:wrap;row-gap:2px;}
+    .exercise-card .set-row .set-detail .set-wr{font-size:18px;}
+    .exercise-card .set-row .set-wr i{margin-left:3px;}
+    .exercise-card .set-row .set-detail .x{margin:0 4px;}
+    .exercise-card .set-row .set-detail .set-time{margin-left:6px;}
+    .ex-stat{padding:8px 10px 9px;}
+    .ex-stat small{letter-spacing:.1em;}
+    .ex-stat b{font-size:15px;white-space:nowrap;}
+    .ex-stat b i{font-size:10px;margin-left:3px;}
+    .hx-row{flex-wrap:wrap;gap:2px 8px;}
+    .hx-w{font-size:17px;}
+    .hx-w em{margin:0 4px;}
+  }
+  @media (max-width:340px){
+    .ex-stat{padding:8px 8px 9px;}
+    .ex-stat b{font-size:13px;}
+  }
   .set-row.pr-fresh{position:relative;animation:prRowGlow 1s ease-out;}
   @keyframes prRowGlow{
     0%{box-shadow:0 0 0 0 rgba(var(--accent-rgb),0);}
