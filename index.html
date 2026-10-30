@@ -45,9 +45,26 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SaviorFit Logger">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Fonts are served from this site (fonts/) instead of Google Fonts so they are
+     ready before the splash ends. Without that, text first painted in the
+     fallback font and then re-flowed when Oswald/Inter arrived, which showed up
+     as the Log screen jumping a few pixels right after launch. -->
+<link rel="preload" href="fonts/oswald-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/inter-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jetbrains-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style id="appFontFaces">
+@font-face{font-family:'Oswald';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/oswald-latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Oswald';font-style:normal;font-weight:600;font-display:swap;src:url('fonts/oswald-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Oswald';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/oswald-latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/inter-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/inter-latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url('fonts/inter-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/inter-latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/jetbrains-mono-latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2');}
+</style>
 <!-- Start downloading the 3D model and its Draco decoder the moment the
      app opens, not when Insight first gets tapped -- initMg3dViewer()'s
      GLTFLoader.load('model.glb', ...) call only ever fires once you're
@@ -14297,14 +14314,38 @@
   // Skipped for reduced-motion, where the text is simply shown.
   var BOOT_SPLASH_MIN_MS = 1100;
   var bootHideTimer = null;
+  // Explicitly start loading every font weight the app uses and hold the
+  // splash until they are in (max 2.5s, so a failed download never traps the
+  // user on the splash). Fonts inside the hidden #app are not requested by the
+  // browser on its own, which is why this has to ask for them directly.
+  var appFontsPromise = null;
+  function appFontsReady(cb){
+    if (!appFontsPromise){
+      var loads = [];
+      try{
+        if (document.fonts && document.fonts.load){
+          [500, 600, 700].forEach(function(w){ loads.push(document.fonts.load(w + ' 16px Oswald')); });
+          [400, 500, 600, 700].forEach(function(w){ loads.push(document.fonts.load(w + ' 16px Inter')); });
+          [400, 500, 700].forEach(function(w){ loads.push(document.fonts.load(w + ' 16px "JetBrains Mono"')); });
+        }
+      }catch(e){}
+      appFontsPromise = Promise.race([
+        Promise.all(loads).catch(function(){}),
+        new Promise(function(resolve){ setTimeout(resolve, 2500); })
+      ]);
+    }
+    appFontsPromise.then(cb);
+  }
+  appFontsReady(function(){}); // start downloading right away, in parallel with sign-in
   function hideBootLoading(){
     var el = document.getElementById('bootLoading');
     if (!el || el.classList.contains('hidden') || bootHideTimer) return;
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var shownAt = window.__bootSplashStart;
     var wait = (reduce || typeof shownAt !== 'number') ? 0 : Math.max(0, BOOT_SPLASH_MIN_MS - (performance.now() - shownAt));
-    if (wait <= 0){ el.classList.add('hidden'); return; }
-    bootHideTimer = setTimeout(function(){ bootHideTimer = null; el.classList.add('hidden'); }, wait);
+    bootHideTimer = setTimeout(function(){
+      appFontsReady(function(){ bootHideTimer = null; el.classList.add('hidden'); });
+    }, wait);
   }
   function showAppShell(){
     hideBootLoading();
