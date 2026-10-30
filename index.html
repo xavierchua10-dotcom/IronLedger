@@ -3902,6 +3902,9 @@
 .pricing-panel .pm-plan .d{font-size:10.5px;color:#9aa1ab}
 .pricing-panel .pm-plan .tag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--accent);color:#1c1500;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;white-space:nowrap}
 .pricing-panel .pm-btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.pricing-panel .pm-soon{display:flex;gap:11px;align-items:center;background:rgba(20,22,26,.8);border:1px dashed rgba(242,177,52,.45);border-radius:12px;padding:12px;color:var(--accent);margin-bottom:6px}
+.pricing-panel .pm-soon b{display:block;font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.03em;text-transform:uppercase;color:var(--text);font-weight:600}
+.pricing-panel .pm-soon span{display:block;font-size:11.5px;color:#aeb4bd;margin-top:2px}
 .pricing-panel .pm-note{text-align:center;font-size:10.5px;color:#9aa1ab;margin-top:9px}
 
 .pricing-panel .pm-plan{cursor:pointer;font:inherit}
@@ -11175,6 +11178,9 @@
 
     var showTrialOffer = trialAvailable();
     var plan = (ui.pricingPlan === 'monthly') ? 'monthly' : 'annual';
+    // The Capacitor app build has no Play Billing yet (and Play bans an outside
+    // checkout), so there it shows a "coming soon" note instead of dead buttons.
+    var noBilling = isNativeShell() && !isTWA();
     panel.innerHTML =
       '<div class="pro-panel-header"><h3><span class="pro-panel-badge">PRO</span> Go Pro</h3>' +
         '<button class="pro-panel-close" data-action="close-pricing" aria-label="Close">&#10005;</button>' +
@@ -11203,16 +11209,17 @@
                   '<div class="s">No card needed. Lapses back to Basic if you don’t continue.</div>' +
                   '<button class="pm-btn" data-action="request-start-trial">Start free trial</button>' +
                 '</div>') +
-            '<div class="pm-or">or subscribe</div>'
+            (noBilling ? '' : '<div class="pm-or">or subscribe</div>')
           : '') +
-        '<div class="pm-seg">' +
+        (noBilling ? '<div class="pm-soon">' + PM_ICONS.clock + '<div><b>Subscriptions are coming to the app soon</b><span>' + (showTrialOffer ? 'Start your free trial now \u2014 it works the same.' : 'Check back shortly.') + '</span></div></div>' : '') +
+        (noBilling ? '' : '<div class="pm-seg">' +
           '<button type="button" class="pm-plan'+(plan==='monthly'?' on':'')+'" id="priceCardMonthly" data-action="pricing-select-plan" data-plan="monthly">' +
             '<div class="n">Monthly</div><div class="p">$'+PRICE_MONTHLY.toFixed(2)+'<i>/mo</i></div><div class="d">Cancel anytime</div></button>' +
           '<button type="button" class="pm-plan'+(plan==='annual'?' on':'')+'" id="priceCardAnnual" data-action="pricing-select-plan" data-plan="annual">' +
             '<span class="tag">Save ~42%</span><div class="n">Annual</div><div class="p">$'+PRICE_ANNUAL.toFixed(2)+'<i>/yr</i></div><div class="d">$'+(PRICE_ANNUAL/12).toFixed(2)+'/mo &middot; 5 months free</div></button>' +
         '</div>' +
         '<button class="pm-btn'+(showTrialOffer?' ghost':'')+'" data-action="start-checkout" data-plan="'+plan+'">Subscribe — $'+(plan==='annual'?PRICE_ANNUAL.toFixed(2)+'/yr':PRICE_MONTHLY.toFixed(2)+'/mo')+'</button>' +
-        '<div class="pm-note">Secure checkout via '+(isTWA() ? 'Google Play' : 'Stripe')+'. Manage or cancel anytime.</div>' +
+        '<div class="pm-note">Secure checkout via '+(isTWA() ? 'Google Play' : 'Stripe')+'. Manage or cancel anytime.</div>') +
       '</div>';
   }
 
