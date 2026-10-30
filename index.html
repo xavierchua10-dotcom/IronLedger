@@ -18376,7 +18376,23 @@
     { tab: 'settings', selector: '.settings-row .seg', fallback: '#view', title: 'Units', text: 'Switch between kg and lb any time. Your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.' }
   ];
 
+  // Keep the two Log template steps in the same order as the cards on screen:
+  // Build my plan first until setup is finished, templates first afterwards.
+  function orderTourSteps(){
+    var wizIdx = -1, tplIdx = -1;
+    TOUR_STEPS.forEach(function(st, i){
+      if (st.selector === '.log-tpl-wiz') wizIdx = i;
+      else if (st.selector === '.log-tpl-list:not(.log-tpl-wiz)') tplIdx = i;
+    });
+    if (wizIdx < 0 || tplIdx < 0) return;
+    var setupPending = !(state.settings && state.settings.experienceLevel && state.settings.bodyweightKg);
+    var wizFirst = wizIdx < tplIdx;
+    if (setupPending !== wizFirst){
+      var t = TOUR_STEPS[wizIdx]; TOUR_STEPS[wizIdx] = TOUR_STEPS[tplIdx]; TOUR_STEPS[tplIdx] = t;
+    }
+  }
   function startTour(){
+    orderTourSteps();
     ui.tourStep = 0;
     renderTourStep();
   }
