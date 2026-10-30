@@ -10992,7 +10992,8 @@
     '</button>';
     // Beginner stays its own card.
     var cards = featuredCat.map(function(x){
-      return templateCategoryCardHtml(x.c, x.keys, 'log-template-category', 'log-tpl-card');
+      return '<div class="log-tpl-or"><span>new here? start with the basics</span></div>' +
+             templateCategoryCardHtml(x.c, x.keys, 'log-template-category', 'log-tpl-card');
     }).join('');
     // The regular splits + bro split are grouped into one expandable card,
     // the same size as the Beginner card when collapsed.
@@ -11005,7 +11006,8 @@
           '<span class="tpl-chips tpl-acc-chips"><span class="tpl-chip">'+x.keys.length+' templates</span>'+(x.c.meta ? '<span class="tpl-chip">'+esc(x.c.meta)+'</span>' : '')+'</span></span>' +
           '<span class="tpl-acc-go" aria-hidden="true">&#8250;</span></button>';
       }).join('');
-      cards += '<div class="template-card template-cat-card log-tpl-card tpl-acc'+(open ? ' open' : '')+'">' +
+      cards += '<div class="log-tpl-or"><span>or choose a regular split</span></div>' +
+        '<div class="template-card template-cat-card log-tpl-card tpl-acc'+(open ? ' open' : '')+'">' +
         templateBgHtml() +
         '<button type="button" class="tpl-acc-head" data-action="toggle-splits" aria-expanded="'+(open ? 'true' : 'false')+'">' +
           '<span class="template-card-badge">For regular lifters</span>' +
