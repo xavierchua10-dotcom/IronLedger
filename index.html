@@ -6479,6 +6479,68 @@
     location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + p.toString();
     return new Promise(function(){ /* page is navigating away */ });
   }
+  // Best in-app flow: Google's own account sheet (Google Identity Services,
+  // FedCM) slides up over the app, so the user never leaves for a browser
+  // window with a URL bar. Needs https://saviorfitlogger.com listed under the
+  // web client's Authorized JavaScript origins. If the sheet can't open (script
+  // blocked, origin not allowed, Chrome too old, sheet muted after being
+  // dismissed) it falls back to the full-page redirect above, so sign-in never
+  // gets stuck.
+  function loadGoogleGsi(){
+    return new Promise(function(resolve, reject){
+      if (window.google && window.google.accounts && window.google.accounts.id) return resolve();
+      var s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.async = true;
+      s.onload = function(){ resolve(); };
+      s.onerror = function(){ reject(new Error('gsi-load')); };
+      document.head.appendChild(s);
+      setTimeout(function(){ reject(new Error('gsi-timeout')); }, 6000);
+    });
+  }
+  function startGoogleSheetFlow(){
+    sfTrace('go google (sheet)');
+    return new Promise(function(resolve, reject){
+      var finished = false;
+      function fallback(why){
+        if (finished) return;
+        finished = true;
+        sfTrace('sheet fallback ' + why);
+        resolve(startGoogleIdTokenFlow());
+      }
+      loadGoogleGsi().then(function(){
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_WEB_CLIENT_ID,
+          use_fedcm_for_prompt: true,
+          auto_select: false,
+          cancel_on_tap_outside: false,
+          callback: function(resp){
+            if (finished) return;
+            finished = true;
+            if (!resp || !resp.credential){ reject({ code: 'auth/popup-closed-by-user' }); return; }
+            sfTrace('sheet token');
+            signInWithCredential(auth, GoogleAuthProvider.credential(resp.credential)).then(function(cred){
+              sfTrace('firebase sign-in ok (sheet)');
+              resolve(cred.user);
+            }).catch(function(err){
+              sfTrace('firebase err ' + ((err && err.code) || 'unknown'));
+              reject(err);
+            });
+          }
+        });
+        window.google.accounts.id.prompt(function(n){
+          try{
+            if (n.isNotDisplayed && n.isNotDisplayed()){ fallback('notdisplayed:' + (n.getNotDisplayedReason ? n.getNotDisplayedReason() : '')); return; }
+            if (n.isSkippedMoment && n.isSkippedMoment()){ fallback('skipped:' + (n.getSkippedReason ? n.getSkippedReason() : '')); return; }
+            if (n.isDismissedMoment && n.isDismissedMoment() && n.getDismissedReason() !== 'credential_returned' && !finished){
+              finished = true;
+              reject({ code: 'auth/popup-closed-by-user' });
+            }
+          }catch(e){ fallback('notify-err'); }
+        });
+      }).catch(function(e){ fallback((e && e.message) || 'load'); });
+    });
+  }
   (function finishGoogleIdTokenFlow(){
     var h = location.hash || '';
     var hasNonce = false;
@@ -6592,7 +6654,7 @@
       var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
       // The installed Android app doesn't always report itself as standalone,
       // so any phone browser/app on the main domain uses the redirect flow.
-      if (googleIdTokenFlowAvailable() && (inApp || isMobile)) return startGoogleIdTokenFlow();
+      if (googleIdTokenFlowAvailable() && (inApp || isMobile)) return startGoogleSheetFlow();
       if (inApp){
         try{ localStorage.setItem(GOOGLE_REDIRECT_KEY, '1'); }catch(e){}
         return signInWithRedirect(auth, googleProvider);
