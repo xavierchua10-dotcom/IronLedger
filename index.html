@@ -4509,6 +4509,43 @@
   .pf-stat-v{font:700 26px/1 'Oswald',sans-serif;color:var(--text);white-space:nowrap;}
   .pf-stat-v small{font:500 12px 'Inter',sans-serif;color:var(--text-faint);}
   .pf-stat-l{font:700 10px 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--text-faint);margin-top:7px;text-transform:uppercase;}
+  /* ---- Trophy / medal popup (PR celebration + Profile badges) ---- */
+  .tp-overlay{display:none;position:fixed;inset:0;z-index:1200;align-items:center;justify-content:center;padding:20px;background:rgba(8,9,11,0.74);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+  .tp-overlay.on{display:flex;animation:tpIn .24s ease both;}
+  .tp-overlay.on.out{animation:tpOut .18s ease both;}
+  .tp-overlay.tp-pr{background:radial-gradient(ellipse 80% 50% at 50% 45%,rgba(242,177,52,0.20),rgba(8,9,11,0.5));-webkit-backdrop-filter:none;backdrop-filter:none;pointer-events:none;}
+  .tp-overlay.tp-pr .tp-card{pointer-events:auto;}
+  .tp-card{position:relative;width:min(340px,100%);text-align:center;padding:20px 18px 16px;border-radius:24px;background:rgba(20,22,26,0.94);border:1px solid rgba(242,177,52,0.38);box-shadow:0 22px 60px rgba(0,0,0,0.6);}
+  .tp-overlay.on .tp-card{animation:tpPop .34s cubic-bezier(.2,.9,.3,1.25) both;}
+  .tp-x{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:var(--text-dim);font-size:14px;cursor:pointer;}
+  .tp-kick{font:700 11px 'JetBrains Mono',monospace;letter-spacing:0.22em;color:var(--accent);}
+  .tp-stage{position:relative;height:232px;margin:4px 0 0;}
+  .tp-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;}
+  .tp-fb{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:110px;}
+  .tp-stage.nofx .tp-fb{display:flex;}
+  .tp-title{font:700 24px 'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.02em;color:var(--text);line-height:1.15;}
+  .tp-sub{font:500 13px 'Inter',sans-serif;color:var(--text-dim);margin-top:4px;}
+  .tp-chip{display:inline-block;margin-top:12px;padding:5px 14px;border-radius:999px;background:rgba(242,177,52,0.14);border:1px solid rgba(242,177,52,0.5);color:var(--accent);font:700 11px 'JetBrains Mono',monospace;letter-spacing:0.1em;}
+  .tp-chip:empty{display:none;}
+  .tp-hint{font:500 10px 'JetBrains Mono',monospace;letter-spacing:0.08em;color:var(--text-faint);margin-top:12px;}
+  @keyframes tpIn{from{opacity:0;}to{opacity:1;}}
+  @keyframes tpOut{from{opacity:1;}to{opacity:0;}}
+  @keyframes tpPop{from{opacity:0;transform:scale(.9) translateY(14px);}to{opacity:1;transform:none;}}
+  /* Profile badges */
+  .pf-badges{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);}
+  .pf-badges-h{display:flex;justify-content:space-between;font:700 10px 'JetBrains Mono',monospace;letter-spacing:0.14em;color:var(--text-faint);margin-bottom:12px;}
+  .pf-badges-h span{color:var(--accent);}
+  .pf-badge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .pf-badge{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px 10px;border-radius:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:var(--text);cursor:pointer;min-width:0;}
+  .pf-badge b{font:600 10px 'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;text-align:center;line-height:1.25;}
+  .pf-badge small{font:500 10px 'JetBrains Mono',monospace;color:var(--text-faint);}
+  .pf-coin{width:52px;height:52px;border-radius:50%;display:grid;place-content:center;--c1:#30343a;--c2:#1d2024;--c3:#3d424a;--ic:#5b616b;color:var(--ic);background:radial-gradient(circle at 30% 24%,rgba(255,255,255,0.35),transparent 46%),linear-gradient(145deg,var(--c1),var(--c2));box-shadow:inset 0 0 0 3px var(--c3),0 6px 14px rgba(0,0,0,0.5);}
+  .pf-coin svg{width:24px;height:24px;display:block;}
+  .pf-badge.t0 .pf-coin{opacity:0.6;}
+  .pf-badge.t1 .pf-coin{--c1:#d98a4e;--c2:#8a4a1e;--c3:#f0b183;--ic:#2a1204;}
+  .pf-badge.t2 .pf-coin{--c1:#d4dae1;--c2:#7d8793;--c3:#f4f6f8;--ic:#1c2229;}
+  .pf-badge.t3 .pf-coin{--c1:#ffd266;--c2:#c98a10;--c3:#fff0b8;--ic:#3a2500;}
+
   .pf-best{margin-top:12px;background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 16px 4px;}
   .pf-best-h{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--accent);margin-bottom:8px;}
   .pf-lift{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid rgba(255,255,255,.07);}
@@ -6043,7 +6080,7 @@
   ::selection{background:var(--accent-dim);color:var(--text);}
 
   .boot-loading{
-    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
     background:var(--bg); z-index:999;
     overflow:hidden;
   }
@@ -6097,6 +6134,14 @@
   .boot-bg .plate.p1{left:calc(var(--pl) * -0.32);}
   .boot-bg .plate.p2{left:calc(50% - var(--pl) / 2);}
   .boot-bg .plate.p3{right:calc(var(--pl) * -0.32);}
+  /* spinning logo coin above the name (pure CSS 3D, so it shows with the first paint) */
+  .boot-coin{position:relative;z-index:1;width:112px;height:112px;margin-bottom:26px;perspective:700px;}
+  .bc-spin{position:absolute;inset:0;transform-style:preserve-3d;animation:bcSpin 3.4s linear infinite;}
+  .bc-spin i{position:absolute;inset:0;border-radius:50%;background:#d9a22c;transform:translateZ(var(--z));}
+  .bc-face{position:absolute;inset:0;border-radius:50%;box-sizing:border-box;border:5px solid #f2b134;background:#14161a url('images/logo-mark.png') center/84% no-repeat;backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+  .bc-front{transform:translateZ(6px);}
+  .bc-back{transform:rotateY(180deg) translateZ(6px);}
+  @keyframes bcSpin{from{transform:rotateX(-10deg) rotateY(0deg);}to{transform:rotateX(-10deg) rotateY(360deg);}}
   .boot-loading-mark{
     position:relative; z-index:1;
     font-weight:800; letter-spacing:.04em; font-size:22px; color:var(--text);
@@ -6338,7 +6383,7 @@
 </ul>
 <p>Built by Savior, an independent developer. Download SaviorFit Logger on Google Play or open it in your browser at saviorfitlogger.com.</p>
 </section>
-<div id="bootLoading" class="boot-loading" role="status" aria-label="SaviorFit Logger"><div class="boot-bg" aria-hidden="true"><i class="g"></i><i class="glow"></i><i class="ray a"></i><i class="ray b"></i><i class="ray c"></i><i class="plate p1"></i><i class="plate p2"></i><i class="plate p3"></i></div><div class="boot-loading-mark" aria-hidden="true"><span class="bl-ch" style="--i:0">S</span><span class="bl-ch" style="--i:1">A</span><span class="bl-ch" style="--i:2">V</span><span class="bl-ch" style="--i:3">I</span><span class="bl-ch" style="--i:4">O</span><span class="bl-ch" style="--i:5">R</span><span class="bl-ch" style="--i:6">F</span><span class="bl-ch" style="--i:7">I</span><span class="bl-ch" style="--i:8">T</span><span class="bl-ch" style="--i:9">&nbsp;</span><span class="bl-gold"><span class="bl-ch" style="--i:10">L</span><span class="bl-ch" style="--i:11">O</span><span class="bl-ch" style="--i:12">G</span><span class="bl-ch" style="--i:13">G</span><span class="bl-ch" style="--i:14">E</span><span class="bl-ch" style="--i:15">R</span></span></div></div>
+<div id="bootLoading" class="boot-loading" role="status" aria-label="SaviorFit Logger"><div class="boot-bg" aria-hidden="true"><i class="g"></i><i class="glow"></i><i class="ray a"></i><i class="ray b"></i><i class="ray c"></i><i class="plate p1"></i><i class="plate p2"></i><i class="plate p3"></i></div><div class="boot-coin" aria-hidden="true"><div class="bc-spin"><i style="--z:-5.00px"></i><i style="--z:-3.75px"></i><i style="--z:-2.50px"></i><i style="--z:-1.25px"></i><i style="--z:0.00px"></i><i style="--z:1.25px"></i><i style="--z:2.50px"></i><i style="--z:3.75px"></i><i style="--z:5.00px"></i><div class="bc-face bc-front"></div><div class="bc-face bc-back"></div></div></div><div class="boot-loading-mark" aria-hidden="true"><span class="bl-ch" style="--i:0">S</span><span class="bl-ch" style="--i:1">A</span><span class="bl-ch" style="--i:2">V</span><span class="bl-ch" style="--i:3">I</span><span class="bl-ch" style="--i:4">O</span><span class="bl-ch" style="--i:5">R</span><span class="bl-ch" style="--i:6">F</span><span class="bl-ch" style="--i:7">I</span><span class="bl-ch" style="--i:8">T</span><span class="bl-ch" style="--i:9">&nbsp;</span><span class="bl-gold"><span class="bl-ch" style="--i:10">L</span><span class="bl-ch" style="--i:11">O</span><span class="bl-ch" style="--i:12">G</span><span class="bl-ch" style="--i:13">G</span><span class="bl-ch" style="--i:14">E</span><span class="bl-ch" style="--i:15">R</span></span></div></div>
 <script>window.__bootSplashStart = performance.now();
 // Coming back from Google's sign-in page the token is in the URL hash; remember that so the splash can stay up while it is finished instead of flashing the login screen.
 window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</script>
@@ -16267,7 +16312,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // ---------- Profile (top of the Profile/Settings tab) ----------
   function profileStats(){
     var done = state.sessions.filter(function(s){ return s.status === 'done'; });
-    var total = 0, prs = 0, best = {}, first = null, weeks = {};
+    var total = 0, prs = 0, best = {}, first = null, weeks = {}, maxKg = 0;
     function mondayKey(d){
       var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
       x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
@@ -16283,6 +16328,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         ex.sets.forEach(function(st){
           if (st.isPR) prs++;
           if (!lift || !(st.weightKg > 0) || !(st.reps > 0)) return;
+          if (st.weightKg > maxKg) maxKg = st.weightKg;
           var e = e1rm(st.weightKg, st.reps), cur = best[ex.name];
           if (!cur || e > cur.e) best[ex.name] = { name: ex.name, weightKg: st.weightKg, reps: st.reps, e: e };
         });
@@ -16296,7 +16342,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!weeks[mondayKey(cur)]) cur.setDate(cur.getDate() - 7);
     while (weeks[mondayKey(cur)]){ streak++; cur.setDate(cur.getDate() - 7); }
     var top = Object.keys(best).map(function(k){ return best[k]; }).sort(function(a,b){ return b.e - a.e; }).slice(0, 3);
-    return { workouts: done.length, totalKg: total, prs: prs, streak: streak, top: top,
+    return { workouts: done.length, totalKg: total, prs: prs, streak: streak, top: top, maxKg: maxKg,
              since: first ? first.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '' };
   }
   function profileName(){
@@ -16327,7 +16373,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else {
       h += '<div class="pf-empty">Log a few workouts and your heaviest lifts show up here.</div>';
     }
-    return h + '</div></div>';
+    return h + '</div>' + profileBadgesHtml() + '</div>';
   }
   // Share profile: draws the stats card to a canvas and hands it to the phone's
   // share sheet (falls back to saving the image where file sharing isn't supported).
@@ -20062,6 +20108,200 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     return msg.replace('{w}', fmtWeight(weightKg)).replace('{u}', unitLabel()).replace('{ex}', exName);
   }
 
+
+  // ---------- Badges ----------
+  var BADGE_SVG = {
+    workouts: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="4" width="4" height="16" rx="1.3"/><rect x="19" y="4" width="4" height="16" rx="1.3"/><rect x="5" y="10.4" width="14" height="3.2" rx="1"/></svg>',
+    streak: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c4 0 7-2.700 7-7 0-3-1.500-5-3-7-.5 2-1.500 3-3 3 0-3-1-6-3-8-1 3-5 5-5 11 0 4.300 3 8 7 8z"/></svg>',
+    prs: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.900 6.400 7.100.7-5.300 4.800 1.600 7-6.300-3.700-6.300 3.700 1.600-7L2 9.100l7.100-.7z"/></svg>',
+    volume: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600"><circle cx="12" cy="12" r="8.500"/><circle cx="12" cy="12" r="2.600" fill="currentColor"/></svg>',
+    heavy: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M1.500 20L9 7.500l4.200 6.800 3-4.300L22.500 20z"/></svg>',
+    daily: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.500"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>'
+  };
+  function badgeDefs(){
+    var p = profileStats(), ch = 0;
+    try { ch = Math.max((chData().best || 0), chStreak()); } catch (err) {}
+    var kgFmt = function(kg){ return fmtBig(kg) + ' ' + unitLabel(); };
+    return [
+      { id:'workouts', name:'Workouts',       v:p.workouts, lv:[10, 50, 100],            fmt:String,  desc:'Finish {n} workouts' },
+      { id:'streak',   name:'Week streak',    v:p.streak,   lv:[2, 6, 12],               fmt:String,  desc:'Train {n} weeks in a row' },
+      { id:'prs',      name:'Record breaker', v:p.prs,      lv:[5, 25, 100],             fmt:String,  desc:'Set {n} personal records' },
+      { id:'volume',   name:'Total lifted',   v:p.totalKg,  lv:[10000, 100000, 500000],  fmt:kgFmt,   desc:'Lift {n} in total' },
+      { id:'heavy',    name:'Heavy club',     v:p.maxKg,    lv:[60, 100, 140],           fmt:kgFmt,   desc:'Lift {n} in a single set' },
+      { id:'daily',    name:'Daily challenge',v:ch,         lv:[3, 7, 30],               fmt:String,  desc:'Complete the daily challenge {n} days in a row' }
+    ].map(function(b){
+      var tier = 0; b.lv.forEach(function(l){ if (b.v >= l) tier++; });
+      b.tier = tier; b.next = tier < 3 ? b.lv[tier] : null;
+      return b;
+    });
+  }
+  function profileBadgesHtml(){
+    var defs = badgeDefs(), earned = 0;
+    var tiles = defs.map(function(b){
+      earned += b.tier;
+      var small = b.next === null ? 'MAXED' : (b.fmt === String ? b.v + ' / ' + b.next : fmtBig(b.v) + ' / ' + fmtBig(b.next));
+      return '<button type="button" class="pf-badge t'+b.tier+'" data-action="open-badge" data-badge="'+b.id+'">' +
+               '<span class="pf-coin">'+BADGE_SVG[b.id]+'</span><b>'+esc(b.name)+'</b><small>'+small+'</small></button>';
+    }).join('');
+    return '<div class="pf-badges"><div class="pf-badges-h">BADGES<span>'+earned+' / '+(defs.length * 3)+'</span></div><div class="pf-badge-grid">'+tiles+'</div></div>';
+  }
+  function openBadge(id){
+    var b = badgeDefs().filter(function(x){ return x.id === id; })[0];
+    if (!b) return;
+    var need = b.next === null ? b.lv[2] : b.next;
+    var prog = b.fmt === String ? b.v + ' / ' + need : fmtBig(b.v) + ' / ' + fmtBig(need);
+    openTrophyPopup({ pr:false, obj:'medal', tier:b.tier,
+      kick: b.tier ? TP_TIERS[b.tier].name + ' BADGE' : 'LOCKED',
+      title: b.name,
+      sub: b.desc.replace('{n}', b.fmt(b.next === null ? b.lv[2] : b.next)),
+      chip: b.next === null ? 'MAXED OUT' : prog });
+  }
+
+  // ---------- Trophy / medal popup ----------
+  var tp3d = null, tpTimer = null, tpOpen = false;
+  var TP_TIERS = [
+    { name:'LOCKED', c:0x3a3d43, r:0x565b64, e:0x0a0b0d },
+    { name:'BRONZE', c:0xc7763d, r:0xf0b183, e:0x3a1c08 },
+    { name:'SILVER', c:0xb8bfc8, r:0xeef1f4, e:0x24282e },
+    { name:'GOLD',   c:0xf2b134, r:0xffe39a, e:0x4a3008 }
+  ];
+  function tpEnsure3d(){
+    if (tp3d) return tp3d;
+    if (typeof THREE === 'undefined') return null;
+    var canvas = document.createElement('canvas'), renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { return null; }
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(26, 1.3, 0.1, 50);
+    scene.add(new THREE.HemisphereLight(0xdfe9ef, 0x1a1c20, 0.95));
+    var key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(3, 4, 5); scene.add(key);
+    var rim = new THREE.DirectionalLight(0xf2b134, 1.4); rim.position.set(-4, 2, -3); scene.add(rim);
+    // trophy
+    var gold = new THREE.MeshStandardMaterial({ color: 0xf2b134, metalness: 0.55, roughness: 0.28, emissive: 0x4a3008, side: THREE.DoubleSide });
+    var pts = [[0.001,0],[0.55,0],[0.55,0.1],[0.38,0.14],[0.38,0.24],[0.14,0.32],[0.12,0.56],[0.22,0.62],[0.24,0.7],[0.5,0.92],[0.68,1.32],[0.68,1.44],[0.62,1.46],[0.58,1.34],[0.44,1.0],[0.22,0.8],[0.001,0.78]]
+      .map(function(q){ return new THREE.Vector2(q[0], q[1]); });
+    var trophy = new THREE.Group();
+    trophy.add(new THREE.Mesh(new THREE.LatheGeometry(pts, 72), gold));
+    [-1, 1].forEach(function(sd){
+      var h = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.05, 16, 40, Math.PI), gold);
+      h.position.set(sd * 0.66, 1.12, 0); h.rotation.z = sd > 0 ? -Math.PI / 2 : Math.PI / 2; trophy.add(h);
+    });
+    var bs = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.16, 0.7), new THREE.MeshStandardMaterial({ color: 0x23262c, roughness: 0.5, metalness: 0.2 }));
+    bs.position.y = -0.08; trophy.add(bs);
+    var star = new THREE.Mesh(new THREE.OctahedronGeometry(0.2), new THREE.MeshStandardMaterial({ color: 0xfff1c2, emissive: 0xf2b134, emissiveIntensity: 0.9 }));
+    star.position.y = 1.0; star.scale.set(1, 1.2, 0.4); trophy.add(star);
+    trophy.position.y = -0.75;
+    // medal
+    var mBody = new THREE.MeshStandardMaterial({ color: 0xf2b134, metalness: 0.5, roughness: 0.3, emissive: 0x4a3008 });
+    var mRing = new THREE.MeshStandardMaterial({ color: 0xffe39a, metalness: 0.4, roughness: 0.3, emissive: 0x4a3008 });
+    var mStar = new THREE.MeshStandardMaterial({ color: 0xffe39a, emissive: 0x4a3008, emissiveIntensity: 0.6 });
+    var medal = new THREE.Group();
+    var disc = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.16, 72), mBody); disc.rotation.x = Math.PI / 2; medal.add(disc);
+    [1, -1].forEach(function(z){
+      var rg = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.045, 12, 72), mRing); rg.position.z = z * 0.1; medal.add(rg);
+      var st = new THREE.Mesh(new THREE.OctahedronGeometry(0.3), mStar); st.position.z = z * 0.14; st.scale.set(1, 1.2, 0.35); medal.add(st);
+    });
+    scene.add(trophy); scene.add(medal);
+    tp3d = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, trophy: trophy, medal: medal,
+             mats: { body: mBody, ring: mRing, star: mStar }, cur: trophy, yaw: 0.5, vyaw: 0.8, dragging: false, raf: null, last: 0 };
+    var lastX = 0, lastT = 0;
+    canvas.addEventListener('pointerdown', function(e){
+      tp3d.dragging = true; tp3d.vyaw = 0; lastX = e.clientX; lastT = performance.now();
+      try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+      canvas.style.cursor = 'grabbing';
+    });
+    canvas.addEventListener('pointermove', function(e){
+      if (!tp3d.dragging) return;
+      var now = performance.now(), dx = e.clientX - lastX, dt = Math.max(0.008, (now - lastT) / 1000);
+      tp3d.yaw += dx * 0.014;
+      tp3d.vyaw = Math.max(-12, Math.min(12, (dx * 0.014) / dt * 0.6 + tp3d.vyaw * 0.4));
+      lastX = e.clientX; lastT = now;
+    });
+    var end = function(){ if (!tp3d.dragging) return; tp3d.dragging = false; canvas.style.cursor = 'grab'; };
+    canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+    return tp3d;
+  }
+  function tpFrame(now){
+    var s = tp3d;
+    if (!s || !tpOpen){ if (s) s.raf = null; return; }
+    var dt = Math.min(0.05, (now - (s.last || now)) / 1000); s.last = now;
+    if (!s.dragging){
+      s.yaw += s.vyaw * dt;
+      s.vyaw += (0.8 - s.vyaw) * Math.min(1, dt * 1.5);   // coasts, then settles into a slow spin
+    }
+    s.cur.rotation.set(s.cur === s.trophy ? 0.12 : 0.18, s.yaw, 0);
+    s.renderer.render(s.scene, s.camera);
+    s.raf = requestAnimationFrame(tpFrame);
+  }
+  function tpOverlayEl(){
+    var ov = document.getElementById('tpOverlay');
+    if (ov) return ov;
+    ov = document.createElement('div'); ov.id = 'tpOverlay'; ov.className = 'tp-overlay';
+    ov.innerHTML = '<div class="tp-card"><button type="button" class="tp-x" data-action="close-trophy" aria-label="Close">✕</button>' +
+      '<div class="tp-kick" id="tpKick"></div><div class="tp-stage" id="tpStage"><div class="tp-fb" id="tpFb"></div></div>' +
+      '<div class="tp-title" id="tpTitle"></div><div class="tp-sub" id="tpSub"></div><div class="tp-chip" id="tpChip"></div>' +
+      '<div class="tp-hint">DRAG TO SPIN</div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){
+      if (e.target.closest('[data-action="close-trophy"]') || (!ov.classList.contains('tp-pr') && e.target === ov)) closeTrophyPopup();
+    });
+    return ov;
+  }
+  function openTrophyPopup(o){
+    var ov = tpOverlayEl();
+    document.getElementById('tpKick').textContent = o.kick || '';
+    document.getElementById('tpTitle').textContent = o.title || '';
+    document.getElementById('tpSub').textContent = o.sub || '';
+    document.getElementById('tpChip').textContent = o.chip || '';
+    ov.className = 'tp-overlay on ' + (o.pr ? 'tp-pr' : 'tp-modal');
+    var stage = document.getElementById('tpStage'), fb = document.getElementById('tpFb');
+    fb.textContent = o.obj === 'trophy' ? '🏆' : '🏅';
+    var g = tpEnsure3d();
+    stage.classList.toggle('nofx', !g);
+    if (g){
+      stage.appendChild(g.canvas);
+      var w = stage.clientWidth || 300, h = stage.clientHeight || 232;
+      g.renderer.setSize(w, h, false);
+      g.camera.aspect = w / h; g.camera.updateProjectionMatrix();
+      g.trophy.visible = o.obj === 'trophy'; g.medal.visible = o.obj === 'medal';
+      g.cur = o.obj === 'trophy' ? g.trophy : g.medal;
+      if (o.obj === 'trophy'){ g.camera.position.set(0, 0.8, 6.2); g.camera.lookAt(0, 0.05, 0); }
+      else {
+        var t = TP_TIERS[o.tier || 0];
+        g.mats.body.color.setHex(t.c); g.mats.body.emissive.setHex(t.e);
+        g.mats.ring.color.setHex(t.r); g.mats.ring.emissive.setHex(t.e);
+        g.mats.star.color.setHex(t.r); g.mats.star.emissive.setHex(t.e);
+        g.camera.position.set(0, 0, 5.3); g.camera.lookAt(0, 0, 0);
+      }
+      g.yaw = 0.5; g.vyaw = 3.2; g.dragging = false; g.last = 0;   // starts with a flourish
+      tpOpen = true;
+      if (!g.raf) g.raf = requestAnimationFrame(tpFrame);
+    }
+    clearTimeout(tpTimer);
+    if (o.auto) tpTimer = setTimeout(closeTrophyPopup, o.auto);
+    queueBackSync();
+  }
+  function closeTrophyPopup(){
+    var ov = document.getElementById('tpOverlay');
+    clearTimeout(tpTimer);
+    if (!ov || !ov.classList.contains('on')) return;
+    ov.classList.add('out');
+    setTimeout(function(){ ov.classList.remove('on', 'out', 'tp-modal', 'tp-pr'); tpOpen = false; queueBackSync(); }, 190);
+  }
+  // PR celebration: one popup per exercise per session, and never for a first-ever log or a
+  // hold/bodyweight set -- it should feel earned, not spammy.
+  function tpMaybePRTrophy(ex, weightKg, reps, prevBest){
+    if (state.settings.setFlashEffect === false) return;
+    var session = getActiveSession();
+    ui.tpSeen = ui.tpSeen || {};
+    var k = (session ? session.id : '') + ':' + ex.name;
+    if (ui.tpSeen[k]) return;
+    ui.tpSeen[k] = 1;
+    var d = e1rm(weightKg, reps) - prevBest;
+    openTrophyPopup({ pr:true, obj:'trophy', tier:3, kick:'NEW PR', title:ex.name,
+      sub: weightKg > 0 ? fmtWeight(weightKg) + ' ' + unitLabel() + ' × ' + reps : reps + ' reps',
+      chip: d > 0.05 ? '+' + fmtWeight(d) + ' ' + unitLabel() + ' EST. 1RM' : 'PERSONAL BEST', auto: 4500 });
+  }
+
   function commitSet(ex, weightKg, reps){
     var setId = uid();
     var prevBest = bestE1RM(ex.name, null);
@@ -20100,6 +20340,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (isPR){
       var joke = susWeightJoke(ex.name, weightKg, prevBest);
       showToast(joke || ('New ' + (prKind === 'weight' ? 'weight ' : prKind === 'reps' ? 'rep ' : '') + 'PR on ' + ex.name + '!'));
+      if (!joke && prevBest > 0 && weightKg > 0 && !isHoldExercise(ex.name)) tpMaybePRTrophy(ex, weightKg, reps, prevBest);
     }
     if (state.settings.restTimerAutoStart && !ui.restTimer && shouldAutoStartRestAfterSet(ex)){
       autoStartRestTimer();
@@ -21969,7 +22210,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
      Layers are detected from the panels' `hidden` class, so each panel keeps
      its own open/close logic. The muscle picker counts as two levels
      (muscle list -> muscle grid -> Log), matching its own back arrow. */
-  var BACK_LAYER_SELECTOR = '.confirm-overlay, .mm-overlay, .ex-search-overlay, .img-preview-overlay, .notif-dropdown, .row-action-menu';
+  var BACK_LAYER_SELECTOR = '.confirm-overlay, .mm-overlay, .ex-search-overlay, .img-preview-overlay, .notif-dropdown, .row-action-menu, .tp-overlay.tp-modal';
   // First-run flows where back shouldn't silently skip a step.
   var BACK_LAYER_SKIP = { onboardWizOverlay: 1, avatarPickOverlay: 1 };
   var backDepth = 0;          // history entries we have pushed for open layers
@@ -22227,6 +22468,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       closeSettingsPage();
     } else if (action === 'share-profile'){
       shareProfile();
+    } else if (action === 'open-badge'){
+      openBadge(el.dataset.badge);
     } else if (action === 'open-avatar-pick'){
       openAvatarPick();
     } else if (action === 'log-out'){
