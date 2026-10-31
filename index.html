@@ -16319,9 +16319,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               '<div class="sr-sub">Powers real load, PRs, and progression tips in Pro Tips</div>' +
               '<div class="sr-value">'+(state.settings.bodyweightKg ? fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set') + ' \u00b7 ' + esc((GOAL_OPTIONS.filter(function(g){ return g.id === ((state.settings && state.settings.goal) || 'hypertrophy'); })[0] || GOAL_OPTIONS[1]).label) + '</div></div>' +
               '<button class="sr-action" data-action="open-bodyweight-picker">'+(state.settings.bodyweightKg ? 'Edit' : 'Set')+'</button></div>';
-    html += '<div class="settings-row" data-sp="work-train"><div><div class="sr-label">Setup Wizard</div>' +
-              '<div class="sr-sub">Bodyweight, goal, experience, and a suggested starting routine</div></div>' +
-              '<button class="sr-action" data-action="open-onboarding-wizard">Replay</button></div>';
     var restAutoStart = !!state.settings.restTimerAutoStart;
     html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest timer start</div><div class="sr-sub">Auto starts the moment you log a set</div></div>' +
               '<div class="seg">' +
@@ -16406,21 +16403,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     html += '<div class="settings-row" data-sp="look-theme"><div><div class="sr-label">Card background</div>' +
               '<div class="sr-sub">Applies consistently to every exercise card in Log</div></div>' +
               '<button class="sr-action" data-action="open-settings-picker" data-kind="cardBg">'+esc(cardBgObj.label)+'</button></div>';
-    var chosenDensity = (state.settings && state.settings.density) || 'comfortable';
-    html += '<div class="settings-row" data-sp="look-layout"><div><div class="sr-label">Density</div><div class="sr-sub">Fit more sets per screen in Log</div></div>' +
-              '<div class="seg">' +
-                '<button data-action="set-density" data-density="comfortable" class="'+(chosenDensity==='comfortable'?'active':'')+'">Comfortable</button>' +
-                '<button data-action="set-density" data-density="compact" class="'+(chosenDensity==='compact'?'active':'')+'">Compact</button>' +
-              '</div></div>';
-    var chosenCornerStyle = (state.settings && state.settings.cornerStyle) || 'rounded';
-    html += '<div class="settings-row" data-sp="look-layout"><div><div class="sr-label">Corners</div><div class="sr-sub">Rounded or sharp edges throughout the app</div></div>' +
-              '<div class="seg">' +
-                '<button data-action="set-corner-style" data-style="rounded" class="'+(chosenCornerStyle==='rounded'?'active':'')+'">Rounded</button>' +
-                '<button data-action="set-corner-style" data-style="sharp" class="'+(chosenCornerStyle==='sharp'?'active':'')+'">Sharp</button>' +
-              '</div></div>';
     var chosenCardStyle = (state.settings && state.settings.cardStyle) || 'default';
     var cardStyleObj = CARD_STYLE_PICKER_OPTIONS.filter(function(o){ return o.id === chosenCardStyle; })[0] || CARD_STYLE_PICKER_OPTIONS[0];
-    html += '<div class="settings-row" data-sp="look-layout"><div><div class="sr-label">Card style</div><div class="sr-sub">Sheen and Liquid Glass add extra visual effects to cards</div></div>' +
+    html += '<div class="settings-row" data-sp="look-layout"><div><div class="sr-label">Card style</div><div class="sr-sub">Liquid Glass adds see-through, frosted cards</div></div>' +
               '<button class="sr-action" data-action="open-settings-picker" data-kind="cardStyle">'+esc(cardStyleObj.label)+'</button></div>';
     html += '</div>';
 
@@ -16835,9 +16820,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     state.chatMemory = loadChatMemory();
     state.settings = loadSettings();
     applyAccentTheme(state.settings.accentTheme || 'gold');
-    applyCornerStyle(state.settings.cornerStyle || 'rounded');
+    applyCornerStyle('rounded');
     applyCardStyle(state.settings.cardStyle || 'default');
-    applyDensity(state.settings.density || 'comfortable');
+    applyDensity('comfortable');
     // Restored here so it survives a fresh app load instead of always
     // starting back on Regular — mirrors into ui.progressOverviewMode
     // since that's what every read site already checks; only the
@@ -17746,7 +17731,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     { keywords: ['pro', 'subscription', 'upgrade', 'premium'], answer: 'Pro unlocks extra features \u2014 check Settings \u203a Plan for what\u2019s included and pricing.' },
     { keywords: ['insight', 'muscle', 'volume', '3d', 'model'], answer: 'The Insight tab shows your weekly muscle volume on a 3D model \u2014 tap a muscle group to focus on it.' },
     { keywords: ['tour', 'onboarding'], answer: 'There\u2019s a guided tour that walks through the app\u2019s features \u2014 look for it in Settings if you want to run it again.' },
-    { keywords: ['card', 'sheen', 'glass'], answer: 'Settings \u203a Appearance \u203a Card Style switches between a plain, glass, or sheen look for cards.' },
+    { keywords: ['card', 'sheen', 'glass'], answer: 'Settings \u203a Appearance \u203a Card Style switches between the normal look and Liquid Glass (see-through, frosted cards).' },
     { keywords: ['bodyweight', 'goal', 'goals'], answer: 'Set your bodyweight and training goals in Settings, or tap \u201cBuild my plan\u201d on an empty Log tab to set them through a few quick questions \u2014 it makes load calculations and suggestions more accurate.' },
     { keywords: ['reset'], answer: '"Reset Log" clears every exercise and set from today\u2019s session \u2014 the session itself stays, just empty. History and other sessions aren\u2019t touched. That\u2019s different from "Clear Data" (Settings \u203a Data), which erases everything on the device.' },
     { keywords: ['export', 'backup'], answer: 'Settings \u203a Data has Export (downloads a JSON backup of your sessions, routines, and settings) and Import (restores from a backup file).' },
@@ -17757,7 +17742,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     { keywords: ['avatar'], answer: 'Pick your profile icon in Settings \u203a Account.' },
     { keywords: ['haptic', 'vibration'], answer: 'Haptic feedback (vibration on actions) can be toggled in Settings, along with a visual "flash" effect when a set is logged.' },
     { keywords: ['log', 'logging', 'logged'], answer: 'To log a set: open the Log tab, tap + to add an exercise, then tap Add Set and enter the weight and reps. I can\u2019t log for you \u2014 I\u2019m just here for questions.' },
-    { keywords: ['density'], answer: 'Settings \u203a Appearance also has list Density (compact/comfortable) and card corner roundness, alongside Card Style and Accent color.' }
+    { keywords: ['density'], answer: 'Settings \u203a Appearance has Accent color, Card background and Card style.' }
   ];
   function faqMatch(text){
     var tokens = (text || '').toLowerCase().split(/\s+/).filter(Boolean);
@@ -18018,7 +18003,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     history: 'This is History \u2014 a record of your past finished sessions. Tap a session to see its exercises and sets, or use the calendar icon to filter by date.',
     progress: 'This is Progress \u2014 charts and PRs for your lifts over time, including e1RM trends and exercise comparisons.',
     insight: 'This is Insight \u2014 a 3D view of your weekly muscle volume, so you can see which muscle groups you\u2019ve trained the most (or least).',
-    settings: 'This is Settings \u2014 appearance (accent color, card style, density), units, rest timer, notifications, backups, your plan, and account options.'
+    settings: 'This is Settings \u2014 appearance (accent color, card background, card style), units, rest timer, notifications, backups, your plan, and account options.'
   };
 
   function logChatIsScreenQuestion(text){
@@ -21241,7 +21226,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     { tab: 'log', selector: '#notifBellBtn', title: 'Notifications', text: 'Trial status, reminders, and other updates show up here.' },
     { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Tap the \u22ee on any session to edit, repeat, or delete it \u2014 or tap the pencil on any exercise to jump straight to editing just that one.' },
     { tab: 'insight', selector: '.mg-panel', fallback: '#view', title: 'Insight', text: 'See your weekly set volume per muscle group on the 3D model \u2014 tap a muscle to focus the camera on it.' },
-    { tab: 'settings', sp: 'work', selector: '[data-action="open-onboarding-wizard"]', fallback: '#view', title: 'Setup Wizard', text: 'Replay the setup questions anytime (also from the Build my plan card on an empty Log) \u2014 bodyweight, goal, experience, and training days \u2014 to get a freshly suggested starting routine.' },
     { tab: 'settings', sp: 'work', selector: '[data-action="open-bodyweight-picker"]', fallback: '#view', title: 'Bodyweight & goal', text: 'Set these once \u2014 they power real load tracking on bodyweight exercises and shape how Pro Tips suggests your next set.' },
     { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="accentColor"]', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
     { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="cardBg"]', fallback: '#view', title: 'Card style', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
