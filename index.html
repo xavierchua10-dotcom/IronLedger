@@ -4543,7 +4543,7 @@
   .pl-empty{font:500 12px 'JetBrains Mono',monospace;color:var(--text-faint);align-self:center;}
   .pl-note{min-height:14px;margin-top:8px;font:500 11px 'JetBrains Mono',monospace;color:var(--text-dim);}
   .pl-use{width:100%;margin-top:10px;height:46px;border-radius:12px;border:none;background:var(--accent);color:#1c1500;font:700 15px 'Oswald',sans-serif;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;}
-  .ex-plate-btn svg{width:19px;height:19px;display:block;margin:auto;}
+  .ex-plate-btn svg{width:18px;height:18px;display:block;margin:auto;}
   /* ---- Profile shelf / flame ---- */
   .sh-stage{display:none;position:relative;height:430px;margin:-6px 0 0;}
   .pf-badges.sh-ready .sh-stage{display:block;}
@@ -12570,6 +12570,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               '<span><b>'+session.exercises.length+'</b> exercises</span>' +
               '<span><b'+(ui.flashSetsCounter ? ' class="flash"' : '')+'>'+sessionSetCount(session)+'</b> sets</span>' +
               '<div class="session-meta-actions">' +
+                '<button class="unit-toggle ex-plate-btn" data-action="open-plates" aria-label="Plate calculator"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="1.500" y="6" width="3" height="12" rx="1"/><rect x="5.500" y="3.500" width="3.500" height="17" rx="1"/><rect x="9" y="11" width="6" height="2"/><rect x="15" y="3.500" width="3.500" height="17" rx="1"/><rect x="19.500" y="6" width="3" height="12" rx="1"/></svg></button>' +
                 '<button class="unit-toggle" id="unitToggleBtn" data-action="toggle-unit">'+state.settings.unit.toUpperCase()+'</button>' +
                 (session.exercises.length > 0 ? '<button class="reset-log-btn" data-action="reset-log" aria-label="Reset log">&#8635;</button>' : '') +
               '</div>' +
@@ -13281,8 +13282,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               (refSets ? '<button class="reference-btn" data-action="open-exercise-reference" data-ex-name="'+esc(ex.name)+'" aria-label="Reference from last time">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M7.5 9h9M7.5 12.5h9M7.5 16h5.5"/></svg>' +
               '</button>' : '') +
-              ((isBodyweightExercise(ex.name) || isHoldExercise(ex.name)) ? '' : '<button class="icon-btn ex-plate-btn" data-action="open-plates" data-ex="'+ex.id+'" aria-label="Plate calculator"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="1.500" y="6" width="3" height="12" rx="1"/><rect x="5.500" y="3.500" width="3.500" height="17" rx="1"/><rect x="9" y="11" width="6" height="2"/><rect x="15" y="3.500" width="3.500" height="17" rx="1"/><rect x="19.500" y="6" width="3" height="12" rx="1"/></svg></button>') +
-              '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
+                            '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
               '<button class="icon-btn" data-action="open-exercise-menu" data-ex="'+ex.id+'" aria-label="Exercise options">&#8942;</button>' +
             '</div></div>';
     html += '<div class="exercise-card-body">';
@@ -20496,6 +20496,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     nt.textContent = pl.left > 0.001 ? 'Closest load — ' + plFmt(pl.left) + ' ' + unitLabel() + ' short with these plates' : '';
     plRebuildPlates();
   }
+  document.addEventListener('focusin', function(e){
+    var t = e.target;
+    if (t && t.classList && t.classList.contains('set-weight-input') && t.dataset.ex) ui.plateEx = t.dataset.ex;
+  });
   function openPlateCalc(exId){
     var lb = plIsLb(), bar = lb ? 45 : 20, step = lb ? 5 : 2.5, target = NaN;
     var inp = exId && document.querySelector('.exercise-card[data-ex="' + exId + '"] .set-weight-input');
@@ -21041,12 +21045,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       '<div class="tp-hint">DRAG TO SPIN</div></div>';
     document.body.appendChild(ov);
     ov.addEventListener('click', function(e){
-      if (e.target.closest('[data-action="close-trophy"]') || (!ov.classList.contains('tp-pr') && e.target === ov)) closeTrophyPopup();
+      if (e.target.closest('[data-action="close-trophy"]')) closeTrophyPopup();
+      else if (!ov.classList.contains('tp-pr') && e.target === ov && Date.now() - (ov._openedAt || 0) > 600) closeTrophyPopup();
     });
     return ov;
   }
   function openTrophyPopup(o){
     var ov = tpOverlayEl();
+    ov._openedAt = Date.now();
     document.getElementById('tpKick').textContent = o.kick || '';
     document.getElementById('tpTitle').textContent = o.title || '';
     document.getElementById('tpSub').textContent = o.sub || '';
@@ -23277,7 +23283,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else if (action === 'share-profile'){
       shareProfile();
     } else if (action === 'open-plates'){
-      openPlateCalc(el.dataset.ex);
+      var pex = el.dataset.ex || ui.plateEx;
+      var psn = getActiveSession();
+      if (pex && !(psn && findExercise(psn, pex))) pex = null;
+      openPlateCalc(pex);
     } else if (action === 'open-rest-glass'){
       openRestGlass();
     } else if (action === 'open-badge'){
