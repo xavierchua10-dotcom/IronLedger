@@ -127,7 +127,9 @@
     --density-row-pad:4px 0;
     --density-addrow-gap:10px;
     --safe-bottom:env(safe-area-inset-bottom, 0px);
-    --safe-top:env(safe-area-inset-top, 0px);
+    /* Only 65% of the status-bar inset: some phones report a very tall inset and the
+       header looked like it had a big empty forehead. Icons stay clear of the content. */
+    --safe-top:calc(env(safe-area-inset-top, 0px) * 0.65);
   }
   *{
     box-sizing:border-box;
@@ -3498,7 +3500,7 @@
     animation:logChatSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
   #logChatPanel .he-header{
-    padding:calc(16px + env(safe-area-inset-top, 0px)) 16px 12px;
+    padding:calc(16px + var(--safe-top, 0px)) 16px 12px;
     border-bottom:1px solid var(--glass-border);
     background:transparent;
   }
@@ -4017,7 +4019,7 @@
 /* ---------- Go Pro: full-screen page ---------- */
 #pricingOverlay{padding:0;align-items:stretch;justify-content:stretch;background:#0b0d10;backdrop-filter:none;-webkit-backdrop-filter:none;}
 #pricingPanel.pricing-panel{width:100%;max-width:none;height:100%;max-height:none;border:none;border-radius:0;box-shadow:none;background-position:center top;position:relative;}
-.gp-top{display:flex;align-items:center;gap:12px;padding:calc(16px + env(safe-area-inset-top,0px)) 16px 6px;flex-shrink:0}
+.gp-top{display:flex;align-items:center;gap:12px;padding:calc(16px + var(--safe-top,0px)) 16px 6px;flex-shrink:0}
 .gp-x{width:38px;height:38px;border-radius:11px;border:1px solid rgba(255,255,255,.16);background:rgba(20,22,26,.55);color:#d7dae0;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 .gp-x:active{background:rgba(255,255,255,.12)}
 .gp-top .pro-panel-badge{font-size:10px;padding:3px 10px}
