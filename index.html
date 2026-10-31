@@ -16355,6 +16355,7 @@
     queueBackSync();
   }
   function switchTabWithFade(newTab){
+    queueBackSync();
     if (newTab === state.tab){
       renderApp();
       return;
@@ -21553,6 +21554,14 @@
   var backDepth = 0;          // history entries we have pushed for open layers
   var backIgnorePops = 0;     // popstate events caused by our own history.go()
   var backSyncQueued = false;
+  var exitArmed = false;      // true for a moment after the first back press at the Log tab ("press back again to exit")
+  var exitArmTimer = null;
+  function appShellOpen(){ var a = document.getElementById('app'); return !!a && !a.classList.contains('hidden'); }
+  // Any tab other than Log counts as a layer: back returns to Log instead of quitting.
+  function tabBackStepActive(){ return appShellOpen() && state.tab !== 'log'; }
+  // At the Log tab with nothing open, one extra entry absorbs the first back press so a
+  // stray swipe doesn't close the app; a second press within 2.5s exits as usual.
+  function exitGuardActive(){ return appShellOpen() && state.tab === 'log' && !exitArmed; }
   function backLayerEls(){
     var out = [];
     Array.prototype.forEach.call(document.querySelectorAll(BACK_LAYER_SELECTOR), function(el){
@@ -21595,6 +21604,8 @@
     if (hasMm && mmListOpen()) n++;
     if (progressBackStepActive()) n++;
     if (ui.settingsOpen && ui.settingsPage) n++;   // Settings sub-page -> Settings menu -> Profile
+    if (tabBackStepActive()) n++;                  // other tab -> Log
+    if (exitGuardActive()) n++;                    // Log -> "press back again to exit"
     return n;
   }
   function syncBackHistory(){
@@ -21633,6 +21644,13 @@
     var els = backLayerEls();
     if (!els.length){
       if (progressBackStepActive()) returnToHistoryFromProgress();
+      else if (tabBackStepActive()) switchTabWithFade('log');
+      else if (exitGuardActive()){
+        exitArmed = true;
+        showToast('Press back again to exit');
+        if (exitArmTimer) clearTimeout(exitArmTimer);
+        exitArmTimer = setTimeout(function(){ exitArmed = false; }, 2500);
+      }
       return;
     }
     var top = els[els.length - 1];
@@ -21656,6 +21674,7 @@
     // and the app never quits while a panel is open.
     queueBackSync();
   });
+  document.addEventListener('click', function(){ queueBackSync(); }, true);
   (function watchBackLayers(){
     if (typeof MutationObserver === 'undefined') return;
     var mo = new MutationObserver(queueBackSync);
