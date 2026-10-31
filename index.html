@@ -4782,6 +4782,12 @@
   .cv-card{margin-top:10px;padding:14px;border-radius:14px;background:rgba(28,31,36,0.92);border:1px solid rgba(255,255,255,0.08);}
   .cv-card h4{margin:0 0 12px;font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:0.1em;color:#8b9098;display:flex;justify-content:space-between;}
   .cv-card h4 span{color:#4fc3d9;}
+
+  .cv-b3{display:none;position:relative;height:170px;margin:-4px 0 -2px;}
+  .cv-b3card.cv3b-ready .cv-b3{display:block;}
+  .cv-b3card.cv3b-ready .cv-bars{display:none;}
+  .cv-a-3d{display:none;width:56px;height:42px;flex:0 0 auto;margin:-4px 0;}
+  .cv-a-3d.on{display:block;}
   .cv-bars{display:flex;gap:10px;align-items:flex-end;height:90px;}
   .cv-bars > div{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%;}
   .cv-bars u{display:block;width:100%;border-radius:5px 5px 2px 2px;background:#4fc3d9;text-decoration:none;}
@@ -13225,7 +13231,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               '<div><i>DISTANCE</i><b>'+(w.km > 0 ? fmtDist(w.km) : '–')+'<small>'+(w.km > 0 ? u : '')+'</small></b></div>' +
               '<div><i>AVG PACE</i><b>'+(pace ? fmtClock(pace) : '–')+'<small>'+(pace ? '/' + u : '')+'</small></b></div></div></div>';
     var left = Math.max(0, goal - mins);
-    html += '<div class="cv-card"><h4>MINUTES PER DAY<span>'+(left > 0 ? left + ' TO GO' : '✓ GOAL HIT')+'</span></h4><div class="cv-bars">' +
+    html += '<div class="cv-card cv-b3card"><h4>MINUTES PER DAY<span>'+(left > 0 ? left + ' TO GO' : '✓ GOAL HIT')+'</span></h4>' +
+              '<div class="cv-b3" id="cvBars3d" data-v="'+w.days.map(function(sec){ return Math.round(sec / 60); }).join(',')+'" data-t="'+todayIdx+'" data-g="'+goal+'"></div><div class="cv-bars">' +
               w.days.map(function(sec, i){
                 var h = sec > 0 ? Math.max(8, Math.round(sec / dayMax * 60)) : 4;
                 return '<div class="'+(i === todayIdx ? 't' : '')+'"><u class="'+(sec > 0 ? '' : 'z')+'" style="height:'+h+'px"></u><em>'+letters[i]+'</em></div>';
@@ -13234,7 +13241,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (acts.length){
       var topSec = acts[0].sec || 1;
       html += '<div class="cv-card cv-acts">' + acts.map(function(a){
-        return '<div class="cv-a"><span class="n">'+esc(a.name)+'<i style="width:'+Math.max(6, Math.round(a.sec / topSec * 100))+'%"></i></span>' +
+        return '<div class="cv-a"><canvas class="cv-a-3d" data-k="'+actKind(a.name)+'" width="168" height="126" aria-hidden="true"></canvas><span class="n">'+esc(a.name)+'<i style="width:'+Math.max(6, Math.round(a.sec / topSec * 100))+'%"></i></span>' +
                '<span class="m">'+(a.km > 0 ? fmtDist(a.km) + ' ' + u : '')+'</span><b>'+Math.round(a.sec / 60)+' min</b></div>';
       }).join('') + '</div>';
     } else {
@@ -15787,7 +15794,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
     document.getElementById('view').innerHTML = html;
     if (document.getElementById('mg3dViewer')){ initMg3dViewer(); mg3dBindLines(); requestAnimationFrame(mg3dRefreshLineRects); }
-    if (document.getElementById('cvRing3d')) initCardioRing3d();
+    if (document.getElementById('cvRing3d')){ initCardioRing3d(); initCvBars(); initActObjects(); cardioGoalCelebrate(); }
   }
 
   // one point per session for this exercise: best e1rm set in that session + top weight
@@ -20720,6 +20727,167 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (document.getElementById('fl3dHost')) initFlame();
   }
 
+  // ---------- Cardio: 3D weekly bars, goal ring celebration, activity objects ----------
+  var cvb3d = null;
+  function p3dGlyph(ch, color){
+    var c = document.createElement('canvas'); c.width = 64; c.height = 64;
+    var g = c.getContext('2d'); g.font = '700 44px "JetBrains Mono", monospace'; g.textAlign = 'center'; g.fillStyle = color; g.fillText(ch, 32, 46);
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+    sp.scale.set(0.34, 0.34, 1); return sp;
+  }
+  function cvbFrame(now){
+    var s = cvb3d;
+    if (!s) return;
+    if (!s.canvas.isConnected){ s.raf = null; return; }
+    var dt = Math.min(0.05, (now - (s.last || now)) / 1000); s.last = now; s.lastFrameAt = now;
+    if (s.grow < 1) s.grow = Math.min(1, s.grow + dt / 0.9);
+    var e = 1 - Math.pow(1 - s.grow, 3);
+    s.bars.forEach(function(b, i){
+      var k = Math.max(0, Math.min(1, e * 1.25 - i * 0.04)), h = Math.max(0.001, b.H * k);
+      b.mesh.scale.y = h; if (b.cap) b.cap.position.y = h;
+    });
+    if (!s.dragging){ s.vyaw *= Math.max(0, 1 - dt * 3); s.yaw += s.vyaw * dt; s.yaw += (0 - s.yaw) * Math.min(1, dt * 1.6); }
+    s.yaw = Math.max(-0.9, Math.min(0.9, s.yaw));
+    s.group.rotation.y = -0.35 + s.yaw;
+    s.renderer.render(s.scene, s.camera);
+    s.raf = requestAnimationFrame(cvbFrame);
+  }
+  function initCvBars(tries){
+    var host = document.getElementById('cvBars3d');
+    if (!host) return;
+    if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initCvBars((tries || 0) + 1); }, 400); return; }
+    if (!cvb3d){
+      var canvas = document.createElement('canvas'), renderer;
+      try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { return; }
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(26, 2, 0.1, 50);
+      scene.add(new THREE.HemisphereLight(0xdfe9ef, 0x1a1c20, 0.6));
+      var key = new THREE.DirectionalLight(0xffffff, 1.0); key.position.set(3, 5, 4); scene.add(key);
+      var rim = new THREE.DirectionalLight(0x4fc3d9, 0.9); rim.position.set(-4, 2, -3); scene.add(rim);
+      var group = new THREE.Group(); scene.add(group);
+      canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab';
+      cvb3d = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, group: group, bars: [], yaw: 0, vyaw: 0, dragging: false, raf: null, last: 0, grow: 0, key: '', lastFrameAt: 0 };
+      p3dDrag(canvas, cvb3d, { k: 0.01 });
+    }
+    var s = cvb3d, v = host.getAttribute('data-v').split(',').map(function(x){ return parseFloat(x) || 0; });
+    var today = parseInt(host.getAttribute('data-t'), 10), goal = parseFloat(host.getAttribute('data-g')) || 120;
+    var key = host.getAttribute('data-v') + '|' + today + '|' + goal, now0 = performance.now();
+    var replay = s.key !== key || now0 - s.lastFrameAt > 1500;
+    s.key = key;
+    p3dClear(s.group); s.bars = [];
+    var dayMax = Math.max(30, Math.max.apply(null, v)), SP = 0.72, R = 0.25, HM = 1.5, letters = ['M','T','W','T','F','S','S'];
+    var floor = new THREE.Mesh(new THREE.BoxGeometry(7 * SP + 0.3, 0.05, 0.9), new THREE.MeshStandardMaterial({ color: 0x1d2025, roughness: 0.8 }));
+    floor.position.y = -0.025; s.group.add(floor);
+    v.forEach(function(m, i){
+      var has = m > 0, col = i === today ? 0xf2b134 : 0x4fc3d9, H = has ? Math.max(0.12, m / dayMax * HM) : 0.04;
+      var geo = new THREE.CylinderGeometry(R, R, 1, 32); geo.translate(0, 0.5, 0);
+      var mat = new THREE.MeshStandardMaterial({ color: has ? col : 0x4fc3d9, metalness: 0.3, roughness: 0.3, emissive: has ? col : 0x4fc3d9, emissiveIntensity: has ? 0.22 : 0.02, transparent: !has, opacity: has ? 1 : 0.3 });
+      var mesh = new THREE.Mesh(geo, mat); mesh.position.set((i - 3) * SP, 0, 0); s.group.add(mesh);
+      var cap = null;
+      if (has){
+        cap = new THREE.Mesh(new THREE.SphereGeometry(R, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat);
+        cap.position.set((i - 3) * SP, 0, 0); s.group.add(cap);
+      }
+      var gl = p3dGlyph(letters[i], i === today ? '#f2b134' : '#6b7078'); gl.position.set((i - 3) * SP, -0.02, 0.62); s.group.add(gl);
+      s.bars.push({ mesh: mesh, cap: cap, H: H });
+    });
+    var gh = (goal / 7) / dayMax * HM;
+    if (gh > 0.02 && gh < HM * 1.4){
+      var pl = new THREE.Mesh(new THREE.PlaneGeometry(7 * SP + 0.2, 0.9), new THREE.MeshBasicMaterial({ color: 0x4fc3d9, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false }));
+      pl.rotation.x = -Math.PI / 2; pl.position.y = gh; s.group.add(pl);
+      var ed = new THREE.Mesh(new THREE.BoxGeometry(7 * SP + 0.2, 0.012, 0.012), new THREE.MeshBasicMaterial({ color: 0x4fc3d9 })); ed.position.set(0, gh, 0.45); s.group.add(ed);
+    }
+    s.group.position.y = -0.25;
+    host.appendChild(s.canvas);
+    host.parentNode.classList.add('cv3b-ready');
+    var w = host.clientWidth || 340, h = host.clientHeight || 170;
+    s.renderer.setSize(w, h, false); s.camera.aspect = w / h; s.camera.updateProjectionMatrix();
+    s.camera.position.set(0, 1.9, 6.0); s.camera.lookAt(0, 0.45, 0);
+    if (replay) s.grow = 0; else s.grow = 1;
+    if (!s.raf){ s.last = 0; s.raf = requestAnimationFrame(cvbFrame); }
+  }
+
+  // weekly goal reached: celebratory popup once per week (ring + sparks)
+  function cardioGoalCelebrate(){
+    if (getInsightView() !== 'cardio' || !document.getElementById('cvRing3d')) return;
+    var w = computeWeeklyCardio(), goal = cardioGoalMin(), mins = Math.round(w.totalSec / 60);
+    if (mins < goal || !(goal > 0)) return;
+    var wk = weekKeyFor(mondayOf(new Date()));
+    if (state.settings.cardioGoalSeen === wk) return;
+    state.settings.cardioGoalSeen = wk; saveSettings();
+    setTimeout(function(){
+      if (!document.getElementById('cvRing3d')) return;
+      openTrophyPopup({ pr: false, obj: 'ring', tier: 3, kick: 'WEEKLY GOAL COMPLETE', title: mins + ' min', sub: 'Cardio goal hit this week', chip: 'GOAL ' + goal + ' MIN' });
+    }, 900);
+  }
+
+  // activity thumbnails: one shared WebGL renderer drawn into small 2D canvases (keeps the context count down)
+  var act3d = null;
+  function actKind(name){
+    var n = String(name || '').toLowerCase();
+    if (/bike|cycl|spin/.test(n)) return 'wheel';
+    if (/row/.test(n)) return 'rower';
+    if (/tread|run|walk|jog|hike|incline|sprint/.test(n)) return 'tread';
+    return 'ring';
+  }
+  function actBuild(){
+    var canvas = document.createElement('canvas'), renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { return null; }
+    renderer.setPixelRatio(1); renderer.setSize(168, 126, false);
+    var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(24, 168 / 126, 0.1, 50);
+    scene.add(new THREE.HemisphereLight(0xdfe9ef, 0x1a1c20, 0.65));
+    var key = new THREE.DirectionalLight(0xffffff, 1.0); key.position.set(3, 4, 5); scene.add(key);
+    var rim = new THREE.DirectionalLight(0x4fc3d9, 0.9); rim.position.set(-4, 2, -3); scene.add(rim);
+    var dk = new THREE.MeshStandardMaterial({ color: 0x2a2d33, roughness: 0.55, metalness: 0.4 });
+    var cy = new THREE.MeshStandardMaterial({ color: 0x4fc3d9, metalness: 0.4, roughness: 0.3, emissive: 0x1b7f93, emissiveIntensity: 0.5 });
+    var st = new THREE.MeshStandardMaterial({ color: 0xaab2ba, metalness: 0.7, roughness: 0.3 });
+    var G = {};
+    var T = new THREE.Group();
+    T.add(new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.14, 0.8), dk));
+    [-1, 1].forEach(function(sd){ var r = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.82, 20), cy); r.rotation.x = Math.PI / 2; r.position.x = sd * 1.0; T.add(r); });
+    [-0.3, 0.3].forEach(function(z){ var p = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.9, 0.06), st); p.position.set(0.85, 0.5, z); T.add(p); });
+    var con = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.26, 0.8), cy); con.position.set(0.85, 1.0, 0); con.rotation.z = 0.3; T.add(con);
+    T.position.y = -0.4; G.tread = T;
+    var W = new THREE.Group();
+    W.add(new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.07, 16, 64), dk)); W.add(new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.025, 10, 64), cy));
+    for (var i = 0; i < 12; i++){ var sp = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.7, 6), st); sp.rotation.z = i * Math.PI / 12; W.add(sp); }
+    var hub = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.18, 20), cy); hub.rotation.x = Math.PI / 2; W.add(hub); G.wheel = W;
+    var R = new THREE.Group();
+    var rail = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.07, 0.14), st); rail.position.y = -0.2; R.add(rail);
+    var fw = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.12, 40), cy); fw.rotation.x = Math.PI / 2; fw.position.set(-0.95, 0.15, 0); R.add(fw);
+    var cage = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.025, 8, 40), dk); cage.position.set(-0.95, 0.15, 0.07); R.add(cage);
+    var seat = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.07, 0.26), dk); seat.position.set(0.4, -0.06, 0); R.add(seat);
+    var foot = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.3, 0.4), dk); foot.position.set(-0.55, -0.02, 0); foot.rotation.z = -0.4; R.add(foot); G.rower = R;
+    var RG = new THREE.Group(); RG.add(new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.2, 24, 64), cy)); G.ring = RG;
+    Object.keys(G).forEach(function(k){ G[k].visible = false; scene.add(G[k]); });
+    return { renderer: renderer, canvas: canvas, scene: scene, camera: camera, G: G, list: [], raf: null, last: 0 };
+  }
+  function actFrame(now){
+    var s = act3d;
+    if (!s) return;
+    s.list = s.list.filter(function(it){ return it.el.isConnected; });
+    if (!s.list.length){ s.raf = null; return; }
+    var t = now / 1000;
+    s.list.forEach(function(it){
+      var g = s.G[it.kind] || s.G.ring;
+      Object.keys(s.G).forEach(function(k){ s.G[k].visible = (s.G[k] === g); });
+      var big = it.kind === 'tread' || it.kind === 'rower';
+      g.rotation.set(big ? 0.35 : 0.2, t * 0.7 + it.phase, 0);
+      s.camera.position.set(0, big ? 0.5 : 0.1, big ? 5.0 : 4.4); s.camera.lookAt(0, big ? 0.25 : 0, 0);
+      s.renderer.render(s.scene, s.camera);
+      it.ctx.clearRect(0, 0, 168, 126); it.ctx.drawImage(s.canvas, 0, 0);
+    });
+    s.raf = requestAnimationFrame(actFrame);
+  }
+  function initActObjects(tries){
+    var els = document.querySelectorAll('canvas.cv-a-3d');
+    if (!els.length) return;
+    if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initActObjects((tries || 0) + 1); }, 400); return; }
+    if (!act3d){ act3d = actBuild(); if (!act3d) return; }
+    act3d.list = Array.prototype.map.call(els, function(el, i){ el.classList.add('on'); return { el: el, kind: el.getAttribute('data-k'), ctx: el.getContext('2d'), phase: i * 1.3 }; });
+    if (!act3d.raf) act3d.raf = requestAnimationFrame(actFrame);
+  }
+
   // ---------- Badges ----------
   var BADGE_SVG = {
     workouts: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="4" width="4" height="16" rx="1.3"/><rect x="19" y="4" width="4" height="16" rx="1.3"/><rect x="5" y="10.4" width="14" height="3.2" rx="1"/></svg>',
@@ -20811,9 +20979,19 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var rg = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.045, 12, 72), mRing); rg.position.z = z * 0.1; medal.add(rg);
       var st = new THREE.Mesh(new THREE.OctahedronGeometry(0.3), mStar); st.position.z = z * 0.14; st.scale.set(1, 1.2, 0.35); medal.add(st);
     });
-    scene.add(trophy); scene.add(medal);
+    var ringG = new THREE.Group(), rMat = new THREE.MeshStandardMaterial({ color: 0x56d4ec, roughness: 0.25, metalness: 0.25, emissive: 0x1b7f93, emissiveIntensity: 0.9 });
+    ringG.add(new THREE.Mesh(new THREE.TorusGeometry(1, 0.22, 36, 110), rMat));
+    ringG.add(new THREE.Mesh(new THREE.TorusGeometry(1, 0.36, 18, 90), new THREE.MeshBasicMaterial({ color: 0x4fc3d9, transparent: true, opacity: 0.1 })));
+    var sparks = [];
+    for (var si = 0; si < 44; si++){
+      var sz = 0.015 + Math.random() * 0.04;
+      var sm = new THREE.Mesh(si % 3 ? new THREE.SphereGeometry(sz, 8, 6) : new THREE.OctahedronGeometry(sz * 1.6), new THREE.MeshBasicMaterial({ color: si % 4 ? 0x9fe8f5 : 0xf2b134 }));
+      ringG.add(sm); sparks.push({ m: sm, vx: 0, vy: 0, vz: 0 });
+    }
+    ringG.visible = false;
+    scene.add(trophy); scene.add(medal); scene.add(ringG);
     tp3d = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, trophy: trophy, medal: medal,
-             mats: { body: mBody, ring: mRing, star: mStar }, cur: trophy, yaw: 0.5, vyaw: 0.8, dragging: false, raf: null, last: 0 };
+             mats: { body: mBody, ring: mRing, star: mStar }, cur: trophy, ring: ringG, sparks: sparks, ringT: 0, yaw: 0.5, vyaw: 0.8, dragging: false, raf: null, last: 0 };
     var lastX = 0, lastT = 0;
     canvas.addEventListener('pointerdown', function(e){
       tp3d.dragging = true; tp3d.vyaw = 0; lastX = e.clientX; lastT = performance.now();
@@ -20839,7 +21017,17 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       s.yaw += s.vyaw * dt;
       s.vyaw += (0.8 - s.vyaw) * Math.min(1, dt * 1.5);   // coasts, then settles into a slow spin
     }
-    s.cur.rotation.set(s.cur === s.trophy ? 0.12 : 0.18, s.yaw, 0);
+    if (s.cur === s.ring){
+      s.ringT += dt;
+      s.cur.rotation.set(-0.55, s.yaw, 0);
+      s.sparks.forEach(function(sp, i){
+        if (s.ringT < 2.4){
+          sp.m.position.x += sp.vx * dt; sp.m.position.y += sp.vy * dt; sp.m.position.z += sp.vz * dt;
+          sp.vx *= 0.985; sp.vz *= 0.985; sp.vy = sp.vy * 0.985 - 0.5 * dt;
+        }
+        sp.m.scale.setScalar(1 + 0.35 * Math.sin(now / 160 + i * 1.9));
+      });
+    } else s.cur.rotation.set(s.cur === s.trophy ? 0.12 : 0.18, s.yaw, 0);
     s.renderer.render(s.scene, s.camera);
     s.raf = requestAnimationFrame(tpFrame);
   }
@@ -20865,7 +21053,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     document.getElementById('tpChip').textContent = o.chip || '';
     ov.className = 'tp-overlay on ' + (o.pr ? 'tp-pr' : 'tp-modal');
     var stage = document.getElementById('tpStage'), fb = document.getElementById('tpFb');
-    fb.textContent = o.obj === 'trophy' ? '🏆' : '🏅';
+    fb.textContent = o.obj === 'trophy' ? '🏆' : (o.obj === 'ring' ? '✅' : '🏅');
     var g = tpEnsure3d();
     stage.classList.toggle('nofx', !g);
     if (g){
@@ -20873,9 +21061,18 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var w = stage.clientWidth || 300, h = stage.clientHeight || 232;
       g.renderer.setSize(w, h, false);
       g.camera.aspect = w / h; g.camera.updateProjectionMatrix();
-      g.trophy.visible = o.obj === 'trophy'; g.medal.visible = o.obj === 'medal';
-      g.cur = o.obj === 'trophy' ? g.trophy : g.medal;
+      g.trophy.visible = o.obj === 'trophy'; g.medal.visible = o.obj === 'medal'; g.ring.visible = o.obj === 'ring';
+      g.cur = o.obj === 'trophy' ? g.trophy : (o.obj === 'ring' ? g.ring : g.medal);
+      if (o.obj === 'ring'){
+        g.ringT = 0;
+        g.sparks.forEach(function(sp){
+          var a = Math.random() * Math.PI * 2, r = 0.9 + Math.random() * 0.3, sp0 = 0.7 + Math.random() * 1.6;
+          sp.m.position.set(Math.cos(a) * r, Math.sin(a) * r, (Math.random() - 0.5) * 0.4);
+          sp.vx = Math.cos(a) * sp0; sp.vy = Math.sin(a) * sp0 + 0.3; sp.vz = (Math.random() - 0.5) * 0.8;
+        });
+      }
       if (o.obj === 'trophy'){ g.camera.position.set(0, 0.8, 6.2); g.camera.lookAt(0, 0.05, 0); }
+      else if (o.obj === 'ring'){ g.camera.position.set(0, 0, 6.6); g.camera.lookAt(0, 0, 0); }
       else {
         var t = TP_TIERS[o.tier || 0];
         g.mats.body.color.setHex(t.c); g.mats.body.emissive.setHex(t.e);
