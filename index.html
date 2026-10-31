@@ -5604,6 +5604,9 @@
 
   /* Fade+shift transition for the content swap on a main tab switch —
      see switchTabWithFade(). Out: 140ms, in: 160ms, per spec. */
+  /* Insight has a floating Muscle|Cardio pill and a full-bleed scene; sliding
+     them 6px during the fade looked like a jump, so those fades are opacity-only. */
+  #view.subtab-flat.subtab-fade-out,#view.subtab-flat.subtab-fade-in{transform:none !important;}
   #view.subtab-fade-out{
     opacity:0;
     transform:translateY(6px);
@@ -16577,6 +16580,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     }
 
     ui.tabAnimating = true;
+    viewEl.classList.toggle('subtab-flat', state.tab === 'insight' || newTab === 'insight');
     viewEl.classList.remove('subtab-fade-in');
     viewEl.classList.add('subtab-fade-out');
 
@@ -16589,6 +16593,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       freshView.classList.add('subtab-fade-in');
       setTimeout(function(){
         freshView.classList.remove('subtab-fade-in');
+        freshView.classList.remove('subtab-flat');
         ui.tabAnimating = false;
       }, 170);
     }, 140);
