@@ -4254,7 +4254,7 @@
     position:absolute;
     inset:0;
     z-index:1;
-    background:linear-gradient(180deg, rgba(8,9,11,0.15) 0%, rgba(8,9,11,0.25) 50%, rgba(8,9,11,0.4) 100%);
+    background:radial-gradient(ellipse 70% 38% at 50% 58%, rgba(242,177,52,0.10) 0%, rgba(242,177,52,0.035) 48%, transparent 74%);
     pointer-events:none;
   }
   .mg-panel-content{
@@ -4282,7 +4282,26 @@
     gap:8px;
   }
   /* the model sits below the chip grid instead of behind it */
-  .mg-3d-viewer{top:172px;}
+  .mg-3d-viewer{top:262px;}
+  /* ---- Insight polish ---- */
+  .mg-band-fade{position:absolute;left:0;right:0;top:182px;height:80px;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(20,22,26,0),#14161a);}
+  .mg-panel-sub b{color:#e9e6df;font-weight:600;}
+  .mg-row-mini-name em small{font:500 10px 'JetBrains Mono',monospace;color:#8b9098;margin-left:1px;}
+  .mg-row-mini-name em{font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.02em;color:#e9e6df;line-height:1;}
+  .mg-row-mini-stat{display:block;margin-top:7px;font:600 9.5px/1 'JetBrains Mono',monospace;letter-spacing:0.04em;color:#6b7078;white-space:nowrap;}
+  .mg-row-mini.mg-building .mg-row-mini-stat{color:var(--accent);}
+  .mg-row-mini.mg-good .mg-row-mini-stat{color:var(--success);}
+  .mg-row-mini.mg-over .mg-row-mini-stat{color:var(--accent-2);}
+  .mg-row-mini-name{margin-bottom:6px;align-items:center;}
+  .mg-banner-wrap{position:absolute;left:14px;right:14px;top:214px;z-index:3;}
+  .mg-banner{width:100%;display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:10px;background:rgba(242,177,52,0.10);border:1px solid rgba(242,177,52,0.32);font:500 12px/1.3 'Inter',sans-serif;color:#f1e4c3;text-align:left;cursor:pointer;}
+  .mg-banner svg{width:16px;height:16px;flex:none;color:var(--accent);}
+  .mg-banner b{color:var(--accent);font-weight:600;}
+  .mg-banner i{margin-left:auto;font-style:normal;color:var(--accent);font-size:16px;line-height:1;}
+  .mg-banner.ok{background:rgba(95,193,111,0.08);border-color:rgba(95,193,111,0.3);}
+  .mg-banner.ok svg,.mg-banner.ok b,.mg-banner.ok i{color:var(--success);}
+  .mg-banner.over{background:rgba(201,64,58,0.10);border-color:rgba(201,64,58,0.34);}
+  .mg-banner.over svg,.mg-banner.over b,.mg-banner.over i{color:var(--accent-2);}
   .mg-row-mini{
     flex-shrink:0;
     width:100%;
@@ -4602,6 +4621,12 @@
     pointer-events:none;
   }
   .mg-3d-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;vertical-align:-1px;}
+  /* Insight polish: icon-only round controls on the right, slim legend pill */
+  .mg-3d-reset-btn,.mg-3d-plain-btn{left:auto;right:14px;width:36px;height:36px;padding:0 !important;gap:0;border-radius:50%;background:rgba(20,22,26,0.82);}
+  .mg-3d-reset-btn{bottom:62px;}
+  .mg-3d-plain-btn{bottom:14px;}
+  .mg-3d-legend{left:50%;right:auto;bottom:18px;transform:translateX(-50%);flex-direction:row;gap:14px;padding:8px 14px;border-radius:999px;background:rgba(20,22,26,0.82);font-size:10px;white-space:nowrap;}
+  .mg-3d-legend i{width:7px;height:7px;margin-right:5px;}
   .mg-3d-loading{
     position:absolute;
     inset:0;
@@ -12225,9 +12250,13 @@
       // expand into without looking cramped). Tapping flies the camera
       // to that region (mg-3d-focus-muscle) -- that's the one
       // interaction this compact view keeps.
+      var stat = g.sets > cap ? (g.sets - cap) + ' OVER CAP'
+               : (g.sets >= greenFloor ? '\u2713 ON TARGET'
+               : (g.sets > 0 ? (greenFloor - g.sets) + ' TO GO' : 'NOT TRAINED'));
       html += '<button type="button" class="mg-row-mini'+chipClass+'" data-action="mg-3d-focus-muscle" data-muscle="'+esc(g.key)+'">' +
-                '<span class="mg-row-mini-name"><span>'+esc(g.label)+'</span><em>'+(g.sets > 0 ? g.sets+'/'+cap : 'no sets')+'</em></span>' +
+                '<span class="mg-row-mini-name"><span>'+esc(g.label)+'</span><em>'+g.sets+'<small>/'+cap+'</small></em></span>' +
                 '<span class="mg-row-mini-bar-track"><span class="mg-row-mini-bar-fill'+stateClass+'" data-target-pct="'+pct+'" style="width:'+pct+'%"></span></span>' +
+                '<span class="mg-row-mini-stat">'+stat+'</span>' +
               '</button>';
     });
     return html;
@@ -12239,6 +12268,28 @@
   // there's no way to know effort or recovery from set count and weight
   // alone, so the scale-back language is framed as conditional on how
   // the sessions actually felt, not asserted as fact.
+  // One-line headline under the muscle cards (Insight tab). Tapping it
+  // opens the full Weekly Volume Insight, same as the lightbulb button.
+  function renderMuscleVolumeBannerHtml(profile, weeklyData){
+    var over = [], under = [], zero = 0;
+    weeklyData.forEach(function(g){
+      var cap = profile.caps[g.key];
+      if (cap === undefined) return;
+      var floor = profile.isCustom ? Math.ceil(cap * CUSTOM_GREEN_PCT) : profile.greenMinSets;
+      if (g.sets > cap) over.push(g.label);
+      else if (g.sets < floor){ under.push(g.label); if (g.sets === 0) zero++; }
+    });
+    function nm(a){ return a.length > 2 ? a.length + ' muscles' : a.join(' & '); }
+    var cls = '', msg;
+    if (over.length){ cls = ' over'; msg = '<b>' + esc(nm(over)) + '</b> past weekly cap'; }
+    else if (under.length){ msg = '<b>' + esc(nm(under)) + '</b> ' + (zero === under.length ? 'untrained this week' : 'still under target'); }
+    else { cls = ' ok'; msg = '<b>Balanced week</b> \u00b7 every muscle in range'; }
+    return '<button type="button" class="mg-banner' + cls + '" data-action="open-muscle-volume-insight">' +
+             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1v.2h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>' +
+             '<span>' + msg + '</span><i>\u203a</i>' +
+           '</button>';
+  }
+
   function buildMuscleVolumeInsight(profile, weeklyData){
     var over = [];
     var under = [];
@@ -12774,12 +12825,13 @@
               '<div class="mg-3d-loading-pct" id="mg3dLoadingPct">Loading model\u2026</div>' +
             '</div></div>';
     html += '<div class="mg-panel-scrim"></div>';
+    html += '<div class="mg-band-fade"></div>';
     html += '<div class="mg-3d-callout" id="mg3dCallout"></div>';
     html += '<button type="button" class="mg-3d-reset-btn" data-action="mg-3d-reset-view" aria-label="Reset view">' +
-              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.64-6.36"/><path d="M3 3v6h6"/></svg>RESET' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.64-6.36"/><path d="M3 3v6h6"/></svg>' +
             '</button>';
     html += '<button type="button" class="mg-3d-plain-btn" data-action="mg-3d-toggle-plain" aria-label="Toggle plain / textured">' +
-              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>TEXTURE' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>' +
             '</button>';
 
         html += '<div class="mg-3d-legend" aria-hidden="true"><span><i style="background:var(--success)"></i>On target</span><span><i style="background:var(--accent)"></i>Building</span><span><i style="background:var(--accent-2)"></i>Over cap</span></div>';
@@ -12796,10 +12848,11 @@
                   '</button>' +
                 '</div>' +
               '</div>' +
-              '<span class="mg-panel-sub">'+fmtWeekShort(monday)+' \u2013 '+fmtWeekShort(sunday)+' \u00b7 '+esc(activeProfile.badge)+' \u00b7 <span class="mg-3d-hint-inline">tap a muscle to focus</span></span></div>';
+              '<span class="mg-panel-sub"><b>'+fmtWeekShort(monday)+' \u2013 '+fmtWeekShort(sunday)+'</b> \u00b7 '+esc(activeProfile.badge)+' \u00b7 <span class="mg-3d-hint-inline">tap a muscle to focus</span></span></div>';
     html += '</div>'; // .mg-panel-content (header only now -- rows moved to their own sidebar, see below)
 
     html += '<div class="mg-rows-sidebar">' + renderMuscleOverviewRows(activeProfile, weeklyData) + '</div>';
+    html += '<div class="mg-banner-wrap">' + renderMuscleVolumeBannerHtml(activeProfile, weeklyData) + '</div>';
 
     html += '</div>';
     return html;
