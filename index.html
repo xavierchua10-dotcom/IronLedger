@@ -4317,6 +4317,22 @@
   .dc-bubble.out{opacity:0;transform:scale(.9);transition:all .2s;}
   @keyframes dcPop{from{opacity:0;transform:scale(.6) translateY(-6px);}to{opacity:1;transform:none;}}
   #challengeOverlay{z-index:120;}
+  /* How-to sheet + button */
+  .ht-btn{background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.55);color:var(--accent);font:700 10px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:0 9px;height:24px;border-radius:var(--radius);cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+  .ht-btn b{font-size:11px;}
+  .ht-btn:active{transform:scale(.96);}
+  .ht-panel{max-width:400px !important;max-height:86vh;overflow-y:auto;padding:16px 14px 14px !important;text-align:left !important;}
+  .ht-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .ht-head h3{font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;text-transform:uppercase;color:var(--accent);margin:0;line-height:1.1;}
+  .ht-head small{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#8b9098;}
+  .ht-img{width:100%;max-height:210px;object-fit:cover;border-radius:12px;display:block;margin:0 0 10px;}
+  .ht-step{display:flex;gap:11px;align-items:flex-start;margin:9px 0;}
+  .ht-step span{flex:0 0 24px;height:24px;border-radius:50%;background:var(--accent);color:#14161a;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;}
+  .ht-step p{margin:0;font-size:14.5px;line-height:1.35;color:#dfe3e8;}
+  .ht-box{border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.35;margin-top:10px;}
+  .ht-start{background:rgba(var(--accent-rgb),0.1);border:1px solid rgba(var(--accent-rgb),0.35);color:#f2d28a;}
+  .ht-avoid{background:rgba(229,83,75,0.08);border:1px solid rgba(229,83,75,0.35);color:#f0aaa5;}
+  .ht-ok{width:100%;margin-top:14px;background:var(--accent);color:#14161a;border:0;border-radius:12px;padding:13px;font:800 15px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
   .dc-panel{max-width:400px !important;padding:16px 14px 14px !important;text-align:left !important;}
   .dc-sheet-head{display:flex;align-items:center;justify-content:space-between;margin:0 4px 10px;}
   .dc-sheet-head span{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#8b9098;}
@@ -6097,6 +6113,7 @@
 <div class="confirm-overlay hidden" id="confirmOverlay">
   <div class="confirm-panel" id="confirmPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="howtoOverlay"><div class="confirm-panel ht-panel" id="howtoPanel"></div></div>
 <div class="confirm-overlay hidden" id="challengeOverlay">
   <div class="confirm-panel dc-panel" id="challengePanel"></div>
 </div>
@@ -6875,6 +6892,7 @@
     exSearchFilters: { muscles: [], equipment: [], types: [] }, // active filter selections in the exercise-search overlay
     tabAnimating: false,    // true while a tab-slide transition is in progress
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
+    howtoEx: null,          // exercise name whose How-to sheet is open (Beginner exercises), or null
     challengeOpen: false,   // Daily Challenge sheet open state
     challengeBubbleDone: false, // the "challenge is ready" bubble has already been shown since the app opened
     showPricing: false,     // Pricing/upgrade modal open state
@@ -11781,6 +11799,84 @@
     ui.challengeOpen = false;
     renderApp();
   }
+
+  // ---------- How-to sheet (Beginner exercises) ----------
+  // Short, plain-language guidance for the six Beginner Full Body moves.
+  // Photo comes from EXERCISE_IMG when there is one; nothing else is needed.
+  var HOWTO = {
+    'Leg Press': {
+      steps: ['Sit back with your feet shoulder-width apart on the platform, knees in line with your toes.', 'Lower slowly until your knees are about 90°. Keep your lower back flat on the seat.', 'Push through your heels. Stop just short of locking your knees.'],
+      start: 'Use a light weight you can fully control. Add weight only when every set feels easy.',
+      avoid: 'Bouncing the weight, or lifting your hips off the seat.'
+    },
+    'Seated Leg Curl': {
+      steps: ['Adjust the pad so it sits just above your heels and the seat supports your back.', 'Curl your heels down and back toward you in a smooth motion.', 'Return slowly over 2–3 seconds. Don’t let the weight slam.'],
+      start: 'Pick a weight you can control on every rep. Hamstrings are often weaker than you expect.',
+      avoid: 'Swinging or lifting your hips to cheat the rep.'
+    },
+    'Machine Bench Press': {
+      steps: ['Set the seat so the handles line up with the middle of your chest.', 'Sit tall with your back and head against the pad. Shoulders pulled back and down.', 'Press forward until your arms are almost straight, then return slowly.'],
+      start: 'Go light first. The last 2 reps should feel hard, not impossible.',
+      avoid: 'Shrugging your shoulders up, or locking your elbows hard at the top.'
+    },
+    'Machine Row': {
+      steps: ['Adjust the seat so you can reach the handles with your arms straight and your chest on the pad.', 'Pull the handles toward your torso and squeeze your shoulder blades together.', 'Return slowly until your arms are straight again.'],
+      start: 'Go light. Think “elbows back” instead of “hands back”.',
+      avoid: 'Leaning back to heave the weight, or shrugging your shoulders.'
+    },
+    'Dumbbell Shoulder Press': {
+      steps: ['Sit with your back supported, dumbbells at shoulder height, palms facing forward.', 'Press straight up until your arms are almost straight, without clanking the dumbbells.', 'Lower slowly back to shoulder height.'],
+      start: 'Go light with the dumbbells. They move around, so go lighter than you think.',
+      avoid: 'Arching your lower back, or flaring your elbows far behind you.'
+    },
+    'Plank': {
+      steps: ['Rest on your forearms with your elbows under your shoulders and your legs straight.', 'Keep one straight line from head to heels. Squeeze your abs and glutes.', 'Breathe steadily and hold. Stop when your hips start to sag.'],
+      start: 'Aim for 20–30 seconds first. Build up a few seconds at a time.',
+      avoid: 'Letting your hips sag or pike up, or holding your breath.'
+    }
+  };
+  function howtoButtonHtml(name){
+    if (!HOWTO[name]) return '';
+    return '<button type="button" class="ht-btn" data-action="open-howto" data-ex-name="'+esc(name)+'" aria-label="How to do '+esc(name)+'"><b>?</b> How to</button>';
+  }
+  function openHowto(name){
+    if (!HOWTO[name]) return;
+    ui.howtoEx = name;
+    renderHowtoPanel();
+  }
+  function closeHowto(){
+    ui.howtoEx = null;
+    renderHowtoPanel();
+  }
+  function renderHowtoPanel(){
+    var overlay = document.getElementById('howtoOverlay');
+    var panel = document.getElementById('howtoPanel');
+    if (!overlay || !panel) return;
+    var h = ui.howtoEx && HOWTO[ui.howtoEx];
+    if (!h){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    var name = ui.howtoEx;
+    var img = EXERCISE_IMG[name];
+    var lib = null;
+    for (var i = 0; i < EXERCISE_LIBRARY_FLAT.length; i++){
+      if (EXERCISE_LIBRARY_FLAT[i].name === name){ lib = EXERCISE_LIBRARY_FLAT[i]; break; }
+    }
+    var sub = [lib && lib.muscle, lib && lib.equipment].filter(Boolean).join(' · ');
+    var steps = h.steps.map(function(t, i){ return '<div class="ht-step"><span>'+(i+1)+'</span><p>'+esc(t)+'</p></div>'; }).join('');
+    overlay.classList.remove('hidden');
+    panel.innerHTML =
+      '<div class="ht-head"><div><h3>'+esc(name)+'</h3>'+(sub ? '<small>'+esc(sub)+'</small>' : '')+'</div>' +
+      '<button type="button" class="dc-x" data-action="close-howto" aria-label="Close">&#10005;</button></div>' +
+      (img ? '<img class="ht-img" src="'+esc(img)+'" alt="'+esc(name)+'">' : '') +
+      '<div class="ht-steps">'+steps+'</div>' +
+      '<div class="ht-box ht-start"><b>Tip</b> '+esc(h.start)+'</div>' +
+      '<div class="ht-box ht-avoid"><b>Avoid</b> '+esc(h.avoid)+'</div>' +
+      '<button type="button" class="ht-ok" data-action="close-howto">Got it</button>';
+  }
+
   function renderChallengePanel(){
     var overlay = document.getElementById('challengeOverlay');
     var panel = document.getElementById('challengePanel');
@@ -12606,6 +12702,7 @@
             '<button class="ex-photo-badge-btn'+(photoImg ? ' lit' : '')+'" '+(photoImg ? 'data-action="show-exercise-photo" data-img="'+esc(photoImg)+'" data-ex-name="'+esc(ex.name)+'"' : 'disabled')+' aria-label="'+(photoImg ? 'View exercise photo' : 'No photo available for this custom exercise')+'">' +
               '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' +
             '</button>' +
+            howtoButtonHtml(ex.name) +
             (ex.sets.length > 0 ? '<span class="volume-badge">VOL '+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</span>' : '') +
             '</div>' +
             '</div>' +
@@ -15980,6 +16077,7 @@
     renderConfirmModal();
     renderRoutineNamePanel();
     renderChallengePanel();
+    renderHowtoPanel();
     renderHistoryEditOverlay();
     renderDeleteAccountPasswordPanel();
     if (ui.tourStep !== null) renderTourStep();
@@ -21137,6 +21235,8 @@
       }
     } else if (action === 'open-exercise-reference'){
       openExerciseReference(el.dataset.exName);
+    } else if (action === 'open-howto'){
+      openHowto(el.dataset.exName);
     } else if (action === 'show-exercise-photo'){
       var imgPreviewOverlayEl = document.getElementById('imgPreviewOverlay');
       var imgPreviewImgEl = document.getElementById('imgPreviewImg');
@@ -21910,6 +22010,13 @@
       else renderApp();
     }
   });
+  var howtoOverlayEl = document.getElementById('howtoOverlay');
+  howtoOverlayEl.addEventListener('click', function(e){
+    if (e.target === howtoOverlayEl){ closeHowto(); return; }
+    var el = e.target.closest('[data-action]');
+    if (el && el.dataset.action === 'close-howto') closeHowto();
+  });
+
   var challengeOverlayEl = document.getElementById('challengeOverlay');
   challengeOverlayEl.addEventListener('click', function(e){
     if (e.target === challengeOverlayEl){ closeChallenge(); return; }
@@ -22433,6 +22540,8 @@
       dismissConfirmModal();
     } else if (ui.savingRoutine){
       cancelSaveRoutine();
+    } else if (ui.howtoEx){
+      closeHowto();
     } else if (ui.challengeOpen){
       closeChallenge();
     } else if (ui.confirmingDeleteAccountPassword){
