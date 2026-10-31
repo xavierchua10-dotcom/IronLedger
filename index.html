@@ -2652,6 +2652,64 @@
   .onboard-wiz-next-btn:active, .onboard-wiz-back-btn:active{opacity:0.8;}
   @keyframes onboardWizIn{ from{opacity:0;} to{opacity:1;} }
 
+  /* Setup wizard polish */
+  .onboard-wiz-panel{padding-top:calc(30px + var(--safe-top, 0px));padding-bottom:calc(22px + var(--safe-bottom, 0px));}
+  .onboard-wiz-logo-badge{margin-bottom:16px;}
+  .onboard-wiz-progress{flex-direction:column;align-items:center;gap:9px;margin-bottom:6px;}
+  .onboard-wiz-bar{display:flex;gap:6px;}
+  .onboard-wiz-dot{width:38px;height:4px;border-radius:2px;}
+  .onboard-wiz-steplab{font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:.18em;text-transform:uppercase;color:var(--text-faint);}
+  .onboard-wiz-steplab b{color:var(--accent);}
+  .onboard-wiz-body{padding:0 0 60px;}
+  .onboard-wiz-title{font-size:27px;line-height:1.15;margin-bottom:9px;}
+  .onboard-wiz-sub{margin-bottom:30px;padding:0 6px;}
+  .onboard-wiz-options{gap:11px;}
+  .onboard-wiz-card{flex-direction:row;align-items:center;gap:14px;padding:16px 16px 16px 18px;border-radius:14px;border:1.5px solid var(--line);background:linear-gradient(180deg,#1d2127,#191c21);width:100%;color:inherit;font:inherit;}
+  .onboard-wiz-card-tx{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left;}
+  .onboard-wiz-card-label{font-size:17px;letter-spacing:.03em;}
+  .onboard-wiz-card-desc{color:#8d939c;}
+  .onboard-wiz-card-chip{font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:.05em;color:#9097a1;border:1px solid #333944;border-radius:999px;padding:4px 9px;white-space:nowrap;}
+  .onboard-wiz-card-ck{flex:0 0 24px;width:24px;height:24px;border-radius:50%;border:1.5px solid #3a404a;display:flex;align-items:center;justify-content:center;}
+  .onboard-wiz-card-ck svg{width:13px;height:13px;stroke:#1c1500;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0;}
+  .onboard-wiz-card.selected{border-color:var(--accent);background:linear-gradient(180deg,rgba(var(--accent-rgb),.16),rgba(var(--accent-rgb),.07));box-shadow:0 0 0 1px rgba(var(--accent-rgb),.15),0 6px 22px rgba(var(--accent-rgb),.08);}
+  .onboard-wiz-card.selected .onboard-wiz-card-label{color:var(--accent);}
+  .onboard-wiz-card.selected .onboard-wiz-card-desc{color:#d8c08a;}
+  .onboard-wiz-card.selected .onboard-wiz-card-chip{color:var(--accent);border-color:rgba(var(--accent-rgb),.55);}
+  .onboard-wiz-card.selected .onboard-wiz-card-ck{background:var(--accent);border-color:var(--accent);}
+  .onboard-wiz-card.selected .onboard-wiz-card-ck svg{opacity:1;}
+  .onboard-wiz-bw-row{align-items:center;gap:18px;margin-top:4px;}
+  .onboard-wiz-bw-step{flex:0 0 52px;width:52px;height:52px;border-radius:50%;border:1.5px solid #333944;background:var(--panel);color:#c7ccd3;font-size:26px;line-height:1;padding:0 0 3px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .onboard-wiz-bw-step:active{border-color:var(--accent);color:var(--accent);}
+  .onboard-wiz-bw-num{display:flex;flex-direction:column;align-items:center;min-width:140px;}
+  .onboard-wiz-bw-input{width:150px;font-size:64px;line-height:1;text-align:center;border-bottom:none;padding:0;}
+  .onboard-wiz-bw-unit{margin-top:8px;font:700 12px 'JetBrains Mono',monospace;letter-spacing:.2em;color:var(--accent);}
+  .onboard-wiz-bw-line{height:2px;width:190px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin:12px auto 0;}
+  .onboard-wiz-bw-hint{margin-top:26px;text-align:center;font-size:12.5px;color:#7d848e;}
+  .onboard-wiz-days-row{gap:11px;flex-wrap:nowrap;}
+  .onboard-wiz-day-btn{width:56px;height:56px;font-size:20px;background:var(--panel);}
+  .onboard-wiz-day-btn.selected{background:rgba(var(--accent-rgb),.16);box-shadow:0 0 0 1px rgba(var(--accent-rgb),.15),0 6px 22px rgba(var(--accent-rgb),.12);}
+  .onboard-wiz-days-lab{text-align:center;margin-top:12px;font:700 10px 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#7d848e;}
+  .onboard-wiz-sug{margin-top:30px;border:1px dashed rgba(var(--accent-rgb),.4);border-radius:14px;padding:13px 16px;display:flex;align-items:center;gap:12px;background:rgba(var(--accent-rgb),.05);}
+  .onboard-wiz-sug-ic{flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:rgba(var(--accent-rgb),.14);border:1px solid rgba(var(--accent-rgb),.4);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:17px;}
+  .onboard-wiz-sug-t{font:700 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#8b9098;}
+  .onboard-wiz-sug-v{font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;color:var(--accent);text-transform:uppercase;margin-top:3px;}
+  .onboard-wiz-recap{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-bottom:18px;}
+  .onboard-wiz-recap span{font:700 10.5px Inter,Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#c9ced6;}
+  .onboard-wiz-template-card{position:relative;overflow:hidden;border-radius:14px;border:1.5px solid var(--accent);background:linear-gradient(180deg,rgba(var(--accent-rgb),.14),rgba(var(--accent-rgb),.05));padding:18px 18px 12px 20px;}
+  .onboard-wiz-template-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent);}
+  .onboard-wiz-template-name{font-size:22px;letter-spacing:.03em;margin-bottom:0;}
+  .onboard-wiz-template-mus{font-size:13px;color:#aeb4bd;margin-top:5px;}
+  .onboard-wiz-template-mus b{color:#e8eaed;font-weight:600;}
+  .onboard-wiz-template-meta{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap;}
+  .onboard-wiz-template-meta span{font:700 10.5px Inter,Arial,sans-serif;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid #3a414d;background:#20252d;color:#c9ced5;}
+  .onboard-wiz-template-meta span.g{border-color:rgba(var(--accent-rgb),.55);background:rgba(var(--accent-rgb),.12);color:var(--accent);}
+  .onboard-wiz-template-list{margin-top:12px;border-top:1px solid rgba(255,255,255,.09);padding-top:6px;line-height:1.3;}
+  .onboard-wiz-template-list div{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:5.5px 0;color:#d5d9df;}
+  .onboard-wiz-template-list i{font:600 11px 'JetBrains Mono',monospace;color:#7d848e;font-style:normal;}
+  .onboard-wiz-back-btn{flex:0 0 104px;padding:15px 0;border-radius:12px;font-size:14px;letter-spacing:.06em;text-align:center;}
+  .onboard-wiz-next-btn{padding:15px 0;border-radius:12px;font-size:15px;letter-spacing:.06em;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .onboard-wiz-next-btn span{font-size:18px;line-height:1;}
+
   .ex-search-overlay{
     position:absolute;
     inset:0;
@@ -9989,28 +10047,37 @@
     var total = ONBOARDING_STEPS.length;
 
     var html = '<div class="onboard-wiz-logo-badge"><img src="images/logo-mark.png" alt=""></div>';
-    html += '<div class="onboard-wiz-progress">';
+    html += '<div class="onboard-wiz-progress"><div class="onboard-wiz-bar">';
     for (var i = 0; i < total; i++){
       html += '<span class="onboard-wiz-dot' + (i <= stepIdx ? ' active' : '') + '"></span>';
     }
-    html += '</div>';
+    html += '</div><div class="onboard-wiz-steplab">Step <b>' + (stepIdx + 1) + '</b> of ' + total + '</div></div>';
 
     html += '<div class="onboard-wiz-body">';
     if (step === 'bodyweight'){
       html += '<div class="onboard-wiz-title">What\u2019s your bodyweight?</div>' +
               '<div class="onboard-wiz-sub">Used for accurate load calculations on bodyweight exercises. Change it anytime in Settings.</div>' +
               '<div class="onboard-wiz-bw-row">' +
-                '<input type="number" inputmode="decimal" id="onboardBwInput" class="onboard-wiz-bw-input" placeholder="0" value="'+(draft.bodyweightKg ? fmtWeight(draft.bodyweightKg) : '')+'">' +
-                '<span class="onboard-wiz-bw-unit">'+esc(unitLabel())+'</span>' +
-              '</div>';
+                '<button type="button" class="onboard-wiz-bw-step" data-action="onboard-bw-step" data-d="-1" aria-label="Minus 1">&minus;</button>' +
+                '<div class="onboard-wiz-bw-num">' +
+                  '<input type="number" inputmode="decimal" id="onboardBwInput" class="onboard-wiz-bw-input" placeholder="0" value="'+(draft.bodyweightKg ? fmtWeight(draft.bodyweightKg) : '')+'">' +
+                  '<span class="onboard-wiz-bw-unit">'+esc(unitLabel())+'</span>' +
+                '</div>' +
+                '<button type="button" class="onboard-wiz-bw-step" data-action="onboard-bw-step" data-d="1" aria-label="Plus 1">+</button>' +
+              '</div>' +
+              '<div class="onboard-wiz-bw-line"></div>' +
+              '<div class="onboard-wiz-bw-hint">Tap the number to type it in</div>';
     } else if (step === 'goal'){
       html += '<div class="onboard-wiz-title">What\u2019s your main goal?</div>' +
               '<div class="onboard-wiz-sub">Tunes rep-range suggestions across the app.</div>' +
               '<div class="onboard-wiz-options">';
       GOAL_OPTIONS.forEach(function(g){
+        var gr = GOAL_REP_RANGES[g.id];
         html += '<button type="button" class="onboard-wiz-card'+(draft.goal === g.id ? ' selected' : '')+'" data-action="onboard-set-goal" data-value="'+g.id+'">' +
-                  '<span class="onboard-wiz-card-label">'+esc(g.label)+'</span>' +
-                  '<span class="onboard-wiz-card-desc">'+esc(g.desc)+'</span>' +
+                  '<span class="onboard-wiz-card-tx"><span class="onboard-wiz-card-label">'+esc(g.label)+'</span>' +
+                  '<span class="onboard-wiz-card-desc">'+esc(g.desc)+'</span></span>' +
+                  (gr ? '<span class="onboard-wiz-card-chip">'+gr.min+'\u2013'+gr.max+' reps</span>' : '') +
+                  '<span class="onboard-wiz-card-ck" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>' +
                 '</button>';
       });
       html += '</div>';
@@ -10020,8 +10087,9 @@
               '<div class="onboard-wiz-options">';
       ONBOARDING_EXPERIENCE_OPTIONS.forEach(function(o){
         html += '<button type="button" class="onboard-wiz-card'+(draft.experienceLevel === o.id ? ' selected' : '')+'" data-action="onboard-set-experience" data-value="'+o.id+'">' +
-                  '<span class="onboard-wiz-card-label">'+esc(o.label)+'</span>' +
-                  '<span class="onboard-wiz-card-desc">'+esc(o.desc)+'</span>' +
+                  '<span class="onboard-wiz-card-tx"><span class="onboard-wiz-card-label">'+esc(o.label)+'</span>' +
+                  '<span class="onboard-wiz-card-desc">'+esc(o.desc)+'</span></span>' +
+                  '<span class="onboard-wiz-card-ck" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>' +
                 '</button>';
       });
       html += '</div>';
@@ -10032,7 +10100,11 @@
       ONBOARDING_DAY_OPTIONS.forEach(function(n){
         html += '<button type="button" class="onboard-wiz-day-btn'+(draft.trainingDaysPerWeek === n ? ' selected' : '')+'" data-action="onboard-set-days" data-value="'+n+'">'+n+'</button>';
       });
-      html += '</div>';
+      html += '</div><div class="onboard-wiz-days-lab">Days per week</div>';
+      var sugTpl = WORKOUT_TEMPLATES[recommendedOnboardingTemplateKey(draft)];
+      if (sugTpl){
+        html += '<div class="onboard-wiz-sug"><span class="onboard-wiz-sug-ic" aria-hidden="true">&#9733;</span><div><div class="onboard-wiz-sug-t">We\u2019ll suggest</div><div class="onboard-wiz-sug-v">'+esc(sugTpl.label)+'</div></div></div>';
+      }
     } else if (step === 'template'){
       var templateKey = recommendedOnboardingTemplateKey(draft);
       var tpl = WORKOUT_TEMPLATES[templateKey];
@@ -10049,10 +10121,8 @@
               '<div class="onboard-wiz-sub">' + (sessionHasExercises
                 ? 'Based on your answers. Your current session already has exercises logged, so this won\u2019t be loaded automatically \u2014 start it yourself anytime from Log > Add Exercise > template icon.'
                 : 'Based on your answers \u2014 you can always change it later.') + '</div>' +
-              '<div class="onboard-wiz-template-card">' +
-                '<div class="onboard-wiz-template-name">'+esc(tpl.label)+'</div>' +
-                '<div class="onboard-wiz-template-list">'+tpl.exercises.map(function(ex){ return esc(ex.name); }).join(' \u00b7 ')+'</div>' +
-              '</div>';
+              onboardingRecapHtml(draft) +
+              onboardingTemplateCardHtml(tpl);
     }
     html += '</div>';
 
@@ -10060,10 +10130,49 @@
               '<button type="button" class="onboard-wiz-back-btn" data-action="onboard-back">'+(stepIdx === 0 ? 'Skip' : 'Back')+'</button>' +
               (step === 'template'
                 ? '<button type="button" class="onboard-wiz-next-btn" data-action="onboard-finish">'+(getActiveSession() && getActiveSession().exercises.length > 0 ? 'Save & Close' : 'Start Workout')+'</button>'
-                : '<button type="button" class="onboard-wiz-next-btn" data-action="onboard-next">Next</button>') +
+                : '<button type="button" class="onboard-wiz-next-btn" data-action="onboard-next">Next <span aria-hidden="true">&rarr;</span></button>') +
             '</div>';
 
     panel.innerHTML = html;
+  }
+
+  // Setup wizard, final step: a recap of the answers + the suggested routine.
+  function onboardingRecapHtml(draft){
+    var chips = [];
+    if (draft.bodyweightKg) chips.push(fmtWeight(draft.bodyweightKg) + ' ' + unitLabel());
+    var g = GOAL_OPTIONS.filter(function(x){ return x.id === draft.goal; })[0];
+    if (g) chips.push(g.label);
+    var xo = ONBOARDING_EXPERIENCE_OPTIONS.filter(function(x){ return x.id === draft.experienceLevel; })[0];
+    if (xo) chips.push(xo.label);
+    if (draft.trainingDaysPerWeek) chips.push(draft.trainingDaysPerWeek + ' days / wk');
+    if (!chips.length) return '';
+    return '<div class="onboard-wiz-recap">' + chips.map(function(c){ return '<span>'+esc(c)+'</span>'; }).join('') + '</div>';
+  }
+  function onboardingTemplateCardHtml(tpl){
+    var order = [], totalSets = 0;
+    tpl.exercises.forEach(function(ex){
+      if (order.indexOf(ex.muscle) === -1) order.push(ex.muscle);
+      totalSets += ex.sets || 0;
+    });
+    var mins = Math.max(5, Math.round(totalSets * 2.5 / 5) * 5);
+    var muscles = order.map(function(m, mi){ return mi === 0 ? '<b>'+esc(m)+'</b>' : esc(m); }).join(' \u00b7 ');
+    return '<div class="onboard-wiz-template-card">' +
+      '<div class="onboard-wiz-template-name">'+esc(tpl.label)+'</div>' +
+      '<div class="onboard-wiz-template-mus">'+muscles+'</div>' +
+      '<div class="onboard-wiz-template-meta"><span class="g">'+tpl.exercises.length+' exercises</span><span>'+totalSets+' sets</span><span>~'+mins+' min</span></div>' +
+      '<div class="onboard-wiz-template-list">' + tpl.exercises.map(function(ex){
+        return '<div><span>'+esc(ex.name)+'</span><i>'+(ex.sets || '')+'\u00d7</i></div>';
+      }).join('') + '</div>' +
+    '</div>';
+  }
+  function onboardingBwStep(d){
+    var draft = ui.onboardingDraft;
+    if (!draft) return;
+    var cur = draft.bodyweightKg ? Math.round(toDisplay(draft.bodyweightKg) * 10) / 10 : (unitLabel() === 'kg' ? 70 : 155);
+    var next = Math.max(1, Math.min(500, Math.round((cur + d) * 10) / 10));
+    draft.bodyweightKg = toStoredKg(next);
+    var inp = document.getElementById('onboardBwInput');
+    if (inp) inp.value = fmtWeight(draft.bodyweightKg);
   }
 
   function currentRepRange(){
@@ -21470,6 +21579,8 @@
       onboardingSetGoal(el.dataset.value);
     } else if (action === 'onboard-set-experience'){
       onboardingSetExperience(el.dataset.value);
+    } else if (action === 'onboard-bw-step'){
+      onboardingBwStep(parseInt(el.dataset.d, 10) || 0);
     } else if (action === 'onboard-set-days'){
       onboardingSetDays(parseInt(el.dataset.value, 10));
     } else if (action === 'open-log-chat'){
