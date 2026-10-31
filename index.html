@@ -4509,6 +4509,25 @@
   .pf-stat-v{font:700 26px/1 'Oswald',sans-serif;color:var(--text);white-space:nowrap;}
   .pf-stat-v small{font:500 12px 'Inter',sans-serif;color:var(--text-faint);}
   .pf-stat-l{font:700 10px 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--text-faint);margin-top:7px;text-transform:uppercase;}
+
+  /* ---- Hourglass rest timer ---- */
+  .stopwatch-glass-btn{width:30px;height:30px;flex:0 0 auto;display:grid;place-items:center;border:none;background:none;color:var(--accent);cursor:pointer;padding:0;margin:-4px 0 -4px -6px;}
+  .stopwatch-glass-btn svg{width:20px;height:20px;display:block;}
+  .rg-card .tp-stage{height:268px;}
+  .rg-time{font:700 56px/1 'Oswald',sans-serif;color:var(--text);letter-spacing:0.02em;margin-top:2px;}
+  .rg-btns{display:flex;gap:8px;margin-top:14px;}
+  .rg-btns button{height:46px;border-radius:12px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.05);color:var(--text);font:700 15px 'Oswald',sans-serif;letter-spacing:0.04em;cursor:pointer;flex:1;}
+  .rg-btns button:active{transform:scale(0.97);}
+  .rg-btns .rg-skip{flex:1.4;background:var(--accent);border-color:var(--accent);color:#1c1500;text-transform:uppercase;}
+  /* ---- History skyline ---- */
+  .sky-card{margin:2px 0 14px;padding:12px 12px 10px;border-radius:18px;background:rgba(24,27,32,0.82);border:1px solid rgba(255,255,255,0.1);}
+  .sky-h{display:flex;justify-content:space-between;align-items:baseline;font:700 11px 'JetBrains Mono',monospace;letter-spacing:0.14em;color:var(--accent);padding:0 4px;}
+  .sky-h span{color:var(--text-faint);font-weight:600;letter-spacing:0.08em;}
+  .sky-stage{position:relative;height:196px;margin-top:2px;}
+  .sky-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;}
+  .sky-f{display:flex;justify-content:space-between;font:600 10px 'JetBrains Mono',monospace;letter-spacing:0.06em;color:var(--text-faint);padding:0 4px;}
+  .sky-f b{color:var(--accent);}
+
   /* ---- Trophy / medal popup (PR celebration + Profile badges) ---- */
   .tp-overlay{display:none;position:fixed;inset:0;z-index:1200;align-items:center;justify-content:center;padding:20px;background:rgba(8,9,11,0.74);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
   .tp-overlay.on{display:flex;animation:tpIn .24s ease both;}
@@ -11333,13 +11352,15 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!ui.restTimer){
       el.classList.add('hidden');
       el.innerHTML = '';
+      closeRestGlass();
       return;
     }
     el.classList.remove('hidden');
     var remaining = remainingOverride != null ? remainingOverride : Math.max(0, Math.ceil((ui.restTimer.endsAt - Date.now()) / 1000));
     el.innerHTML =
-      '<span class="stopwatch-label">Resting</span>' +
-      '<span class="stopwatch-time">'+fmtMMSS(remaining)+'</span>' +
+      '<button type="button" class="stopwatch-glass-btn" data-action="open-rest-glass" aria-label="Open hourglass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12M6 22h12"/><path d="M7 2v4.500L12 12l-5 5.500V22M17 2v4.500L12 12l5 5.500V22"/></svg></button>' +
+      '<span class="stopwatch-label" data-action="open-rest-glass">Resting</span>' +
+      '<span class="stopwatch-time" data-action="open-rest-glass">'+fmtMMSS(remaining)+'</span>' +
       '<button class="stopwatch-stop-btn" data-action="skip-rest-timer">Skip</button>';
   }
 
@@ -13553,6 +13574,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               '</button>';
       html += '</div>';
       html += '<div class="history-no-match hidden" id="historyNoMatch">No sessions match your search.</div>';
+      if (!dateFilterActive && !(ui.historySearch && ui.historySearch.trim())) html += skylineCardHtml();
 
       // A custom date range narrows the candidate pool before weekly
       // bucketing below; text search then further hides non-matching rows
@@ -13628,6 +13650,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     }
     document.getElementById('view').innerHTML = html;
     if (done.length > 0) filterHistoryList(ui.historySearch || '');
+    if (document.getElementById('sky3dHost')) initSkyline();
   }
 
   // Animated equivalent of the old inline "ui.expandedHistory[sid] = !...;
@@ -20109,6 +20132,228 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   }
 
 
+
+  // ---------- Hourglass (rest timer) ----------
+  var rg3d = null;
+  function rgOverlayEl(){
+    var ov = document.getElementById('rgOverlay');
+    if (ov) return ov;
+    ov = document.createElement('div'); ov.id = 'rgOverlay'; ov.className = 'tp-overlay';
+    ov.innerHTML = '<div class="tp-card rg-card"><button type="button" class="tp-x" data-action="close-rest-glass" aria-label="Close">✕</button>' +
+      '<div class="tp-kick" id="rgKick">RESTING</div><div class="tp-stage" id="rgStage"></div>' +
+      '<div class="rg-time" id="rgTime">0:00</div>' +
+      '<div class="rg-btns"><button type="button" data-action="rg-adj" data-d="-15">− 15s</button><button type="button" data-action="rg-adj" data-d="15">+ 15s</button><button type="button" class="rg-skip" data-action="rg-skip">Skip</button></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){
+      var a = e.target.closest('[data-action]'), act = a && a.dataset.action;
+      if (act === 'close-rest-glass' || (!a && e.target === ov)) closeRestGlass();
+      else if (act === 'rg-skip'){ skipRestTimer(); }
+      else if (act === 'rg-adj' && ui.restTimer){
+        var nd = parseInt(a.dataset.d, 10) * 1000, rem = ui.restTimer.endsAt - Date.now();
+        if (rem + nd < 1000) nd = 1000 - rem;
+        ui.restTimer.endsAt += nd;
+        ui.restTimer.totalSeconds = Math.max(ui.restTimer.totalSeconds, Math.ceil((rem + nd) / 1000));
+        renderRestTimerBar();
+      }
+    });
+    return ov;
+  }
+  function rgBuild(stage){
+    var canvas = document.createElement('canvas'), renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { return null; }
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+    scene.add(new THREE.HemisphereLight(0xdfe9ef, 0x1a1c20, 0.8));
+    var key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(3, 4, 5); scene.add(key);
+    var rim = new THREE.DirectionalLight(0xf2b134, 1.2); rim.position.set(-4, 2, -3); scene.add(rim);
+    var gold = new THREE.MeshStandardMaterial({ color: 0xe0a02c, metalness: 0.55, roughness: 0.3, emissive: 0x3a2506 });
+    var g = new THREE.Group();
+    [-1, 1].forEach(function(sd){
+      var d = new THREE.Mesh(new THREE.CylinderGeometry(0.92, 0.92, 0.09, 56), gold); d.position.y = sd * 1.2; g.add(d);
+    });
+    [0, 1, 2].forEach(function(i){
+      var a = i * Math.PI * 2 / 3 + 0.5, post = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.4, 12), gold);
+      post.position.set(Math.cos(a) * 0.76, 0, Math.sin(a) * 0.76); g.add(post);
+    });
+    var half = [[0.05,0],[0.09,0.1],[0.3,0.32],[0.55,0.58],[0.63,0.78],[0.56,0.99],[0.38,1.1]];
+    var pts = half.slice().reverse().map(function(q){ return new THREE.Vector2(q[0], -q[1]); }).concat(half.slice(1).map(function(q){ return new THREE.Vector2(q[0], q[1]); }));
+    var glass = new THREE.Mesh(new THREE.LatheGeometry(pts, 48), new THREE.MeshStandardMaterial({ color: 0xcfe3ee, transparent: true, opacity: 0.2, roughness: 0.08, metalness: 0.1, side: THREE.DoubleSide, depthWrite: false }));
+    glass.renderOrder = 2; g.add(glass);
+    var sandMat = new THREE.MeshStandardMaterial({ color: 0xf0bb4a, roughness: 0.7, emissive: 0x6a4608, emissiveIntensity: 0.55 });
+    var tg = new THREE.ConeGeometry(0.52, 0.82, 36); tg.rotateX(Math.PI); tg.translate(0, 0.41, 0);
+    var bg = new THREE.ConeGeometry(0.5, 0.7, 36); bg.translate(0, 0.35, 0);
+    var top = new THREE.Mesh(tg, sandMat); top.position.y = 0.06; g.add(top);
+    var bot = new THREE.Mesh(bg, sandMat); bot.position.y = -1.04; g.add(bot);
+    var stream = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 1, 8), sandMat); g.add(stream);
+    scene.add(g);
+    stage.appendChild(canvas);
+    var s = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, group: g, top: top, bot: bot, stream: stream,
+              yaw: 0.4, vyaw: 0, dragging: false, raf: null, last: 0, shownSec: -1, geos: [tg, bg] };
+    var lastX = 0, lastT = 0;
+    canvas.style.touchAction = 'none';
+    canvas.addEventListener('pointerdown', function(e){ s.dragging = true; s.vyaw = 0; lastX = e.clientX; lastT = performance.now(); try { canvas.setPointerCapture(e.pointerId); } catch (_) {} });
+    canvas.addEventListener('pointermove', function(e){
+      if (!s.dragging) return;
+      var now = performance.now(), dx = e.clientX - lastX, dt = Math.max(0.008, (now - lastT) / 1000);
+      s.yaw += dx * 0.014; s.vyaw = Math.max(-10, Math.min(10, (dx * 0.014) / dt * 0.6 + s.vyaw * 0.4));
+      lastX = e.clientX; lastT = now;
+    });
+    var end = function(){ s.dragging = false; };
+    canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+    return s;
+  }
+  function rgFrame(now){
+    var s = rg3d;
+    if (!s) return;
+    if (!ui.restTimer){ closeRestGlass(); return; }
+    var dt = Math.min(0.05, (now - (s.last || now)) / 1000); s.last = now;
+    var remMs = Math.max(0, ui.restTimer.endsAt - Date.now()), total = Math.max(1, ui.restTimer.totalSeconds * 1000);
+    var f = Math.max(0, Math.min(1, remMs / total));
+    var sec = Math.ceil(remMs / 1000);
+    if (sec !== s.shownSec){ s.shownSec = sec; var tEl = document.getElementById('rgTime'); if (tEl) tEl.textContent = fmtMMSS(sec); }
+    if (!s.dragging){ s.yaw += s.vyaw * dt; s.vyaw += (0.35 - s.vyaw) * Math.min(1, dt * 1.5); }
+    s.group.rotation.set(0.14, s.yaw, 0);
+    s.top.scale.set(0.55 + 0.45 * f, Math.max(0.001, f), 0.55 + 0.45 * f);
+    var g2 = 1 - f;
+    s.bot.scale.set(0.4 + 0.6 * g2, Math.max(0.001, g2), 0.4 + 0.6 * g2);
+    var apexY = -1.04 + 0.7 * g2, strTop = 0.04;
+    s.stream.visible = f > 0.002;
+    s.stream.scale.y = Math.max(0.01, strTop - apexY); s.stream.position.y = (strTop + apexY) / 2;
+    s.renderer.render(s.scene, s.camera);
+    s.raf = requestAnimationFrame(rgFrame);
+  }
+  function openRestGlass(){
+    if (!ui.restTimer) return;
+    var ov = rgOverlayEl(), stage = document.getElementById('rgStage');
+    ov.className = 'tp-overlay on tp-modal';
+    if (!rg3d && typeof THREE !== 'undefined'){
+      ov.classList.add('on');
+      var w = stage.clientWidth || 300, h = stage.clientHeight || 268;
+      rg3d = rgBuild(stage);
+      if (rg3d){
+        rg3d.renderer.setSize(w, h, false);
+        rg3d.camera.aspect = w / h; rg3d.camera.updateProjectionMatrix();
+        rg3d.camera.position.set(0, 0.5, 6.3); rg3d.camera.lookAt(0, 0, 0);
+        rg3d.vyaw = 3; rg3d.shownSec = -1;
+        rg3d.raf = requestAnimationFrame(rgFrame);
+      }
+    }
+    if (!rg3d){
+      stage.innerHTML = '<div class="tp-fb" style="display:flex">⌛</div>';
+      var iv = setInterval(function(){
+        var t = document.getElementById('rgTime');
+        if (!ui.restTimer || !t || !ov.classList.contains('on')){ clearInterval(iv); return; }
+        t.textContent = fmtMMSS(Math.max(0, Math.ceil((ui.restTimer.endsAt - Date.now()) / 1000)));
+      }, 500);
+    }
+    queueBackSync();
+  }
+  function closeRestGlass(){
+    var ov = document.getElementById('rgOverlay');
+    if (rg3d){
+      cancelAnimationFrame(rg3d.raf);
+      try { rg3d.geos.forEach(function(g){ g.dispose(); }); rg3d.renderer.dispose(); rg3d.renderer.forceContextLoss(); } catch (_) {}
+      if (rg3d.canvas.parentNode) rg3d.canvas.parentNode.removeChild(rg3d.canvas);
+      rg3d = null;
+    }
+    if (!ov || !ov.classList.contains('on')) return;
+    ov.classList.add('out');
+    setTimeout(function(){ ov.classList.remove('on', 'out', 'tp-modal'); queueBackSync(); }, 190);
+  }
+
+  // ---------- Skyline (History) ----------
+  var sky3d = null;
+  var SKY_W = 12, SKY_D = 7, SKY_S = 0.2;
+  function skylineData(){
+    var now = new Date(), day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var start = new Date(day0); start.setDate(start.getDate() - ((day0.getDay() + 6) % 7) - (SKY_W - 1) * 7);
+    var grid = [], wk = [], i, j;
+    for (i = 0; i < SKY_W; i++){ grid.push([0,0,0,0,0,0,0]); wk.push(0); }
+    var n = 0, total = 0;
+    state.sessions.forEach(function(se){
+      if (se.status !== 'done') return;
+      var t = new Date(se.finishedAt || se.date);
+      if (isNaN(t.getTime())) return;
+      var d = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+      var idx = Math.round((d - start) / 86400000);
+      if (idx < 0 || idx >= SKY_W * SKY_D) return;
+      var v = 0;
+      se.exercises.forEach(function(ex){
+        if (isCardioEx(ex)) return;
+        ex.sets.forEach(function(st){ var x = effectiveLoadKg(ex.name, st.weightKg) * st.reps; if (isFinite(x) && x > 0) v += x; });
+      });
+      grid[Math.floor(idx / 7)][idx % 7] += v; wk[Math.floor(idx / 7)] += v; total += v; n++;
+    });
+    var max = 0; grid.forEach(function(c){ c.forEach(function(v){ if (v > max) max = v; }); });
+    return { grid: grid, max: max, peak: Math.max.apply(null, wk), total: total, n: n };
+  }
+  function skylineCardHtml(){
+    var d = skylineData();
+    if (d.n < 2 || d.max <= 0) return '';
+    return '<div class="sky-card"><div class="sky-h">SKYLINE<span>LAST 12 WEEKS · VOLUME PER DAY</span></div>' +
+           '<div class="sky-stage" id="sky3dHost"></div>' +
+           '<div class="sky-f"><span>PEAK WEEK <b>' + fmtBig(d.peak) + ' ' + unitLabel() + '</b></span><span>DRAG TO ROTATE</span></div></div>';
+  }
+  function skyFrame(now){
+    var s = sky3d;
+    if (!s) return;
+    if (!s.canvas.isConnected){ s.raf = null; return; }
+    var dt = Math.min(0.05, (now - (s.last || now)) / 1000); s.last = now;
+    if (!s.dragging){ s.yaw += s.vyaw * dt; s.vyaw += (0.16 - s.vyaw) * Math.min(1, dt * 1.2); }
+    s.group.rotation.y = s.yaw;
+    s.renderer.render(s.scene, s.camera);
+    s.raf = requestAnimationFrame(skyFrame);
+  }
+  function initSkyline(tries){
+    var host = document.getElementById('sky3dHost');
+    if (!host) return;
+    if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initSkyline((tries || 0) + 1); }, 400); return; }
+    if (!sky3d){
+      var canvas = document.createElement('canvas'), renderer;
+      try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { host.parentNode.style.display = 'none'; return; }
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(32, 1.6, 0.1, 60);
+      scene.add(new THREE.HemisphereLight(0xdfe9ef, 0x1a1c20, 0.75));
+      var key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(3, 5, 4); scene.add(key);
+      var rim = new THREE.DirectionalLight(0xf2b134, 0.9); rim.position.set(-4, 2, -3); scene.add(rim);
+      var group = new THREE.Group(); scene.add(group);
+      sky3d = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, group: group, yaw: -0.6, vyaw: 0, dragging: false, raf: null, last: 0 };
+      var lastX = 0, lastT = 0, s0 = sky3d;
+      canvas.addEventListener('pointerdown', function(e){ s0.dragging = true; s0.vyaw = 0; lastX = e.clientX; lastT = performance.now(); try { canvas.setPointerCapture(e.pointerId); } catch (_) {} canvas.style.cursor = 'grabbing'; });
+      canvas.addEventListener('pointermove', function(e){
+        if (!s0.dragging) return;
+        var now = performance.now(), dx = e.clientX - lastX, dt = Math.max(0.008, (now - lastT) / 1000);
+        s0.yaw += dx * 0.012; s0.vyaw = Math.max(-8, Math.min(8, (dx * 0.012) / dt * 0.6 + s0.vyaw * 0.4));
+        lastX = e.clientX; lastT = now;
+      });
+      var end = function(){ s0.dragging = false; canvas.style.cursor = 'grab'; };
+      canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+    }
+    var s = sky3d, d = skylineData();
+    // rebuild the bars for the current data
+    while (s.group.children.length){
+      var ch = s.group.children.pop();
+      if (ch.geometry) ch.geometry.dispose();
+      if (ch.material) ch.material.dispose();
+    }
+    var sz = SKY_S;
+    var floor = new THREE.Mesh(new THREE.BoxGeometry(SKY_W * sz + 0.2, 0.05, SKY_D * sz + 0.2), new THREE.MeshStandardMaterial({ color: 0x1d2025, roughness: 0.8 }));
+    floor.position.y = -0.025; s.group.add(floor);
+    for (var i = 0; i < SKY_W; i++) for (var j = 0; j < SKY_D; j++){
+      var v = d.grid[i][j], t = d.max > 0 ? v / d.max : 0, h = v > 0 ? 0.06 + t * 1.25 : 0.025;
+      var col = v > 0 ? new THREE.Color().setHSL(0.115, 0.82, 0.2 + t * 0.3) : new THREE.Color(0x2a2e35);
+      var m = new THREE.Mesh(new THREE.BoxGeometry(sz * 0.8, h, sz * 0.8), new THREE.MeshStandardMaterial({ color: col, roughness: 0.45, metalness: 0.15, emissive: v > 0 ? col.clone().multiplyScalar(0.28) : 0x000000 }));
+      m.position.set((i - (SKY_W - 1) / 2) * sz, h / 2, (j - (SKY_D - 1) / 2) * sz);
+      s.group.add(m);
+    }
+    host.appendChild(s.canvas);
+    var w = host.clientWidth || 320, hh = host.clientHeight || 196;
+    s.renderer.setSize(w, hh, false);
+    s.camera.aspect = w / hh; s.camera.updateProjectionMatrix();
+    s.camera.position.set(0, 2.1, 3.9); s.camera.lookAt(0, 0.3, 0);
+    if (!s.raf){ s.last = 0; s.raf = requestAnimationFrame(skyFrame); }
+  }
+
   // ---------- Badges ----------
   var BADGE_SVG = {
     workouts: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="4" width="4" height="16" rx="1.3"/><rect x="19" y="4" width="4" height="16" rx="1.3"/><rect x="5" y="10.4" width="14" height="3.2" rx="1"/></svg>',
@@ -22468,6 +22713,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       closeSettingsPage();
     } else if (action === 'share-profile'){
       shareProfile();
+    } else if (action === 'open-rest-glass'){
+      openRestGlass();
     } else if (action === 'open-badge'){
       openBadge(el.dataset.badge);
     } else if (action === 'open-avatar-pick'){
