@@ -4302,7 +4302,27 @@
   .mg-banner.ok svg,.mg-banner.ok b,.mg-banner.ok i{color:var(--success);}
   .mg-banner.over{background:rgba(201,64,58,0.10);border-color:rgba(201,64,58,0.34);}
   .mg-banner.over svg,.mg-banner.over b,.mg-banner.over i{color:var(--accent-2);}
-    /* ---- Daily challenge card ---- */
+    /* ---- Daily challenge button + bubble + sheet ---- */
+  .dc-fab-wrap{position:relative;flex:0 0 auto;}
+  .dc-fab{position:relative;width:48px;height:48px;border-radius:14px;border:1.5px solid rgba(var(--accent-rgb),0.6);background:rgba(var(--accent-rgb),0.12);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+  .dc-fab:active{transform:scale(.95);}
+  .dc-fab-dot{position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);}
+  .dc-fab.done{border-color:rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:#8b9098;}
+  .dc-fab.done .dc-fab-dot{background:#5fd08a;}
+  .dc-bubble{position:absolute;top:58px;right:-4px;z-index:30;width:218px;padding:11px 14px;border-radius:14px;background:var(--accent);color:#1c1500;text-align:left;cursor:pointer;box-shadow:0 10px 26px rgba(0,0,0,0.5);animation:dcPop .35s cubic-bezier(.2,1.3,.4,1);transform-origin:top right;}
+  .dc-bubble::before{content:"";position:absolute;top:-6px;right:18px;width:14px;height:14px;background:var(--accent);transform:rotate(45deg);border-radius:3px;}
+  .dc-bubble b{display:block;font:700 14px Oswald,sans-serif;letter-spacing:.03em;text-transform:uppercase;}
+  .dc-bubble span{display:block;margin-top:2px;font:500 12px Inter,sans-serif;opacity:.85;}
+  .dc-bubble.out{opacity:0;transform:scale(.9);transition:all .2s;}
+  @keyframes dcPop{from{opacity:0;transform:scale(.6) translateY(-6px);}to{opacity:1;transform:none;}}
+  #challengeOverlay{z-index:120;}
+  .dc-panel{max-width:400px !important;padding:16px 14px 14px !important;text-align:left !important;}
+  .dc-sheet-head{display:flex;align-items:center;justify-content:space-between;margin:0 4px 10px;}
+  .dc-sheet-head span{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#8b9098;}
+  .dc-x{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#c7ccd3;font-size:14px;cursor:pointer;}
+  .dc-panel .dc-list{margin-bottom:0;}
+  .dc-panel .dc-card{margin-bottom:0;}
+  /* ---- Daily challenge card ---- */
   .dc-list{margin-bottom:18px;}
   .dc-card{padding:20px 20px 18px 22px !important;}
   .dc-card > .dc-ill{position:absolute !important;right:16px;top:22px;width:124px;height:auto;opacity:.95;z-index:1;}
@@ -6076,6 +6096,9 @@
 <div class="confirm-overlay hidden" id="confirmOverlay">
   <div class="confirm-panel" id="confirmPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="challengeOverlay">
+  <div class="confirm-panel dc-panel" id="challengePanel"></div>
+</div>
 <div class="confirm-overlay hidden" id="routineNameOverlay">
   <div class="confirm-panel" id="routineNamePanel"></div>
 </div>
@@ -6851,6 +6874,8 @@
     exSearchFilters: { muscles: [], equipment: [], types: [] }, // active filter selections in the exercise-search overlay
     tabAnimating: false,    // true while a tab-slide transition is in progress
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
+    challengeOpen: false,   // Daily Challenge sheet open state
+    challengeBubbleDone: false, // the "challenge is ready" bubble has already been shown since the app opened
     showPricing: false,     // Pricing/upgrade modal open state
     showAvatarPick: false,  // Profile icon picker overlay open state
     showTemplatePicker: false,  // Start-from-template overlay open state
@@ -11652,7 +11677,7 @@
     var best = Math.max(c.best || 0, streak);
     var hrs = Math.max(1, Math.ceil((new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 1).getTime() - Date.now()) / 3600000));
     var flame = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#f2b134" aria-hidden="true"><path d="M12 2c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg>';
-    var html = '<div class="log-tpl-list dc-list"><div class="log-tpl-or"><span>today’s challenge</span></div>' +
+    var html = '<div class="log-tpl-list dc-list">' +
       '<div class="template-card template-cat-card log-tpl-card dc-card'+(e.done ? ' done' : '')+'">' + templateBgHtml();
     html += e.done
       ? '<span class="dc-badge-ok"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#14161a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>'
@@ -11716,6 +11741,57 @@
     delete e.prev;
     chSave();
     renderApp();
+  }
+
+  // The Log-tab entry point: a round button at the right end of the session-name
+  // row. Gold dot = today's challenge still to do, tick = done. The first time
+  // the Log tab shows after the app opens (and the challenge isn't done) a small
+  // speech bubble points at it for a few seconds.
+  var chBubbleTimer = null;
+  function dailyChallengeButtonHtml(){
+    var e = chEntry(), streak = chStreak();
+    var showBubble = !e.done && !ui.challengeBubbleDone && !ui.challengeOpen;
+    if (showBubble){
+      ui.challengeBubbleDone = true;
+      ui.challengeBubble = true;
+      if (chBubbleTimer) clearTimeout(chBubbleTimer);
+      chBubbleTimer = setTimeout(hideChallengeBubble, 7000);
+    }
+    var bubble = (ui.challengeBubble && !e.done)
+      ? '<div class="dc-bubble" data-action="open-challenge" role="status"><b>Daily challenge is ready</b><span>'+esc(chToday().name)+(streak > 0 ? ' · keep your '+streak+'-day streak' : ' · start a streak')+'</span></div>'
+      : '';
+    return '<div class="dc-fab-wrap"><button type="button" class="dc-fab'+(e.done ? ' done' : '')+'" data-action="open-challenge" aria-label="Daily challenge'+(e.done ? ' (done)' : '')+'">' +
+             '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>' +
+             '<i class="dc-fab-dot"></i></button>' + bubble + '</div>';
+  }
+  function hideChallengeBubble(){
+    if (chBubbleTimer){ clearTimeout(chBubbleTimer); chBubbleTimer = null; }
+    if (!ui.challengeBubble) return;
+    ui.challengeBubble = false;
+    var b = document.querySelector('.dc-bubble');
+    if (b){ b.classList.add('out'); setTimeout(function(){ if (b.parentNode) b.parentNode.removeChild(b); }, 220); }
+  }
+  function openChallenge(){
+    hideChallengeBubble();
+    ui.challengeOpen = true;
+    renderApp();
+  }
+  function closeChallenge(){
+    ui.challengeOpen = false;
+    renderApp();
+  }
+  function renderChallengePanel(){
+    var overlay = document.getElementById('challengeOverlay');
+    var panel = document.getElementById('challengePanel');
+    if (!overlay || !panel) return;
+    if (!ui.challengeOpen){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    panel.innerHTML = '<div class="dc-sheet-head"><span>Today’s challenge</span><button type="button" class="dc-x" data-action="close-challenge" aria-label="Close">&#10005;</button></div>' +
+                      dailyChallengeCardHtml();
   }
 
   function renderLogTemplateChoices(){
@@ -11820,6 +11896,7 @@
     html += '<div class="session-name-row">' +
             '<input type="text" class="session-name-input" placeholder="Untitled session — e.g. Push Day, Legs, Full Body" ' +
             'value="'+esc(session.name)+'" data-role="session-name">' +
+            dailyChallengeButtonHtml() +
             '</div>';
     html += '<div class="session-meta">' +
               '<span>'+fmtDate(session.date)+'</span>' +
@@ -11846,7 +11923,6 @@
 
     if (session.exercises.length === 0){
       html += addExerciseRow;
-      html += dailyChallengeCardHtml();
       html += renderLogTemplateChoices();
       html += '<div class="warmup-reminder">Take a few minutes to <b>warm up</b> before you go heavy \u2014 some light reps and a bit of mobility now saves you an injury later.</div>';
     } else {
@@ -15902,6 +15978,7 @@
     renderOnboardingWizard();
     renderConfirmModal();
     renderRoutineNamePanel();
+    renderChallengePanel();
     renderHistoryEditOverlay();
     renderDeleteAccountPasswordPanel();
     if (ui.tourStep !== null) renderTourStep();
@@ -21324,12 +21401,8 @@
       state.settings.insightView = el.dataset.view === 'cardio' ? 'cardio' : 'muscle';
       saveSettings();
       renderApp();
-    } else if (action === 'challenge-add'){
-      challengeAdd(parseInt(el.dataset.n, 10) || 0);
-    } else if (action === 'challenge-done'){
-      challengeDone();
-    } else if (action === 'challenge-undo'){
-      challengeUndo();
+    } else if (action === 'open-challenge'){
+      openChallenge();
     } else if (action === 'progress-kind'){
       state.settings.progressKind = el.dataset.kind === 'cardio' ? 'cardio' : 'strength';
       saveSettings();
@@ -21836,6 +21909,18 @@
       else renderApp();
     }
   });
+  var challengeOverlayEl = document.getElementById('challengeOverlay');
+  challengeOverlayEl.addEventListener('click', function(e){
+    if (e.target === challengeOverlayEl){ closeChallenge(); return; }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var a = el.dataset.action;
+    if (a === 'close-challenge') closeChallenge();
+    else if (a === 'challenge-add') challengeAdd(parseInt(el.dataset.n, 10) || 0);
+    else if (a === 'challenge-done') challengeDone();
+    else if (a === 'challenge-undo') challengeUndo();
+  });
+
   var routineNameOverlayEl = document.getElementById('routineNameOverlay');
   routineNameOverlayEl.addEventListener('click', function(e){
     if (e.target === routineNameOverlayEl){
@@ -22347,6 +22432,8 @@
       dismissConfirmModal();
     } else if (ui.savingRoutine){
       cancelSaveRoutine();
+    } else if (ui.challengeOpen){
+      closeChallenge();
     } else if (ui.confirmingDeleteAccountPassword){
       if (!ui.deleteAccountPasswordBusy) cancelDeleteAccountPasswordConfirm();
     } else if (ui.tourStep !== null){
