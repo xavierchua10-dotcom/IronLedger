@@ -16237,7 +16237,7 @@
       var occ = lastOccurrence(name);
       if (!occ){
         lines.push('   Last: no history yet');
-        lines.push('   Next: start light, find a weight you can hit for 8–12 clean reps');
+        lines.push(isHoldExercise(name) ? '   Next: start with a hold you can keep clean (try 20–30s)' : '   Next: start light, find a weight you can hit for 8–12 clean reps');
         lines.push('');
         return;
       }
