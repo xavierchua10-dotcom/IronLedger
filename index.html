@@ -4444,6 +4444,17 @@
   .sp-btn svg{width:18px;height:18px;}
   .sp-btn:active{background:var(--panel-2);}
   .sp-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 16px calc(28px + var(--safe-bottom, 0px));}
+
+  .sp-card{width:100%;display:flex;align-items:center;gap:14px;padding:14px;margin:0 0 10px;border-radius:16px;border:1px solid rgba(255,255,255,.1);background:var(--panel);color:inherit;text-align:left;cursor:pointer;font:inherit;}
+  .sp-card:active{background:var(--panel-2);}
+  .sp-card-plan{border-color:rgba(var(--accent-rgb),0.5);}
+  .sp-card-ic{width:44px;height:44px;border-radius:13px;background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.45);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .sp-card-ic svg{width:22px;height:22px;}
+  .sp-card-tx{flex:1;min-width:0;display:block;}
+  .sp-card-t{display:block;font:700 18px 'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.02em;color:var(--text);}
+  .sp-card-s{display:block;font:500 12px 'Inter',sans-serif;color:var(--text-faint);margin-top:2px;}
+  .sp-card-badge{font:700 10px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#1c1500;background:var(--accent);border-radius:999px;padding:4px 9px;}
+  .sp-card-chev{color:var(--accent);font-size:24px;line-height:1;}
   .pf-settings-card{width:100%;margin-top:12px;display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:var(--panel);color:inherit;text-align:left;cursor:pointer;font:inherit;}
   .pf-settings-card:active{background:var(--panel-2);}
   .pf-settings-ic{width:46px;height:46px;border-radius:14px;background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.5);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
@@ -7031,6 +7042,7 @@
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
     howtoEx: null,          // exercise name whose How-to sheet is open (Beginner exercises), or null
     challengeOpen: false,   // Daily Challenge sheet open state
+    settingsPage: null,           // which Settings sub-page is showing (null = the menu of cards)
     settingsOpen: false,          // the full-screen Settings page (opened from the Profile tab) is showing
     challengeBubbleDone: false, // the "challenge is ready" bubble has already been shown since the app opened
     showPricing: false,     // Pricing/upgrade modal open state
@@ -15965,6 +15977,78 @@
     });
   }
 
+
+  // ---------- Settings hub: category cards, each opening its own page ----------
+  var SP_PAGES = {
+    account: { title: 'Account', sub: 'Email, profile icon, password', ic: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5"/>' },
+    plan:    { title: 'Plan', sub: '', ic: '<polygon points="12 2 15 9 22 9.6 16.8 14.4 18.5 21.5 12 17.8 5.5 21.5 7.2 14.4 2 9.6 9"/>' },
+    work:    { title: 'Workout', sub: 'Units, bodyweight & goal, rest timer', ic: '<path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>' },
+    feel:    { title: 'Feedback & alerts', sub: 'Haptics, set flash, notifications', ic: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>' },
+    look:    { title: 'Appearance', sub: 'Accent colour, card background, style', ic: '<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 22a10 10 0 1 1 10-10c0 2.8-2 3.5-4 3.5h-2a2 2 0 0 0-1.5 3.3A2 2 0 0 1 12 22z"/>' },
+    rout:    { title: 'Routines & Brief', sub: 'Saved routines and change history', ic: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>' },
+    data:    { title: 'Your data', sub: 'Export, import backup, danger zone', ic: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>' },
+    help:    { title: 'Help & about', sub: 'Tour, rate, share, terms, privacy', ic: '<circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>' }
+  };
+  var SP_ORDER = ['account', 'plan', 'work', 'feel', 'look', 'rout', 'data', 'help'];
+  function settingsPlanSummary(){
+    if (state.currentAccount === 'guest') return 'Basic · sign up to unlock Pro';
+    if (isDevOverride()) return 'Developer · permanent Pro';
+    if (isProActive()) return proExpiryLabel();
+    if (trialAvailable()) return 'Basic · try 30 days of Pro free';
+    return 'Basic · upgrade for Pro';
+  }
+  function settingsHubHtml(){
+    var h = '';
+    SP_ORDER.forEach(function(k){
+      var p = SP_PAGES[k], sub = (k === 'plan') ? settingsPlanSummary() : p.sub;
+      var badge = (k === 'plan' && (isProActive() || isDevOverride())) ? '<span class="sp-card-badge">PRO</span>' : '';
+      h += '<button type="button" class="sp-card'+(k === 'plan' ? ' sp-card-plan' : '')+'" data-action="open-settings-sub" data-page="'+k+'">' +
+             '<span class="sp-card-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+p.ic+'</svg></span>' +
+             '<span class="sp-card-tx"><span class="sp-card-t">'+esc(p.title)+'</span><span class="sp-card-s">'+esc(sub)+'</span></span>' +
+             badge + '<span class="sp-card-chev">›</span></button>';
+    });
+    return h;
+  }
+  // Takes the full settings markup (every section, in the old single-list order)
+  // and sorts it into the hub pages. Rows carry data-sp="<group>" where a section
+  // is split between pages.
+  function splitSettingsPages(html){
+    var tmp = document.createElement('div'); tmp.innerHTML = html;
+    var out = { account: '', plan: '', work: '', feel: '', look: '', rout: '', data: '', help: '' };
+    var pull = {}, label = '', inDanger = false, routSec = '', briefSec = '';
+    Array.prototype.slice.call(tmp.children).forEach(function(el){
+      if (el.classList.contains('section-label')){
+        label = el.textContent.trim();
+        if (el.classList.contains('danger-zone-toggle')){ inDanger = true; out.data += el.outerHTML; }
+        else if (label === 'Routines') routSec = el.outerHTML;
+        else if (label === 'Brief') briefSec = el.outerHTML;
+        return;
+      }
+      if (inDanger){ out.data += el.outerHTML; return; }
+      if (el.classList.contains('settings-version')){ out.help += el.outerHTML; return; }
+      if (label === 'Account') out.account += el.outerHTML;
+      else if (label === 'Plan') out.plan += el.outerHTML;
+      else if (label === 'Brief') briefSec += el.outerHTML;
+      else if (label === 'Routines') routSec += el.outerHTML;
+      else if (label === 'Your data') out.data += el.outerHTML;
+      else if (label === 'Support') out.help += el.outerHTML;
+      else if (label === 'Preferences' || label === 'Appearance'){
+        Array.prototype.forEach.call(el.querySelectorAll('.settings-row'), function(r){
+          var k = r.getAttribute('data-sp'); if (!k) return;
+          (pull[k] = pull[k] || []).push(r.outerHTML);
+        });
+      }
+    });
+    function sec(lab, key){
+      return (pull[key] && pull[key].length) ? '<div class="section-label">'+lab+'</div><div class="settings-group">'+pull[key].join('')+'</div>' : '';
+    }
+    out.work = sec('Training', 'work-train') + sec('Rest timer', 'work-rest') + sec('Logging', 'work-log');
+    out.feel = sec('Haptics', 'feel-haptic') + sec('Notifications', 'feel-notif');
+    out.look = sec('Theme', 'look-theme') + sec('Layout', 'look-layout');
+    out.rout = routSec + briefSec;
+    out.help = sec('App', 'help-install') + out.help;
+    return out;
+  }
   function renderSettings(){
     var totalSessions = state.sessions.filter(function(s){ return s.status === 'done'; }).length;
     var isGuest = (state.currentAccount === 'guest');
@@ -16027,53 +16111,53 @@
 
     html += '<div class="section-label">Preferences</div>';
     html += '<div class="settings-group">';
-    html += '<div class="settings-row"><div><div class="sr-label">Units</div><div class="sr-sub">Applies to new and existing entries</div></div>' +
+    html += '<div class="settings-row" data-sp="work-train"><div><div class="sr-label">Units</div><div class="sr-sub">Applies to new and existing entries</div></div>' +
               '<div class="seg">' +
                 '<button data-action="set-unit" data-unit="kg" class="'+(state.settings.unit==='kg'?'active':'')+'">KG</button>' +
                 '<button data-action="set-unit" data-unit="lb" class="'+(state.settings.unit==='lb'?'active':'')+'">LB</button>' +
               '</div></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Bodyweight &amp; Goal</div>' +
+    html += '<div class="settings-row" data-sp="work-train"><div><div class="sr-label">Bodyweight &amp; Goal</div>' +
               '<div class="sr-sub">Powers real load, PRs, and progression tips in Pro Tips</div>' +
               '<div class="sr-value">'+(state.settings.bodyweightKg ? fmtWeight(state.settings.bodyweightKg) + ' ' + unitLabel() : 'Not set') + ' \u00b7 ' + esc((GOAL_OPTIONS.filter(function(g){ return g.id === ((state.settings && state.settings.goal) || 'hypertrophy'); })[0] || GOAL_OPTIONS[1]).label) + '</div></div>' +
               '<button class="sr-action" data-action="open-bodyweight-picker">'+(state.settings.bodyweightKg ? 'Edit' : 'Set')+'</button></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Setup Wizard</div>' +
+    html += '<div class="settings-row" data-sp="work-train"><div><div class="sr-label">Setup Wizard</div>' +
               '<div class="sr-sub">Bodyweight, goal, experience, and a suggested starting routine</div></div>' +
               '<button class="sr-action" data-action="open-onboarding-wizard">Replay</button></div>';
     var restAutoStart = !!state.settings.restTimerAutoStart;
-    html += '<div class="settings-row"><div><div class="sr-label">Rest timer start</div><div class="sr-sub">Auto starts the moment you log a set</div></div>' +
+    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest timer start</div><div class="sr-sub">Auto starts the moment you log a set</div></div>' +
               '<div class="seg">' +
                 '<button data-action="set-rest-timer-mode" data-mode="manual" class="'+(!restAutoStart ? 'active' : '')+'">Manual</button>' +
                 '<button data-action="set-rest-timer-mode" data-mode="auto" class="'+(restAutoStart ? 'active' : '')+'">Auto</button>' +
               '</div></div>';
     var restDefaultSecs = (state.settings && state.settings.restTimerDefaultSeconds) || 90;
-    html += '<div class="settings-row"><div><div class="sr-label">Rest timer duration</div><div class="sr-sub">Starting time each time you open the rest timer</div></div>' +
+    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest timer duration</div><div class="sr-sub">Starting time each time you open the rest timer</div></div>' +
               '<button class="sr-action" data-action="open-settings-picker" data-kind="restTimer">'+fmtMMSS(restDefaultSecs)+'</button></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Rest timer sound</div><div class="sr-sub">Chime when rest ends</div></div>' +
+    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest timer sound</div><div class="sr-sub">Chime when rest ends</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-rest-timer-sound" data-val="on" class="'+(state.settings.restTimerSound !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-timer-sound" data-val="off" class="'+(state.settings.restTimerSound === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Rest timer vibrate</div><div class="sr-sub">Vibration pulse when rest ends</div></div>' +
+    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest timer vibrate</div><div class="sr-sub">Vibration pulse when rest ends</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="on" class="'+(state.settings.restTimerVibrate !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="off" class="'+(state.settings.restTimerVibrate === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Haptic feedback</div><div class="sr-sub">Short vibration when you log a set, hit a PR, finish a session, or tap tabs and switches</div></div>' +
+    html += '<div class="settings-row" data-sp="feel-haptic"><div><div class="sr-label">Haptic feedback</div><div class="sr-sub">Short vibration when you log a set, hit a PR, finish a session, or tap tabs and switches</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-haptic-feedback" data-val="on" class="'+(state.settings.hapticFeedback !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-haptic-feedback" data-val="off" class="'+(state.settings.hapticFeedback === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Set flash effect</div><div class="sr-sub">Pulses the sets counter and timestamp when you log a set</div></div>' +
+    html += '<div class="settings-row" data-sp="feel-haptic"><div><div class="sr-label">Set flash effect</div><div class="sr-sub">Pulses the sets counter and timestamp when you log a set</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-set-flash" data-val="on" class="'+(state.settings.setFlashEffect !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-set-flash" data-val="off" class="'+(state.settings.setFlashEffect === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Quick add</div><div class="sr-sub">Skip the &ldquo;Add exercise?&rdquo; and &ldquo;Add a set?&rdquo; pop-ups. Deleting and finishing still ask first.</div></div>' +
+    html += '<div class="settings-row" data-sp="work-log"><div><div class="sr-label">Quick add</div><div class="sr-sub">Skip the &ldquo;Add exercise?&rdquo; and &ldquo;Add a set?&rdquo; pop-ups. Deleting and finishing still ask first.</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-quick-add" data-val="on" class="'+(state.settings.quickAdd === true ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-quick-add" data-val="off" class="'+(state.settings.quickAdd !== true ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Session summary</div><div class="sr-sub">When you finish a session, see how each exercise did compared with last time.</div></div>' +
+    html += '<div class="settings-row" data-sp="work-log"><div><div class="sr-label">Session summary</div><div class="sr-sub">When you finish a session, see how each exercise did compared with last time.</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-session-summary" data-val="on" class="'+(state.settings.sessionSummary !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-session-summary" data-val="off" class="'+(state.settings.sessionSummary === false ? 'active' : '')+'">OFF</button>' +
@@ -16089,7 +16173,7 @@
       var pushOn = !!(state.userDoc && state.userDoc.fcmToken) && notifPerm === 'granted';
       var pushSub = pushBlocked ? 'Blocked on this device \u2014 allow notifications for SaviorFit Logger in your phone\u2019s settings'
                   : (pushOn ? 'Enabled on this device' : 'Get a nudge when it\u2019s been a while');
-      html += '<div class="settings-row"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+pushSub+'</div></div>' +
+      html += '<div class="settings-row" data-sp="feel-notif"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+pushSub+'</div></div>' +
                 (pushBlocked ? '' : '<button class="sr-action" data-action="enable-push"'+(ui.pushBusy ? ' disabled' : '')+'>'+(ui.pushBusy ? '\u2026' : (pushOn ? 'Re-enable' : 'Enable'))+'</button>') +
               '</div>';
     }
@@ -16102,7 +16186,7 @@
     // came looking on purpose, dismissing the banner shouldn't hide it
     // from here too.
     if (ui.installPromptAvailable){
-      html += '<div class="settings-row"><div><div class="sr-label">Install App</div>' +
+      html += '<div class="settings-row" data-sp="help-install"><div><div class="sr-label">Install App</div>' +
                 '<div class="sr-sub">Add to your home screen \u2014 works offline, opens like a real app</div></div>' +
                 '<button class="sr-action" data-action="install-app">Install</button></div>';
     }
@@ -16114,30 +16198,30 @@
     var accentThemeObj = chosenAccentTheme === 'auto'
       ? { accent: (currentAutoAccentColors && currentAutoAccentColors.accent) || ACCENT_THEME_OPTIONS[0].accent, label: 'Auto' }
       : (ACCENT_THEME_OPTIONS.filter(function(t){ return t.id === chosenAccentTheme; })[0] || ACCENT_THEME_OPTIONS[0]);
-    html += '<div class="settings-row"><div><div class="sr-label">Accent color</div><div class="sr-sub">Changes the accent color throughout the app</div></div>' +
+    html += '<div class="settings-row" data-sp="look-theme"><div><div class="sr-label">Accent color</div><div class="sr-sub">Changes the accent color throughout the app</div></div>' +
               '<button class="sr-action sr-action-swatch" data-action="open-settings-picker" data-kind="accentColor">' +
                 '<span class="sr-swatch-dot" style="background:'+accentThemeObj.accent+'"></span>'+esc(accentThemeObj.label) +
               '</button></div>';
     var chosenCardBg = (state.settings && state.settings.cardBg) || 'none';
     var cardBgObj = CARD_BG_OPTIONS.filter(function(o){ return o.id === chosenCardBg; })[0] || CARD_BG_OPTIONS[0];
-    html += '<div class="settings-row"><div><div class="sr-label">Card background</div>' +
+    html += '<div class="settings-row" data-sp="look-theme"><div><div class="sr-label">Card background</div>' +
               '<div class="sr-sub">Applies consistently to every exercise card in Log</div></div>' +
               '<button class="sr-action" data-action="open-settings-picker" data-kind="cardBg">'+esc(cardBgObj.label)+'</button></div>';
     var chosenDensity = (state.settings && state.settings.density) || 'comfortable';
-    html += '<div class="settings-row"><div><div class="sr-label">Density</div><div class="sr-sub">Fit more sets per screen in Log</div></div>' +
+    html += '<div class="settings-row" data-sp="look-layout"><div><div class="sr-label">Density</div><div class="sr-sub">Fit more sets per screen in Log</div></div>' +
               '<div class="seg">' +
                 '<button data-action="set-density" data-density="comfortable" class="'+(chosenDensity==='comfortable'?'active':'')+'">Comfortable</button>' +
                 '<button data-action="set-density" data-density="compact" class="'+(chosenDensity==='compact'?'active':'')+'">Compact</button>' +
               '</div></div>';
     var chosenCornerStyle = (state.settings && state.settings.cornerStyle) || 'rounded';
-    html += '<div class="settings-row"><div><div class="sr-label">Corners</div><div class="sr-sub">Rounded or sharp edges throughout the app</div></div>' +
+    html += '<div class="settings-row" data-sp="look-layout"><div><div class="sr-label">Corners</div><div class="sr-sub">Rounded or sharp edges throughout the app</div></div>' +
               '<div class="seg">' +
                 '<button data-action="set-corner-style" data-style="rounded" class="'+(chosenCornerStyle==='rounded'?'active':'')+'">Rounded</button>' +
                 '<button data-action="set-corner-style" data-style="sharp" class="'+(chosenCornerStyle==='sharp'?'active':'')+'">Sharp</button>' +
               '</div></div>';
     var chosenCardStyle = (state.settings && state.settings.cardStyle) || 'default';
     var cardStyleObj = CARD_STYLE_PICKER_OPTIONS.filter(function(o){ return o.id === chosenCardStyle; })[0] || CARD_STYLE_PICKER_OPTIONS[0];
-    html += '<div class="settings-row"><div><div class="sr-label">Card style</div><div class="sr-sub">Sheen and Liquid Glass add extra visual effects to cards</div></div>' +
+    html += '<div class="settings-row" data-sp="look-layout"><div><div class="sr-label">Card style</div><div class="sr-sub">Sheen and Liquid Glass add extra visual effects to cards</div></div>' +
               '<button class="sr-action" data-action="open-settings-picker" data-kind="cardStyle">'+esc(cardStyleObj.label)+'</button></div>';
     html += '</div>';
 
@@ -16201,8 +16285,6 @@
       }
     }
 
-    html += '<input type="file" id="importFile" accept="application/json" style="display:none;">';
-
     // The Profile tab itself is short: profile card + stats + a Settings card.
     // The settings list opens as a full-screen page (renderSettingsPage).
     document.getElementById('view').innerHTML = profileHeroHtml() +
@@ -16211,20 +16293,26 @@
         '<span class="pf-settings-tx"><div class="pf-settings-t">Settings</div><div class="pf-settings-s">Account, plan, units, rest timer, data</div></span>' +
         '<span class="pf-settings-chev">\u203a</span></button>';
     var sp = document.getElementById('settingsPage'), spPanel = document.getElementById('settingsPagePanel');
-    var oldBody = spPanel.querySelector('.sp-body'), keepTop = oldBody ? oldBody.scrollTop : 0;
-    spPanel.innerHTML =
-      '<div class="sp-head"><button type="button" class="sp-btn" data-action="close-settings" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>' +
-      '<h3>Settings</h3>' +
-      '<button type="button" class="sp-btn" data-action="close-settings" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
-      '<div class="sp-body">' + html + '</div>';
+    var oldBody = spPanel.querySelector('.sp-body'), keepTop = (oldBody && oldBody.getAttribute('data-sub') === (ui.settingsPage || '')) ? oldBody.scrollTop : 0;
+    var pages = splitSettingsPages(html);
+    var subKey = ui.settingsPage && SP_PAGES[ui.settingsPage] ? ui.settingsPage : null;
+    var svgBack = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+    var svgX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+    spPanel.innerHTML = subKey
+      ? '<div class="sp-head"><button type="button" class="sp-btn" data-action="settings-back" aria-label="Back">'+svgBack+'</button><h3>'+esc(SP_PAGES[subKey].title)+'</h3>' +
+        '<button type="button" class="sp-btn" data-action="close-settings" aria-label="Close">'+svgX+'</button></div>' +
+        '<div class="sp-body" data-sub="'+subKey+'">' + pages[subKey] + '</div>'
+      : '<div class="sp-head"><button type="button" class="sp-btn" data-action="close-settings" aria-label="Close">'+svgX+'</button><h3>Settings</h3></div>' +
+        '<div class="sp-body" data-sub="">' + settingsHubHtml() + '</div>';
+    spPanel.insertAdjacentHTML('beforeend', '<input type="file" id="importFile" accept="application/json" style="display:none;">');
     sp.classList.toggle('hidden', !ui.settingsOpen);
     var newBody = spPanel.querySelector('.sp-body');
     if (newBody && keepTop) newBody.scrollTop = keepTop;
 
     document.getElementById('importFile').addEventListener('change', handleImportFile);
   }
-  function openSettingsPage(){ ui.settingsOpen = true; renderApp(); }
-  function closeSettingsPage(){ ui.settingsOpen = false; renderApp(); }
+  function openSettingsPage(){ ui.settingsOpen = true; ui.settingsPage = null; renderApp(); }
+  function closeSettingsPage(){ ui.settingsOpen = false; ui.settingsPage = null; renderApp(); }
 
   /* =========================================================
      RENDER DISPATCH
@@ -16430,7 +16518,7 @@
     else if (state.tab === 'settings') renderSettings();
     else if (state.tab === 'insight') renderInsight();
     if (state.tab !== 'settings' && ui.settingsOpen){
-      ui.settingsOpen = false;
+      ui.settingsOpen = false; ui.settingsPage = null;
       var spEl = document.getElementById('settingsPage'); if (spEl) spEl.classList.add('hidden');
     }
 
@@ -20946,11 +21034,11 @@
     { tab: 'log', selector: '#notifBellBtn', title: 'Notifications', text: 'Trial status, reminders, and other updates show up here.' },
     { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Tap the \u22ee on any session to edit, repeat, or delete it \u2014 or tap the pencil on any exercise to jump straight to editing just that one.' },
     { tab: 'insight', selector: '.mg-panel', fallback: '#view', title: 'Insight', text: 'See your weekly set volume per muscle group on the 3D model \u2014 tap a muscle to focus the camera on it.' },
-    { tab: 'settings', selector: '[data-action="open-onboarding-wizard"]', fallback: '#view', title: 'Setup Wizard', text: 'Replay the setup questions anytime (also from the Build my plan card on an empty Log) \u2014 bodyweight, goal, experience, and training days \u2014 to get a freshly suggested starting routine.' },
-    { tab: 'settings', selector: '[data-action="open-bodyweight-picker"]', fallback: '#view', title: 'Bodyweight & goal', text: 'Set these once \u2014 they power real load tracking on bodyweight exercises and shape how Pro Tips suggests your next set.' },
-    { tab: 'settings', selector: '[data-action="open-settings-picker"][data-kind="accentColor"]', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
-    { tab: 'settings', selector: '[data-action="open-settings-picker"][data-kind="cardBg"]', fallback: '#view', title: 'Card style', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
-    { tab: 'settings', selector: '.settings-row .seg', fallback: '#view', title: 'Units', text: 'Switch between kg and lb any time. Your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.' }
+    { tab: 'settings', sp: 'work', selector: '[data-action="open-onboarding-wizard"]', fallback: '#view', title: 'Setup Wizard', text: 'Replay the setup questions anytime (also from the Build my plan card on an empty Log) \u2014 bodyweight, goal, experience, and training days \u2014 to get a freshly suggested starting routine.' },
+    { tab: 'settings', sp: 'work', selector: '[data-action="open-bodyweight-picker"]', fallback: '#view', title: 'Bodyweight & goal', text: 'Set these once \u2014 they power real load tracking on bodyweight exercises and shape how Pro Tips suggests your next set.' },
+    { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="accentColor"]', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
+    { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="cardBg"]', fallback: '#view', title: 'Card style', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
+    { tab: 'settings', sp: 'work', selector: '.settings-row .seg', fallback: '#view', title: 'Units', text: 'Switch between kg and lb any time. Your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.' }
   ];
 
   // Keep the two Log template steps in the same order as the cards on screen:
@@ -20975,7 +21063,7 @@
   }
   function endTour(){
     ui.tourStep = null;
-    if (ui.settingsOpen){ ui.settingsOpen = false; renderApp(); }
+    if (ui.settingsOpen){ ui.settingsOpen = false; ui.settingsPage = null; renderApp(); }
     renderTourStep();
   }
   function tourNext(){
@@ -21061,8 +21149,8 @@
       renderApp();
     }
     // The settings steps point at items inside the full-screen Settings page.
-    if (step.tab === 'settings' && !ui.settingsOpen){ ui.settingsOpen = true; renderApp(); }
-    else if (step.tab !== 'settings' && ui.settingsOpen){ ui.settingsOpen = false; renderApp(); }
+    if (step.tab === 'settings' && (!ui.settingsOpen || ui.settingsPage !== (step.sp || null))){ ui.settingsOpen = true; ui.settingsPage = step.sp || null; renderApp(); }
+    else if (step.tab !== 'settings' && ui.settingsOpen){ ui.settingsOpen = false; ui.settingsPage = null; renderApp(); }
     backdrop.classList.remove('hidden');
     bubble.classList.remove('hidden');
     bubble.innerHTML =
@@ -21506,6 +21594,7 @@
     var hasMm = els.some(function(el){ return el.id === 'mmOverlay'; });
     if (hasMm && mmListOpen()) n++;
     if (progressBackStepActive()) n++;
+    if (ui.settingsOpen && ui.settingsPage) n++;   // Settings sub-page -> Settings menu -> Profile
     return n;
   }
   function syncBackHistory(){
@@ -21548,6 +21637,7 @@
     }
     var top = els[els.length - 1];
     if (top.id === 'rowActionMenu'){ closeRowActionMenu(); return; }
+    if (top.id === 'settingsPage' && ui.settingsPage){ ui.settingsPage = null; renderApp(); return; }
     if (top.id === 'mmOverlay' && mmListOpen()){
       var backBtn = top.querySelector('[data-action="mm-back-to-grid"]');
       if (backBtn){ backBtn.click(); return; }
@@ -21689,6 +21779,10 @@
       closeNotifications();
     } else if (action === 'open-settings-page'){
       openSettingsPage();
+    } else if (action === 'open-settings-sub'){
+      ui.settingsPage = el.dataset.page; renderApp(); queueBackSync();
+    } else if (action === 'settings-back'){
+      ui.settingsPage = null; renderApp(); queueBackSync();
     } else if (action === 'close-settings'){
       closeSettingsPage();
     } else if (action === 'share-profile'){
