@@ -4302,7 +4302,31 @@
   .mg-banner.ok svg,.mg-banner.ok b,.mg-banner.ok i{color:var(--success);}
   .mg-banner.over{background:rgba(201,64,58,0.10);border-color:rgba(201,64,58,0.34);}
   .mg-banner.over svg,.mg-banner.over b,.mg-banner.over i{color:var(--accent-2);}
-    /* ---- Cardio: Progress + History edit ---- */
+    /* ---- Daily challenge card ---- */
+  .dc-card{padding:20px 20px 18px 22px !important;}
+  .dc-card > .dc-ill{position:absolute !important;right:16px;top:22px;width:124px;height:auto;opacity:.95;z-index:1;}
+  .dc-card > .dc-badge-ok{position:absolute !important;right:22px;top:26px;z-index:1;width:54px;height:54px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 6px rgba(var(--accent-rgb),0.18);}
+  .dc-card .template-card-name{max-width:58%;}
+  .dc-card .template-card-sub{max-width:56%;}
+  .dc-card .dcf{display:inline-flex;gap:5px;align-items:center;color:var(--accent);border-color:rgba(var(--accent-rgb),0.45);}
+  .dcp{display:flex;align-items:center;gap:12px;margin-top:16px;}
+  .dcbar{flex:1;height:10px;border-radius:99px;background:rgba(255,255,255,0.1);overflow:hidden;}
+  .dcbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#c98d17,var(--accent));transition:width .25s;}
+  .dcn{font:500 12px 'JetBrains Mono',monospace;color:#8b9098;}
+  .dcn b{font:600 20px Oswald,sans-serif;color:#f2f2f2;}
+  .dcb{display:flex;gap:8px;margin-top:14px;}
+  .dcb button{flex:0 0 56px;padding:12px 0;border-radius:12px;border:1px solid rgba(var(--accent-rgb),0.5);background:rgba(var(--accent-rgb),0.08);color:var(--accent);font:700 14px 'JetBrains Mono',monospace;cursor:pointer;}
+  .dcb button.neg{flex:0 0 48px;border-color:rgba(255,255,255,0.18);background:transparent;color:#8b9098;}
+  .dcb button:disabled{opacity:.35;}
+  .dcb button.go{flex:1;background:var(--accent);color:#1c1500;border-color:var(--accent);font:700 13px Oswald,sans-serif;letter-spacing:.06em;text-transform:uppercase;}
+  .dcs{display:flex;justify-content:space-between;margin-top:18px;}
+  .dcd{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .dcd b{width:34px;height:34px;border-radius:50%;border:1.5px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font:700 14px Inter,sans-serif;color:#1c1500;}
+  .dcd.on b{background:var(--accent);border:1.5px solid var(--accent);}
+  .dcd.today b{box-shadow:0 0 0 4px rgba(var(--accent-rgb),0.25);}
+  .dcd i{font:600 10px 'JetBrains Mono',monospace;color:#8b9098;font-style:normal;}
+  .dc-undo{display:block;margin:12px 0 0 auto;background:none;border:0;color:#8b9098;font:600 11px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;text-decoration:underline;cursor:pointer;padding:4px;}
+  /* ---- Cardio: Progress + History edit ---- */
   .pg-seg-spacer{height:64px;}
   .pg-seg{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:6;display:flex;width:max-content;padding:3px;box-shadow:0 6px 18px rgba(0,0,0,0.45);border-radius:999px;background:rgba(29,32,37,0.92);border:1px solid rgba(255,255,255,0.1);}
   .pg-seg button{padding:9px 14px;border-radius:999px;border:0;background:transparent;font:700 10px/1 'JetBrains Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;color:#8b9098;display:flex;gap:5px;align-items:center;cursor:pointer;}
@@ -11555,6 +11579,144 @@
   // "— or choose an existing template —" block under Add Exercise on an empty
   // log: the same category cards as the "Start from a Template" popup. Tapping
   // one opens the popup straight on that category's template list.
+  /* ---- Daily challenge (Log tab, empty-session screen) ----
+     One bodyweight challenge per calendar day, picked from a fixed rotation by
+     the date, so nothing needs a server. Kept apart from the workout log: it
+     never touches sessions, volume or PRs. Saved in state.settings.challenge
+     as { days: { 'YYYY-MM-DD': { n, done, prev } }, best } and synced with the
+     rest of the settings. */
+  var CHALLENGES = [
+    { id: 'pushups',  name: '100 Push-ups',     kind: 'reps', target: 100 },
+    { id: 'squats',   name: '100 Squats',       kind: 'reps', target: 100 },
+    { id: 'plank',    name: '3 min Plank',      kind: 'time', target: 180 },
+    { id: 'situps',   name: '50 Sit-ups',       kind: 'reps', target: 50 },
+    { id: 'lunges',   name: '60 Lunges',        kind: 'reps', target: 60 },
+    { id: 'jacks',    name: '100 Jumping Jacks', kind: 'reps', target: 100 },
+    { id: 'wallsit',  name: '2 min Wall Sit',   kind: 'time', target: 120 },
+    { id: 'bridges',  name: '50 Glute Bridges', kind: 'reps', target: 50 }
+  ];
+  var CH_POSES = {
+    pushups: { head: [26, 42], d: ['M37 49 L108 68', 'M108 68 L134 77', 'M52 53 L50 78'], thin: ['M46 78 L58 78', 'M134 77 L142 77'], arrow: true },
+    squats:  { head: [58, 20], d: ['M60 30 L52 54', 'M52 54 L80 58', 'M80 58 L76 79', 'M58 34 L90 36'], thin: ['M71 79 L86 79'] },
+    plank:   { head: [24, 50], d: ['M34 56 L112 66', 'M112 66 L128 78'], thin: ['M44 59 L44 78', 'M44 78 L66 78'] },
+    situps:  { head: [48, 30], d: ['M52 40 L62 74', 'M62 74 L94 52', 'M94 52 L116 76', 'M54 46 L84 42'], thin: [] },
+    lunges:  { head: [60, 14], d: ['M60 24 L60 52', 'M60 52 L86 56', 'M86 56 L86 78', 'M60 52 L44 68', 'M44 68 L30 78', 'M60 28 L68 46'], thin: [] },
+    jacks:   { head: [75, 14], d: ['M75 24 L75 54', 'M75 30 L46 10', 'M75 30 L104 10', 'M75 54 L54 79', 'M75 54 L96 79'], thin: [] },
+    wallsit: { head: [46, 22], d: ['M42 32 L42 56', 'M42 56 L76 56', 'M76 56 L76 79', 'M44 38 L66 52'], thin: ['M34 6 L34 80'] },
+    bridges: { head: [16, 70], d: ['M26 74 L66 50', 'M66 50 L92 58', 'M92 58 L96 79', 'M26 76 L58 78'], thin: [] }
+  };
+  function chFigureSvg(id){
+    var p = CH_POSES[id] || CH_POSES.pushups;
+    var s = '<svg class="dc-ill" viewBox="0 0 150 90" fill="none" stroke="#f2b134" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+            '<line x1="6" y1="81" x2="144" y2="81" stroke="rgba(255,255,255,.18)" stroke-width="2.5"/>' +
+            '<circle cx="'+p.head[0]+'" cy="'+p.head[1]+'" r="8.5" fill="rgba(242,177,52,.18)"/>';
+    p.d.forEach(function(d){ s += '<path d="'+d+'"/>'; });
+    p.thin.forEach(function(d){ s += '<path d="'+d+'" stroke-width="3.5"'+(d.indexOf('M34 6') === 0 ? ' stroke="rgba(255,255,255,.22)"' : '')+'/>'; });
+    if (p.arrow) s += '<path d="M76 24 L76 12 M70 17 L76 11 L82 17" stroke-width="3" stroke="rgba(242,177,52,.55)"/>';
+    return s + '</svg>';
+  }
+  function chKey(d){ return d.getFullYear() + '-' + cpad(d.getMonth() + 1) + '-' + cpad(d.getDate()); }
+  function chData(){
+    if (!state.settings) state.settings = {};
+    var c = state.settings.challenge;
+    if (!isPlainObject(c)) c = state.settings.challenge = { days: {}, best: 0 };
+    if (!isPlainObject(c.days)) c.days = {};
+    return c;
+  }
+  function chToday(){
+    var d = new Date();
+    var idx = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+    return CHALLENGES[((idx % CHALLENGES.length) + CHALLENGES.length) % CHALLENGES.length];
+  }
+  function chEntry(){
+    var e = chData().days[chKey(new Date())];
+    return { n: e && e.n > 0 ? e.n : 0, done: !!(e && e.done), prev: e && e.prev };
+  }
+  function chStreak(){
+    var days = chData().days, d = new Date();
+    var ok = function(dt){ var e = days[chKey(dt)]; return !!(e && e.done); };
+    if (!ok(d)) d.setDate(d.getDate() - 1);   // today not done yet: the streak is still alive until midnight
+    var n = 0;
+    while (ok(d) && n < 4000){ n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  function chSave(){
+    var c = chData(), keys = Object.keys(c.days);
+    if (keys.length > 400){ keys.sort(); keys.slice(0, keys.length - 400).forEach(function(k){ delete c.days[k]; }); }
+    saveSettings();
+  }
+  function chFmtTarget(sec){ return Math.floor(sec / 60) + ':' + cpad(sec % 60); }
+  function dailyChallengeCardHtml(){
+    var ch = chToday(), e = chEntry(), c = chData(), streak = chStreak();
+    var best = Math.max(c.best || 0, streak);
+    var hrs = Math.max(1, Math.ceil((new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 1).getTime() - Date.now()) / 3600000));
+    var flame = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#f2b134" aria-hidden="true"><path d="M12 2c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg>';
+    var html = '<div class="log-tpl-list dc-list"><div class="log-tpl-or"><span>today’s challenge</span></div>' +
+      '<div class="template-card template-cat-card log-tpl-card dc-card'+(e.done ? ' done' : '')+'">' + templateBgHtml();
+    html += e.done
+      ? '<span class="dc-badge-ok"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#14161a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>'
+      : chFigureSvg(ch.id);
+    html += '<div class="template-card-name">'+esc(ch.name)+'</div>' +
+      '<div class="template-card-sub">'+(e.done ? 'Done for today — see you tomorrow.' : ch.kind === 'time' ? 'Do it in rounds — tap when you’ve hit the time.' : 'Chip away at it any time today.')+'</div>' +
+      '<div class="tpl-chips"><span class="tpl-chip dcf">'+flame+(streak > 0 ? streak + '-day streak' : 'Start a streak')+'</span>' +
+        '<span class="tpl-chip">'+(e.done ? 'Best ' + best : ch.kind === 'time' ? 'Target ' + chFmtTarget(ch.target) : 'Resets in ' + hrs + 'h')+'</span></div>';
+    if (e.done){
+      var mon = mondayOf(new Date()), todayKey = chKey(new Date()), letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+      html += '<div class="dcs">';
+      for (var i = 0; i < 7; i++){
+        var dd = new Date(mon); dd.setDate(mon.getDate() + i);
+        var k = chKey(dd), en = c.days[k], on = !!(en && en.done);
+        html += '<span class="dcd'+(on ? ' on' : '')+(k === todayKey ? ' today' : '')+'"><b>'+(on ? '✓' : '')+'</b><i>'+letters[i]+'</i></span>';
+      }
+      html += '</div><button type="button" class="dc-undo" data-action="challenge-undo">Undo</button>';
+    } else if (ch.kind === 'reps'){
+      html += '<div class="dcp"><div class="dcbar"><i style="width:'+Math.min(100, Math.round(e.n / ch.target * 100))+'%"></i></div>' +
+              '<div class="dcn"><b>'+e.n+'</b> / '+ch.target+'</div></div>' +
+              '<div class="dcb"><button type="button" class="neg" data-action="challenge-add" data-n="-10"'+(e.n > 0 ? '' : ' disabled')+'>−10</button>' +
+              '<button type="button" data-action="challenge-add" data-n="10">+10</button>' +
+              '<button type="button" data-action="challenge-add" data-n="20">+20</button>' +
+              '<button type="button" class="go" data-action="challenge-done">Mark done</button></div>';
+    } else {
+      html += '<div class="dcb"><button type="button" class="go" data-action="challenge-done">Mark done</button></div>';
+    }
+    return html + '</div></div>';
+  }
+  function challengeAdd(delta){
+    var ch = chToday(), c = chData(), key = chKey(new Date()), e = c.days[key] || { n: 0, done: false };
+    if (e.done || ch.kind !== 'reps') return;
+    e.n = Math.max(0, Math.min(ch.target, (e.n || 0) + delta));
+    c.days[key] = e;
+    if (e.n >= ch.target){ e.done = true; e.prev = Math.max(0, ch.target - 10); challengeFinished(); return; }
+    chSave();
+    renderApp();
+  }
+  function challengeDone(){
+    var ch = chToday(), c = chData(), key = chKey(new Date()), e = c.days[key] || { n: 0, done: false };
+    if (e.done) return;
+    e.prev = e.n || 0;
+    e.n = ch.kind === 'reps' ? ch.target : 1;
+    e.done = true;
+    c.days[key] = e;
+    challengeFinished();
+  }
+  function challengeFinished(){
+    var c = chData(), s = chStreak();
+    if (s > (c.best || 0)) c.best = s;
+    chSave();
+    logActivity('Completed daily challenge: ' + chToday().name, 'Log');
+    renderApp();
+    showToast(s > 1 ? 'Challenge done — ' + s + '-day streak' : 'Challenge done — streak started');
+  }
+  function challengeUndo(){
+    var c = chData(), key = chKey(new Date()), e = c.days[key];
+    if (!e || !e.done) return;
+    e.done = false;
+    e.n = e.prev > 0 ? e.prev : 0;
+    delete e.prev;
+    chSave();
+    renderApp();
+  }
+
   function renderLogTemplateChoices(){
     var cats = WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
       return { c: c, keys: templatesInCategory(c) };
@@ -11683,6 +11845,7 @@
 
     if (session.exercises.length === 0){
       html += addExerciseRow;
+      html += dailyChallengeCardHtml();
       html += renderLogTemplateChoices();
       html += '<div class="warmup-reminder">Take a few minutes to <b>warm up</b> before you go heavy \u2014 some light reps and a bit of mobility now saves you an injury later.</div>';
     } else {
@@ -21160,6 +21323,12 @@
       state.settings.insightView = el.dataset.view === 'cardio' ? 'cardio' : 'muscle';
       saveSettings();
       renderApp();
+    } else if (action === 'challenge-add'){
+      challengeAdd(parseInt(el.dataset.n, 10) || 0);
+    } else if (action === 'challenge-done'){
+      challengeDone();
+    } else if (action === 'challenge-undo'){
+      challengeUndo();
     } else if (action === 'progress-kind'){
       state.settings.progressKind = el.dataset.kind === 'cardio' ? 'cardio' : 'strength';
       saveSettings();
