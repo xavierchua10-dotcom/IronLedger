@@ -4302,6 +4302,39 @@
   .mg-banner.ok svg,.mg-banner.ok b,.mg-banner.ok i{color:var(--success);}
   .mg-banner.over{background:rgba(201,64,58,0.10);border-color:rgba(201,64,58,0.34);}
   .mg-banner.over svg,.mg-banner.over b,.mg-banner.over i{color:var(--accent-2);}
+    /* ---- Cardio: Progress + History edit ---- */
+  .pg-seg{display:flex;width:max-content;margin:0 auto 14px;padding:3px;border-radius:999px;background:rgba(29,32,37,0.92);border:1px solid rgba(255,255,255,0.1);}
+  .pg-seg button{padding:9px 16px;border-radius:999px;border:0;background:transparent;font:700 10px/1 'JetBrains Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;color:#8b9098;display:flex;gap:5px;align-items:center;cursor:pointer;}
+  .pg-seg button svg{width:11px;height:11px;}
+  .pg-seg button.on{background:var(--accent);color:#1c1500;}
+  .pg-seg button.cd.on{background:#4fc3d9;color:#0b1a1e;}
+  .cp-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;margin:0 -2px;scrollbar-width:none;}
+  .cp-chips::-webkit-scrollbar{display:none;}
+  .cp-chip{flex:0 0 auto;padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:#c7ccd3;font:600 13px Inter,sans-serif;cursor:pointer;white-space:nowrap;}
+  .cp-chip.on{background:#4fc3d9;border-color:#4fc3d9;color:#0b1a1e;}
+  .cp-tabs{display:flex;gap:6px;margin-bottom:10px;}
+  .cp-tabs button{flex:1;padding:10px 0;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:#8b9098;font:700 10.5px/1 'JetBrains Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}
+  .cp-tabs button.on{border-color:#4fc3d9;color:#4fc3d9;background:rgba(79,195,217,0.1);}
+  .cp-sv{color:#4fc3d9 !important;}
+  .cp-sv i{font:500 11px 'JetBrains Mono',monospace;color:#8b9098;font-style:normal;margin-left:3px;}
+  .cp-chart{margin-top:8px;}
+  .cp-svg{display:block;width:100%;height:auto;}
+  .cp-ax{fill:#8b9098;font:500 9.5px 'JetBrains Mono',monospace;}
+  .cp-val{fill:#e9e6df;font:700 10.5px 'JetBrains Mono',monospace;}
+  .cp-range{gap:6px;}
+  .cp-r{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:#8b9098;font:700 10px/1 'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;}
+  .cp-r.on{border-color:#4fc3d9;color:#4fc3d9;}
+  .cp-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 4px;}
+  .cp-tiles > div{padding:12px;border-radius:12px;background:var(--panel);border:1px solid var(--line);}
+  .cp-tiles i{display:block;font:600 9px 'JetBrains Mono',monospace;color:#8b9098;letter-spacing:0.1em;font-style:normal;}
+  .cp-tiles b{display:block;margin-top:5px;font:600 20px Oswald,sans-serif;color:#e9e6df;}
+  .cp-tiles b small{font:500 10.5px 'JetBrains Mono',monospace;color:#8b9098;margin-left:3px;}
+  .he-cd-form{display:flex;gap:10px;align-items:flex-end;margin:8px 0;}
+  .he-cd-grid{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(54px,1fr));gap:6px;}
+  .he-cd-grid label{display:block;}
+  .he-cd-grid i{display:block;font:600 9px 'JetBrains Mono',monospace;color:#8b9098;letter-spacing:0.08em;font-style:normal;margin-bottom:4px;}
+  .he-cd-in{width:100%;box-sizing:border-box;padding:11px 2px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2,#1d2025);color:var(--text);font:600 15px 'JetBrains Mono',monospace;text-align:center;}
+  .he-cd-in:focus{outline:none;border-color:#4fc3d9;}
   /* ---- Cardio ---- */
   .cx-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(79,195,217,0.14);color:#4fc3d9;font:700 10.5px/1 'JetBrains Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;}
   .cx-chip svg{width:13px;height:13px;}
@@ -12218,7 +12251,7 @@
   }
   function computeWeeklyCardio(){
     var weekStartMs = mondayOf(new Date()).getTime();
-    var out = { totalSec: 0, sessions: 0, km: 0, distSec: 0, days: [0, 0, 0, 0, 0, 0, 0], byAct: {} };
+    var out = { totalSec: 0, sessions: 0, km: 0, distSec: 0, pKm: 0, pSec: 0, days: [0, 0, 0, 0, 0, 0, 0], byAct: {} };
     state.sessions.forEach(function(s){
       if (s.status !== 'done') return;
       var t = new Date(s.finishedAt || s.date).getTime();
@@ -12231,7 +12264,10 @@
           out.totalSec += sec;
           var dow = (new Date(t).getDay() + 6) % 7;
           out.days[dow] += sec;
-          if (e.distanceKm > 0){ out.km += e.distanceKm; out.distSec += sec; }
+          if (e.distanceKm > 0){
+            out.km += e.distanceKm; out.distSec += sec;
+            if (!/bike|cycl|rowing|rower/i.test(ex.name)){ out.pKm += e.distanceKm; out.pSec += sec; }   // pace only means something for foot-based cardio
+          }
           var k = ex.name;
           if (!out.byAct[k]) out.byAct[k] = { name: k, sec: 0, km: 0 };
           out.byAct[k].sec += sec;
@@ -12260,7 +12296,7 @@
     var monday = mondayOf(new Date()), sunday = new Date(monday);
     sunday.setDate(sunday.getDate() + 6);
     var todayIdx = (new Date().getDay() + 6) % 7;
-    var pace = w.km > 0 && w.distSec > 0 ? cardioPaceSec(w.distSec, w.km) : null;
+    var pace = w.pKm > 0 && w.pSec > 0 ? cardioPaceSec(w.pSec, w.pKm) : null;
     var dayMax = Math.max(30 * 60, Math.max.apply(null, w.days));
     var letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -12592,7 +12628,11 @@
                                (e.distanceKm > 0 ? '<em>&middot;</em>'+fmtDist(e.distanceKm)+'<i>'+cardioDistUnit()+'</i>' : '') +
                                (e.inclinePct > 0 ? '<em>&middot;</em>'+e.inclinePct+'<i>% inc</i>' : '') + '</span>' +
                              (pace ? '<span class="hx-time">'+fmtClock(pace)+' /'+cardioDistUnit()+'</span>' : '') + '</div>';
-                    }).join('') + '</div></div></div></div>';
+                    }).join('') + '</div></div></div>' +
+                  '<div class="hi-ex-actions">' +
+                    '<button class="hi-edit-btn" data-action="edit-session-exercise" data-session="'+s.id+'" data-ex="'+ex.id+'" aria-label="Edit '+esc(ex.name)+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>' +
+                    '<button class="hi-go-btn" data-action="open-cardio-progress" data-name="'+esc(ex.name)+'" aria-label="See '+esc(ex.name)+' in Progress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg></button>' +
+                  '</div></div>';
           return;
         }
         html += '<div class="hi-ex">' +
@@ -14298,16 +14338,303 @@
     return { html: html, skipLock: false };
   }
 
+  /* ---- Progress: cardio ---- */
+  var CP_COLOR = '#4fc3d9';
+  function progressKindSwitchHtml(kind){
+    return '<div class="pg-seg">' +
+             '<button type="button" class="'+(kind === 'strength' ? 'on' : '')+'" data-action="progress-kind" data-kind="strength">Strength</button>' +
+             '<button type="button" class="cd'+(kind === 'cardio' ? ' on' : '')+'" data-action="progress-kind" data-kind="cardio">'+CARDIO_HEART_SVG+'Cardio</button>' +
+           '</div>';
+  }
+  function cpState(){
+    if (!ui.cardioProg) ui.cardioProg = { act: undefined, metric: 'time', range: 'session' };
+    return ui.cardioProg;
+  }
+  function cardioActivities(){
+    var map = {};
+    state.sessions.forEach(function(s){
+      if (s.status !== 'done') return;
+      var seen = {};
+      (s.exercises || []).forEach(function(ex){
+        if (!cardioEntries(ex).length) return;
+        var k = String(ex.name || '').trim().toLowerCase();
+        if (!k) return;
+        if (!map[k]) map[k] = { name: ex.name, n: 0, hasDist: false };
+        if (!seen[k]){ seen[k] = 1; map[k].n++; }
+        cardioEntries(ex).forEach(function(e){ if (e.distanceKm > 0) map[k].hasDist = true; });
+      });
+    });
+    return Object.keys(map).map(function(k){ return map[k]; })
+      .sort(function(a, b){ return b.n - a.n || a.name.localeCompare(b.name); });
+  }
+  // One point per finished session (summed over the chosen activity, or all).
+  function cardioSessionPoints(act){
+    var want = act ? String(act).trim().toLowerCase() : null;
+    var pts = [];
+    state.sessions.forEach(function(s){
+      if (s.status !== 'done') return;
+      var t = new Date(s.finishedAt || s.date).getTime();
+      if (isNaN(t)) return;
+      var p = { t: t, sec: 0, km: 0, distSec: 0, n: 0 };
+      (s.exercises || []).forEach(function(ex){
+        if (want && String(ex.name || '').trim().toLowerCase() !== want) return;
+        cardioEntries(ex).forEach(function(e){
+          p.n++;
+          p.sec += e.durationSec || 0;
+          if (e.distanceKm > 0){ p.km += e.distanceKm; p.distSec += e.durationSec || 0; }
+        });
+      });
+      if (p.n) pts.push(p);
+    });
+    pts.sort(function(a, b){ return a.t - b.t; });
+    return pts;
+  }
+  function cardioBucketPoints(pts, view){
+    var out = [];
+    if (view === 'session'){
+      return pts.map(function(p){
+        return { t: p.t, label: fmtDateShort(new Date(p.t).toISOString()), sec: p.sec, km: p.km, distSec: p.distSec };
+      });
+    }
+    var map = {};
+    pts.forEach(function(p){
+      var d = new Date(p.t), key, label, t0;
+      if (view === 'week'){ var m = mondayOf(d); key = m.getTime(); label = fmtWeekShort(m); t0 = key; }
+      else { key = d.getFullYear() * 12 + d.getMonth(); label = CHART_MONTH_NAMES[d.getMonth()]; t0 = new Date(d.getFullYear(), d.getMonth(), 1).getTime(); }
+      if (!map[key]) map[key] = { t: t0, label: label, sec: 0, km: 0, distSec: 0 };
+      map[key].sec += p.sec; map[key].km += p.km; map[key].distSec += p.distSec;
+    });
+    Object.keys(map).forEach(function(k){ out.push(map[k]); });
+    out.sort(function(a, b){ return a.t - b.t; });
+    return out;
+  }
+  function cardioMetricVal(p, metric){
+    if (metric === 'time') return p.sec / 60;
+    if (metric === 'dist') return p.km > 0 ? kmToDisplay(p.km) : 0;
+    return (p.km > 0 && p.distSec > 0) ? p.distSec / kmToDisplay(p.km) : null;
+  }
+  function cardioMetricFmt(v, metric){
+    if (v == null) return '–';
+    if (metric === 'time') return v >= 100 ? Math.round(v) + 'm' : (Math.round(v * 10) / 10) + 'm';
+    if (metric === 'dist') return (Math.round(v * 10) / 10) + '';
+    return fmtClock(v);
+  }
+  function cardioChartSvg(items, metric){
+    var W = 320, H = 176, L = 38, R = 12, T = 18, B = 26, cw = W - L - R, ch = H - T - B;
+    var vals = items.map(function(p){ return cardioMetricVal(p, metric); });
+    var real = vals.filter(function(v){ return v != null; });
+    if (!real.length) return '';
+    var n = items.length;
+    var svg = '<svg class="cp-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img">';
+    var lo, hi;
+    if (metric === 'pace'){
+      lo = Math.min.apply(null, real); hi = Math.max.apply(null, real);
+      if (hi - lo < 20){ lo -= 15; hi += 15; }
+      var pad = (hi - lo) * 0.12; lo = Math.max(0, lo - pad); hi = hi + pad;
+    } else {
+      var mx = (Math.max.apply(null, real) * 1.12) || 1, mag = Math.pow(10, Math.floor(Math.log(mx / 2) / Math.LN10)), stp = mag;
+      [1, 2, 2.5, 5, 10].some(function(m){ stp = m * mag; return stp * 2 >= mx; });
+      lo = 0; hi = stp * 2;
+    }
+    function yOf(v){ return T + (hi - v) / (hi - lo) * ch; }
+    function xOf(i){ return n === 1 ? L + cw / 2 : L + (i + 0.5) / n * cw; }
+    // faint grid + y labels (3 ticks)
+    for (var g = 0; g < 3; g++){
+      var gv = lo + (hi - lo) * (g / 2), gy = yOf(gv);
+      svg += '<line x1="'+L+'" x2="'+(W - R)+'" y1="'+gy.toFixed(1)+'" y2="'+gy.toFixed(1)+'" stroke="rgba(255,255,255,0.07)"/>' +
+             '<text x="'+(L - 6)+'" y="'+(gy + 3).toFixed(1)+'" text-anchor="end" class="cp-ax">'+cardioMetricFmt(gv, metric)+'</text>';
+    }
+    if (metric === 'pace'){
+      var path = '', area = '', first = null, lastX = 0;
+      items.forEach(function(p, i){
+        var v = vals[i]; if (v == null) return;
+        var x = xOf(i), y = yOf(v);
+        path += (path ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+        if (first == null) first = x; lastX = x;
+      });
+      if (path){
+        area = path + 'L' + lastX.toFixed(1) + ' ' + (T + ch) + 'L' + first.toFixed(1) + ' ' + (T + ch) + 'Z';
+        svg += '<defs><linearGradient id="cpG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+CP_COLOR+'" stop-opacity="0.35"/><stop offset="1" stop-color="'+CP_COLOR+'" stop-opacity="0"/></linearGradient></defs>' +
+               '<path d="'+area+'" fill="url(#cpG)"/><path d="'+path+'" fill="none" stroke="'+CP_COLOR+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+      }
+      var lastIdx = -1;
+      items.forEach(function(p, i){ if (vals[i] != null) lastIdx = i; });
+      items.forEach(function(p, i){
+        if (vals[i] == null) return;
+        svg += '<circle cx="'+xOf(i).toFixed(1)+'" cy="'+yOf(vals[i]).toFixed(1)+'" r="'+(i === lastIdx ? 4.5 : 3)+'" fill="'+(i === lastIdx ? '#fff' : CP_COLOR)+'" stroke="'+CP_COLOR+'" stroke-width="'+(i === lastIdx ? 2 : 0)+'"/>';
+      });
+      if (lastIdx >= 0){
+        var lx = Math.min(W - R - 14, Math.max(L + 14, xOf(lastIdx)));
+        svg += '<text x="'+lx.toFixed(1)+'" y="'+(yOf(vals[lastIdx]) - 9).toFixed(1)+'" text-anchor="middle" class="cp-val">'+fmtClock(vals[lastIdx])+'</text>';
+      }
+    } else {
+      var bw = Math.max(6, Math.min(30, cw / n * 0.62));
+      items.forEach(function(p, i){
+        var v = vals[i] || 0, y = yOf(v), h = Math.max(v > 0 ? 3 : 0, T + ch - y), x = xOf(i) - bw / 2;
+        svg += '<rect x="'+x.toFixed(1)+'" y="'+(T + ch - h).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="'+CP_COLOR+'" opacity="'+(i === n - 1 ? 1 : 0.55)+'"/>';
+      });
+      var lv = vals[n - 1] || 0;
+      if (lv > 0){
+        var bx = Math.min(W - R - 14, Math.max(L + 14, xOf(n - 1)));
+        svg += '<text x="'+bx.toFixed(1)+'" y="'+(yOf(lv) - 6).toFixed(1)+'" text-anchor="middle" class="cp-val">'+cardioMetricFmt(lv, metric)+'</text>';
+      }
+    }
+    // x labels: first / middle / last
+    var xi = n === 1 ? [0] : n < 5 ? [0, n - 1] : [0, Math.floor((n - 1) / 2), n - 1];
+    xi.forEach(function(i, k){
+      var anchor = (i === 0 && n > 1) ? 'start' : (i === n - 1 && n > 1) ? 'end' : 'middle';
+      var x = anchor === 'start' ? L : anchor === 'end' ? W - R : xOf(i);
+      svg += '<text x="'+x.toFixed(1)+'" y="'+(H - 7)+'" text-anchor="'+anchor+'" class="cp-ax">'+esc(items[i].label)+'</text>';
+    });
+    return svg + '</svg>';
+  }
+  function cardioFastestEntry(act){
+    var want = act ? String(act).trim().toLowerCase() : null, best = null;
+    state.sessions.forEach(function(s){
+      if (s.status !== 'done') return;
+      (s.exercises || []).forEach(function(ex){
+        if (want && String(ex.name || '').trim().toLowerCase() !== want) return;
+        cardioEntries(ex).forEach(function(e){
+          if (!(e.distanceKm > 0) || kmToDisplay(e.distanceKm) < 1) return;   // ignore sprints under 1 km / 1 mi
+          var pc = cardioPaceSec(e.durationSec, e.distanceKm);
+          if (pc && (!best || pc < best.pace)) best = { pace: pc, e: e, date: s.finishedAt || s.date };
+        });
+      });
+    });
+    return best;
+  }
+  function renderProgressCardioHtml(){
+    var acts = cardioActivities();
+    var cp = cpState(), u = cardioDistUnit();
+    var html = '';
+    if (!acts.length){
+      return '<div class="empty tab-empty-state"><div class="glyph">' + CARDIO_HEART_SVG + '</div>' +
+             '<p>No cardio logged yet.<br>Add Exercise → filter → Cardio, then finish a session.</p></div>';
+    }
+    // resolve selection
+    var actName;                       // null = all cardio
+    if (cp.act === '__all' && acts.length > 1) actName = null;
+    else {
+      var hit = acts.filter(function(a){ return cp.act && a.name.trim().toLowerCase() === String(cp.act).trim().toLowerCase(); })[0];
+      actName = (hit || acts[0]).name;
+    }
+    var actInfo = actName ? acts.filter(function(a){ return a.name === actName; })[0] : null;
+    var anyDist = actName ? !!(actInfo && actInfo.hasDist) : acts.some(function(a){ return a.hasDist; });
+    var canPace = !!(actName && anyDist);
+    var metric = cp.metric;
+    if (metric === 'dist' && !anyDist) metric = 'time';
+    if (metric === 'pace' && !canPace) metric = 'time';
+    var pro = isProActive();
+    var range = pro ? cp.range : 'session';
+
+    // activity chips
+    html += '<div class="cp-chips">';
+    if (acts.length > 1) html += '<button type="button" class="cp-chip'+(actName === null ? ' on' : '')+'" data-action="cp-act" data-act="__all">All cardio</button>';
+    acts.forEach(function(a){
+      html += '<button type="button" class="cp-chip'+(actName === a.name ? ' on' : '')+'" data-action="cp-act" data-act="'+esc(a.name)+'">'+esc(a.name)+'</button>';
+    });
+    html += '</div>';
+
+    var all = cardioSessionPoints(actName);
+    var win = all;
+    if (!pro && all.length > 2){
+      var cutoff = all[all.length - 1].t - FREE_CHART_DAYS * 86400000;
+      var w = all.filter(function(p){ return p.t >= cutoff; });
+      win = w.length >= 2 ? w : all.slice(-2);
+    }
+    var items = cardioBucketPoints(win, range).slice(-(range === 'session' ? 20 : 12));
+    var vals = items.map(function(p){ return cardioMetricVal(p, metric); }).filter(function(v){ return v != null; });
+
+    // headline stats (full history, not just the window)
+    var allItems = cardioBucketPoints(all, 'session');
+    var aVals = allItems.map(function(p){ return cardioMetricVal(p, metric); }).filter(function(v){ return v != null && (metric === 'pace' || v > 0); });
+    var statL, statLabel, statR;
+    if (aVals.length){
+      var bestV = metric === 'pace' ? Math.min.apply(null, aVals) : Math.max.apply(null, aVals);
+      var latestV = aVals[aVals.length - 1];
+      statLabel = metric === 'time' ? 'Longest session' : metric === 'dist' ? 'Furthest' : 'Best pace';
+      var unitTxt = metric === 'time' ? ' min' : metric === 'dist' ? ' ' + u : ' /' + u;
+      var fmtBig = function(v){ return metric === 'time' ? fmtClock(v * 60) : metric === 'dist' ? String(Math.round(v * 100) / 100) : fmtClock(v); };
+      statL = fmtBig(bestV) + '<i>' + unitTxt + '</i>';
+      statR = fmtBig(latestV) + '<i>' + unitTxt + '</i>';
+    }
+
+    html += '<div class="cp-tabs">' +
+              '<button type="button" class="'+(metric === 'time' ? 'on' : '')+'" data-action="cp-metric" data-metric="time">Time</button>' +
+              (anyDist ? '<button type="button" class="'+(metric === 'dist' ? 'on' : '')+'" data-action="cp-metric" data-metric="dist">Distance</button>' : '') +
+              (canPace ? '<button type="button" class="'+(metric === 'pace' ? 'on' : '')+'" data-action="cp-metric" data-metric="pace">Pace</button>' : '') +
+            '</div>';
+
+    html += '<div class="chart-wrap cp-wrap">';
+    if (statL){
+      html += '<div class="chart-stats">' +
+                '<div class="cs-block"><div class="cs-label">'+statLabel+'</div><div class="cs-val cp-sv">'+statL+'</div></div>' +
+                '<div class="cs-block"><div class="cs-label">Latest</div><div class="cs-val cp-sv">'+statR+'</div></div>' +
+              '</div>';
+    }
+    if (vals.length >= 2 || (vals.length === 1 && metric !== 'pace')){
+      html += '<div class="cp-chart">' + cardioChartSvg(items, metric) + '</div>';
+    } else {
+      html += '<div class="chart-empty-note">'+(metric === 'pace' ? 'Log this with a distance on two sessions to see your pace trend.' : 'Log one more session to start seeing a trend.')+'</div>';
+    }
+    html += '<div class="chart-dots cp-range">';
+    if (pro){
+      html += ['session', 'week', 'month'].map(function(r){
+        return '<button type="button" class="cp-r'+(range === r ? ' on' : '')+'" data-action="cp-range" data-range="'+r+'">'+(r === 'session' ? 'Session' : r === 'week' ? 'Week' : 'Month')+'</button>';
+      }).join('');
+    } else {
+      html += '<button type="button" class="chart-view-btn chart-view-lock" data-action="open-pricing" aria-label="Weekly and monthly views are part of Pro">' + lockIconHtml(11) + '<span>Pro views</span></button>';
+    }
+    html += '</div>';
+    if (!pro && win.length < all.length){
+      html += '<div class="chart-window-note">Showing your last 3 months &middot; Pro shows your full history</div>';
+    }
+    html += '</div>';
+
+    // totals (all time, selected activity)
+    var tSec = 0, tKm = 0;
+    all.forEach(function(p){ tSec += p.sec; tKm += p.km; });
+    var tMin = Math.round(tSec / 60);
+    html += '<div class="cp-tiles">' +
+              '<div><i>SESSIONS</i><b>'+all.length+'</b></div>' +
+              '<div><i>TOTAL TIME</i><b>'+(tMin >= 120 ? (Math.round(tMin / 6) / 10) + '<small>h</small>' : tMin + '<small>min</small>')+'</b></div>' +
+              '<div><i>TOTAL DIST</i><b>'+(tKm > 0 ? fmtDist(tKm) + '<small>' + u + '</small>' : '–')+'</b></div>' +
+            '</div>';
+
+    // personal bests
+    html += '<div class="section-label">Personal Bests</div>';
+    var longest = null, furthest = null;
+    all.forEach(function(p){
+      if (!longest || p.sec > longest.sec) longest = p;
+      if (p.km > 0 && (!furthest || p.km > furthest.km)) furthest = p;
+    });
+    html += '<div class="pr-list-item"><span>'+fmtDateShort(new Date(longest.t).toISOString())+' · Longest</span><span class="pl-w">'+fmtClock(longest.sec)+' min</span></div>';
+    if (furthest) html += '<div class="pr-list-item"><span>'+fmtDateShort(new Date(furthest.t).toISOString())+' · Furthest</span><span class="pl-w">'+fmtDist(furthest.km)+' '+u+'</span></div>';
+    if (actName){
+      var fast = cardioFastestEntry(actName);
+      if (fast) html += '<div class="pr-list-item"><span>'+fmtDateShort(fast.date)+' · Fastest pace</span><span class="pl-w">'+fmtClock(fast.pace)+' /'+u+'</span></div>';
+    }
+    return html;
+  }
+
   function renderProgress(){
     var names = allExerciseNames();
+    var hasCardio = cardioEverLogged();
     var html = '';
-    if (names.length === 0){
+    if (names.length === 0 && !hasCardio){
       html += '<div class="empty tab-empty-state"><div class="glyph">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
                   '<path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path>' +
                 '</svg>' +
               '</div>' +
               '<p>Nothing to chart yet.<br>Log a few sessions and your progress will appear here.</p></div>';
+      document.getElementById('view').innerHTML = html;
+      return;
+    }
+    var pKind = (hasCardio && (names.length === 0 || (state.settings && state.settings.progressKind === 'cardio'))) ? 'cardio' : 'strength';
+    if (hasCardio && names.length > 0) html += progressKindSwitchHtml(pKind);
+    if (pKind === 'cardio'){
+      html += renderProgressCardioHtml();
       document.getElementById('view').innerHTML = html;
       return;
     }
@@ -16499,7 +16826,7 @@
       return 'Rest day \u2014 no lifting, just recovery. Enjoy it \ud83d\udcaa';
     }
     if (key === 'cardio'){
-      return 'Cardio day \u2014 running, cycling, rowing, that kind of work. SaviorFit Logger focuses on weight training, so there\u2019s nothing to track for cardio here.';
+      return 'Cardio day \u2014 running, cycling, rowing, that kind of work. You can log it here too \u2014 Add Exercise \u2192 filter \u2192 Cardio \u2014 and see your weekly total in Insight and trends in Progress.';
     }
     var muscles = LOG_CHAT_SPLIT_MUSCLES[key];
     if (!muscles) return null;
@@ -17044,6 +17371,92 @@
     return !!parseWeightRepsCore(text);
   }
 
+  // Cardio questions — "how much cardio this week", "how far did I run",
+  // "my fastest pace on the treadmill". Answered from the real logs.
+  var LOG_CHAT_CARDIO_ALIASES = [
+    { re: /\b(treadmill|tread)\b/, key: 'treadmill' },
+    { re: /\b(stationary bike|exercise bike|spin(ning)?|cycling|cycle|bike)\b/, key: 'bike' },
+    { re: /\b(rowing|rower|row machine|rowed)\b/, key: 'rowing' },
+    { re: /\b(elliptical|cross ?trainer)\b/, key: 'elliptical' },
+    { re: /\b(stair ?(climber|master)|stairs)\b/, key: 'stair' },
+    { re: /\b(jump(ing)? rope|skipping)\b/, key: 'jump rope' },
+    { re: /\b(running|jogging|jog|ran|run)\b/, key: 'running', alt: 'treadmill' },
+    { re: /\b(walking|walk|walked)\b/, key: 'walking', alt: 'treadmill' }
+  ];
+  function logChatCardioAct(lower){
+    var acts = cardioActivities();
+    for (var i = 0; i < LOG_CHAT_CARDIO_ALIASES.length; i++){
+      var al = LOG_CHAT_CARDIO_ALIASES[i];
+      if (!al.re.test(lower)) continue;
+      var hits = acts.filter(function(a){ var n = a.name.toLowerCase(); return n.indexOf(al.key) !== -1 || (al.alt && n.indexOf(al.alt) !== -1); });
+      return { names: hits.map(function(a){ return a.name; }), asked: al.key };
+    }
+    return null;
+  }
+  function logChatIsCardioQuestion(lower){
+    if (/\bcardio\s+day\b/.test(lower)) return false;
+    if (/\bcardio\b/.test(lower)) return true;
+    return !!logChatCardioAct(lower) &&
+      /\b(how (much|far|long|many|fast)|total|distance|pace|minutes|mins|km|kilomet|miles?|fastest|best|this week|last week|this month|today|so far)\b/.test(lower);
+  }
+  function logChatCardio(text){
+    var lower = text.toLowerCase();
+    var acts = cardioActivities();
+    if (!acts.length) return 'No cardio logged yet — add one from Add Exercise → filter → Cardio and it’ll show up here. Anything else you’d like to check?';
+    var pick = logChatCardioAct(lower);
+    var actNames = pick ? pick.names : null;
+    var actName = actNames && actNames.length === 1 ? actNames[0] : null;   // single activity -> pace is meaningful
+    if (pick && !pick.names.length) return 'I don’t see any ' + pick.asked + ' logged yet. Anything else you’d like to check?';
+    var u = cardioDistUnit();
+    var label = actNames ? (actNames.length === 1 ? actNames[0] : pick.asked) : 'cardio';
+    if (/\b(fastest|best pace|quickest|pb|record)\b/.test(lower)){
+      var f = cardioFastestEntry(actName || (actNames && actNames[0]) || null);
+      if (!f) return 'No ' + label + ' with a distance of 1 ' + u + ' or more yet, so there’s no pace to compare. Anything else you’d like to check?';
+      return 'Your fastest ' + label + ' pace is ' + fmtClock(f.pace) + ' /' + u + ' (' + fmtDist(f.e.distanceKm) + ' ' + u + ' in ' + fmtClock(f.e.durationSec) + ', ' + fmtDateShort(f.date) + '). Anything else you’d like to check?';
+    }
+    var per = /\b(all[- ]?time|ever|overall|lifetime|in total)\b/.test(lower) ? 'all' :
+              /\b(month|30\s*days)\b/.test(lower) ? 'month' :
+              /\btoday\b/.test(lower) ? 'today' :
+              /\blast week\b/.test(lower) ? 'lastweek' : 'week';
+    var now = Date.now(), wk = mondayOf(new Date()).getTime();
+    var from = per === 'all' ? -Infinity : per === 'month' ? now - 30 * 86400000 : per === 'week' ? wk : per === 'lastweek' ? wk - 7 * 86400000 : mondayOf(new Date()).getTime();
+    var to = per === 'lastweek' ? wk : Infinity;
+    var sec = 0, km = 0, distSec = 0, n = 0, by = {};
+    state.sessions.forEach(function(s){
+      if (s.status !== 'done') return;
+      var t = new Date(s.finishedAt || s.date).getTime();
+      if (isNaN(t) || t >= to || t < from) return;
+      if (per === 'today' && !isSameLocalDay(s.finishedAt || s.date)) return;
+      var had = false;
+      (s.exercises || []).forEach(function(ex){
+        if (actNames && actNames.indexOf(ex.name) === -1) return;
+        cardioEntries(ex).forEach(function(e){
+          had = true; sec += e.durationSec || 0;
+          if (e.distanceKm > 0){ km += e.distanceKm; distSec += e.durationSec || 0; }
+          by[ex.name] = (by[ex.name] || 0) + (e.durationSec || 0);
+        });
+      });
+      if (had) n++;
+    });
+    var span = { today: 'Today', week: 'This week', lastweek: 'Last week', month: 'Last 30 days', all: 'All time' }[per];
+    if (!n) return span + ': no ' + label + ' logged. Anything else you’d like to check?';
+    var mins = Math.round(sec / 60);
+    var txt = span + ': ' + mins + ' min of ' + label + ' across ' + n + ' session' + (n === 1 ? '' : 's');
+    if (km > 0){
+      txt += ', ' + fmtDist(km) + ' ' + u;
+      var pc = (actName && !/bike|cycl|rowing|rower/i.test(actName)) ? cardioPaceSec(distSec, km) : null;
+      if (pc) txt += ', avg pace ' + fmtClock(pc) + ' /' + u;
+    }
+    txt += '.';
+    if (per === 'week' && !actName){
+      var goal = cardioGoalMin();
+      txt += mins >= goal ? ' That’s your ' + goal + ' min weekly goal hit.' : ' That’s ' + mins + ' of your ' + goal + ' min weekly goal (' + (goal - mins) + ' to go).';
+    }
+    var names = Object.keys(by).sort(function(a, b){ return by[b] - by[a]; });
+    if (!actName && names.length > 1) txt += ' ' + names.slice(0, 3).map(function(k){ return k + ' ' + Math.round(by[k] / 60) + ' min'; }).join(', ') + '.';
+    return txt + ' Anything else you’d like to check?';
+  }
+
   function processLogChatMessage(text){
     var lower = text.toLowerCase().trim();
     // Cleared on every turn \u2014 only the handlers below that actually
@@ -17090,6 +17503,8 @@
         /\b(plan|suggest|recommend|set)\b.*\b(next|my)\b.*\b(workout|session|targets?)\b/.test(lower)){
       return logChatNextWorkout();
     }
+
+    if (logChatIsCardioQuestion(lower)) return logChatCardio(text);
 
     // PRs \u2014 "my PRs", "bench PR", "what's my squat max". A bare
     // "what is a PR" stays with the FAQ below.
@@ -18950,6 +19365,7 @@
     // (see renderHistoryEditOverlay's filtering), so Save still writes
     // the full session back correctly either way.
     ui.historyEditFocusExId = focusExId || null;
+    ui.heCardio = null;
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
     ui.historyEditAddingExercise = false;
@@ -18986,6 +19402,7 @@
 
   function closeHistoryEditOverlay(){
     ui.editDraft = null;
+    ui.heCardio = null;
     ui.historyEditFocusExId = null;
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
@@ -19016,6 +19433,7 @@
     saveSessions();
     logActivity('Edited session "' + (real.name || 'Untitled session') + '"', 'History');
     ui.editDraft = null;
+    ui.heCardio = null;
     ui.historyEditFocusExId = null;
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
@@ -19564,6 +19982,100 @@
     }, 30);
   }
 
+  /* ---- History edit: cardio entries ---- */
+  function heCardioFormHtml(ex, row){
+    var info = cardioInfo(ex.name);
+    var showDist = !info || info.dist !== false, showIncl = !!(info && info.incline);
+    var u = cardioDistUnit();
+    return '<div class="he-cd-form"><div class="he-cd-grid">' +
+             '<label><i>MIN</i><input type="number" inputmode="numeric" min="0" class="he-cd-in" data-f="min" value="'+esc(row.min)+'"></label>' +
+             '<label><i>SEC</i><input type="number" inputmode="numeric" min="0" max="59" class="he-cd-in" data-f="sec" value="'+esc(row.sec)+'"></label>' +
+             (showDist ? '<label><i>'+u.toUpperCase()+'</i><input type="number" inputmode="decimal" step="0.1" min="0" class="he-cd-in" data-f="dist" value="'+esc(row.dist)+'"></label>' : '') +
+             (showIncl ? '<label><i>INCL %</i><input type="number" inputmode="decimal" step="0.5" min="0" max="40" class="he-cd-in" data-f="incl" value="'+esc(row.incl)+'"></label>' : '') +
+           '</div><div class="add-set-btn-group">' +
+             '<button class="add-set-btn" data-action="draft-cardio-save" data-ex="'+ex.id+'" data-entry="'+esc(row.entryId)+'" aria-label="Save entry">&#10003;</button>' +
+             '<button class="cancel-edit-btn" data-action="draft-cardio-cancel" aria-label="Cancel">&#10005;</button>' +
+           '</div></div>';
+  }
+  function heCardioCardHtml(ex){
+    var row = ui.heCardio && ui.heCardio.exId === ex.id ? ui.heCardio : null;
+    var entries = cardioEntries(ex);
+    var html = '<div class="he-exercise-card" id="heEx_'+ex.id+'">' +
+        '<div class="he-exercise-head"><div class="eh-title"><h3>'+esc(ex.name)+'</h3><span class="cx-chip sm">'+CARDIO_HEART_SVG+'Cardio</span></div>' +
+          '<button class="set-act-btn" data-action="draft-delete-exercise" data-ex="'+ex.id+'" aria-label="Delete '+esc(ex.name)+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg></button>' +
+        '</div>';
+    entries.forEach(function(e, i){
+      if (row && row.entryId === e.id){ html += heCardioFormHtml(ex, row); return; }
+      html += '<div class="set-row"><span class="set-idx">'+(i+1)+'</span>' +
+                '<span class="set-detail" data-action="draft-cardio-edit" data-ex="'+ex.id+'" data-entry="'+e.id+'"><span class="set-wr">'+esc(cardioEntryText(e))+'</span></span>' +
+                '<span class="set-actions"><button class="set-act-btn" data-action="draft-cardio-delete" data-ex="'+ex.id+'" data-entry="'+e.id+'" aria-label="Delete entry"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button></span></div>';
+    });
+    if (row && row.entryId === 'new') html += heCardioFormHtml(ex, row);
+    else html += '<button class="add-set-toggle-btn" data-action="draft-cardio-new" data-ex="'+ex.id+'"><span class="plus-glyph">&#43;</span> Add Entry '+(entries.length + 1)+'</button>';
+    return html + '</div>';
+  }
+  function draftCardioFind(exId){
+    return ui.editDraft ? ui.editDraft.exercises.find(function(e){ return e.id === exId; }) : null;
+  }
+  function draftCardioOpen(exId, entryId){
+    var ex = draftCardioFind(exId); if (!ex) return;
+    var row = { exId: exId, entryId: entryId, min: '', sec: '', dist: '', incl: '' };
+    if (entryId !== 'new'){
+      var e = cardioEntries(ex).find(function(x){ return x.id === entryId; });
+      if (!e) return;
+      row.min = String(Math.floor((e.durationSec || 0) / 60));
+      row.sec = String((e.durationSec || 0) % 60);
+      row.dist = e.distanceKm > 0 ? String(Math.round(kmToDisplay(e.distanceKm) * 100) / 100) : '';
+      row.incl = e.inclinePct != null ? String(e.inclinePct) : '';
+    }
+    ui.heCardio = row;
+    renderHistoryEditOverlay();
+  }
+  function draftCardioSave(exId, entryId){
+    var ex = draftCardioFind(exId), row = ui.heCardio;
+    if (!ex || !row) return;
+    var info = cardioInfo(ex.name);
+    var sec = Math.round((parseFloat(row.min) || 0) * 60 + (parseFloat(row.sec) || 0));
+    if (sec <= 0){ showToast('Enter a time first'); return; }
+    if (sec > 86400){ showToast('That’s over 24 hours — check the time'); return; }
+    var km = null;
+    if (String(row.dist).trim() !== ''){
+      var dv = parseFloat(row.dist);
+      if (isNaN(dv) || dv < 0){ showToast('Check the distance'); return; }
+      km = dv > 0 ? displayToKm(dv) : null;
+      if (km && km > 1000){ showToast('That distance looks too long — check it'); return; }
+    }
+    var incl = null;
+    if (info && info.incline && String(row.incl).trim() !== ''){
+      incl = parseFloat(row.incl);
+      if (isNaN(incl) || incl < 0 || incl > 40){ showToast('Incline should be between 0 and 40%'); return; }
+    }
+    if (!Array.isArray(ex.cardio)) ex.cardio = [];
+    var kmR = km ? Math.round(km * 1000) / 1000 : null;
+    if (entryId === 'new'){
+      var real = state.sessions.find(function(x){ return x.id === ui.editDraft.sessionId; });
+      ex.cardio.push({ id: uid(), durationSec: sec, distanceKm: kmR, inclinePct: incl, timestamp: (real && (real.finishedAt || real.date)) || new Date().toISOString() });
+    } else {
+      var t = ex.cardio.find(function(x){ return x.id === entryId; });
+      if (!t) return;
+      t.durationSec = sec; t.distanceKm = kmR; t.inclinePct = incl;
+    }
+    ui.heCardio = null;
+    renderHistoryEditOverlay();
+  }
+  function draftCardioDelete(exId, entryId){
+    var ex = draftCardioFind(exId); if (!ex) return;
+    ex.cardio = cardioEntries(ex).filter(function(x){ return x.id !== entryId; });
+    if (ui.heCardio && ui.heCardio.entryId === entryId) ui.heCardio = null;
+    renderHistoryEditOverlay();
+  }
+  function openCardioInProgress(name){
+    state.settings.progressKind = 'cardio';
+    saveSettings();
+    ui.cardioProg = { act: name, metric: 'time', range: 'session' };
+    openExerciseInProgress(name);
+  }
+
   function renderHistoryEditOverlay(){
     var overlay = document.getElementById('historyEditOverlay');
     var panel = document.getElementById('historyEditPanel');
@@ -19613,6 +20125,7 @@
         '<div class="empty" style="padding:24px 0;"><p>No exercises left in this session.<br>Save to keep it empty, or Cancel to keep the original.</p></div>';
     } else {
       exercisesToRender.forEach(function(ex){
+        if (isCardioEx(ex)){ html += heCardioCardHtml(ex); return; }
         html += '<div class="he-exercise-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'" id="heEx_'+ex.id+'">' +
             '<div class="he-exercise-head">' +
               '<div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
@@ -20638,6 +21151,20 @@
       state.settings.insightView = el.dataset.view === 'cardio' ? 'cardio' : 'muscle';
       saveSettings();
       renderApp();
+    } else if (action === 'progress-kind'){
+      state.settings.progressKind = el.dataset.kind === 'cardio' ? 'cardio' : 'strength';
+      saveSettings();
+      renderApp();
+    } else if (action === 'cp-act'){
+      cpState().act = el.dataset.act;
+      renderApp();
+    } else if (action === 'cp-metric'){
+      cpState().metric = el.dataset.metric;
+      renderApp();
+    } else if (action === 'cp-range'){
+      if (isProActive()){ cpState().range = el.dataset.range; renderApp(); }
+    } else if (action === 'open-cardio-progress'){
+      openCardioInProgress(el.dataset.name);
     } else if (action === 'toggle-cardio-goal'){
       ui.cardioGoalOpen = !ui.cardioGoalOpen;
       renderApp();
@@ -21552,12 +22079,25 @@
       draftCloseAddExercise();
     } else if (action === 'draft-pick-exercise'){
       draftOpenAddExerciseConfirm(el.dataset.name, el.dataset.muscle);
+    } else if (action === 'draft-cardio-edit'){
+      draftCardioOpen(el.dataset.ex, el.dataset.entry);
+    } else if (action === 'draft-cardio-new'){
+      draftCardioOpen(el.dataset.ex, 'new');
+    } else if (action === 'draft-cardio-save'){
+      draftCardioSave(el.dataset.ex, el.dataset.entry);
+    } else if (action === 'draft-cardio-cancel'){
+      ui.heCardio = null;
+      renderHistoryEditOverlay();
+    } else if (action === 'draft-cardio-delete'){
+      draftCardioDelete(el.dataset.ex, el.dataset.entry);
     }
   });
   historyEditOverlayEl.addEventListener('input', function(e){
     var t = e.target;
     if (t.id === 'heNameInput'){
       if (ui.editDraft) ui.editDraft.name = t.value;
+    } else if (t.classList.contains('he-cd-in')){
+      if (ui.heCardio) ui.heCardio[t.dataset.f] = t.value;
     } else if (t.classList.contains('he-set-weight-input')){
       ui.historyEditRowDraft.weight = t.value;
       refreshHistoryEditRowBtn();
