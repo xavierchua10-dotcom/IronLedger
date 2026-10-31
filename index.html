@@ -6087,13 +6087,20 @@
   html[data-card-style="glass"] #app{
     -webkit-backdrop-filter:none;
     backdrop-filter:none;
-    background:rgba(20,23,27,0.34);
+    background:transparent;
   }
   html[data-card-style="glass"] body{
     background:
-      linear-gradient(rgba(10,11,14,0.66), rgba(10,11,14,0.78)),
+      radial-gradient(520px 420px at 12% 8%, rgba(242,177,52,0.26), transparent 62%),
+      radial-gradient(560px 460px at 96% 44%, rgba(120,140,200,0.10), transparent 64%),
+      radial-gradient(520px 420px at 20% 96%, rgba(242,177,52,0.16), transparent 62%),
+      linear-gradient(rgba(10,11,14,0.74), rgba(10,11,14,0.84)),
       url('images/hero-background.jpg') center / cover no-repeat fixed;
   }
+  /* brighter secondary text so it stays readable on the see-through cards */
+  html[data-card-style="glass"]{ --text-faint:#b4bac3; --text-dim:#d6dae0; }
+  html[data-card-style="glass"] input::placeholder,
+  html[data-card-style="glass"] textarea::placeholder{ color:rgba(255,255,255,0.62); }
   html[data-card-style="glass"] .settings-group,
   html[data-card-style="glass"] .settings-group.sg-deco,
   html[data-card-style="glass"] .pro-panel,
@@ -6177,6 +6184,69 @@
     backdrop-filter:none;
     background:rgba(24,27,32,0.55);
     border-bottom:1px solid rgba(255,255,255,0.12);
+  }
+
+  /* full-screen Settings / Go Pro pages get the same glow + photo as the main page */
+  html[data-card-style="glass"] .confirm-overlay.settings-page,
+  html[data-card-style="glass"] #pricingOverlay{
+    background:
+      radial-gradient(520px 420px at 12% 8%, rgba(242,177,52,0.26), transparent 62%),
+      radial-gradient(520px 420px at 20% 96%, rgba(242,177,52,0.16), transparent 62%),
+      linear-gradient(rgba(10,11,14,0.74), rgba(10,11,14,0.84)),
+      url('images/hero-background.jpg') center / cover no-repeat;
+  }
+  html[data-card-style="glass"] #pricingPanel.pricing-panel{ background:transparent; }
+  html[data-card-style="glass"] .sp-panel, html[data-card-style="glass"] .sp-head{ background:transparent; }
+  html[data-card-style="glass"] .gp-feats li{ background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.15); box-shadow:inset 1px 1px 0 rgba(255,255,255,0.28),0 6px 20px rgba(0,0,0,0.28); }
+  /* ---- Glass for the everyday cards (Log, History, Progress, Insight, Profile, Settings hub) ---- */
+  html[data-card-style="glass"] .exercise-card,
+  html[data-card-style="glass"] .history-item,
+  html[data-card-style="glass"] .history-week-panel,
+  html[data-card-style="glass"] .chart-wrap,
+  html[data-card-style="glass"] .progress-ex-title-btn,
+  html[data-card-style="glass"] .mg-row-mini,
+  html[data-card-style="glass"] .mg-seg,
+  html[data-card-style="glass"] .pf-hero,
+  html[data-card-style="glass"] .pf-stat,
+  html[data-card-style="glass"] .pf-best,
+  html[data-card-style="glass"] .pf-settings-card,
+  html[data-card-style="glass"] .sp-card,
+  html[data-card-style="glass"] .history-search-input{
+    background-color:rgba(255,255,255,0.055) !important;
+    background-image:linear-gradient(135deg,rgba(255,255,255,0.17) 0%,rgba(255,255,255,0.04) 30%,rgba(255,255,255,0) 58%,rgba(255,255,255,0.06) 100%) !important;
+    -webkit-backdrop-filter:blur(20px) saturate(170%) brightness(1.05);
+    backdrop-filter:blur(20px) saturate(170%) brightness(1.05);
+    border:1px solid rgba(255,255,255,0.15) !important;
+    border-radius:22px !important;
+    box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,0.34),inset -1px -1px 0 rgba(255,255,255,0.08),0 10px 30px rgba(0,0,0,0.34) !important;
+  }
+  html[data-card-style="glass"] .history-item, html[data-card-style="glass"] .mg-row-mini, html[data-card-style="glass"] .pf-stat{ border-radius:18px !important; }
+  /* cards inside a glass card stay flat so it never turns into glass-on-glass */
+  html[data-card-style="glass"] .history-week-panel .history-item{
+    background-color:rgba(255,255,255,0.05) !important;
+    -webkit-backdrop-filter:none !important; backdrop-filter:none !important;
+    box-shadow:inset 1px 1px 0 rgba(255,255,255,0.22),0 4px 14px rgba(0,0,0,0.22) !important;
+  }
+  html[data-card-style="glass"] .history-week-panel{ border-radius:24px !important; }
+  html[data-card-style="glass"] .exercise-card .set-row, html[data-card-style="glass"] .exercise-card .last-best{ background:rgba(255,255,255,0.05) !important; border-radius:14px; }
+  html[data-card-style="glass"] .pf-share{ box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,0.45),0 8px 24px rgba(242,177,52,0.28); }
+  html[data-card-style="glass"] .tabbar{ background:rgba(22,25,30,0.46); -webkit-backdrop-filter:blur(24px) saturate(170%); backdrop-filter:blur(24px) saturate(170%); border-top:1px solid rgba(255,255,255,0.16); box-shadow:inset 0 1px 0 rgba(255,255,255,0.2); }
+  html[data-card-style="glass"] .topbar{ background:rgba(22,25,30,0.42); border-bottom:1px solid rgba(255,255,255,0.14); }
+  @media (prefers-reduced-transparency: reduce){
+    html[data-card-style="glass"] .exercise-card,
+  html[data-card-style="glass"] .history-item,
+  html[data-card-style="glass"] .history-week-panel,
+  html[data-card-style="glass"] .chart-wrap,
+  html[data-card-style="glass"] .progress-ex-title-btn,
+  html[data-card-style="glass"] .mg-row-mini,
+  html[data-card-style="glass"] .mg-seg,
+  html[data-card-style="glass"] .pf-hero,
+  html[data-card-style="glass"] .pf-stat,
+  html[data-card-style="glass"] .pf-best,
+  html[data-card-style="glass"] .pf-settings-card,
+  html[data-card-style="glass"] .sp-card,
+  html[data-card-style="glass"] .history-search-input{ background-color:rgba(28,31,36,0.92) !important; -webkit-backdrop-filter:none; backdrop-filter:none; }
+    html[data-card-style="glass"] .tabbar{ background:rgba(22,25,30,0.95); -webkit-backdrop-filter:none; backdrop-filter:none; }
   }
   /* browsers without backdrop-filter get a more opaque panel so text stays readable */
   @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
