@@ -6225,7 +6225,9 @@
 <p>Built by Savior, an independent developer. Download SaviorFit Logger on Google Play or open it in your browser at saviorfitlogger.com.</p>
 </section>
 <div id="bootLoading" class="boot-loading" role="status" aria-label="SaviorFit Logger"><div class="boot-bg" aria-hidden="true"><i class="g"></i><i class="glow"></i><i class="ray a"></i><i class="ray b"></i><i class="ray c"></i><i class="plate p1"></i><i class="plate p2"></i><i class="plate p3"></i></div><div class="boot-loading-mark" aria-hidden="true"><span class="bl-ch" style="--i:0">S</span><span class="bl-ch" style="--i:1">A</span><span class="bl-ch" style="--i:2">V</span><span class="bl-ch" style="--i:3">I</span><span class="bl-ch" style="--i:4">O</span><span class="bl-ch" style="--i:5">R</span><span class="bl-ch" style="--i:6">F</span><span class="bl-ch" style="--i:7">I</span><span class="bl-ch" style="--i:8">T</span><span class="bl-ch" style="--i:9">&nbsp;</span><span class="bl-gold"><span class="bl-ch" style="--i:10">L</span><span class="bl-ch" style="--i:11">O</span><span class="bl-ch" style="--i:12">G</span><span class="bl-ch" style="--i:13">G</span><span class="bl-ch" style="--i:14">E</span><span class="bl-ch" style="--i:15">R</span></span></div></div>
-<script>window.__bootSplashStart = performance.now();</script>
+<script>window.__bootSplashStart = performance.now();
+// Coming back from Google's sign-in page the token is in the URL hash; remember that so the splash can stay up while it is finished instead of flashing the login screen.
+window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</script>
 <div id="app" class="hidden">
   <header class="topbar">
     <div class="topbar-left">
@@ -17202,6 +17204,9 @@
   }
 
   window.__sfGoogleRedirectFailed = function(code){
+    var wasReturning = !!window.__sfGoogleReturning;
+    window.__sfGoogleReturning = false;
+    if (wasReturning && !state.currentAccount) showAuthGateShell();
     ui.authBusy = false;
     ui.authError = code === 'auth/redirect-no-result'
       ? 'Google sign-in didn\u2019t finish \u2014 try again, or log in with email'
@@ -23259,7 +23264,15 @@
     }
     window.SaviorFirebase.onAuthChange(function(user){
       try{
+        if (!user && window.__sfGoogleReturning){
+          // Back from Google: Firebase reports "nobody yet" for a moment while
+          // the Google token is being exchanged. Keep the splash up (no login
+          // screen flash); the next callback brings the account, or
+          // __sfGoogleRedirectFailed shows the login screen with the error.
+          return;
+        }
         if (user){
+          window.__sfGoogleReturning = false;
           enterAccount(user.uid, user.email);
         } else if (loadCurrentAccountId() === 'guest'){
           state.currentAccount = 'guest';
