@@ -1974,6 +1974,31 @@
   .log-tpl-card .template-card-badge{display:none;}
   .log-tpl-list .log-tpl-card,.log-tpl-list .log-tpl-card.tpl-featured{min-height:0;margin-bottom:12px;}
   .template-cat-card.tpl-featured{min-height:168px;}
+  /* Template picker polish: panel header + the template cards */
+  #templatePickerPanel{max-height:88vh;}
+  #templatePickerPanel .pro-panel-header{padding:18px 16px 12px;border-bottom:1px solid var(--line);}
+  #templatePickerPanel .pro-panel-header h3{font-size:22px;letter-spacing:.02em;margin:0;}
+  #templatePickerPanel .pro-panel-back,#templatePickerPanel .pro-panel-close{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#c7ccd3;font-size:20px;display:flex;align-items:center;justify-content:center;padding:0;}
+  #templatePickerPanel .pro-panel-close{font-size:15px;}
+  #templatePickerPanel .pro-panel-header-left{gap:12px;}
+  .tpl-pick-body{padding:14px 16px 18px;}
+  .tpl-pick-sec{font:700 10px 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#8b9098;margin:4px 4px 9px;display:flex;align-items:center;gap:10px;}
+  .tpl-pick-sec:after{content:"";flex:1;height:1px;background:rgba(255,255,255,0.10);}
+  .tpl-pick-sec ~ .tpl-pick-sec{margin-top:16px;}
+  .tpl-pick-card{padding:14px 14px 13px 18px;}
+  .tpl-pick-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent);z-index:2;}
+  .tpl-pick-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .tpl-pick-card .template-card-name{font-size:22px;margin:0;line-height:1.05;letter-spacing:.03em;}
+  .tpl-pick-chev{flex:0 0 30px;width:30px;height:30px;border-radius:50%;border:1.5px solid rgba(var(--accent-rgb),0.55);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1;padding-bottom:2px;}
+  .tpl-pick-mus{margin-top:7px;font-size:13px;color:#aeb4bd;line-height:1.35;}
+  .tpl-pick-mus b{color:#e8eaed;font-weight:600;}
+  .tpl-pick-pre{margin-top:8px;font-size:12px;color:#7d848e;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .tpl-pick-meta{margin-top:11px;flex-wrap:nowrap;}
+  .tpl-pick-meta .tpl-chip{white-space:nowrap;}
+  .tpl-pick-meta .tpl-chip--count{background:rgba(var(--accent-rgb),0.12);border-color:rgba(var(--accent-rgb),0.55);color:var(--accent);}
+  .tpl-pick-list{margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:6px;}
+  .tpl-pick-list div{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:5px 0;color:#d5d9df;}
+  .tpl-pick-list i{font:600 11px 'JetBrains Mono',monospace;color:#7d848e;font-style:normal;}
   .tpl-chips{display:flex;flex-wrap:wrap;gap:6px;}
   .tpl-chip{
     font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
@@ -10436,24 +10461,39 @@
         '</div>' +
         '<button class="pro-panel-close" data-action="close-template-picker" aria-label="Close">&#10005;</button>' +
       '</div>' +
-      '<div class="pro-panel-body">' +
+      '<div class="pro-panel-body tpl-pick-body">' +
         keys.map(function(key, i){
           var tpl = WORKOUT_TEMPLATES[key];
           var prevTpl = i > 0 ? WORKOUT_TEMPLATES[keys[i - 1]] : null;
-          var divider = '';
-          if (prevTpl){
-            var prevLetter = templateVariantLetter(prevTpl.label);
-            var curLetter = templateVariantLetter(tpl.label);
-            if (prevLetter && curLetter && prevLetter !== curLetter){
-              divider = '<div class="template-divider"></div>';
-            }
+          var curLetter = templateVariantLetter(tpl.label);
+          var prevLetter = prevTpl ? templateVariantLetter(prevTpl.label) : null;
+          // "Version A / B" label above the first card of each version
+          var label = (curLetter && curLetter !== prevLetter) ? '<div class="tpl-pick-sec"><span>Version '+curLetter+'</span></div>' : '';
+          var order = [];
+          var totalSets = 0;
+          tpl.exercises.forEach(function(ex){
+            if (order.indexOf(ex.muscle) === -1) order.push(ex.muscle);
+            totalSets += ex.sets || 0;
+          });
+          var mins = Math.max(5, Math.round(totalSets * 2.5 / 5) * 5);
+          var muscles = order.map(function(m, mi){ return mi === 0 ? '<b>'+esc(m)+'</b>' : esc(m); }).join(' \u00b7 ');
+          var detail;
+          if (keys.length === 1){
+            // Only one template here (e.g. Beginner): show the whole list
+            detail = '<div class="tpl-pick-list">' + tpl.exercises.map(function(ex){
+              return '<div><span>'+esc(ex.name)+'</span><i>'+(ex.sets || '')+'\u00d7</i></div>';
+            }).join('') + '</div>';
+          } else {
+            var firstTwo = tpl.exercises.slice(0, 2).map(function(ex){ return esc(ex.name); }).join(', ');
+            var more = tpl.exercises.length - 2;
+            detail = '<div class="tpl-pick-pre">' + firstTwo + (more > 0 ? ' +' + more + ' more' : '') + '</div>';
           }
-          return divider + '<button type="button" class="template-card" data-action="select-template" data-template="'+key+'">' +
+          return label + '<button type="button" class="template-card tpl-pick-card" data-action="select-template" data-template="'+key+'">' +
             templateBgHtml() +
-            '<div class="template-card-name">'+esc(tpl.label)+'</div>' +
-            '<div class="tpl-chips tpl-chips--list"><span class="tpl-chip tpl-chip--count">'+tpl.exercises.length+' exercises</span>' +
-              esc(templateSummaryLine(tpl)).split(' \u00b7 ').map(function(m){ return '<span class="tpl-chip">'+m+'</span>'; }).join('') +
-            '</div>' +
+            '<div class="tpl-pick-top"><div class="template-card-name">'+esc(tpl.label)+'</div><span class="tpl-pick-chev" aria-hidden="true">&#8250;</span></div>' +
+            '<div class="tpl-pick-mus">'+muscles+'</div>' +
+            detail +
+            '<div class="tpl-chips tpl-pick-meta"><span class="tpl-chip tpl-chip--count">'+tpl.exercises.length+' exercises</span><span class="tpl-chip">'+totalSets+' sets</span><span class="tpl-chip">~'+mins+' min</span></div>' +
           '</button>';
         }).join('') +
       '</div>';
