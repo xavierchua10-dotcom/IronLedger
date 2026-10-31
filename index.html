@@ -3106,6 +3106,8 @@
   .rating-submit-btn{width:100%;background:var(--accent);color:#1c1500;border:none;border-radius:var(--radius-md);padding:14px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13.5px;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;}
   .rating-submit-btn:active{background:var(--accent-dim);}
   .rating-playstore{display:block;margin-top:14px;text-align:center;font-size:13px;font-weight:600;color:var(--accent);text-decoration:underline;}
+  .rating-playstore.rating-playstore-cta{background:var(--accent);color:#1c1500;border-radius:var(--radius-md);padding:14px;font-family:'Oswald',sans-serif;font-weight:700;font-size:13.5px;letter-spacing:0.03em;text-transform:uppercase;text-decoration:none;margin-top:6px;}
+  .rating-playstore.rating-playstore-cta:active{background:var(--accent-dim);}
   .history-no-match{
     text-align:center;
     color:var(--text-faint);
@@ -13896,8 +13898,9 @@
     ui.showRatingPanel = false;
     renderRatingOverlay();
     showToast(stars >= 4 ? 'Thanks so much! \ud83d\ude4f' : 'Thanks for the feedback!');
-    // Happy raters go straight on to post the public review on Google Play.
-    if (stars >= 4) openPlayStoreReview();
+    // Everyone, whatever the stars, goes straight on to the Google Play listing
+    // to post the public review.
+    openPlayStoreReview();
   }
   function renderRatingOverlay(){
     var overlay = document.getElementById('ratingOverlay');
@@ -13923,10 +13926,14 @@
              '<textarea id="ratingFeedbackInput" class="rating-feedback-input" rows="3" placeholder="Anything you\u2019d love to see next? (optional)"></textarea>' +
              '<button type="button" class="rating-submit-btn" data-action="submit-rating">Submit &amp; rate on Google Play</button>';
     } else {
-      body = '<div class="rating-subtitle">Thanks for the honesty \u2014 what could we do better?</div>' +
+      body = '<div class="rating-subtitle">Thanks for the honesty \u2014 what could we do better? Then tap below to leave your review on Google Play</div>' +
              '<textarea id="ratingFeedbackInput" class="rating-feedback-input" rows="3" placeholder="Tell us what\u2019s not working (optional)"></textarea>' +
-             '<button type="button" class="rating-submit-btn" data-action="submit-rating">Send feedback</button>';
+             '<button type="button" class="rating-submit-btn" data-action="submit-rating">Send feedback &amp; rate on Google Play</button>';
     }
+    // With no stars picked yet the Play Store link is the main button; once
+    // stars are chosen it drops back to a quiet link under the submit button.
+    var playCls = 'rating-playstore' + (stars === 0 ? ' rating-playstore-cta' : '');
+    var playTxt = stars === 0 ? 'Rate us on Google Play' : 'Skip \u2014 just open Google Play';
     panel.innerHTML =
       '<div class="pro-panel-header"><h3>Rate SaviorFit Logger</h3>' +
         '<button class="pro-panel-close" data-action="close-rating-panel" aria-label="Close">&#10005;</button>' +
@@ -13934,7 +13941,7 @@
       '<div class="pro-panel-body rating-panel-body">' +
         '<div class="rating-stars-row">' + starsHtml + '</div>' +
         body +
-        '<a class="rating-playstore" href="https://play.google.com/store/apps/details?id=com.saviorfitlogger.app" target="_blank" rel="noopener">Rate us on Google Play</a>' +
+        '<a class="'+playCls+'" href="https://play.google.com/store/apps/details?id=com.saviorfitlogger.app" target="_blank" rel="noopener">'+playTxt+'</a>' +
       '</div>';
   }
 
