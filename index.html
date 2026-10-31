@@ -16580,7 +16580,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       btn.classList.toggle('active', btn.dataset.tab === newTab);
     });
 
-    if (ui.tabAnimating || oldIndex === -1 || newIndex === -1 || reduceMotion){
+    // Glass cards use backdrop-filter, which can't blur while an ancestor (#view)
+    // is mid opacity/transform fade -- the glass popped in only once the fade
+    // ended. So with the Glass card style the swap is instant.
+    var glassStyle = document.documentElement.getAttribute('data-card-style') === 'glass';
+    if (ui.tabAnimating || oldIndex === -1 || newIndex === -1 || reduceMotion || glassStyle){
       state.tab = newTab;
       renderApp();
       viewEl.scrollTop = tabScrollPositions[newTab] || 0;
