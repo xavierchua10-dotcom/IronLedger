@@ -4528,6 +4528,31 @@
   .sky-f{display:flex;justify-content:space-between;font:600 10px 'JetBrains Mono',monospace;letter-spacing:0.06em;color:var(--text-faint);padding:0 4px;}
   .sky-f b{color:var(--accent);}
 
+
+  /* ---- Plate calculator ---- */
+  .pl-card .tp-stage{height:210px;}
+  .pl-row{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:2px;}
+  .pl-step{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.05);color:var(--text);font:700 22px 'Oswald',sans-serif;cursor:pointer;line-height:1;}
+  .pl-step:active{transform:scale(0.93);}
+  .pl-w{min-width:130px;}
+  .pl-w b{font:700 50px/1 'Oswald',sans-serif;color:var(--text);}
+  .pl-w small{font:500 15px 'JetBrains Mono',monospace;color:var(--text-dim);margin-left:5px;}
+  .pl-bar{margin:8px auto 0;display:block;border:none;background:none;color:var(--text-faint);font:700 10px 'JetBrains Mono',monospace;letter-spacing:0.12em;cursor:pointer;padding:4px 8px;}
+  .pl-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px;min-height:34px;}
+  .pl-chip{padding:6px 12px;border-radius:999px;font:700 14px 'Oswald',sans-serif;color:#fff;}
+  .pl-empty{font:500 12px 'JetBrains Mono',monospace;color:var(--text-faint);align-self:center;}
+  .pl-note{min-height:14px;margin-top:8px;font:500 11px 'JetBrains Mono',monospace;color:var(--text-dim);}
+  .pl-use{width:100%;margin-top:10px;height:46px;border-radius:12px;border:none;background:var(--accent);color:#1c1500;font:700 15px 'Oswald',sans-serif;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;}
+  .ex-plate-btn svg{width:19px;height:19px;display:block;margin:auto;}
+  /* ---- Profile shelf / flame ---- */
+  .sh-stage{display:none;position:relative;height:430px;margin:-6px 0 0;}
+  .pf-badges.sh-ready .sh-stage{display:block;}
+  .pf-badges.sh-ready .pf-badge-grid{display:none;}
+  .sh-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;}
+  .pf-stat{position:relative;}
+  .pf-flame{position:absolute;right:8px;top:6px;width:56px;height:66px;pointer-events:none;}
+  .pf-flame canvas{width:100%;height:100%;display:block;}
+
   /* ---- Trophy / medal popup (PR celebration + Profile badges) ---- */
   .tp-overlay{display:none;position:fixed;inset:0;z-index:1200;align-items:center;justify-content:center;padding:20px;background:rgba(8,9,11,0.74);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
   .tp-overlay.on{display:flex;animation:tpIn .24s ease both;}
@@ -13249,6 +13274,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               (refSets ? '<button class="reference-btn" data-action="open-exercise-reference" data-ex-name="'+esc(ex.name)+'" aria-label="Reference from last time">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M7.5 9h9M7.5 12.5h9M7.5 16h5.5"/></svg>' +
               '</button>' : '') +
+              ((isBodyweightExercise(ex.name) || isHoldExercise(ex.name)) ? '' : '<button class="icon-btn ex-plate-btn" data-action="open-plates" data-ex="'+ex.id+'" aria-label="Plate calculator"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="1.500" y="6" width="3" height="12" rx="1"/><rect x="5.500" y="3.500" width="3.500" height="17" rx="1"/><rect x="9" y="11" width="6" height="2"/><rect x="15" y="3.500" width="3.500" height="17" rx="1"/><rect x="19.500" y="6" width="3" height="12" rx="1"/></svg></button>') +
               '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
               '<button class="icon-btn" data-action="open-exercise-menu" data-ex="'+ex.id+'" aria-label="Exercise options">&#8942;</button>' +
             '</div></div>';
@@ -15722,10 +15748,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // Volume Overview moved out to its own Insight tab, so Progress only
     // ever renders the exercise view now. Pro / trial users see everything;
     // everyone else gets the free view (see renderProgressExerciseView).
-    html += renderProgressExerciseView(names).html + pSwitch;
+    html += renderProgressExerciseView(names).html + terrainCardHtml(ui.progressExercise) + pSwitch;
 
     document.getElementById('view').innerHTML = html;
     placeProgressSwitch();
+    if (document.getElementById('terr3dHost')) initTerrain();
     var best1RMEl = document.getElementById('csValBest1RM');
     var latestTopEl = document.getElementById('csValLatestTop');
     if (best1RMEl) animateStatCounter(best1RMEl, parseFloat(best1RMEl.dataset.target), fmtWeight, ' ' + unitLabel());
@@ -16386,7 +16413,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       (isGuest ? '' : '<button type="button" class="pf-edit" data-action="open-avatar-pick" aria-label="Change profile icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>') +
       '</div></div>' +
       '<div class="pf-stats">' + stat(fmtBig(p.totalKg), unitLabel(), 'Total lifted') + stat(p.workouts, '', 'Workouts') +
-        stat(p.streak, p.streak === 1 ? 'wk' : 'wks', 'Week streak') + stat(p.prs, '', 'Personal records') + '</div>' +
+        stat(p.streak, p.streak === 1 ? 'wk' : 'wks', 'Week streak').replace('<div class="pf-stat">', '<div class="pf-stat"><div class="pf-flame" id="fl3dHost" data-n="'+p.streak+'"></div>') + stat(p.prs, '', 'Personal records') + '</div>' +
       '<div class="pf-best"><div class="pf-best-h">BEST LIFTS</div>';
     if (p.top.length){
       p.top.forEach(function(l){
@@ -16792,6 +16819,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (newBody && keepTop) newBody.scrollTop = keepTop;
 
     document.getElementById('importFile').addEventListener('change', handleImportFile);
+    initProfile3d();
   }
   function openSettingsPage(){ ui.settingsOpen = true; ui.settingsPage = null; renderApp(); }
   function closeSettingsPage(){ ui.settingsOpen = false; ui.settingsPage = null; renderApp(); }
@@ -20354,6 +20382,429 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!s.raf){ s.last = 0; s.raf = requestAnimationFrame(skyFrame); }
   }
 
+  // ---------- Plate calculator ----------
+  var PL_KG = [[25,0xc9403a,0.46,0.075],[20,0x2f6fd0,0.46,0.07],[15,0xe5b92e,0.40,0.06],[10,0x2e9e5b,0.34,0.05],[5,0xe9e6df,0.26,0.04],[2.5,0xc9403a,0.20,0.03],[1.25,0xaab2ba,0.16,0.022]];
+  var PL_LB = [[45,0x2f6fd0,0.46,0.075],[35,0xe5b92e,0.41,0.062],[25,0x2e9e5b,0.35,0.052],[10,0xe9e6df,0.27,0.04],[5,0xc9403a,0.21,0.03],[2.5,0xaab2ba,0.16,0.022]];
+  var pl = null, pl3d = null;
+  function plIsLb(){ return unitLabel() !== 'kg'; }
+  function plFmt(n){ n = Math.round(n * 100) / 100; return (n % 1 === 0) ? String(n) : String(n); }
+  function plCompute(){
+    var list = plIsLb() ? PL_LB : PL_KG, per = (pl.target - pl.bar) / 2, res = [];
+    list.forEach(function(p){ while (per >= p[0] - 1e-6 && res.length < 12){ res.push(p); per -= p[0]; } });
+    pl.plates = res; pl.left = Math.round(per * 2 * 100) / 100;
+  }
+  function plOverlayEl(){
+    var ov = document.getElementById('plOverlay');
+    if (ov) return ov;
+    ov = document.createElement('div'); ov.id = 'plOverlay'; ov.className = 'tp-overlay';
+    ov.innerHTML = '<div class="tp-card pl-card"><button type="button" class="tp-x" data-action="close-plates" aria-label="Close">✕</button>' +
+      '<div class="tp-kick">PLATE CALCULATOR</div><div class="tp-stage pl-stage" id="plStage"></div>' +
+      '<div class="pl-row"><button type="button" class="pl-step" data-action="pl-adj" data-d="-1" aria-label="Lighter">−</button>' +
+      '<div class="pl-w"><b id="plW">0</b><small id="plU">kg</small></div><button type="button" class="pl-step" data-action="pl-adj" data-d="1" aria-label="Heavier">+</button></div>' +
+      '<button type="button" class="pl-bar" data-action="pl-bar" id="plBar"></button>' +
+      '<div class="pl-chips" id="plChips"></div><div class="pl-note" id="plNote"></div>' +
+      '<button type="button" class="pl-use" data-action="pl-use" id="plUse">Use this weight</button></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){
+      var a = e.target.closest('[data-action]'), act = a && a.dataset.action;
+      if (act === 'close-plates' || (!a && e.target === ov)) closePlateCalc();
+      else if (act === 'pl-adj' && pl){ pl.target = Math.max(pl.bar, pl.target + parseInt(a.dataset.d, 10) * (plIsLb() ? 5 : 2.5)); plRefresh(); }
+      else if (act === 'pl-bar' && pl){ var bars = plIsLb() ? [45, 35] : [20, 15, 10]; var i = bars.indexOf(pl.bar); pl.bar = bars[(i + 1) % bars.length]; pl.target = Math.max(pl.target, pl.bar); plRefresh(); }
+      else if (act === 'pl-use' && pl){
+        var inp = pl.exId && document.querySelector('.exercise-card[data-ex="' + pl.exId + '"] .set-weight-input');
+        if (inp){ inp.value = plFmt(pl.target); inp.dispatchEvent(new Event('input', { bubbles: true })); }
+        closePlateCalc();
+      }
+    });
+    return ov;
+  }
+  function plBuild(stage){
+    var canvas = document.createElement('canvas'), renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { return null; }
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(26, 1.4, 0.1, 50);
+    scene.add(new THREE.HemisphereLight(0xdfe9ef, 0x1a1c20, 0.6));
+    var key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(3, 4, 5); scene.add(key);
+    var rim = new THREE.DirectionalLight(0xf2b134, 0.8); rim.position.set(-4, 2, -3); scene.add(rim);
+    var G = new THREE.Group(); scene.add(G);
+    var steel = new THREE.MeshStandardMaterial({ color: 0xaab2ba, metalness: 0.7, roughness: 0.25, emissive: 0x101214 });
+    var bar = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 3.6, 28), steel); bar.rotation.z = Math.PI / 2; G.add(bar);
+    var kn = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, 1.0, 28), new THREE.MeshStandardMaterial({ color: 0x8b939b, metalness: 0.6, roughness: 0.55 })); kn.rotation.z = Math.PI / 2; G.add(kn);
+    [-1, 1].forEach(function(sd){ var sl = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 28), steel); sl.rotation.z = Math.PI / 2; sl.position.x = sd * 1.4; G.add(sl); });
+    var pg = new THREE.Group(); G.add(pg);
+    stage.appendChild(canvas);
+    var s = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, G: G, pg: pg, steel: steel, yaw: -0.8, vyaw: 2.5, dragging: false, raf: null, last: 0 };
+    var lastX = 0, lastT = 0;
+    canvas.style.touchAction = 'none';
+    canvas.addEventListener('pointerdown', function(e){ s.dragging = true; s.vyaw = 0; lastX = e.clientX; lastT = performance.now(); try { canvas.setPointerCapture(e.pointerId); } catch (_) {} });
+    canvas.addEventListener('pointermove', function(e){
+      if (!s.dragging) return;
+      var now = performance.now(), dx = e.clientX - lastX, dt = Math.max(0.008, (now - lastT) / 1000);
+      s.yaw += dx * 0.014; s.vyaw = Math.max(-10, Math.min(10, (dx * 0.014) / dt * 0.6 + s.vyaw * 0.4));
+      lastX = e.clientX; lastT = now;
+    });
+    var end = function(){ s.dragging = false; };
+    canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+    return s;
+  }
+  function plFrame(now){
+    var s = pl3d;
+    if (!s) return;
+    var dt = Math.min(0.05, (now - (s.last || now)) / 1000); s.last = now;
+    if (!s.dragging){ s.yaw += s.vyaw * dt; s.vyaw += (0.3 - s.vyaw) * Math.min(1, dt * 1.5); }
+    s.G.rotation.set(0.22, s.yaw, 0.04);
+    s.renderer.render(s.scene, s.camera);
+    s.raf = requestAnimationFrame(plFrame);
+  }
+  function plRebuildPlates(){
+    var s = pl3d; if (!s) return;
+    while (s.pg.children.length){ var c = s.pg.children.pop(); if (c.geometry) c.geometry.dispose(); if (c.material && c.material !== s.steel) c.material.dispose(); }
+    [-1, 1].forEach(function(sd){
+      var x = 0.68;
+      pl.plates.forEach(function(p){
+        var r = p[2], t = p[3];
+        var body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, t, 64), new THREE.MeshStandardMaterial({ color: 0x1b1d21, roughness: 0.55, metalness: 0.25 }));
+        body.rotation.z = Math.PI / 2; body.position.x = sd * (x + t / 2); s.pg.add(body);
+        [1, -1].forEach(function(f){
+          var rg = new THREE.Mesh(new THREE.TorusGeometry(r * 0.86, 0.012 + t * 0.12, 10, 80), new THREE.MeshStandardMaterial({ color: p[1], roughness: 0.4, metalness: 0.2, emissive: p[1], emissiveIntensity: 0.12 }));
+          rg.rotation.y = Math.PI / 2; rg.position.x = body.position.x + f * (t / 2); s.pg.add(rg);
+        });
+        var hub = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, t + 0.006, 28), s.steel); hub.rotation.z = Math.PI / 2; hub.position.x = body.position.x; s.pg.add(hub);
+        x += t + 0.008;
+      });
+      var col = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.06, 28), new THREE.MeshStandardMaterial({ color: 0x2a2d33, roughness: 0.5, metalness: 0.4 }));
+      col.rotation.z = Math.PI / 2; col.position.x = sd * (x + 0.04); s.pg.add(col);
+    });
+  }
+  function plRefresh(){
+    plCompute();
+    document.getElementById('plW').textContent = plFmt(pl.target);
+    document.getElementById('plU').textContent = unitLabel();
+    document.getElementById('plBar').textContent = 'PER SIDE · BAR ' + pl.bar + ' ' + unitLabel().toUpperCase() + ' ↻';
+    var list = plIsLb() ? PL_LB : PL_KG;
+    document.getElementById('plChips').innerHTML = pl.plates.length ? pl.plates.map(function(p){
+      var c = '#' + ('000000' + p[1].toString(16)).slice(-6), dark = (p[1] === 0xe9e6df || p[1] === 0xe5b92e || p[1] === 0xaab2ba);
+      return '<b class="pl-chip" style="background:' + c + ';' + (dark ? 'color:#14161a' : '') + '">' + p[0] + '</b>';
+    }).join('') : '<span class="pl-empty">Just the bar</span>';
+    var nt = document.getElementById('plNote');
+    nt.textContent = pl.left > 0.001 ? 'Closest load — ' + plFmt(pl.left) + ' ' + unitLabel() + ' short with these plates' : '';
+    plRebuildPlates();
+  }
+  function openPlateCalc(exId){
+    var lb = plIsLb(), bar = lb ? 45 : 20, step = lb ? 5 : 2.5, target = NaN;
+    var inp = exId && document.querySelector('.exercise-card[data-ex="' + exId + '"] .set-weight-input');
+    if (inp && parseFloat(inp.value) > 0) target = parseFloat(inp.value);
+    if (isNaN(target)){
+      var sess = getActiveSession(), ex = sess && exId ? findExercise(sess, exId) : null;
+      if (ex && ex.sets.length) target = toDisplay(ex.sets[ex.sets.length - 1].weightKg);
+    }
+    if (isNaN(target) || target < bar) target = bar + (lb ? 90 : 40);
+    target = Math.round(target / step) * step;
+    pl = { exId: exId, target: Math.max(bar, target), bar: bar, plates: [], left: 0 };
+    var ov = plOverlayEl(), stage = document.getElementById('plStage');
+    ov.className = 'tp-overlay on tp-modal';
+    document.getElementById('plUse').style.display = inp ? '' : 'none';
+    if (pl3d){ closePlateGl(); }
+    if (typeof THREE !== 'undefined'){
+      var w = stage.clientWidth || 300, h = stage.clientHeight || 210;
+      pl3d = plBuild(stage);
+      if (pl3d){
+        pl3d.renderer.setSize(w, h, false); pl3d.camera.aspect = w / h; pl3d.camera.updateProjectionMatrix();
+        pl3d.camera.position.set(0, 0.5, 5.2); pl3d.camera.lookAt(0, 0, 0);
+        pl3d.raf = requestAnimationFrame(plFrame);
+      }
+    }
+    plRefresh();
+    queueBackSync();
+  }
+  function closePlateGl(){
+    if (!pl3d) return;
+    cancelAnimationFrame(pl3d.raf);
+    try { while (pl3d.pg.children.length){ var c = pl3d.pg.children.pop(); if (c.geometry) c.geometry.dispose(); } pl3d.renderer.dispose(); pl3d.renderer.forceContextLoss(); } catch (_) {}
+    if (pl3d.canvas.parentNode) pl3d.canvas.parentNode.removeChild(pl3d.canvas);
+    pl3d = null;
+  }
+  function closePlateCalc(){
+    var ov = document.getElementById('plOverlay');
+    if (!ov || !ov.classList.contains('on')) return;
+    ov.classList.add('out');
+    closePlateGl();
+    setTimeout(function(){ ov.classList.remove('on', 'out', 'tp-modal'); queueBackSync(); }, 190);
+  }
+
+  // ---------- Shared 3D bits for Profile / Progress cards ----------
+  function p3dDrag(canvas, s, opts){
+    var lastX = 0, lastT = 0, sx = 0, sy = 0, st = 0, moved = 0;
+    canvas.addEventListener('pointerdown', function(e){
+      s.dragging = true; s.vyaw = 0; lastX = sx = e.clientX; sy = e.clientY; lastT = st = performance.now(); moved = 0;
+      try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    canvas.addEventListener('pointermove', function(e){
+      if (!s.dragging) return;
+      var now = performance.now(), dx = e.clientX - lastX, dt = Math.max(0.008, (now - lastT) / 1000);
+      moved += Math.abs(dx);
+      s.yaw += dx * (opts.k || 0.012); s.vyaw = Math.max(-8, Math.min(8, (dx * (opts.k || 0.012)) / dt * 0.6 + s.vyaw * 0.4));
+      lastX = e.clientX; lastT = now;
+    });
+    var end = function(e){
+      if (!s.dragging) return; s.dragging = false;
+      if (opts.onTap && moved < 6 && performance.now() - st < 450 && e.type === 'pointerup') opts.onTap(e);
+    };
+    canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+  }
+  function p3dClear(group){
+    while (group.children.length){
+      var ch = group.children.pop();
+      if (ch.children && ch.children.length) p3dClear(ch);
+      if (ch.geometry) ch.geometry.dispose();
+      if (ch.material){ if (ch.material.map) ch.material.map.dispose(); ch.material.dispose(); }
+    }
+  }
+  function p3dLabel(text, color, w){
+    var c = document.createElement('canvas'); c.width = 320; c.height = 80;
+    var g = c.getContext('2d'); g.clearRect(0, 0, 320, 80);
+    g.font = '700 26px "JetBrains Mono", monospace'; g.textAlign = 'center'; g.fillStyle = color;
+    var lines = String(text).split('\n');
+    lines.forEach(function(ln, i){ g.fillText(ln, 160, 30 + i * 32); });
+    var tx = new THREE.CanvasTexture(c);
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false }));
+    sp.scale.set(w || 1.15, (w || 1.15) * 80 / 320, 1);
+    return sp;
+  }
+  function p3dMedal(tier){
+    var t = TP_TIERS[tier], g = new THREE.Group(), locked = tier === 0;
+    var body = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.08, 56), new THREE.MeshStandardMaterial({ color: t.c, metalness: locked ? 0.1 : 0.55, roughness: locked ? 0.7 : 0.3, emissive: t.e }));
+    body.rotation.x = Math.PI / 2; g.add(body);
+    var rg = new THREE.Mesh(new THREE.TorusGeometry(0.285, 0.022, 10, 56), new THREE.MeshStandardMaterial({ color: t.r, metalness: 0.4, roughness: 0.35, emissive: t.e })); rg.position.z = 0.055; g.add(rg);
+    var st = new THREE.Mesh(new THREE.OctahedronGeometry(0.13), new THREE.MeshStandardMaterial({ color: t.r, emissive: t.e, emissiveIntensity: 0.6 })); st.position.z = 0.07; st.scale.set(1, 1.2, 0.35); g.add(st);
+    var stand = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, 0.2), new THREE.MeshStandardMaterial({ color: 0x1b1d21, roughness: 0.5 })); stand.position.set(0, -0.4, -0.02); g.add(stand);
+    return g;
+  }
+  function p3dTrophy(s){
+    var gold = new THREE.MeshStandardMaterial({ color: 0xf2b134, metalness: 0.55, roughness: 0.28, emissive: 0x4a3008, side: THREE.DoubleSide });
+    var pts = [[0.001,0],[0.4,0],[0.4,0.08],[0.28,0.1],[0.28,0.18],[0.1,0.24],[0.09,0.42],[0.16,0.46],[0.18,0.52],[0.36,0.68],[0.5,0.98],[0.5,1.06],[0.45,1.08],[0.42,1.0],[0.32,0.74],[0.16,0.6],[0.001,0.58]].map(function(q){ return new THREE.Vector2(q[0], q[1]); });
+    var g = new THREE.Group(); g.add(new THREE.Mesh(new THREE.LatheGeometry(pts, 48), gold));
+    [-1, 1].forEach(function(sd){ var h = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.035, 12, 32, Math.PI), gold); h.position.set(sd * 0.48, 0.82, 0); h.rotation.z = sd > 0 ? -Math.PI / 2 : Math.PI / 2; g.add(h); });
+    g.scale.set(s, s, s); return g;
+  }
+  function p3dBoard(w){
+    var g = new THREE.Group();
+    var b = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, 0.8), new THREE.MeshStandardMaterial({ color: 0x2a2d33, roughness: 0.5, metalness: 0.3 })); b.position.y = -0.05; g.add(b);
+    var e = new THREE.Mesh(new THREE.BoxGeometry(w, 0.025, 0.04), new THREE.MeshStandardMaterial({ color: 0xd9a22c, metalness: 0.6, roughness: 0.3, emissive: 0x2a1c04 })); e.position.set(0, 0, 0.39); g.add(e);
+    return g;
+  }
+
+  // ---------- Trophy shelf (Profile) ----------
+  var sh3d = null;
+  function shelfFrame(now){
+    var s = sh3d;
+    if (!s) return;
+    if (!s.canvas.isConnected){ s.raf = null; return; }
+    var dt = Math.min(0.05, (now - (s.last || now)) / 1000); s.last = now;
+    if (!s.dragging){ s.vyaw *= Math.max(0, 1 - dt * 3); s.yaw += s.vyaw * dt; s.yaw += (0 - s.yaw) * Math.min(1, dt * 1.6); }
+    s.yaw = Math.max(-0.7, Math.min(0.7, s.yaw));
+    s.group.rotation.y = s.yaw;
+    s.renderer.render(s.scene, s.camera);
+    s.raf = requestAnimationFrame(shelfFrame);
+  }
+  function initShelf(tries){
+    var host = document.getElementById('sh3dHost');
+    if (!host) return;
+    if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initShelf((tries || 0) + 1); }, 400); return; }
+    if (!sh3d){
+      var canvas = document.createElement('canvas'), renderer;
+      try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { return; }
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(28, 1, 0.1, 60);
+      scene.add(new THREE.HemisphereLight(0xdfe9ef, 0x1a1c20, 0.6));
+      var key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(3, 5, 5); scene.add(key);
+      var rim = new THREE.DirectionalLight(0xf2b134, 0.8); rim.position.set(-4, 2, -3); scene.add(rim);
+      var group = new THREE.Group(); scene.add(group);
+      var s0 = sh3d = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, group: group, hits: [], ray: new THREE.Raycaster(), yaw: 0, vyaw: 0, dragging: false, raf: null, last: 0 };
+      p3dDrag(canvas, s0, { k: 0.008, onTap: function(e){
+        var r = canvas.getBoundingClientRect(), v = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+        s0.ray.setFromCamera(v, s0.camera);
+        var meshes = []; s0.hits.forEach(function(h){ h.obj.traverse(function(m){ if (m.isMesh){ m.userData.hit = h; meshes.push(m); } }); });
+        var hit = s0.ray.intersectObjects(meshes, false)[0];
+        if (!hit) return;
+        var h = hit.object.userData.hit;
+        if (h.badge) openBadge(h.badge);
+        else if (h.lift) openTrophyPopup({ pr:false, obj:'trophy', tier:3, kick:'BEST LIFT', title:h.lift.name, sub: fmtWeight(h.lift.weightKg) + ' ' + unitLabel() + ' × ' + h.lift.reps, chip:'EST. 1RM ' + fmtWeight(h.lift.e) + ' ' + unitLabel().toUpperCase() });
+      } });
+    }
+    var s = sh3d;
+    p3dClear(s.group); s.hits = [];
+    var defs = badgeDefs(), top = profileStats().top;
+    var cols = [-1.0, 0, 1.0];
+    defs.forEach(function(b, i){
+      var row = Math.floor(i / 3), col = i % 3, y = 2.75 - row * 1.4;
+      if (col === 0){ var bd = p3dBoard(3.3); bd.position.y = y; s.group.add(bd); }
+      var m = p3dMedal(b.tier); m.position.set(cols[col], y + 0.52, 0); m.rotation.y = -cols[col] * 0.12; s.group.add(m); s.hits.push({ obj: m, badge: b.id });
+      var lb = p3dLabel(b.name.toUpperCase(), b.tier ? '#f2b134' : '#6b717b', 1.0); lb.position.set(cols[col], y - 0.3, 0.5); s.group.add(lb);
+    });
+    var by = -0.2, tb = p3dBoard(3.3); tb.position.y = by; s.group.add(tb);
+    if (top.length){
+      var sc = [0.52, 0.62, 0.72];
+      top.forEach(function(l, i){
+        var tr = p3dTrophy(sc[2 - i] * (top.length === 1 ? 1.1 : 1)); tr.position.set(cols[i], by, 0); tr.rotation.y = -0.3; s.group.add(tr); s.hits.push({ obj: tr, lift: l });
+        var nm = l.name.length > 13 ? l.name.slice(0, 12) + '…' : l.name;
+        var lb = p3dLabel(nm.toUpperCase() + '\n' + fmtWeight(l.weightKg) + ' ' + unitLabel().toUpperCase(), '#f2b134', 1.15); lb.position.set(cols[i], by - 0.36, 0.5); s.group.add(lb);
+      });
+    } else {
+      var lb0 = p3dLabel('LOG LIFTS TO EARN TROPHIES', '#6b717b', 2.4); lb0.position.set(0, by + 0.45, 0.3); s.group.add(lb0);
+    }
+    host.appendChild(s.canvas);
+    host.parentNode.classList.add('sh-ready');
+    var w = host.clientWidth || 340, h = host.clientHeight || 430;
+    s.renderer.setSize(w, h, false); s.camera.aspect = w / h; s.camera.updateProjectionMatrix();
+    s.camera.position.set(0, 1.8, 9.4); s.camera.lookAt(0, 1.4, 0);
+    if (!s.raf){ s.last = 0; s.raf = requestAnimationFrame(shelfFrame); }
+  }
+
+  // ---------- Streak flame (Profile) ----------
+  var fl3d = null;
+  function flTongue(rad, hh, col, em, op, bx, bz, lean, sk){
+    var pts = [];
+    for (var i = 0; i <= 28; i++){ var t = i / 28; pts.push(new THREE.Vector2(Math.max(0.0008, rad * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.55)), 1.1) * (1 - 0.55 * t * t)), t * hh)); }
+    var g = new THREE.LatheGeometry(pts, 24), p = g.attributes.position;
+    for (var j = 0; j < p.count; j++){ var y = p.getY(j) / hh; p.setX(j, p.getX(j) + lean * y * y + sk * Math.sin(y * 5) * y * 0.5); p.setZ(j, p.getZ(j) * 0.55); }
+    g.computeVertexNormals();
+    var m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: col, emissive: em, emissiveIntensity: 0.85, roughness: 0.65, transparent: true, opacity: op }));
+    m.position.set(bx, 0, bz); return m;
+  }
+  function flameFrame(now){
+    var s = fl3d;
+    if (!s) return;
+    if (!s.canvas.isConnected){ s.raf = null; return; }
+    var t = now / 1000;
+    s.tongues.forEach(function(m, i){
+      m.scale.y = 1 + 0.07 * Math.sin(t * (4.2 + i * 0.9) + i * 1.7) * s.live;
+      m.scale.x = 1 + 0.05 * Math.sin(t * (3.1 + i * 0.7) + i);
+    });
+    s.group.rotation.y = -0.3 + Math.sin(t * 0.8) * 0.35;
+    s.renderer.render(s.scene, s.camera);
+    s.raf = requestAnimationFrame(flameFrame);
+  }
+  function initFlame(tries){
+    var host = document.getElementById('fl3dHost');
+    if (!host) return;
+    if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initFlame((tries || 0) + 1); }, 400); return; }
+    if (!fl3d){
+      var canvas = document.createElement('canvas'), renderer;
+      try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { return; }
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(26, 0.85, 0.1, 50);
+      scene.add(new THREE.HemisphereLight(0xffe0c0, 0x1a1c20, 0.7));
+      var key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(2, 3, 5); scene.add(key);
+      var group = new THREE.Group(); scene.add(group);
+      fl3d = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, group: group, tongues: [], live: 1, raf: null };
+    }
+    var s = fl3d, n = parseInt(host.getAttribute('data-n'), 10) || 0;
+    p3dClear(s.group); s.tongues = [];
+    var alive = n > 0, k = alive ? 0.62 + 0.38 * Math.min(n, 10) / 10 : 0.34;
+    s.live = alive ? 1 : 0.2;
+    var defs = alive ? [
+      [0.8, 2.0, 0xd8421a, 0x8c2208, 0.96, 0, -0.05, 0.18, 0.08], [0.4, 1.75, 0xe8541c, 0x9c2c0a, 0.96, -0.5, 0.02, -0.42, -0.1],
+      [0.4, 1.55, 0xe8541c, 0x9c2c0a, 0.96, 0.5, 0, 0.46, 0.1], [0.62, 1.5, 0xf29a2a, 0xb86c10, 0.97, 0, 0.06, 0.1, 0.05], [0.34, 1.0, 0xffd878, 0xe0a428, 1, 0, 0.14, 0.04, 0.02]
+    ] : [[0.8, 1.2, 0x5a2a1c, 0x3a0f06, 0.95, 0, 0, 0.05, 0.02], [0.4, 0.7, 0xa03a14, 0x6a1a05, 0.95, 0, 0.1, 0.02, 0.0]];
+    defs.forEach(function(d){ var m = flTongue.apply(null, d); s.group.add(m); s.tongues.push(m); });
+    s.group.scale.setScalar(k);
+    host.appendChild(s.canvas);
+    var w = host.clientWidth || 56, h = host.clientHeight || 66;
+    s.renderer.setSize(w, h, false); s.camera.aspect = w / h; s.camera.updateProjectionMatrix();
+    s.camera.position.set(0, 1.0 * k + 0.2, 7.4); s.camera.lookAt(0, 0.85 * k + 0.15, 0);
+    s.group.position.y = -0.1;
+    if (!s.raf) s.raf = requestAnimationFrame(flameFrame);
+  }
+  function initProfile3d(){
+    if (document.getElementById('sh3dHost')) initShelf();
+    if (document.getElementById('fl3dHost')) initFlame();
+  }
+
+  // ---------- Strength terrain (Progress) ----------
+  var terr3d = null;
+  function terrainSeries(name){
+    var pts = collectExercisePoints(name);
+    if (pts.length < 3) return null;
+    pts = pts.slice(-18);
+    var vals = pts.map(function(p){ return toDisplay(p.e1rm); }), prs = [], mx = -1;
+    vals.forEach(function(v, i){ if (v > mx + 1e-6){ if (i > 0) prs.push(i); mx = v; } });
+    return { vals: vals, prs: prs.slice(-6), peak: Math.max.apply(null, vals), gained: vals[vals.length - 1] - vals[0] };
+  }
+  function terrainCardHtml(name){
+    var d = terrainSeries(name);
+    if (!d) return '';
+    return '<div class="sky-card terr-card"><div class="sky-h">TERRAIN<span>EST. 1RM OVER TIME</span></div>' +
+           '<div class="sky-stage" id="terr3dHost" data-ex="' + esc(name) + '"></div>' +
+           '<div class="sky-f"><span>PEAK <b>' + plFmt(Math.round(d.peak * 10) / 10) + ' ' + unitLabel() + '</b></span><span>' + (d.gained >= 0 ? '+' : '−') + plFmt(Math.round(Math.abs(d.gained) * 10) / 10) + ' ' + unitLabel() + ' · DRAG TO ROTATE</span></div></div>';
+  }
+  function terrFrame(now){
+    var s = terr3d;
+    if (!s) return;
+    if (!s.canvas.isConnected){ s.raf = null; return; }
+    var dt = Math.min(0.05, (now - (s.last || now)) / 1000); s.last = now;
+    if (!s.dragging){ s.yaw += s.vyaw * dt; s.vyaw += (0.14 - s.vyaw) * Math.min(1, dt * 1.2); }
+    s.group.rotation.y = s.yaw;
+    s.renderer.render(s.scene, s.camera);
+    s.raf = requestAnimationFrame(terrFrame);
+  }
+  function initTerrain(tries){
+    var host = document.getElementById('terr3dHost');
+    if (!host) return;
+    if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initTerrain((tries || 0) + 1); }, 400); return; }
+    if (!terr3d){
+      var canvas = document.createElement('canvas'), renderer;
+      try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { host.parentNode.style.display = 'none'; return; }
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, 1.6, 0.1, 60);
+      scene.add(new THREE.HemisphereLight(0xdfe9ef, 0x1a1c20, 0.6));
+      var key = new THREE.DirectionalLight(0xffffff, 1.0); key.position.set(3, 5, 4); scene.add(key);
+      var rim = new THREE.DirectionalLight(0xf2b134, 0.8); rim.position.set(-4, 2, -3); scene.add(rim);
+      var group = new THREE.Group(); scene.add(group);
+      terr3d = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, group: group, yaw: -0.55, vyaw: 0, dragging: false, raf: null, last: 0 };
+      canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab';
+      p3dDrag(canvas, terr3d, { k: 0.012 });
+    }
+    var s = terr3d, d = terrainSeries(host.getAttribute('data-ex'));
+    if (!d){ host.parentNode.style.display = 'none'; return; }
+    p3dClear(s.group);
+    var mn = Math.min.apply(null, d.vals), mxv = Math.max.apply(null, d.vals), span = Math.max(1e-6, mxv - mn), V = d.vals.length;
+    var N = 60, Z = 20, W = 3.0, D = 1.5, HM = 1.15;
+    function hAt(u){
+      var f = u * (V - 1), i = Math.min(V - 2, Math.floor(f)), t = f - i; t = t * t * (3 - 2 * t);
+      return 0.1 + ((d.vals[i] + (d.vals[i + 1] - d.vals[i]) * t) - mn) / span * HM;
+    }
+    function env(v){ return Math.pow(Math.sin(v * Math.PI), 0.7); }
+    var geo = new THREE.PlaneGeometry(W, D, N, Z); geo.rotateX(-Math.PI / 2);
+    var pos = geo.attributes.position, cols = [];
+    for (var i = 0; i < pos.count; i++){
+      var u = (pos.getX(i) + W / 2) / W, v = (pos.getZ(i) + D / 2) / D, e = env(v);
+      var h = hAt(u) * e + 0.01 + 0.025 * Math.sin(u * 40 + v * 9) * e; pos.setY(i, h);
+      var c = new THREE.Color().setHSL(0.105, 0.78, 0.07 + Math.min(1, h / 1.25) * 0.3); cols.push(c.r, c.g, c.b);
+    }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); geo.computeVertexNormals();
+    s.group.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.15, emissive: 0x1a1103 })));
+    s.group.add(new THREE.Mesh(geo.clone(), new THREE.MeshBasicMaterial({ color: 0xf2b134, wireframe: true, transparent: true, opacity: 0.1 })));
+    [-1, 1].forEach(function(sd){
+      var u = sd < 0 ? 0 : 1, sh = new THREE.Shape(); sh.moveTo(-D / 2, 0);
+      for (var k = 0; k <= 20; k++){ var vv = k / 20; sh.lineTo(-D / 2 + vv * D, hAt(u) * env(vv) + 0.01); }
+      sh.lineTo(D / 2, 0); sh.lineTo(-D / 2, 0);
+      var wm = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshStandardMaterial({ color: 0x4a3008, roughness: 0.7, side: THREE.DoubleSide }));
+      wm.rotation.y = Math.PI / 2; wm.position.x = sd * W / 2; s.group.add(wm);
+    });
+    var base = new THREE.Mesh(new THREE.BoxGeometry(W + 0.1, 0.05, D + 0.1), new THREE.MeshStandardMaterial({ color: 0x1d2025, roughness: 0.8 })); base.position.y = -0.03; s.group.add(base);
+    d.prs.forEach(function(idx){
+      var u = idx / (V - 1), sp = new THREE.Mesh(new THREE.SphereGeometry(0.05, 18, 14), new THREE.MeshStandardMaterial({ color: 0xfff1c2, emissive: 0xf2b134, emissiveIntensity: 0.9 }));
+      sp.position.set(-W / 2 + u * W, hAt(u) + 0.1, 0); s.group.add(sp);
+    });
+    s.group.position.y = -0.35;
+    host.appendChild(s.canvas);
+    var w = host.clientWidth || 320, hh = host.clientHeight || 220;
+    s.renderer.setSize(w, hh, false); s.camera.aspect = w / hh; s.camera.updateProjectionMatrix();
+    s.camera.position.set(0, 1.7, 5.0); s.camera.lookAt(0, 0.1, 0);
+    if (!s.raf){ s.last = 0; s.raf = requestAnimationFrame(terrFrame); }
+  }
+
   // ---------- Badges ----------
   var BADGE_SVG = {
     workouts: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="1" y="4" width="4" height="16" rx="1.3"/><rect x="19" y="4" width="4" height="16" rx="1.3"/><rect x="5" y="10.4" width="14" height="3.2" rx="1"/></svg>',
@@ -20388,7 +20839,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       return '<button type="button" class="pf-badge t'+b.tier+'" data-action="open-badge" data-badge="'+b.id+'">' +
                '<span class="pf-coin">'+BADGE_SVG[b.id]+'</span><b>'+esc(b.name)+'</b><small>'+small+'</small></button>';
     }).join('');
-    return '<div class="pf-badges"><div class="pf-badges-h">BADGES<span>'+earned+' / '+(defs.length * 3)+'</span></div><div class="pf-badge-grid">'+tiles+'</div></div>';
+    return '<div class="pf-badges"><div class="pf-badges-h">TROPHY SHELF<span>'+earned+' / '+(defs.length * 3)+'</span></div><div class="sh-stage" id="sh3dHost"></div><div class="pf-badge-grid">'+tiles+'</div></div>';
   }
   function openBadge(id){
     var b = badgeDefs().filter(function(x){ return x.id === id; })[0];
@@ -22713,6 +23164,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       closeSettingsPage();
     } else if (action === 'share-profile'){
       shareProfile();
+    } else if (action === 'open-plates'){
+      openPlateCalc(el.dataset.ex);
     } else if (action === 'open-rest-glass'){
       openRestGlass();
     } else if (action === 'open-badge'){
