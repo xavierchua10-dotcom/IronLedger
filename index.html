@@ -14664,6 +14664,7 @@
   function logChatTabPills(){
     if (state.tab === 'log'){
       return [
+        { label: 'What\u2019s my next workout?', text: 'what is my next workout' },
         { label: 'What am I working on today?', text: 'what am I working on today' },
         { label: 'What is push day?', text: 'what is push day' }
       ];
@@ -16189,6 +16190,42 @@
     return 'Your best sets (by estimated 1RM) on your most-trained lifts \u2014 ' + lines.join(' \u00b7 ') + '. Ask \u201cbench PR\u201d for details on one.';
   }
 
+  // "What should I do next?" — reads the most recent finished session and
+  // gives the next target for every exercise in it, one block per exercise.
+  // The numbers come from the same overload-tip logic as Tips & Target (so
+  // they match what Progress/History show); the AI never invents figures.
+  // Pro only, like the rest of Tips & Target.
+  var LOG_CHAT_NEXT_PRO_REPLY = 'Next-workout targets are a Pro feature — Pro reads your last session and tells you the exact weight and reps to aim for on every exercise. Tap the PRO button up top to try it.';
+  function logChatNextWorkout(){
+    if (!isProActive()) return LOG_CHAT_NEXT_PRO_REPLY;
+    var done = (state.sessions || []).filter(function(s){
+      return s.status === 'done' && s.exercises && s.exercises.some(function(e){ return e.sets && e.sets.length; });
+    }).sort(function(a, b){
+      return Date.parse(b.finishedAt || b.date) - Date.parse(a.finishedAt || a.date);
+    });
+    if (!done.length) return 'Nothing to build on yet — finish a session first, then ask me again and I’ll set your targets. Let’s get that first one logged! 💪';
+    var s = done[0];
+    var exs = s.exercises.filter(function(e){ return e.sets && e.sets.length; });
+    var MAX = 8;
+    var lines = ['Next up, based on your last session (' + (s.name || 'Untitled session') + ', ' + fmtDateShort(s.finishedAt || s.date) + '):', ''];
+    exs.slice(0, MAX).forEach(function(ex, i){
+      var top = ex.sets[0];
+      ex.sets.forEach(function(st){
+        var w = effectiveLoadKg(ex.name, st.weightKg), tw = effectiveLoadKg(ex.name, top.weightKg);
+        if (w > tw + 0.001 || (Math.abs(w - tw) <= 0.001 && st.reps > top.reps)) top = st;
+      });
+      var tip = overloadTipForExercise(ex);
+      var next = tip && (tip.target || tip.detail) ? String(tip.target || tip.detail).replace(/^Target:\s*/i, '') : 'repeat it and add a rep';
+      lines.push((i + 1) + '. ' + ex.name);
+      lines.push('   Last: ' + describeLoad(ex.name, top.weightKg) + ' × ' + top.reps + (isHoldExercise(ex.name) ? 's' : ''));
+      lines.push('   Next: ' + next);
+      lines.push('');
+    });
+    if (exs.length > MAX) lines.push('…and ' + (exs.length - MAX) + ' more — check Tips & Target in History.', '');
+    lines.push('Hit those numbers on your top set, then we go again. Let’s work! 🔥');
+    return lines.join('\n');
+  }
+
   function logChatStats(period){
     period = ['today', 'week', 'month', 'all'].indexOf(period) !== -1 ? period : 'week';
     var DAY = 86400000;
@@ -16350,6 +16387,15 @@
 
     // Anything that would log, edit, delete or finish \u2014 not done here.
     if (logChatIsActionRequest(text, lower)) return LOG_CHAT_NO_ACTIONS_REPLY;
+
+    // Next workout / next targets for every exercise \u2014 "what's next",
+    // "plan my next workout", "next targets". Pro-gated inside.
+    if (/\b(next|upcoming)\s+(workouts?|sessions?|exercises?|movements?|lifts?|targets?|routine)\b/.test(lower) ||
+        /\bwhat\b.*\b(should i|do i|am i)\b.*\b(do|lift|train|hit)\b.*\bnext\b/.test(lower) ||
+        /^\s*what(?:'s| is)\s+next\b/.test(lower) ||
+        /\b(plan|suggest|recommend|set)\b.*\b(next|my)\b.*\b(workout|session|targets?)\b/.test(lower)){
+      return logChatNextWorkout();
+    }
 
     // PRs \u2014 "my PRs", "bench PR", "what's my squat max". A bare
     // "what is a PR" stays with the FAQ below.
@@ -16905,6 +16951,12 @@
 
       } else if (result.intent === 'change_setting'){
         if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: 'I can\u2019t change settings from here \u2014 head to the Settings tab for that.' };
+        renderLogChatOverlay();
+        focusLogChatInput();
+
+      } else if (result.intent === 'next_workout'){
+        finalText = logChatNextWorkout();
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
         renderLogChatOverlay();
         focusLogChatInput();
 
