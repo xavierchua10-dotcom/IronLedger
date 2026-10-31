@@ -1910,13 +1910,17 @@
   .settings-group.sg-deco > *:not(.tpl-bg){position:relative;z-index:1;}
   /* Settings polish: shared section titles; only the Plan card keeps the gold
      rays + a gold border so it reads as the one special card. */
-  body.tab-settings-active #view .section-label{
+  body.tab-settings-active #view .section-label,
+  body.tab-settings-active #settingsPage .section-label{
     display:flex;align-items:center;gap:10px;position:relative;padding-left:10px;
     font-family:'Oswald',sans-serif;font-size:12.5px;font-weight:600;line-height:1;letter-spacing:.16em;text-transform:uppercase;color:#aab0b8;margin:24px 0 10px;
   }
-  body.tab-settings-active #view .section-label:first-child{margin-top:6px;}
-  body.tab-settings-active #view .section-label::before{content:"";position:absolute;left:0;top:-1px;bottom:-1px;width:3px;border-radius:2px;background:var(--accent);}
-  body.tab-settings-active #view .section-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(var(--accent-rgb),0.35),rgba(var(--accent-rgb),0));}
+  body.tab-settings-active #view .section-label:first-child,
+  body.tab-settings-active #settingsPage .section-label:first-child{margin-top:6px;}
+  body.tab-settings-active #view .section-label::before,
+  body.tab-settings-active #settingsPage .section-label::before{content:"";position:absolute;left:0;top:-1px;bottom:-1px;width:3px;border-radius:2px;background:var(--accent);}
+  body.tab-settings-active #view .section-label::after,
+  body.tab-settings-active #settingsPage .section-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(var(--accent-rgb),0.35),rgba(var(--accent-rgb),0));}
   body.tab-settings-active .settings-group.sg-deco:not(.sg-plan) .tpl-bg{opacity:0;}
   body.tab-settings-active .settings-group.sg-plan{border-color:rgba(var(--accent-rgb),0.45);}
   .tpl-bg{
@@ -4430,6 +4434,24 @@
   .pf-lift-v{font:700 17px 'JetBrains Mono',monospace;color:var(--accent);white-space:nowrap;}
   .pf-lift-v small{font-size:10px;color:var(--text-faint);}
   .pf-empty{font:500 13px 'Inter',sans-serif;color:var(--text-faint);padding:4px 0 14px;}
+
+  /* ---- Settings: full-screen page opened from the Profile tab ---- */
+  .confirm-overlay.settings-page{padding:0;background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;align-items:stretch;justify-content:center;}
+  .sp-panel{width:100%;max-width:480px;height:100%;display:flex;flex-direction:column;background:var(--bg);}
+  .sp-head{display:flex;align-items:center;gap:12px;padding:calc(12px + var(--safe-top, 0px)) 16px 12px;border-bottom:1px solid var(--line);flex:0 0 auto;}
+  .sp-head h3{flex:1;margin:0;font:700 24px 'Oswald',sans-serif;letter-spacing:.02em;text-transform:uppercase;color:var(--text);}
+  .sp-btn{width:38px;height:38px;border-radius:11px;border:1px solid rgba(255,255,255,.18);background:transparent;color:var(--text);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;flex:0 0 auto;}
+  .sp-btn svg{width:18px;height:18px;}
+  .sp-btn:active{background:var(--panel-2);}
+  .sp-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 16px calc(28px + var(--safe-bottom, 0px));}
+  .pf-settings-card{width:100%;margin-top:12px;display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:var(--panel);color:inherit;text-align:left;cursor:pointer;font:inherit;}
+  .pf-settings-card:active{background:var(--panel-2);}
+  .pf-settings-ic{width:46px;height:46px;border-radius:14px;background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.5);color:var(--accent);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .pf-settings-ic svg{width:24px;height:24px;}
+  .pf-settings-tx{flex:1;min-width:0;}
+  .pf-settings-t{font:700 20px 'Oswald',sans-serif;text-transform:uppercase;color:var(--text);}
+  .pf-settings-s{font:500 12px 'Inter',sans-serif;color:var(--text-faint);margin-top:2px;}
+  .pf-settings-chev{color:var(--accent);font-size:26px;line-height:1;}
   #challengeOverlay{z-index:120;}
   /* How-to sheet + button */
   .ht-btn{background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.55);color:var(--accent);font:700 10px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:0 9px;height:24px;border-radius:var(--radius);cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
@@ -6050,7 +6072,7 @@
   html[data-card-style="glass"] .toast{ background-color:rgba(24,28,34,0.74); }
   /* keep small grey text readable on the lighter glass */
   html[data-card-style="glass"] .settings-row .sr-sub{ color:rgba(233,230,223,0.78); }
-  html[data-card-style="glass"] #view .section-label{ text-shadow:0 1px 6px rgba(0,0,0,0.75); color:rgba(233,230,223,0.85); }
+  html[data-card-style="glass"] #view .section-label, html[data-card-style="glass"] #settingsPage .section-label{ text-shadow:0 1px 6px rgba(0,0,0,0.75); color:rgba(233,230,223,0.85); }
   /* buttons and the segmented control become small glass pills */
   html[data-card-style="glass"] .settings-row .sr-action,
   html[data-card-style="glass"] .settings-row button.sr-action{
@@ -6179,6 +6201,7 @@
   <div class="tour-backdrop hidden" id="tourBackdrop"></div>
   <div class="tour-spotlight hidden" id="tourSpotlight"></div>
   <div class="tour-bubble hidden" id="tourBubble"></div>
+  <div class="confirm-overlay settings-page hidden" id="settingsPage"><div class="sp-panel" id="settingsPagePanel"></div></div>
   <div class="confirm-overlay hidden" id="installOverlay">
     <div class="pro-panel" id="installPanel"></div>
   </div>
@@ -7008,6 +7031,7 @@
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
     howtoEx: null,          // exercise name whose How-to sheet is open (Beginner exercises), or null
     challengeOpen: false,   // Daily Challenge sheet open state
+    settingsOpen: false,          // the full-screen Settings page (opened from the Profile tab) is showing
     challengeBubbleDone: false, // the "challenge is ready" bubble has already been shown since the app opened
     showPricing: false,     // Pricing/upgrade modal open state
     showAvatarPick: false,  // Profile icon picker overlay open state
@@ -15946,8 +15970,8 @@
     var isGuest = (state.currentAccount === 'guest');
     var chosenAvatar = isGuest ? 'guest' : (state.settings && state.settings.avatar);
     var proTag = isDevOverride() ? ' <span class="dev-badge">DEV</span>' : (isProActive() ? ' <span class="pro-badge-mini">PRO</span>' : '');
-    var html = profileHeroHtml();
-    html += '<div class="section-label">Settings \u00b7 Account</div>';
+    var html = '';
+    html += '<div class="section-label">Account</div>';
     html += '<div class="settings-group">';
     // A guest has no account to log out of: say what they ARE (saved on this
     // device only) and offer the one useful action — sign up / log in. (The
@@ -16179,10 +16203,28 @@
 
     html += '<input type="file" id="importFile" accept="application/json" style="display:none;">';
 
-    document.getElementById('view').innerHTML = html;
+    // The Profile tab itself is short: profile card + stats + a Settings card.
+    // The settings list opens as a full-screen page (renderSettingsPage).
+    document.getElementById('view').innerHTML = profileHeroHtml() +
+      '<button type="button" class="pf-settings-card" data-action="open-settings-page">' +
+        '<span class="pf-settings-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>' +
+        '<span class="pf-settings-tx"><div class="pf-settings-t">Settings</div><div class="pf-settings-s">Account, plan, units, rest timer, data</div></span>' +
+        '<span class="pf-settings-chev">\u203a</span></button>';
+    var sp = document.getElementById('settingsPage'), spPanel = document.getElementById('settingsPagePanel');
+    var oldBody = spPanel.querySelector('.sp-body'), keepTop = oldBody ? oldBody.scrollTop : 0;
+    spPanel.innerHTML =
+      '<div class="sp-head"><button type="button" class="sp-btn" data-action="close-settings" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>' +
+      '<h3>Settings</h3>' +
+      '<button type="button" class="sp-btn" data-action="close-settings" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div>' +
+      '<div class="sp-body">' + html + '</div>';
+    sp.classList.toggle('hidden', !ui.settingsOpen);
+    var newBody = spPanel.querySelector('.sp-body');
+    if (newBody && keepTop) newBody.scrollTop = keepTop;
 
     document.getElementById('importFile').addEventListener('change', handleImportFile);
   }
+  function openSettingsPage(){ ui.settingsOpen = true; renderApp(); }
+  function closeSettingsPage(){ ui.settingsOpen = false; renderApp(); }
 
   /* =========================================================
      RENDER DISPATCH
@@ -16387,6 +16429,10 @@
     else if (state.tab === 'progress') renderProgress();
     else if (state.tab === 'settings') renderSettings();
     else if (state.tab === 'insight') renderInsight();
+    if (state.tab !== 'settings' && ui.settingsOpen){
+      ui.settingsOpen = false;
+      var spEl = document.getElementById('settingsPage'); if (spEl) spEl.classList.add('hidden');
+    }
 
     var unitBtn = document.getElementById('unitToggleBtn');
     if (unitBtn) unitBtn.textContent = state.settings.unit.toUpperCase();
@@ -20929,6 +20975,7 @@
   }
   function endTour(){
     ui.tourStep = null;
+    if (ui.settingsOpen){ ui.settingsOpen = false; renderApp(); }
     renderTourStep();
   }
   function tourNext(){
@@ -21013,6 +21060,9 @@
       state.tab = step.tab;
       renderApp();
     }
+    // The settings steps point at items inside the full-screen Settings page.
+    if (step.tab === 'settings' && !ui.settingsOpen){ ui.settingsOpen = true; renderApp(); }
+    else if (step.tab !== 'settings' && ui.settingsOpen){ ui.settingsOpen = false; renderApp(); }
     backdrop.classList.remove('hidden');
     bubble.classList.remove('hidden');
     bubble.innerHTML =
@@ -21370,7 +21420,7 @@
   // Gives every Settings card the shared template-picker background. Idempotent
   // (safe to run on every DOM change); skips the Danger-zone delete card.
   function enhanceSettingsCards(){
-    Array.prototype.forEach.call(document.querySelectorAll('#view .settings-group'), function(g){
+    Array.prototype.forEach.call(document.querySelectorAll('#view .settings-group, #settingsPage .settings-group'), function(g){
       if (g.classList.contains('sg-deco') || g.querySelector('.sr-action-danger')) return;
       g.classList.add('sg-deco');
       g.insertAdjacentHTML('afterbegin', templateBgHtml());
@@ -21380,6 +21430,8 @@
     var view = document.getElementById('view');
     if (view && typeof MutationObserver !== 'undefined'){
       new MutationObserver(function(){ enhanceSettingsCards(); enhanceSegControls(); }).observe(view, { childList: true, subtree: true });
+      var spg = document.getElementById('settingsPage');
+      if (spg) new MutationObserver(function(){ enhanceSettingsCards(); enhanceSegControls(); }).observe(spg, { childList: true, subtree: true });
     }
     // Web fonts change the buttons' widths once they arrive.
     if (document.fonts && document.fonts.ready){
@@ -21635,6 +21687,10 @@
       openNotifications();
     } else if (action === 'close-notifications'){
       closeNotifications();
+    } else if (action === 'open-settings-page'){
+      openSettingsPage();
+    } else if (action === 'close-settings'){
+      closeSettingsPage();
     } else if (action === 'share-profile'){
       shareProfile();
     } else if (action === 'open-avatar-pick'){
@@ -22932,6 +22988,8 @@
       ui.selectedMuscle = null;
       ui.pendingMuscle = null;
       renderApp();
+    } else if (ui.settingsOpen){
+      closeSettingsPage();
     }
   });
 
