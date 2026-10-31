@@ -3473,6 +3473,24 @@
     white-space:pre-wrap;
     word-break:break-word;
   }
+  .chat-msg.chat-msg-plan{white-space:normal;max-width:94%;padding:12px}
+  .chat-msg-plan .plan-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 2px 8px}
+  .chat-msg-plan .plan-title{font-family:'Oswald',sans-serif;font-weight:700;font-size:16px;letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
+  .chat-msg-plan .plan-count{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint)}
+  .chat-msg-plan .plan-sub{font-size:12px;color:var(--text-faint);margin:-4px 2px 8px}
+  .chat-msg-plan .plan-item{display:flex;gap:10px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:12px;padding:10px 11px;margin-bottom:7px}
+  .chat-msg-plan .plan-n{flex:0 0 22px;height:22px;border-radius:50%;background:rgba(242,177,52,.14);border:1px solid rgba(242,177,52,.45);color:var(--accent);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .chat-msg-plan .plan-main{flex:1;min-width:0}
+  .chat-msg-plan .plan-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}
+  .chat-msg-plan .plan-name{font-weight:700;font-size:13.5px;color:var(--text);line-height:1.25}
+  .chat-msg-plan .plan-chip{flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#1c1500;background:var(--accent);border-radius:99px;padding:2px 8px;white-space:nowrap}
+  .chat-msg-plan .plan-row{display:flex;gap:8px;align-items:baseline;font-size:12.5px;line-height:1.4;margin-top:2px}
+  .chat-msg-plan .plan-k{flex:0 0 38px;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint)}
+  .chat-msg-plan .plan-v{color:var(--text-dim);min-width:0}
+  .chat-msg-plan .plan-v i{font-style:normal;color:var(--text-faint);font-size:11px;margin-left:4px}
+  .chat-msg-plan .plan-next .plan-k{color:var(--accent)}
+  .chat-msg-plan .plan-next .plan-v{color:var(--text);font-weight:600}
+  .chat-msg-plan .plan-foot{font-size:12.5px;color:var(--text-dim);margin:9px 2px 1px;line-height:1.4}
   .chat-link{color:var(--accent);text-decoration:underline;font-weight:600;word-break:break-all;-webkit-user-select:text;user-select:text;}
   .chat-msg-bot{
     align-self:flex-start;
@@ -16232,6 +16250,7 @@
     }
     var MAX = 10;
     var lines = [header, ''];
+    var plan = { title: planned.length ? 'Today’s targets' : 'Next up', sub: planned.length ? '' : header.replace(/^Next up, based on your /, 'Based on your ').replace(/:$/, ''), count: Math.min(names.length, MAX), more: Math.max(0, names.length - MAX), items: [], foot: 'Hit those numbers on your top set, then we go again. Let’s work! 🔥' };
     names.slice(0, MAX).forEach(function(name, i){
       lines.push((i + 1) + '. ' + name);
       var occ = lastOccurrence(name);
@@ -16239,6 +16258,7 @@
         lines.push('   Last: no history yet');
         lines.push(isHoldExercise(name) ? '   Next: start with a hold you can keep clean (try 20–30s)' : '   Next: start light, find a weight you can hit for 8–12 clean reps');
         lines.push('');
+        plan.items.push({ name: name, last: '', date: '', chip: 'New', next: isHoldExercise(name) ? 'Start with a hold you can keep clean · try 20–30s' : 'Start light · find a weight you can hit for 8–12 clean reps' });
         return;
       }
       var ex = occ.ex;
@@ -16252,10 +16272,39 @@
       lines.push('   Last: ' + describeLoad(ex.name, top.weightKg) + ' × ' + top.reps + (isHoldExercise(ex.name) ? 's' : '') + ' (' + fmtDateShort(occ.session.finishedAt || occ.session.date) + ')');
       lines.push('   Next: ' + next);
       lines.push('');
+      var chip = !tip ? '' : /^Match/i.test(tip.headline) ? 'Match best' : /too light/i.test(tip.headline) ? 'Go heavier' : /^Add weight/i.test(tip.headline) ? 'Add weight' : /^Build/i.test(tip.headline) ? 'Build reps' : /^Add a rep/i.test(tip.headline) ? 'Add a rep' : '';
+      plan.items.push({
+        name: name,
+        last: describeLoad(ex.name, top.weightKg) + ' × ' + top.reps + (isHoldExercise(ex.name) ? 's' : ''),
+        date: fmtDateShort(occ.session.finishedAt || occ.session.date),
+        chip: chip,
+        next: next.replace(/^Maintain /, 'Stay at ').replace(/ until you match your recent best/, ' until you match your best').replace(/ next session,/, ' ·').replace(/,\s*aim /, ' · aim ')
+      });
     });
     if (names.length > MAX) lines.push('…and ' + (names.length - MAX) + ' more — check Tips & Target on each card.', '');
     lines.push('Hit those numbers on your top set, then we go again. Let’s work! 🔥');
-    return lines.join('\n');
+    var out = lines.join('\n');
+    logChatLastPlan = { text: out, data: plan };
+    return out;
+  }
+  var logChatLastPlan = null;
+  function logChatPlanFor(text){ return logChatLastPlan && logChatLastPlan.text === text ? logChatLastPlan.data : null; }
+  // Rich bubble for the plan: one card row per exercise (last result, next
+  // target, small status chip) instead of a wall of plain text.
+  function logChatRenderPlan(node, plan){
+    node.classList.add('chat-msg-plan');
+    var h = '<div class="plan-head"><span class="plan-title">' + esc(plan.title) + '</span><span class="plan-count">' + plan.count + (plan.count === 1 ? ' exercise' : ' exercises') + '</span></div>' +
+            (plan.sub ? '<div class="plan-sub">' + esc(plan.sub) + '</div>' : '');
+    plan.items.forEach(function(it, i){
+      h += '<div class="plan-item"><span class="plan-n">' + (i + 1) + '</span><div class="plan-main">' +
+             '<div class="plan-top"><span class="plan-name">' + esc(it.name) + '</span>' + (it.chip ? '<span class="plan-chip">' + esc(it.chip) + '</span>' : '') + '</div>' +
+             (it.last ? '<div class="plan-row"><span class="plan-k">Last</span><span class="plan-v">' + esc(it.last) + (it.date ? ' <i>' + esc(it.date) + '</i>' : '') + '</span></div>' : '') +
+             '<div class="plan-row plan-next"><span class="plan-k">Next</span><span class="plan-v">' + esc(it.next) + '</span></div>' +
+           '</div></div>';
+    });
+    if (plan.more) h += '<div class="plan-sub">…and ' + plan.more + ' more — check Tips &amp; Target on each card.</div>';
+    h += '<div class="plan-foot">' + esc(plan.foot) + '</div>';
+    node.innerHTML = h;
   }
 
   function logChatStats(period){
@@ -16423,7 +16472,7 @@
     // Next workout / next targets for every exercise \u2014 "what's next",
     // "plan my next workout", "next targets". Pro-gated inside.
     if (/\b(next|upcoming)\s+(workouts?|sessions?|exercises?|movements?|lifts?|targets?|routine)\b/.test(lower) ||
-        /\bwhat\b.*\b(should i|do i|am i)\b.*\b(do|lift|train|hit)\b.*\bnext\b/.test(lower) ||
+        /\bwhat\b.*\b(should i|do i|am i|can i)\b.*\b(do|lift|train|hit|target|aim|go for)\b.*\bnext\b/.test(lower) ||
         /^\s*what(?:'s| is)\s+next\b/.test(lower) ||
         /\b(plan|suggest|recommend|set)\b.*\b(next|my)\b.*\b(workout|session|targets?)\b/.test(lower)){
       return logChatNextWorkout();
@@ -16813,6 +16862,8 @@
     setTimeout(function(){
       var idx = ui.logChatMessages.indexOf(pending);
       var msg = { role: 'bot', text: reply };
+      var planData = (typeof reply === 'string') ? logChatPlanFor(reply) : null;
+      if (planData) msg.plan = planData;
       if (extraFields){ for (var k in extraFields){ msg[k] = extraFields[k]; } }
       if (idx !== -1) ui.logChatMessages[idx] = msg;
       renderLogChatOverlay();
@@ -16988,7 +17039,7 @@
 
       } else if (result.intent === 'next_workout'){
         finalText = logChatNextWorkout();
-        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText };
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: finalText, plan: logChatPlanFor(finalText) || undefined };
         renderLogChatOverlay();
         focusLogChatInput();
 
@@ -17223,6 +17274,8 @@
       node.className = 'chat-msg chat-msg-' + m.role + (m.pending ? ' chat-msg-pending' : '') + (isNew ? ' chat-msg-new' : '');
       if (m.pending){
         node.innerHTML = '<span class="chat-typing" aria-label="Thinking"><span></span><span></span><span></span></span>';
+      } else if (m.plan){
+        logChatRenderPlan(node, m.plan);
       } else {
         logChatAppendMessageText(node, m.text);
       }
