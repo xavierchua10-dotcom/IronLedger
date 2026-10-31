@@ -4689,6 +4689,10 @@
   .cv-r svg{width:124px;height:124px;transform:rotate(-90deg);}
   .cv-r > div{position:absolute;inset:0;display:grid;place-content:center;text-align:center;}
   .cv-r b{font:700 34px/1 Oswald,sans-serif;color:#e9e6df;}
+  /* 3D goal ring (drag to spin). The SVG ring stays as the fallback until three.js is ready. */
+  .cv-r canvas.cv-r-cv{position:absolute;left:-10px;top:-10px;width:144px;height:144px;touch-action:pan-y;cursor:grab;z-index:1;filter:drop-shadow(0 0 12px rgba(79,195,217,0.28));}
+  .cv-r.cv3d-ready svg{visibility:hidden;}
+  .cv-r > div{z-index:2;pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,0.6);}
   .cv-r small{font:500 9.5px 'JetBrains Mono',monospace;color:#8b9098;letter-spacing:0.06em;margin-top:3px;}
   .cv-kp{display:grid;gap:12px;flex:1;min-width:0;}
   .cv-kp i{display:block;font:600 9.5px 'JetBrains Mono',monospace;color:#8b9098;letter-spacing:0.1em;font-style:normal;}
@@ -13123,7 +13127,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         return '<button type="button" class="cv-goal-chip'+(g === goal ? ' on' : '')+'" data-action="set-cardio-goal" data-min="'+g+'">'+g+'</button>';
       }).join('') + '</div></div>';
     }
-    html += '<div class="cv-ring"><div class="cv-r"><svg viewBox="0 0 128 128"><circle cx="64" cy="64" r="'+R+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="11"/>' +
+    html += '<div class="cv-ring"><div class="cv-r" id="cvRing3d" data-pct="'+pct.toFixed(4)+'"><svg viewBox="0 0 128 128"><circle cx="64" cy="64" r="'+R+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="11"/>' +
               '<circle cx="64" cy="64" r="'+R+'" fill="none" stroke="#4fc3d9" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+(C * pct).toFixed(1)+' '+C.toFixed(1)+'"/></svg>' +
               '<div><b>'+mins+'</b><small>OF '+goal+' MIN</small></div></div>' +
             '<div class="cv-kp"><div><i>SESSIONS</i><b>'+w.sessions+'</b></div>' +
@@ -14673,6 +14677,100 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   }
 
 
+
+  // ---- Cardio overview: 3D goal ring (drag to spin; drifts back to its resting tilt) ----
+  var cv3d = null;
+  var CV3D_YAW = 0.35, CV3D_PITCH = -0.55;
+  function cv3dSetArc(frac){
+    var s = cv3d;
+    if (s.arcMesh){ s.group.remove(s.arcMesh); s.arcMesh.geometry.dispose(); s.arcMesh = null; }
+    s.caps.forEach(function(c){ c.visible = false; });
+    if (frac <= 0.004) return;
+    var full = frac >= 0.999;
+    var arc = full ? Math.PI * 2 - 0.0001 : Math.PI * 2 * frac;
+    var g = new THREE.TorusGeometry(1, 0.22, 24, Math.max(10, Math.ceil(90 * Math.min(1, frac))), arc);
+    var m = new THREE.Mesh(g, s.fillMat);
+    m.rotation.z = Math.PI / 2 - arc;
+    s.group.add(m); s.arcMesh = m;
+    if (!full){
+      [Math.PI / 2, Math.PI / 2 - arc].forEach(function(a, i){
+        s.caps[i].position.set(Math.cos(a), Math.sin(a), 0); s.caps[i].visible = true;
+      });
+    }
+  }
+  function cv3dFrame(now){
+    var s = cv3d;
+    if (!s || !s.box || !s.box.isConnected){ if (s) s.raf = null; return; }
+    var dt = Math.min(0.05, (now - (s.last || now)) / 1000); s.last = now;
+    var calm = s.reduce;
+    if (s.anim){
+      var t = Math.min(1, (now - s.anim.start) / 900), e = 1 - Math.pow(1 - t, 3);
+      cv3dSetArc(s.anim.from + (s.anim.to - s.anim.from) * e);
+      if (t >= 1) s.anim = null;
+    }
+    if (!s.dragging){
+      s.yaw += s.vyaw * dt; s.vyaw *= Math.pow(0.04, dt);
+      if (!calm && now - s.idleAt > 1800){
+        var base = CV3D_YAW + Math.PI * 2 * Math.round((s.yaw - CV3D_YAW) / (Math.PI * 2));
+        var target = base + Math.sin(now / 1700) * 0.16;
+        s.yaw += (target - s.yaw) * Math.min(1, dt * 2.5);
+        s.pitch += (CV3D_PITCH - s.pitch) * Math.min(1, dt * 2.5);
+      }
+    }
+    s.group.rotation.set(s.pitch, s.yaw, 0);
+    s.renderer.render(s.scene, s.camera);
+    s.raf = requestAnimationFrame(cv3dFrame);
+  }
+  function initCardioRing3d(tries){
+    var box = document.getElementById('cvRing3d');
+    if (!box) return;
+    if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initCardioRing3d((tries || 0) + 1); }, 400); return; }
+    var pct = parseFloat(box.getAttribute('data-pct')) || 0;
+    if (!cv3d){
+      var canvas = document.createElement('canvas');
+      canvas.className = 'cv-r-cv'; canvas.setAttribute('aria-hidden', 'true');
+      var renderer;
+      try{ renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); }catch(err){ return; }
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      renderer.setSize(144, 144, false);
+      var scene = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50); camera.position.set(0, 0, 5.4);
+      scene.add(new THREE.HemisphereLight(0xcfeff7, 0x15252a, 0.9));
+      var key = new THREE.DirectionalLight(0xffffff, 1.8); key.position.set(2, 3, 4); scene.add(key);
+      var rim = new THREE.DirectionalLight(0x4fc3d9, 2.2); rim.position.set(-3, 1, -3); scene.add(rim);
+      var group = new THREE.Group(); group.scale.setScalar(1.05); scene.add(group);
+      group.add(new THREE.Mesh(new THREE.TorusGeometry(1, 0.2, 32, 100), new THREE.MeshStandardMaterial({ color: 0x26353b, roughness: 0.5, metalness: 0.1 })));
+      var fillMat = new THREE.MeshStandardMaterial({ color: 0x56d4ec, roughness: 0.25, metalness: 0.2, emissive: 0x1b7f93, emissiveIntensity: 0.8 });
+      var caps = [0, 1].map(function(){ var c = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 18), fillMat); c.visible = false; group.add(c); return c; });
+      cv3d = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, group: group, fillMat: fillMat, caps: caps, arcMesh: null,
+               yaw: CV3D_YAW, pitch: CV3D_PITCH, vyaw: 0, dragging: false, idleAt: 0, pct: -1, raf: null, anim: null, box: null, last: 0,
+               reduce: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) };
+      var lastX = 0, lastT = 0;
+      canvas.addEventListener('pointerdown', function(e){
+        cv3d.dragging = true; cv3d.vyaw = 0; lastX = e.clientX; lastT = performance.now();
+        try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+        canvas.style.cursor = 'grabbing';
+      });
+      canvas.addEventListener('pointermove', function(e){
+        if (!cv3d.dragging) return;
+        var now = performance.now(), dx = e.clientX - lastX, dt = Math.max(0.008, (now - lastT) / 1000);
+        cv3d.yaw += dx * 0.014; cv3d.vyaw = (dx * 0.014) / dt * 0.6 + cv3d.vyaw * 0.4;
+        lastX = e.clientX; lastT = now;
+      });
+      var end = function(){ if (!cv3d.dragging) return; cv3d.dragging = false; cv3d.idleAt = performance.now(); canvas.style.cursor = 'grab'; };
+      canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+    }
+    var s = cv3d;
+    box.insertBefore(s.canvas, box.firstChild);
+    box.classList.add('cv3d-ready');
+    s.box = box; s.idleAt = performance.now();
+    if (s.pct !== pct){
+      s.anim = { from: s.pct < 0 ? 0 : s.pct, to: pct, start: performance.now() };
+      s.pct = pct;
+    }
+    if (!s.raf){ s.last = 0; s.raf = requestAnimationFrame(cv3dFrame); }
+  }
+
   // ---- Insight callout lines ----
   // One line per stat chip, from the chip's inner edge to a point on the model
   // for that muscle, re-projected every frame so it follows the auto-rotation.
@@ -15595,6 +15693,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
     document.getElementById('view').innerHTML = html;
     if (document.getElementById('mg3dViewer')){ initMg3dViewer(); mg3dBindLines(); requestAnimationFrame(mg3dRefreshLineRects); }
+    if (document.getElementById('cvRing3d')) initCardioRing3d();
   }
 
   // one point per session for this exercise: best e1rm set in that session + top weight
