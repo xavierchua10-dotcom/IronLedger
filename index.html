@@ -4425,7 +4425,8 @@
   .mg-3d-viewer{top:0;}
   .mg-panel .mg-banner-wrap{top:auto;bottom:108px;}
   .mg-rows-sidebar{display:block;top:0;bottom:0;left:10px;right:10px;pointer-events:none;}
-  .mg-col{position:absolute;top:0;bottom:0;width:106px;display:block;}
+  .mg-col{position:absolute;top:0;bottom:0;width:92px;display:block;}
+  .mg-rows-sidebar .mg-row-mini-stat{display:none;}
   .mg-col .mg-row-mini{position:absolute;left:0;right:0;width:auto;top:var(--t,50%);}
   .mg-row-mini[data-muscle="Shoulders"]{--t:11%;}
   .mg-row-mini[data-muscle="Arms"]{--t:28%;}
@@ -4435,18 +4436,18 @@
   .mg-row-mini[data-muscle="Core"]{--t:37%;}
   .mg-col-l{left:0;}
   .mg-col-r{right:0;}
-  .mg-rows-sidebar .mg-row-mini{pointer-events:auto;border-radius:14px;padding:9px 11px 10px;background:rgba(24,27,32,0.78);border:1px solid rgba(255,255,255,0.1);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
-  .mg-rows-sidebar .mg-row-mini-name{flex-direction:column;align-items:flex-start;gap:2px;margin-bottom:6px;}
-  .mg-rows-sidebar .mg-row-mini-name em{font-size:20px;font-weight:700;color:#e9e6df;line-height:1.1;font-family:'Oswald',sans-serif;}
+  .mg-rows-sidebar .mg-row-mini{pointer-events:auto;border-radius:12px;padding:7px 9px 8px;background:rgba(24,27,32,0.78);border:1px solid rgba(255,255,255,0.1);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
+  .mg-rows-sidebar .mg-row-mini-name{flex-direction:column;align-items:flex-start;gap:1px;margin-bottom:5px;font-size:10px;}
+  .mg-rows-sidebar .mg-row-mini-name em{font-size:17px;font-weight:700;color:#e9e6df;line-height:1.1;font-family:'Oswald',sans-serif;}
   .mg-rows-sidebar .mg-row-mini-name em small{font-size:10px;}
   /* tapped a muscle (camera zoomed in): shrink the chips to small tags so they stop
      covering the close-up, and centre the value callout between the two columns */
   .mg-panel .mg-3d-callout{justify-content:center;}
-  .mg-panel.mg-focus .mg-col{width:80px;}
+  .mg-panel.mg-focus .mg-col{width:74px;}
   .mg-panel.mg-focus .mg-row-mini{padding:7px 9px;}
   .mg-panel.mg-focus .mg-row-mini-bar-track,.mg-panel.mg-focus .mg-row-mini-stat{display:none;}
   .mg-panel.mg-focus .mg-rows-sidebar .mg-row-mini-name{margin-bottom:0;}
-  .mg-panel.mg-focus .mg-rows-sidebar .mg-row-mini-name em{font-size:17px;}
+  .mg-panel.mg-focus .mg-rows-sidebar .mg-row-mini-name em{font-size:15px;}
   .mg-lines{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;overflow:visible;transition:opacity .25s ease;}
   .mg-lines.off{opacity:0;}
   .mg-lines line{stroke-width:1.4;opacity:.85;}
