@@ -4400,6 +4400,36 @@
   .dc-bubble.still{animation:none;}
   .dc-bubble.out{opacity:0;transform:scale(.9);transition:all .2s;}
   @keyframes dcPop{from{opacity:0;transform:scale(.6) translateY(-6px);}to{opacity:1;transform:none;}}
+
+  /* ---- Profile tab (top of the old Settings tab) ---- */
+  .pf-wrap{padding:6px 0 2px;}
+  .pf-hero{border-radius:22px;border:1px solid rgba(var(--accent-rgb),0.55);background:linear-gradient(160deg,rgba(var(--accent-rgb),0.16),var(--panel) 55%);padding:20px 18px 18px;box-shadow:0 14px 40px rgba(0,0,0,.35);}
+  .pf-id{display:flex;align-items:center;gap:14px;}
+  .pf-av{width:68px;height:68px;border-radius:50%;border:2.5px solid var(--accent);background:#000;flex:0 0 auto;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+  .pf-av img{width:100%;height:100%;object-fit:cover;display:block;}
+  .pf-av svg{width:44px;height:44px;}
+  .pf-id-tx{min-width:0;flex:1;}
+  .pf-name{font:700 26px/1.05 'Oswald',sans-serif;color:var(--text);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pf-since{font:500 12px 'Inter',sans-serif;color:var(--text-faint);margin-top:4px;}
+  .pf-since b{color:var(--accent);font-weight:700;}
+  .pf-acts{display:flex;gap:10px;margin-top:16px;}
+  .pf-share{flex:1;height:44px;border-radius:12px;border:none;background:var(--accent);color:#1c1500;font:700 14px 'Oswald',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;}
+  .pf-share:active{transform:scale(.98);}
+  .pf-edit{flex:0 0 44px;height:44px;border-radius:12px;border:1px solid rgba(var(--accent-rgb),0.55);background:transparent;color:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+  .pf-edit svg{width:18px;height:18px;}
+  .pf-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+  .pf-stat{background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 14px 12px;min-width:0;}
+  .pf-stat-v{font:700 26px/1 'Oswald',sans-serif;color:var(--text);white-space:nowrap;}
+  .pf-stat-v small{font:500 12px 'Inter',sans-serif;color:var(--text-faint);}
+  .pf-stat-l{font:700 10px 'JetBrains Mono',monospace;letter-spacing:.12em;color:var(--text-faint);margin-top:7px;text-transform:uppercase;}
+  .pf-best{margin-top:12px;background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 16px 4px;}
+  .pf-best-h{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--accent);margin-bottom:8px;}
+  .pf-lift{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid rgba(255,255,255,.07);}
+  .pf-lift-n{font:500 14px 'Inter',sans-serif;color:var(--text);min-width:0;}
+  .pf-lift-m{font:500 11px 'Inter',sans-serif;color:var(--text-faint);margin-top:1px;}
+  .pf-lift-v{font:700 17px 'JetBrains Mono',monospace;color:var(--accent);white-space:nowrap;}
+  .pf-lift-v small{font-size:10px;color:var(--text-faint);}
+  .pf-empty{font:500 13px 'Inter',sans-serif;color:var(--text-faint);padding:4px 0 14px;}
   #challengeOverlay{z-index:120;}
   /* How-to sheet + button */
   .ht-btn{background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.55);color:var(--accent);font:700 10px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:0 9px;height:24px;border-radius:var(--radius);cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
@@ -6167,7 +6197,7 @@
     <button data-action="set-tab" data-tab="history"><span class="tab-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="5" width="18" height="3" rx="1"/><rect x="3" y="10.5" width="18" height="3" rx="1"/><rect x="3" y="16" width="12" height="3" rx="1"/></svg></span>History</button>
     <button data-action="set-tab" data-tab="insight"><span class="tab-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="3"/><path d="M12 9c-3 0-5.5 2-6 5l-1 7h3l.8-6h1.2v6h2v-6h1.2l.8 6h3l-1-7c-.5-3-3-5-6-5z"/></svg></span>Insight</button>
     <button data-action="set-tab" data-tab="progress"><span class="tab-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="14" width="4" height="7" rx="1"/><rect x="10" y="9" width="4" height="12" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg></span>Progress</button>
-    <button data-action="set-tab" data-tab="settings"><span class="tab-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg></span>Settings</button>
+    <button data-action="set-tab" data-tab="settings"><span class="tab-glyph"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="4.2"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5z"/></svg></span>Profile</button>
   </nav>
   <div class="mm-overlay hidden" id="mmOverlay">
     <div class="mm-overlay-panel" id="mmOverlayPanel"></div>
@@ -15769,13 +15799,155 @@
   /* =========================================================
      RENDER: SETTINGS TAB
      ========================================================= */
+
+  // ---------- Profile (top of the Profile/Settings tab) ----------
+  function profileStats(){
+    var done = state.sessions.filter(function(s){ return s.status === 'done'; });
+    var total = 0, prs = 0, best = {}, first = null, weeks = {};
+    function mondayKey(d){
+      var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+      return x.getFullYear() + '-' + x.getMonth() + '-' + x.getDate();
+    }
+    done.forEach(function(s){
+      var d = new Date(s.date);
+      if (!isNaN(d)){ if (!first || d < first) first = d; weeks[mondayKey(d)] = true; }
+      total += sessionVolume(s);
+      s.exercises.forEach(function(ex){
+        if (isCardioEx(ex)) return;
+        var lift = !isBodyweightExercise(ex.name) && !isHoldExercise(ex.name);
+        ex.sets.forEach(function(st){
+          if (st.isPR) prs++;
+          if (!lift || !(st.weightKg > 0) || !(st.reps > 0)) return;
+          var e = e1rm(st.weightKg, st.reps), cur = best[ex.name];
+          if (!cur || e > cur.e) best[ex.name] = { name: ex.name, weightKg: st.weightKg, reps: st.reps, e: e };
+        });
+      });
+    });
+    // Week streak: consecutive Mon–Sun weeks with at least one finished workout.
+    // This week not trained yet doesn't break it — counting starts from last week.
+    var streak = 0, cur = new Date();
+    cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate());
+    cur.setDate(cur.getDate() - ((cur.getDay() + 6) % 7));
+    if (!weeks[mondayKey(cur)]) cur.setDate(cur.getDate() - 7);
+    while (weeks[mondayKey(cur)]){ streak++; cur.setDate(cur.getDate() - 7); }
+    var top = Object.keys(best).map(function(k){ return best[k]; }).sort(function(a,b){ return b.e - a.e; }).slice(0, 3);
+    return { workouts: done.length, totalKg: total, prs: prs, streak: streak, top: top,
+             since: first ? first.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '' };
+  }
+  function profileName(){
+    var em = currentAccountEmail();
+    if (!state.currentAccount || state.currentAccount === 'guest') return 'Guest';
+    return String(em).split('@')[0] || 'Lifter';
+  }
+  function fmtBig(kg){ return Math.round(toDisplay(kg)).toLocaleString('en-US'); }
+  function profileHeroHtml(){
+    var p = profileStats(), isGuest = (state.currentAccount === 'guest');
+    var av = isGuest ? 'guest' : (state.settings && state.settings.avatar);
+    var avatar = av ? avatarSvg(av, 44) : '<img src="images/logo-mark.png" alt="">';
+    var stat = function(v, u, l){ return '<div class="pf-stat"><div class="pf-stat-v">'+v+(u ? ' <small>'+u+'</small>' : '')+'</div><div class="pf-stat-l">'+l+'</div></div>'; };
+    var h = '<div class="pf-wrap"><div class="pf-hero"><div class="pf-id"><div class="pf-av">'+avatar+'</div>' +
+      '<div class="pf-id-tx"><div class="pf-name">'+esc(profileName())+'</div>' +
+      '<div class="pf-since">'+(p.since ? 'Lifting since '+esc(p.since) : 'Ready to log your first workout')+(isProActive() ? ' · <b>PRO</b>' : '')+'</div></div></div>' +
+      '<div class="pf-acts"><button type="button" class="pf-share" data-action="share-profile">Share profile</button>' +
+      (isGuest ? '' : '<button type="button" class="pf-edit" data-action="open-avatar-pick" aria-label="Change profile icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>') +
+      '</div></div>' +
+      '<div class="pf-stats">' + stat(fmtBig(p.totalKg), unitLabel(), 'Total lifted') + stat(p.workouts, '', 'Workouts') +
+        stat(p.streak, p.streak === 1 ? 'wk' : 'wks', 'Week streak') + stat(p.prs, '', 'Personal records') + '</div>' +
+      '<div class="pf-best"><div class="pf-best-h">BEST LIFTS</div>';
+    if (p.top.length){
+      p.top.forEach(function(l){
+        h += '<div class="pf-lift"><div class="pf-lift-n">'+esc(l.name)+'<div class="pf-lift-m">× '+l.reps+' rep'+(l.reps === 1 ? '' : 's')+'</div></div>' +
+             '<div class="pf-lift-v">'+fmtWeight(l.weightKg)+' <small>'+unitLabel()+'</small></div></div>';
+      });
+    } else {
+      h += '<div class="pf-empty">Log a few workouts and your heaviest lifts show up here.</div>';
+    }
+    return h + '</div></div>';
+  }
+  // Share profile: draws the stats card to a canvas and hands it to the phone's
+  // share sheet (falls back to saving the image where file sharing isn't supported).
+  function shareProfile(){
+    var p = profileStats(), W = 1080, H = 1350;
+    var fonts = ["700 100px Oswald", "500 32px Inter", "700 24px 'JetBrains Mono'"];
+    var logo = new Image(); logo.src = 'images/logo-mark.png';
+    Promise.all(fonts.map(function(f){ return document.fonts && document.fonts.load ? document.fonts.load(f) : null; })
+      .concat([new Promise(function(r){ logo.onload = r; logo.onerror = r; })])).then(function(){
+      var c = document.createElement('canvas'); c.width = W; c.height = H;
+      var x = c.getContext('2d');
+      function rr(l, t, w, h, r){ x.beginPath(); x.moveTo(l+r,t); x.arcTo(l+w,t,l+w,t+h,r); x.arcTo(l+w,t+h,l,t+h,r); x.arcTo(l,t+h,l,t,r); x.arcTo(l,t,l+w,t,r); x.closePath(); }
+      x.fillStyle = '#0b0c0e'; x.fillRect(0, 0, W, H);
+      var g = x.createRadialGradient(W/2, -100, 0, W/2, -100, 900);
+      g.addColorStop(0, 'rgba(242,177,52,.2)'); g.addColorStop(1, 'rgba(242,177,52,0)');
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+      function circLogo(cx, cy, r, bw){
+        x.save(); x.beginPath(); x.arc(cx, cy, r, 0, Math.PI*2); x.fillStyle = '#000'; x.fill(); x.clip();
+        if (logo.naturalWidth) x.drawImage(logo, cx-r, cy-r, r*2, r*2); x.restore();
+        x.beginPath(); x.arc(cx, cy, r, 0, Math.PI*2); x.lineWidth = bw; x.strokeStyle = '#f2b134'; x.stroke();
+      }
+      x.textBaseline = 'alphabetic';
+      circLogo(95, 85, 31, 2.5);
+      x.fillStyle = '#f2b134'; x.font = "700 26px 'JetBrains Mono'"; if ('letterSpacing' in x) x.letterSpacing = '4px';
+      x.fillText('SAVIORFIT LOGGER', 143, 94);
+      circLogo(139, 245, 75, 5);
+      if ('letterSpacing' in x) x.letterSpacing = '0px';
+      x.fillStyle = '#e9e6df'; x.font = '700 100px Oswald';
+      var nm = profileName().toUpperCase(); while (x.measureText(nm).width > 760 && nm.length > 3) nm = nm.slice(0, -1);
+      x.fillText(nm, 250, 262);
+      x.fillStyle = '#8b9098'; x.font = '500 32px Inter';
+      var sub = p.since ? 'Lifting since ' + p.since : 'SaviorFit Logger';
+      var pro = isProActive();
+      if (pro) sub += ' \u00b7 ';
+      x.fillText(sub, 250, 312);
+      if (pro){ var sw = x.measureText(sub).width; x.fillStyle = '#f2b134'; x.font = '700 32px Inter'; x.fillText('PRO', 250 + sw, 312); }
+      var cells = [[fmtBig(p.totalKg), unitLabel(), 'TOTAL LIFTED'], [String(p.workouts), '', 'WORKOUTS'],
+                   [String(p.streak), p.streak === 1 ? 'wk' : 'wks', 'WEEK STREAK'], [String(p.prs), '', 'RECORDS']];
+      cells.forEach(function(cl, i){
+        var l = 64 + (i % 2) * 486, t = 380 + Math.floor(i / 2) * 230, w = 464, h = 208;
+        rr(l, t, w, h, 28); x.fillStyle = '#14161a'; x.fill(); x.lineWidth = 2; x.strokeStyle = 'rgba(255,255,255,.1)'; x.stroke();
+        x.fillStyle = '#e9e6df'; x.font = '700 92px Oswald'; x.fillText(cl[0], l + 34, t + 108);
+        if (cl[1]){ var vw = x.measureText(cl[0]).width; x.fillStyle = '#8b9098'; x.font = '500 32px Inter'; x.fillText(cl[1], l + 34 + vw + 12, t + 108); }
+        x.fillStyle = '#8b9098'; x.font = "700 24px 'JetBrains Mono'"; if ('letterSpacing' in x) x.letterSpacing = '3px'; x.fillText(cl[2], l + 34, t + 164); if ('letterSpacing' in x) x.letterSpacing = '0px';
+      });
+      var bt = 850, bh = 380;
+      rr(64, bt, 952, bh, 28); x.fillStyle = '#14161a'; x.fill(); x.lineWidth = 2; x.strokeStyle = 'rgba(255,255,255,.1)'; x.stroke();
+      x.fillStyle = '#f2b134'; x.font = "700 24px 'JetBrains Mono'"; if ('letterSpacing' in x) x.letterSpacing = '4px'; x.fillText('BEST LIFTS', 98, bt + 56); if ('letterSpacing' in x) x.letterSpacing = '0px';
+      if (!p.top.length){ x.fillStyle = '#8b9098'; x.font = '500 30px Inter'; x.fillText('Just getting started.', 98, bt + 140); }
+      p.top.forEach(function(l, i){
+        var y = bt + 78 + i * 100;
+        x.fillStyle = 'rgba(255,255,255,.08)'; x.fillRect(98, y, 884, 2);
+        x.fillStyle = '#e9e6df'; x.font = '500 34px Inter'; x.fillText(l.name.length > 24 ? l.name.slice(0, 23) + '…' : l.name, 98, y + 62);
+        var val = fmtWeight(l.weightKg), unit = ' ' + unitLabel();
+        x.font = "700 46px 'JetBrains Mono'"; var vw2 = x.measureText(val).width;
+        x.font = "700 24px 'JetBrains Mono'"; var uw = x.measureText(unit).width;
+        x.fillStyle = '#f2b134'; x.font = "700 46px 'JetBrains Mono'"; x.fillText(val, 982 - uw - vw2, y + 62);
+        x.fillStyle = '#8b9098'; x.font = "700 24px 'JetBrains Mono'"; x.fillText(unit, 982 - uw, y + 62);
+      });
+      x.fillStyle = '#8b9098'; x.font = "700 27px 'JetBrains Mono'"; if ('letterSpacing' in x) x.letterSpacing = '3px';
+      x.fillText('@SAVIORFITLOGGER.APP', 64, 1300);
+      x.fillStyle = '#f2b134'; x.textAlign = 'right'; x.fillText('SAVIORFITLOGGER.COM', 1016, 1300); x.textAlign = 'left';
+      c.toBlob(function(blob){
+        if (!blob){ showToast('Could not make the image'); return; }
+        var file = new File([blob], 'saviorfit-profile.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })){
+          navigator.share({ files: [file], title: 'My SaviorFit Logger profile' }).catch(function(){});
+        } else {
+          var url = URL.createObjectURL(blob), a = document.createElement('a');
+          a.href = url; a.download = 'saviorfit-profile.png'; document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+          showToast('Profile image saved');
+        }
+      }, 'image/png');
+    });
+  }
+
   function renderSettings(){
     var totalSessions = state.sessions.filter(function(s){ return s.status === 'done'; }).length;
     var isGuest = (state.currentAccount === 'guest');
     var chosenAvatar = isGuest ? 'guest' : (state.settings && state.settings.avatar);
     var proTag = isDevOverride() ? ' <span class="dev-badge">DEV</span>' : (isProActive() ? ' <span class="pro-badge-mini">PRO</span>' : '');
-    var html = '';
-    html += '<div class="section-label">Account</div>';
+    var html = profileHeroHtml();
+    html += '<div class="section-label">Settings \u00b7 Account</div>';
     html += '<div class="settings-group">';
     // A guest has no account to log out of: say what they ARE (saved on this
     // device only) and offer the one useful action — sign up / log in. (The
@@ -18581,7 +18753,7 @@
         focusLogChatInput();
 
       } else if (result.intent === 'change_setting'){
-        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: 'I can\u2019t change settings from here \u2014 head to the Settings tab for that.' };
+        if (idx !== -1) ui.logChatMessages[idx] = { role: 'bot', text: 'I can\u2019t change settings from here \u2014 head to the Profile tab (Settings is inside) for that.' };
         renderLogChatOverlay();
         focusLogChatInput();
 
@@ -21463,6 +21635,8 @@
       openNotifications();
     } else if (action === 'close-notifications'){
       closeNotifications();
+    } else if (action === 'share-profile'){
+      shareProfile();
     } else if (action === 'open-avatar-pick'){
       openAvatarPick();
     } else if (action === 'log-out'){
