@@ -16203,12 +16203,45 @@
     }).sort(function(a, b){
       return Date.parse(b.finishedAt || b.date) - Date.parse(a.finishedAt || a.date);
     });
-    if (!done.length) return 'Nothing to build on yet — finish a session first, then ask me again and I’ll set your targets. Let’s get that first one logged! 💪';
-    var s = done[0];
-    var exs = s.exercises.filter(function(e){ return e.sets && e.sets.length; });
-    var MAX = 8;
-    var lines = ['Next up, based on your last session (' + (s.name || 'Untitled session') + ', ' + fmtDateShort(s.finishedAt || s.date) + '):', ''];
-    exs.slice(0, MAX).forEach(function(ex, i){
+    function norm(n){ return String(n || '').trim().toLowerCase(); }
+    // Most recent finished occurrence of an exercise, by name.
+    function lastOccurrence(name){
+      for (var i = 0; i < done.length; i++){
+        for (var k = 0; k < done[i].exercises.length; k++){
+          var e = done[i].exercises[k];
+          if (norm(e.name) === norm(name) && e.sets && e.sets.length) return { ex: e, session: done[i] };
+        }
+      }
+      return null;
+    }
+    // What is the plan for? If today's session already has exercises lined
+    // up (picked or loaded from a routine), set targets for exactly those.
+    // Otherwise fall back to the exercises of the last finished session.
+    var active = getActiveSession();
+    var planned = active && active.exercises ? active.exercises.filter(function(e){ return e && e.name; }) : [];
+    var header, names;
+    if (planned.length){
+      names = planned.map(function(e){ return e.name; });
+      header = 'Your targets for today’s session (' + planned.length + ' exercise' + (planned.length === 1 ? '' : 's') + '):';
+    } else if (done.length){
+      var last = done[0];
+      names = last.exercises.filter(function(e){ return e.sets && e.sets.length; }).map(function(e){ return e.name; });
+      header = 'Next up, based on your last session (' + (last.name || 'Untitled session') + ', ' + fmtDateShort(last.finishedAt || last.date) + '):';
+    } else {
+      return 'Nothing to build on yet — finish a session first, then ask me again and I’ll set your targets. Let’s get that first one logged! 💪';
+    }
+    var MAX = 10;
+    var lines = [header, ''];
+    names.slice(0, MAX).forEach(function(name, i){
+      lines.push((i + 1) + '. ' + name);
+      var occ = lastOccurrence(name);
+      if (!occ){
+        lines.push('   Last: no history yet');
+        lines.push('   Next: start light, find a weight you can hit for 8–12 clean reps');
+        lines.push('');
+        return;
+      }
+      var ex = occ.ex;
       var top = ex.sets[0];
       ex.sets.forEach(function(st){
         var w = effectiveLoadKg(ex.name, st.weightKg), tw = effectiveLoadKg(ex.name, top.weightKg);
@@ -16216,12 +16249,11 @@
       });
       var tip = overloadTipForExercise(ex);
       var next = tip && (tip.target || tip.detail) ? String(tip.target || tip.detail).replace(/^Target:\s*/i, '') : 'repeat it and add a rep';
-      lines.push((i + 1) + '. ' + ex.name);
-      lines.push('   Last: ' + describeLoad(ex.name, top.weightKg) + ' × ' + top.reps + (isHoldExercise(ex.name) ? 's' : ''));
+      lines.push('   Last: ' + describeLoad(ex.name, top.weightKg) + ' × ' + top.reps + (isHoldExercise(ex.name) ? 's' : '') + ' (' + fmtDateShort(occ.session.finishedAt || occ.session.date) + ')');
       lines.push('   Next: ' + next);
       lines.push('');
     });
-    if (exs.length > MAX) lines.push('…and ' + (exs.length - MAX) + ' more — check Tips & Target in History.', '');
+    if (names.length > MAX) lines.push('…and ' + (names.length - MAX) + ' more — check Tips & Target on each card.', '');
     lines.push('Hit those numbers on your top set, then we go again. Let’s work! 🔥');
     return lines.join('\n');
   }
