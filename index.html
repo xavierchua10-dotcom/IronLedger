@@ -4420,6 +4420,25 @@
   .mg-3d-viewer{top:262px;}
   /* ---- Insight polish ---- */
   .mg-band-fade{position:absolute;left:0;right:0;top:182px;height:80px;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(20,22,26,0),#14161a);}
+
+  /* ---- Insight: floating callout layout (stats either side of the figure) ---- */
+  .mg-3d-viewer{top:118px;}
+  .mg-panel .mg-banner-wrap{top:72px;}
+  .mg-rows-sidebar{display:block;top:124px;bottom:122px;left:10px;right:10px;pointer-events:none;}
+  .mg-col{position:absolute;top:0;bottom:0;width:106px;display:flex;flex-direction:column;justify-content:space-around;gap:8px;}
+  .mg-col-l{left:0;}
+  .mg-col-r{right:0;}
+  .mg-rows-sidebar .mg-row-mini{pointer-events:auto;border-radius:14px;padding:9px 11px 10px;background:rgba(24,27,32,0.78);border:1px solid rgba(255,255,255,0.1);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
+  .mg-rows-sidebar .mg-row-mini-name{flex-direction:column;align-items:flex-start;gap:2px;margin-bottom:6px;}
+  .mg-rows-sidebar .mg-row-mini-name em{font-size:20px;font-weight:700;color:#e9e6df;line-height:1.1;font-family:'Oswald',sans-serif;}
+  .mg-rows-sidebar .mg-row-mini-name em small{font-size:10px;}
+  .mg-lines{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;overflow:visible;transition:opacity .25s ease;}
+  .mg-lines.off{opacity:0;}
+  .mg-lines line{stroke-width:1.4;opacity:.85;}
+  @media (max-height:760px){
+    .mg-rows-sidebar .mg-row-mini-stat{display:none;}
+    .mg-rows-sidebar .mg-row-mini{padding:7px 10px 8px;}
+  }
   .mg-panel-sub b{color:#e9e6df;font-weight:600;}
   .mg-row-mini-name em small{font:500 10px 'JetBrains Mono',monospace;color:#8b9098;margin-left:1px;}
   .mg-row-mini-name em{font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;letter-spacing:0.02em;color:#e9e6df;line-height:1;}
@@ -13598,8 +13617,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // Renders the rows for one profile against the shared weekly set data.
   // Rows for muscles the profile doesn't cap (Intensity has no Core) are
   // simply skipped, so that mode just shows fewer rows.
+  var MG_CHIP_SIDE = { Shoulders:'L', Arms:'L', Legs:'L', Back:'R', Chest:'R', Core:'R' };
+  var MG_CHIP_ORDER = ['Shoulders','Back','Chest','Arms','Core','Legs']; // top-to-bottom body order
   function renderMuscleOverviewRows(profile, weeklyData){
     var html = '';
+    var cols = { L: [], R: [] };
     weeklyData.forEach(function(g){
       var cap = profile.caps[g.key];
       if (cap === undefined) return; // this profile doesn't track this muscle
@@ -13624,12 +13646,19 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var stat = g.sets > cap ? (g.sets - cap) + ' OVER CAP'
                : (g.sets >= greenFloor ? '\u2713 ON TARGET'
                : (g.sets > 0 ? (greenFloor - g.sets) + ' TO GO' : 'NOT TRAINED'));
-      html += '<button type="button" class="mg-row-mini'+chipClass+'" data-action="mg-3d-focus-muscle" data-muscle="'+esc(g.key)+'">' +
+      var chipHtml = '<button type="button" class="mg-row-mini'+chipClass+'" data-action="mg-3d-focus-muscle" data-muscle="'+esc(g.key)+'">' +
                 '<span class="mg-row-mini-name"><span>'+esc(g.label)+'</span><em>'+g.sets+'<small>/'+cap+'</small></em></span>' +
                 '<span class="mg-row-mini-bar-track"><span class="mg-row-mini-bar-fill'+stateClass+'" data-target-pct="'+pct+'" style="width:'+pct+'%"></span></span>' +
                 '<span class="mg-row-mini-stat">'+stat+'</span>' +
               '</button>';
+      // Floating-callout layout: chips sit in two columns either side of the
+      // figure (lines from each chip to its muscle are drawn in mg3dUpdateLines).
+      var side = MG_CHIP_SIDE[g.key];
+      if (!side) side = cols.L.length <= cols.R.length ? 'L' : 'R';
+      cols[side].push({ o: MG_CHIP_ORDER.indexOf(g.key) < 0 ? 9 : MG_CHIP_ORDER.indexOf(g.key), h: chipHtml });
     });
+    function colHtml(a){ return a.sort(function(x, y){ return x.o - y.o; }).map(function(c){ return c.h; }).join(''); }
+    html = '<div class="mg-col mg-col-l">' + colHtml(cols.L) + '</div><div class="mg-col mg-col-r">' + colHtml(cols.R) + '</div>';
     return html;
   }
 
@@ -14202,7 +14231,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               '<div class="mg-3d-loading-pct" id="mg3dLoadingPct">Loading model\u2026</div>' +
             '</div></div>';
     html += '<div class="mg-panel-scrim"></div>';
-    html += '<div class="mg-band-fade"></div>';
+    html += '<svg class="mg-lines" id="mg3dLines" aria-hidden="true"></svg>';
     html += '<div class="mg-3d-callout" id="mg3dCallout"></div>';
     html += '<button type="button" class="mg-3d-reset-btn" data-action="mg-3d-reset-view" aria-label="Reset view">' +
               '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.64-6.36"/><path d="M3 3v6h6"/></svg>' +
@@ -14605,6 +14634,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       mg3dState.camera.aspect = w / h;
       mg3dState.camera.updateProjectionMatrix();
       mg3dSetSizeIfChanged(w, h);
+      mg3dRefreshLineRects();
     });
     mg3dState.resizeObserver.observe(wrap);
 
@@ -14618,11 +14648,91 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         return;
       }
       controls.update();
+      mg3dUpdateLines();
       renderer.render(scene, camera);
       mg3dState.rafId = requestAnimationFrame(animate);
     }
     mg3dState.animate = animate;
     animate();
+  }
+
+
+  // ---- Insight callout lines ----
+  // One line per stat chip, from the chip's inner edge to a point on the model
+  // for that muscle, re-projected every frame so it follows the auto-rotation.
+  // Symmetric muscles (shoulders/arms/legs) pick whichever side of the body is
+  // currently nearest the chip; chest/core/back fade out when facing away.
+  var MG_LINE_ANCHORS = {
+    Chest:     { p:[0,1.30,0.13],   n:[0,0,1]  },
+    Core:      { p:[0,1.05,0.12],   n:[0,0,1]  },
+    Back:      { p:[0,1.30,-0.12],  n:[0,0,-1] },
+    Shoulders: { p:[0.22,1.47,0],   pair:true },
+    Arms:      { p:[0.34,1.15,0],   pair:true },
+    Legs:      { p:[0.12,0.62,0.02],pair:true }
+  };
+  function mg3dBindLines(){
+    if (!mg3dState) return;
+    var svg = document.getElementById('mg3dLines');
+    mg3dState.lines = null;
+    if (!svg) return;
+    var chips = document.querySelectorAll('.mg-rows-sidebar .mg-row-mini');
+    var html = '';
+    var items = [];
+    chips.forEach(function(el, i){
+      var key = el.getAttribute('data-muscle');
+      var cls = el.classList.contains('mg-good') ? 'var(--success)' : (el.classList.contains('mg-over') ? 'var(--accent-2)' : (el.classList.contains('mg-empty') ? '#5b616b' : 'var(--accent)'));
+      html += '<line stroke="' + cls + '"/><circle r="3.2" fill="' + cls + '"/>';
+      items.push({ el: el, key: key, left: !!el.closest('.mg-col-l') });
+    });
+    svg.innerHTML = html;
+    var ls = svg.querySelectorAll('line'), cs = svg.querySelectorAll('circle');
+    items.forEach(function(it, i){ it.line = ls[i]; it.dot = cs[i]; });
+    mg3dState.lines = { svg: svg, items: items };
+    mg3dRefreshLineRects();
+  }
+  function mg3dRefreshLineRects(){
+    if (!mg3dState || !mg3dState.lines || !mg3dState.wrap) return;
+    var L = mg3dState.lines, sr = L.svg.getBoundingClientRect(), wr = mg3dState.wrap.getBoundingClientRect();
+    L.ox = wr.left - sr.left; L.oy = wr.top - sr.top; L.ww = wr.width; L.wh = wr.height;
+    L.items.forEach(function(it){
+      var r = it.el.getBoundingClientRect();
+      it.cx = (it.left ? r.right : r.left) - sr.left;
+      it.cy = r.top + r.height / 2 - sr.top;
+    });
+  }
+  var mg3dTmpV = null, mg3dTmpV2 = null;
+  function mg3dUpdateLines(){
+    var L = mg3dState && mg3dState.lines;
+    if (!L || !L.ww || !mg3dState.model) return;
+    if (!mg3dTmpV){ mg3dTmpV = new THREE.Vector3(); mg3dTmpV2 = new THREE.Vector3(); }
+    var cam = mg3dState.camera, tgt = mg3dState.controls.target;
+    var dist = cam.position.distanceTo(tgt);
+    var far = dist > 2.4; // zoomed in on a muscle: lines would just clutter
+    if (far === L.svg.classList.contains('off')) L.svg.classList.toggle('off', !far);
+    if (!far) return;
+    var dx = cam.position.x - tgt.x, dz = cam.position.z - tgt.z, dl = Math.sqrt(dx*dx + dz*dz) || 1;
+    dx /= dl; dz /= dl;
+    L.items.forEach(function(it){
+      var a = MG_LINE_ANCHORS[it.key] || { p:[0,1.1,0.1], n:[0,0,1] };
+      var sx = a.p[0], best = null, op = 1;
+      function proj(x){
+        mg3dTmpV.set(x, a.p[1], a.p[2]).project(cam);
+        return { x: L.ox + (mg3dTmpV.x + 1) / 2 * L.ww, y: L.oy + (1 - mg3dTmpV.y) / 2 * L.wh };
+      }
+      if (a.pair){
+        var p1 = proj(sx), p2 = proj(-sx);
+        best = it.left ? (p1.x < p2.x ? p1 : p2) : (p1.x > p2.x ? p1 : p2);
+      } else {
+        best = proj(sx);
+        var facing = a.n[0]*dx + a.n[2]*dz;
+        op = Math.max(0.18, Math.min(1, (facing + 0.1) / 0.5));
+      }
+      it.line.setAttribute('x1', it.cx); it.line.setAttribute('y1', it.cy);
+      it.line.setAttribute('x2', best.x); it.line.setAttribute('y2', best.y);
+      it.dot.setAttribute('cx', best.x); it.dot.setAttribute('cy', best.y);
+      var o = (0.9 * op).toFixed(2);
+      it.line.style.opacity = o; it.dot.style.opacity = o;
+    });
   }
 
   // Smoothly tweens the camera to a muscle's preset framing over
@@ -15467,7 +15577,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     html += renderMuscleGroupsOverviewHtml();
 
     document.getElementById('view').innerHTML = html;
-    if (document.getElementById('mg3dViewer')) initMg3dViewer();
+    if (document.getElementById('mg3dViewer')){ initMg3dViewer(); mg3dBindLines(); requestAnimationFrame(mg3dRefreshLineRects); }
   }
 
   // one point per session for this exercise: best e1rm set in that session + top weight
