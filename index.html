@@ -4303,7 +4303,8 @@
   .mg-banner.over{background:rgba(201,64,58,0.10);border-color:rgba(201,64,58,0.34);}
   .mg-banner.over svg,.mg-banner.over b,.mg-banner.over i{color:var(--accent-2);}
     /* ---- Cardio: Progress + History edit ---- */
-  .pg-seg{display:flex;width:max-content;margin:0 auto 14px;padding:3px;border-radius:999px;background:rgba(29,32,37,0.92);border:1px solid rgba(255,255,255,0.1);}
+  .pg-seg-spacer{height:64px;}
+  .pg-seg{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:6;display:flex;width:max-content;padding:3px;box-shadow:0 6px 18px rgba(0,0,0,0.45);border-radius:999px;background:rgba(29,32,37,0.92);border:1px solid rgba(255,255,255,0.1);}
   .pg-seg button{padding:9px 16px;border-radius:999px;border:0;background:transparent;font:700 10px/1 'JetBrains Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;color:#8b9098;display:flex;gap:5px;align-items:center;cursor:pointer;}
   .pg-seg button svg{width:11px;height:11px;}
   .pg-seg button.on{background:var(--accent);color:#1c1500;}
@@ -14340,8 +14341,14 @@
 
   /* ---- Progress: cardio ---- */
   var CP_COLOR = '#4fc3d9';
+  // Pinned just above the tab bar, centred, so it stays in one place however far
+  // the page is scrolled. The spacer keeps the last rows clear of it.
+  function placeProgressSwitch(){
+    var seg = document.querySelector('#view .pg-seg'), bar = document.querySelector('.tabbar');
+    if (seg && bar) seg.style.bottom = (bar.offsetHeight + 12) + 'px';
+  }
   function progressKindSwitchHtml(kind){
-    return '<div class="pg-seg">' +
+    return '<div class="pg-seg-spacer"></div><div class="pg-seg">' +
              '<button type="button" class="'+(kind === 'strength' ? 'on' : '')+'" data-action="progress-kind" data-kind="strength">Strength</button>' +
              '<button type="button" class="cd'+(kind === 'cardio' ? ' on' : '')+'" data-action="progress-kind" data-kind="cardio">'+CARDIO_HEART_SVG+'Cardio</button>' +
            '</div>';
@@ -14632,10 +14639,11 @@
       return;
     }
     var pKind = (hasCardio && (names.length === 0 || (state.settings && state.settings.progressKind === 'cardio'))) ? 'cardio' : 'strength';
-    if (hasCardio && names.length > 0) html += progressKindSwitchHtml(pKind);
+    var pSwitch = (hasCardio && names.length > 0) ? progressKindSwitchHtml(pKind) : '';
     if (pKind === 'cardio'){
-      html += renderProgressCardioHtml();
+      html += renderProgressCardioHtml() + pSwitch;
       document.getElementById('view').innerHTML = html;
+      placeProgressSwitch();
       return;
     }
     if (!ui.progressExercise || names.indexOf(ui.progressExercise) === -1){
@@ -14644,9 +14652,10 @@
     // Volume Overview moved out to its own Insight tab, so Progress only
     // ever renders the exercise view now. Pro / trial users see everything;
     // everyone else gets the free view (see renderProgressExerciseView).
-    html += renderProgressExerciseView(names).html;
+    html += renderProgressExerciseView(names).html + pSwitch;
 
     document.getElementById('view').innerHTML = html;
+    placeProgressSwitch();
     var best1RMEl = document.getElementById('csValBest1RM');
     var latestTopEl = document.getElementById('csValLatestTop');
     if (best1RMEl) animateStatCounter(best1RMEl, parseFloat(best1RMEl.dataset.target), fmtWeight, ' ' + unitLabel());
