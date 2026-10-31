@@ -4302,6 +4302,93 @@
   .mg-banner.ok svg,.mg-banner.ok b,.mg-banner.ok i{color:var(--success);}
   .mg-banner.over{background:rgba(201,64,58,0.10);border-color:rgba(201,64,58,0.34);}
   .mg-banner.over svg,.mg-banner.over b,.mg-banner.over i{color:var(--accent-2);}
+  /* ---- Cardio ---- */
+  .cx-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(79,195,217,0.14);color:#4fc3d9;font:700 10.5px/1 'JetBrains Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;}
+  .cx-chip svg{width:13px;height:13px;}
+  .cx-card .exercise-card-body{padding-top:2px;}
+  .cx-last{padding:10px 14px;border-radius:12px;background:var(--panel-2,#1d2025);border:1px solid rgba(255,255,255,0.06);margin-bottom:10px;}
+  .cx-last small{display:block;font:500 11px 'JetBrains Mono',monospace;letter-spacing:0.1em;color:#8b9098;}
+  .cx-last b{display:block;margin-top:6px;font:600 15px Inter,sans-serif;color:#e9e6df;}
+  .cx-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.07);}
+  .cx-n{flex:none;width:30px;height:30px;border-radius:50%;background:#2a2d33;color:var(--accent);font:700 13px/30px 'JetBrains Mono',monospace;text-align:center;}
+  .cx-main{flex:1;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 0;}
+  .cx-v{font:600 24px/1.1 Oswald,sans-serif;color:#e9e6df;}
+  .cx-v small{font:500 12px 'JetBrains Mono',monospace;color:#8b9098;margin:0 9px 0 3px;}
+  .cx-main em{flex-basis:100%;font:500 11px 'JetBrains Mono',monospace;color:#4fc3d9;font-style:normal;}
+  .cx-tiles{display:grid;gap:8px;margin:10px 0;}
+  .cx-tiles.t1{grid-template-columns:1fr;}
+  .cx-tiles.t2{grid-template-columns:1.3fr 1fr;}
+  .cx-tiles.t3{grid-template-columns:1.3fr 1fr 1fr;}
+  .cx-t{padding:10px 12px;border-radius:12px;background:var(--panel-2,#1d2025);border:1px solid rgba(255,255,255,0.06);min-width:0;}
+  .cx-t.main{border-color:rgba(79,195,217,0.45);background:rgba(79,195,217,0.07);}
+  .cx-t i{display:block;font:600 9.5px/1 'JetBrains Mono',monospace;letter-spacing:0.1em;color:#8b9098;font-style:normal;margin-bottom:8px;}
+  .cx-time,.cx-one{display:flex;align-items:baseline;gap:4px;}
+  .cx-time span{font:600 22px Oswald,sans-serif;color:#8b9098;}
+  .cx-time input{width:50%;}
+  .cx-time input[data-f="min"]{text-align:right;}
+  .cx-one small{font:500 11px 'JetBrains Mono',monospace;color:#8b9098;}
+  .cx-t input{width:100%;min-width:0;background:transparent;border:0;outline:0;padding:0;font:600 26px/1.1 Oswald,sans-serif;color:#e9e6df;-moz-appearance:textfield;}
+  .cx-t input::placeholder{color:#555a62;font-weight:500;}
+  .cx-t input::-webkit-outer-spin-button,.cx-t input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .cx-derived{display:flex;flex-wrap:wrap;gap:4px 14px;min-height:16px;font:500 12px 'JetBrains Mono',monospace;color:#8b9098;padding:0 2px 10px;}
+  .cx-derived b{color:#4fc3d9;font-weight:600;}
+  .cx-derived .up{color:#5fc16f;margin-left:auto;}
+  .cx-derived .down{color:#8b9098;margin-left:auto;}
+  .cx-btns{display:flex;gap:10px;margin-top:4px;}
+  .cx-add{flex:1;padding:14px 8px;border:1.5px dashed rgba(242,177,52,0.5);border-radius:12px;background:transparent;color:var(--accent);font:600 14px Oswald,sans-serif;letter-spacing:0.08em;cursor:pointer;}
+  .cx-add:disabled{opacity:0.4;cursor:default;}
+  .cx-go{flex:1;padding:14px 8px;border:0;border-radius:12px;background:#4fc3d9;color:#0b1a1e;font:700 14px Oswald,sans-serif;letter-spacing:0.08em;cursor:pointer;}
+  .cx-go.stop{background:#e8b04a;color:#1c1500;}
+  .cx-timer{text-align:center;padding:14px 0 16px;}
+  .cx-timer small{display:block;font:600 10px 'JetBrains Mono',monospace;letter-spacing:0.14em;color:#4fc3d9;}
+  .cx-timer b{display:block;margin-top:6px;font:700 56px/1 Oswald,sans-serif;color:#e9e6df;letter-spacing:0.02em;}
+  .ex-suggest-tag.cd{color:#4fc3d9;border-color:rgba(79,195,217,0.55);background:rgba(79,195,217,0.08);}
+  .ex-filter-chip.cd.active{background:rgba(79,195,217,0.16);border-color:#4fc3d9;color:#4fc3d9;}
+  .ex-filter-chip .cdhi{display:inline-flex;gap:6px;align-items:center;}
+  .ex-filter-chip .cdhi svg{width:15px;height:15px;}
+  /* Insight: Muscle | Cardio switch (bottom-left) + cardio overview */
+  .mg-seg{position:absolute;left:14px;bottom:14px;z-index:4;display:flex;padding:3px;border-radius:999px;background:rgba(29,32,37,0.92);border:1px solid rgba(255,255,255,0.1);}
+  .mg-seg button{padding:9px 14px;border-radius:999px;border:0;background:transparent;font:700 10px/1 'JetBrains Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;color:#8b9098;display:flex;gap:5px;align-items:center;cursor:pointer;}
+  .mg-seg button svg{width:11px;height:11px;}
+  .mg-seg button.on{background:var(--accent);color:#1c1500;}
+  .mg-seg button.cd.on{background:#4fc3d9;color:#0b1a1e;}
+  .mg-cardio .cv-scroll{position:absolute;left:0;right:0;top:78px;bottom:0;overflow-y:auto;padding:12px 14px 76px;-webkit-overflow-scrolling:touch;}
+  .cv-goal{margin-bottom:10px;padding:10px 12px;border-radius:12px;background:rgba(28,31,36,0.92);border:1px solid rgba(255,255,255,0.08);}
+  .cv-goal small{display:block;font:600 9.5px 'JetBrains Mono',monospace;letter-spacing:0.1em;color:#8b9098;margin-bottom:8px;}
+  .cv-goal div{display:flex;gap:8px;}
+  .cv-goal-chip{flex:1;padding:9px 0;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:#1d2025;color:#c7ccd3;font:600 13px 'JetBrains Mono',monospace;cursor:pointer;}
+  .cv-goal-chip.on{background:rgba(79,195,217,0.16);border-color:#4fc3d9;color:#4fc3d9;}
+  .cv-ring{display:flex;gap:18px;align-items:center;padding:16px;border-radius:14px;background:rgba(28,31,36,0.92);border:1px solid rgba(79,195,217,0.28);}
+  .cv-r{position:relative;width:124px;height:124px;flex:none;}
+  .cv-r svg{width:124px;height:124px;transform:rotate(-90deg);}
+  .cv-r > div{position:absolute;inset:0;display:grid;place-content:center;text-align:center;}
+  .cv-r b{font:700 34px/1 Oswald,sans-serif;color:#e9e6df;}
+  .cv-r small{font:500 9.5px 'JetBrains Mono',monospace;color:#8b9098;letter-spacing:0.06em;margin-top:3px;}
+  .cv-kp{display:grid;gap:12px;flex:1;min-width:0;}
+  .cv-kp i{display:block;font:600 9.5px 'JetBrains Mono',monospace;color:#8b9098;letter-spacing:0.1em;font-style:normal;}
+  .cv-kp b{font:600 22px Oswald,sans-serif;color:#e9e6df;}
+  .cv-kp b small{font:500 11px 'JetBrains Mono',monospace;color:#8b9098;margin-left:3px;}
+  .cv-card{margin-top:10px;padding:14px;border-radius:14px;background:rgba(28,31,36,0.92);border:1px solid rgba(255,255,255,0.08);}
+  .cv-card h4{margin:0 0 12px;font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:0.1em;color:#8b9098;display:flex;justify-content:space-between;}
+  .cv-card h4 span{color:#4fc3d9;}
+  .cv-bars{display:flex;gap:10px;align-items:flex-end;height:90px;}
+  .cv-bars > div{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%;}
+  .cv-bars u{display:block;width:100%;border-radius:5px 5px 2px 2px;background:#4fc3d9;text-decoration:none;}
+  .cv-bars u.z{background:#2a2d33;}
+  .cv-bars em{font:600 10px 'JetBrains Mono',monospace;color:#6b7078;font-style:normal;}
+  .cv-bars > div.t em{color:var(--accent);}
+  .cv-acts{padding:6px 14px;}
+  .cv-a{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.07);}
+  .cv-a:last-child{border:0;}
+  .cv-a .n{flex:1;min-width:0;font:600 15px Oswald,sans-serif;letter-spacing:0.03em;text-transform:uppercase;color:#e9e6df;}
+  .cv-a .n i{display:block;height:4px;border-radius:2px;background:#4fc3d9;opacity:0.55;margin-top:6px;}
+  .cv-a .m{font:500 11px 'JetBrains Mono',monospace;color:#8b9098;}
+  .cv-a b{font:700 15px Oswald,sans-serif;color:#4fc3d9;min-width:64px;text-align:right;}
+  .cv-empty{display:grid;gap:6px;text-align:center;padding:18px 14px;}
+  .cv-empty b{font:600 15px Oswald,sans-serif;letter-spacing:0.04em;color:#e9e6df;text-transform:uppercase;}
+  .cv-empty span{font:500 12px Inter,sans-serif;color:#8b9098;}
+  .cv-banner{margin-top:10px;padding:11px 13px;border-radius:10px;background:rgba(79,195,217,0.1);border:1px solid rgba(79,195,217,0.32);font:500 12.5px/1.35 Inter,sans-serif;color:#d5eef3;}
+  .cv-banner b{color:#4fc3d9;font-weight:600;}
   .mg-row-mini{
     flex-shrink:0;
     width:100%;
@@ -4625,7 +4712,7 @@
   .mg-3d-reset-btn,.mg-3d-plain-btn{left:auto;right:14px;width:36px;height:36px;padding:0 !important;gap:0;border-radius:50%;background:rgba(20,22,26,0.82);}
   .mg-3d-reset-btn{bottom:62px;}
   .mg-3d-plain-btn{bottom:14px;}
-  .mg-3d-legend{left:50%;right:auto;bottom:18px;transform:translateX(-50%);flex-direction:row;gap:14px;padding:8px 14px;border-radius:999px;background:rgba(20,22,26,0.82);font-size:10px;white-space:nowrap;}
+  .mg-3d-legend{left:14px;right:auto;bottom:62px;transform:none;flex-direction:row;gap:14px;padding:8px 14px;border-radius:999px;background:rgba(20,22,26,0.82);font-size:10px;white-space:nowrap;}
   .mg-3d-legend i{width:7px;height:7px;margin-right:5px;}
   .mg-3d-loading{
     position:absolute;
@@ -6702,7 +6789,7 @@
     historyEditExerciseQuery: '',     // typed search text for that sub-view
     pendingSuggestMuscle: null, // muscle carried from a tapped exercise-name suggestion, applied on save (see saveExerciseName)
     exFilterPanelOpen: false,   // whether the muscle/equipment filter panel is expanded in the exercise-search overlay
-    exSearchFilters: { muscles: [], equipment: [] }, // active filter selections in the exercise-search overlay
+    exSearchFilters: { muscles: [], equipment: [], types: [] }, // active filter selections in the exercise-search overlay
     tabAnimating: false,    // true while a tab-slide transition is in progress
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
     showPricing: false,     // Pricing/upgrade modal open state
@@ -6830,6 +6917,7 @@
     return list.filter(isPlainObject).map(function(ex){
       if (typeof ex.name !== 'string') ex.name = '';
       ex.sets = Array.isArray(ex.sets) ? ex.sets.filter(isPlainObject) : [];
+      if (ex.kind === 'cardio') ex.cardio = Array.isArray(ex.cardio) ? ex.cardio.filter(isPlainObject) : [];
       return ex;
     });
   }
@@ -7413,6 +7501,7 @@
     var set = {};
     state.sessions.forEach(function(s){
       s.exercises.forEach(function(e){
+        if (isCardioEx(e)) return; // cardio comes from CARDIO_LIBRARY, not the strength name list
         if (e.name && e.name.trim()) set[e.name.trim()] = true;
       });
     });
@@ -7477,7 +7566,7 @@
   // state and whether a "Clear" link is shown in the panel.
   function exFilterActive(){
     var f = ui.exSearchFilters;
-    return !!(f && (f.muscles.length || f.equipment.length));
+    return !!(f && (f.muscles.length || f.equipment.length || (f.types && f.types.length)));
   }
 
   // Gate used by both the typed-search results (exerciseSuggestions) and
@@ -7490,6 +7579,11 @@
   function passesExFilters(muscle, equipment){
     var f = ui.exSearchFilters;
     if (!f) return true;
+    if (f.types && f.types.length){
+      var isCardioItem = muscle === 'Cardio';
+      if (isCardioItem && f.types.indexOf('cardio') === -1) return false;
+      if (!isCardioItem && f.types.indexOf('strength') === -1) return false;
+    }
     if (f.muscles.length && (!muscle || f.muscles.indexOf(muscle) === -1)) return false;
     if (f.equipment.length && (!equipment || f.equipment.indexOf(equipment) === -1)) return false;
     return true;
@@ -7523,19 +7617,29 @@
       seen[key] = true;
       results.push({ name: item.name, muscle: item.muscle, equipment: item.equipment, how: item.how });
     });
+    // Cardio activities ("cardio" as a word lists them all)
+    CARDIO_LIBRARY.forEach(function(item){
+      var key = item.name.toLowerCase();
+      if (seen[key]) return;
+      if (!tokens.every(function(t){ return key.indexOf(t) !== -1 || t === 'cardio'; })) return;
+      if (!passesExFilters('Cardio', item.equipment)) return;
+      seen[key] = true;
+      results.push({ name: item.name, muscle: 'Cardio', equipment: item.equipment, how: item.how });
+    });
     return results;
   }
 
   function exerciseSuggestItemHtml(name, muscle, equipment, how, opts){
     opts = opts || {};
     var action = opts.action || 'pick-ex-suggestion';
-    var img = EXERCISE_IMG[name] || (muscle ? MUSCLE_IMG[muscle] : null);
+    var isCardioItem = muscle === 'Cardio';
+    var img = isCardioItem ? CARDIO_IMG : (EXERCISE_IMG[name] || (muscle ? MUSCLE_IMG[muscle] : null));
     return '<button type="button" class="ex-suggest-item'+(opts.selected ? ' selected' : '')+'" data-action="'+action+'" data-name="'+esc(name)+'" data-muscle="'+esc(muscle || '')+'">' +
       (img ? '<img class="ex-suggest-img" src="'+img+'" alt="" loading="lazy">' : '') +
       '<div class="ex-suggest-content">' +
         '<div class="ex-suggest-top">' +
           '<span class="ex-suggest-name">'+esc(name)+'</span>' +
-          (equipment ? '<span class="ex-suggest-tag">'+esc(equipment)+'</span>' : '') +
+          (equipment ? '<span class="ex-suggest-tag'+(isCardioItem ? ' cd' : '')+'">'+esc(equipment)+'</span>' : '') +
         '</div>' +
         (how ? '<div class="ex-suggest-how">'+esc(how)+'</div>' : '') +
       '</div>' +
@@ -7551,6 +7655,11 @@
     if (f && f.muscles.length){
       muscles = muscles.filter(function(m){ return f.muscles.indexOf(m) !== -1; });
     }
+    var typeCardio = !!(f && f.types && f.types.indexOf('cardio') !== -1);
+    var typeStrength = !!(f && f.types && f.types.indexOf('strength') !== -1);
+    var showStrength = !(f && f.types && f.types.length) || typeStrength;
+    var showCardio = !(f && f.muscles.length) && (!(f && f.types && f.types.length) || typeCardio);
+    if (!showStrength) muscles = [];
     var html = muscles.map(function(muscle){
       var items = EXERCISE_LIBRARY[muscle];
       if (f && f.equipment.length){
@@ -7568,7 +7677,20 @@
         }).join('') +
         '</div>';
     }).join('');
-    if (!html && f && (f.muscles.length || f.equipment.length)){
+    if (showCardio){
+      var cItems = CARDIO_LIBRARY.filter(function(item){
+        return !(f && f.equipment.length) || f.equipment.indexOf(item.equipment) !== -1;
+      });
+      if (cItems.length){
+        var cHtml = '<div class="section-label">Cardio <span class="cnt">'+cItems.length+'</span></div>' +
+          '<div class="ex-suggest-grid">' + cItems.map(function(item){
+            return exerciseSuggestItemHtml(item.name, 'Cardio', item.equipment, item.how);
+          }).join('') + '</div>';
+        // Picked "Cardio" in the Type row: lead with it. Otherwise it follows the muscle groups.
+        html = typeCardio && !typeStrength ? cHtml : html + cHtml;
+      }
+    }
+    if (!html && f && exFilterActive()){
       return '<div class="ex-filter-empty">No exercises match these filters.</div>';
     }
     return html;
@@ -7585,9 +7707,16 @@
   function exFilterPanelHtml(){
     var f = ui.exSearchFilters;
     var muscles = Object.keys(EXERCISE_LIBRARY);
-    return '<div class="ex-filter-row-head">' +
-        '<span class="ex-filter-row-label">Muscle</span>' +
+    var types = f.types || [];
+    return '<div class="ex-filter-row-head"><span class="ex-filter-row-label">Type</span>' +
         (exFilterActive() ? '<button type="button" class="ex-filter-clear" data-action="clear-ex-filters">Clear filters</button>' : '') +
+      '</div>' +
+      '<div class="ex-filter-chips">' +
+        '<button type="button" class="ex-filter-chip'+(types.indexOf('strength') !== -1 ? ' active' : '')+'" data-action="toggle-ex-filter" data-kind="type" data-value="strength">Strength</button>' +
+        '<button type="button" class="ex-filter-chip cd'+(types.indexOf('cardio') !== -1 ? ' active' : '')+'" data-action="toggle-ex-filter" data-kind="type" data-value="cardio"><span class="cdhi">'+CARDIO_HEART_SVG+'Cardio</span></button>' +
+      '</div>' +
+      '<div class="ex-filter-row-head">' +
+        '<span class="ex-filter-row-label">Muscle</span>' +
       '</div>' +
       '<div class="ex-filter-chips">' + muscles.map(function(m){
         return exFilterChipHtml('muscle', m, f.muscles.indexOf(m) !== -1);
@@ -7624,7 +7753,8 @@
   }
   function toggleExFilter(kind, value){
     var f = ui.exSearchFilters;
-    var list = kind === 'muscle' ? f.muscles : f.equipment;
+    if (!f.types) f.types = [];
+    var list = kind === 'muscle' ? f.muscles : (kind === 'type' ? f.types : f.equipment);
     var idx = list.indexOf(value);
     if (idx === -1) list.push(value); else list.splice(idx, 1);
     renderExFilterPanel();
@@ -7632,7 +7762,7 @@
     renderExerciseSuggestions(input ? input.value : '');
   }
   function clearExFilters(){
-    ui.exSearchFilters = { muscles: [], equipment: [] };
+    ui.exSearchFilters = { muscles: [], equipment: [], types: [] };
     renderExFilterPanel();
     var input = document.getElementById('exNameInput');
     renderExerciseSuggestions(input ? input.value : '');
@@ -9318,6 +9448,9 @@
         html += '<div class="pr-set"><span>'+(i+1)+'. '+fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
                   '<span class="pr-pr">'+(st.isPR ? 'PR' : '')+'</span></div>';
       });
+      cardioEntries(ex).forEach(function(e, i){
+        html += '<div class="pr-set"><span>'+(i+1)+'. '+esc(cardioEntryText(e))+'</span><span class="pr-pr"></span></div>';
+      });
     });
     html += '<div class="pr-line"></div>';
     html += '<div class="pr-row"><span>Exercises</span><span>'+s.exercises.length+'</span></div>';
@@ -9970,6 +10103,9 @@
                 '<div class="prc-ex-head"><span class="prc-ex-name">'+esc(ex.name)+'</span>' +
                 (ex.muscle ? '<span class="prc-ex-muscle">'+esc(ex.muscle)+'</span>' : '') +
                 '</div>';
+      cardioEntries(ex).forEach(function(e, i){
+        html += '<div class="prc-set"><span>'+(i+1)+'. '+esc(cardioEntryText(e))+'</span><span></span></div>';
+      });
       ex.sets.forEach(function(st, i){
         html += '<div class="prc-set"><span>'+(i+1)+'. '+fmtWeight(st.weightKg)+' '+unitLabel()+' &times; '+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
                   '<span>' +
@@ -10698,6 +10834,7 @@
           : { label: 'Link as Superset', action: 'open-superset-picker' },
         { label: 'Delete', action: 'delete-exercise', danger: true }
       ];
+      if (isCardioEx(menuEx)) items = items.filter(function(it){ return it.action !== 'open-superset-picker' && it.action !== 'unlink-superset'; });
     } else if (m.type === 'chartRange'){
       items = CHART_VIEW_ORDER.map(function(v){
         return { label: CHART_VIEW_TITLE[v], action: 'pick-chart-range', view: v, selected: ui.chartView === v };
@@ -11769,7 +11906,415 @@
     });
   })();
 
+  /* =========================================================
+     CARDIO
+     Cardio lives beside strength, never inside it: a cardio exercise is
+     { kind:'cardio', cardio:[entries], sets:[] } so every strength
+     calculation (volume, PRs, Progress, muscle volume) keeps seeing an
+     exercise with zero sets and ignores it. An entry is
+     { id, durationSec, distanceKm|null, inclinePct|null, timestamp }.
+     Distance is always stored in km and shown as km (kg users) or mi (lb users).
+     ========================================================= */
+  var CARDIO_LIBRARY = [
+    { name: 'Treadmill', equipment: 'Machine', how: 'Walk, jog or run indoors. Log time, distance and incline.', incline: true, met: 8 },
+    { name: 'Stationary Bike', equipment: 'Machine', how: 'Steady or interval pedalling. Log time and distance.', met: 7 },
+    { name: 'Rowing Machine', equipment: 'Machine', how: 'Full-body pull and drive. Log time and distance.', met: 7 },
+    { name: 'Elliptical', equipment: 'Machine', how: 'Low-impact striding. Log time and distance.', met: 5 },
+    { name: 'Stair Climber', equipment: 'Machine', how: 'Climb a moving staircase. Log your time.', dist: false, met: 8 },
+    { name: 'Running (Outdoor)', equipment: 'Outdoor', how: 'Run outside. Log time and distance.', met: 9.8 },
+    { name: 'Walking', equipment: 'Outdoor', how: 'A brisk walk, indoors or out. Log time and distance.', met: 3.5 },
+    { name: 'Jump Rope', equipment: 'Bodyweight', how: 'Skip rope at a steady pace. Log your time.', dist: false, met: 11 }
+  ];
+  var CARDIO_BY_KEY = {};
+  CARDIO_LIBRARY.forEach(function(c){ CARDIO_BY_KEY[c.name.toLowerCase()] = c; });
+  var CARDIO_HEART_PATH = '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/><path d="M3.5 12h4l2-3 3 6 2-3h6" stroke-width="1.7"/>';
+  var CARDIO_HEART_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + CARDIO_HEART_PATH + '</svg>';
+  var CARDIO_IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><defs><radialGradient id="g" cx="50%" cy="45%" r="65%"><stop offset="0" stop-color="#4fc3d9" stop-opacity=".42"/><stop offset="1" stop-color="#1b2024"/></radialGradient></defs><rect width="160" height="160" fill="url(#g)"/><g transform="translate(48 44) scale(2.4)" fill="none" stroke="#4fc3d9" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + CARDIO_HEART_PATH + '</g></svg>');
+
+  function cardioInfo(name){ return CARDIO_BY_KEY[String(name || '').trim().toLowerCase()] || null; }
+  function isCardioEx(ex){ return !!ex && ex.kind === 'cardio'; }
+  function cardioEntries(ex){ return (isCardioEx(ex) && Array.isArray(ex.cardio)) ? ex.cardio : []; }
+  function sessionCardioCount(s){
+    var n = 0;
+    (s.exercises || []).forEach(function(ex){ n += cardioEntries(ex).length; });
+    return n;
+  }
+  function sessionCardioSec(s){
+    var t = 0;
+    (s.exercises || []).forEach(function(ex){ cardioEntries(ex).forEach(function(e){ t += e.durationSec || 0; }); });
+    return t;
+  }
+  // Anything logged in a session — strength sets or cardio entries. Gates Finish Session.
+  function sessionLogCount(s){ return sessionSetCount(s) + sessionCardioCount(s); }
+  function cardioEverLogged(){
+    return state.sessions.some(function(s){ return sessionCardioCount(s) > 0; });
+  }
+  function cardioDistUnit(){ return unitLabel() === 'lb' ? 'mi' : 'km'; }
+  function kmToDisplay(km){ return cardioDistUnit() === 'mi' ? km * 0.621371 : km; }
+  function displayToKm(v){ return cardioDistUnit() === 'mi' ? v / 0.621371 : v; }
+  function fmtDist(km){ return String(Math.round(kmToDisplay(km) * 100) / 100); }
+  function cpad(n){ return n < 10 ? '0' + n : String(n); }
+  function fmtClock(sec){
+    sec = Math.max(0, Math.round(sec || 0));
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return h > 0 ? h + ':' + cpad(m) + ':' + cpad(s) : m + ':' + cpad(s);
+  }
+  function cardioPaceSec(durationSec, km){
+    if (!km || km <= 0 || !durationSec) return null;
+    return durationSec / kmToDisplay(km);
+  }
+  function cardioKcal(name, durationSec){
+    var info = cardioInfo(name), bw = state.settings && state.settings.bodyweightKg;
+    if (!info || !bw || !durationSec) return null;
+    return Math.round(info.met * bw * (durationSec / 3600));
+  }
+  function cardioLast(name, excludeExId){
+    var key = String(name || '').trim().toLowerCase(), best = null, bestT = -1;
+    state.sessions.forEach(function(s){
+      var t = new Date(s.finishedAt || s.date).getTime();
+      (s.exercises || []).forEach(function(e){
+        if (!isCardioEx(e) || e.id === excludeExId || String(e.name || '').trim().toLowerCase() !== key) return;
+        var en = cardioEntries(e);
+        if (!en.length) return;
+        if (t >= bestT){ bestT = t; best = en[en.length - 1]; }
+      });
+    });
+    return best;
+  }
+  // "25:00 min · 3.2 km · 2% incline" (plain text, escaped by the caller)
+  function cardioEntryText(e){
+    var bits = [fmtClock(e.durationSec) + ' min'];
+    if (e.distanceKm > 0) bits.push(fmtDist(e.distanceKm) + ' ' + cardioDistUnit());
+    if (e.inclinePct != null && e.inclinePct > 0) bits.push(e.inclinePct + '% incline');
+    return bits.join(' · ');
+  }
+  function cardioEntryHtml(e){
+    var h = '<span class="cx-v">' + fmtClock(e.durationSec) + '<small>min</small>';
+    if (e.distanceKm > 0) h += fmtDist(e.distanceKm) + '<small>' + cardioDistUnit() + '</small>';
+    if (e.inclinePct != null && e.inclinePct > 0) h += e.inclinePct + '<small>% inc</small>';
+    return h + '</span>';
+  }
+
+  // ---- drafts + timer (in-memory only) ----
+  function cardioDraft(exId){
+    if (!ui.cardioDrafts) ui.cardioDrafts = {};
+    if (!ui.cardioDrafts[exId]) ui.cardioDrafts[exId] = {};
+    return ui.cardioDrafts[exId];
+  }
+  function cardioDraftSeconds(d){
+    var m = parseFloat(d && d.min), s = parseFloat(d && d.sec);
+    return Math.round((isNaN(m) ? 0 : m) * 60 + (isNaN(s) ? 0 : s));
+  }
+  function cardioDraftKm(d){
+    var v = parseFloat(d && d.dist);
+    return v > 0 ? displayToKm(v) : null;
+  }
+  function cardioDraftHasInput(d){
+    return !!d && ['min', 'sec', 'dist', 'incl'].some(function(k){ return d[k] != null && String(d[k]).trim() !== ''; });
+  }
+  var CARDIO_TIMER_KEY = 'sfl_cardio_timer';
+  var cardioTimerInterval = null;
+  function loadCardioTimerOnce(){
+    if (ui.cardioTimerLoaded) return;
+    ui.cardioTimerLoaded = true;
+    try{
+      var raw = localStorage.getItem(CARDIO_TIMER_KEY);
+      var t = raw ? JSON.parse(raw) : null;
+      if (t && t.exId && t.startMs) ui.cardioTimer = t;
+    }catch(e){}
+  }
+  function saveCardioTimer(){
+    try{
+      if (ui.cardioTimer) localStorage.setItem(CARDIO_TIMER_KEY, JSON.stringify(ui.cardioTimer));
+      else localStorage.removeItem(CARDIO_TIMER_KEY);
+    }catch(e){}
+  }
+  function cardioTimerElapsed(){
+    return ui.cardioTimer ? Math.max(0, Math.floor((Date.now() - ui.cardioTimer.startMs) / 1000)) : 0;
+  }
+  function tickCardioTimer(){
+    if (ui.cardioTimer && !findExercise(getActiveSession(), ui.cardioTimer.exId)){
+      ui.cardioTimer = null; saveCardioTimer(); ensureCardioTimerTicking();
+      return;
+    }
+    var el = document.getElementById('cardioTimerClock');
+    if (el) el.textContent = fmtClock(cardioTimerElapsed());
+  }
+  function ensureCardioTimerTicking(){
+    if (ui.cardioTimer && !cardioTimerInterval){
+      cardioTimerInterval = setInterval(tickCardioTimer, 1000);
+    } else if (!ui.cardioTimer && cardioTimerInterval){
+      clearInterval(cardioTimerInterval);
+      cardioTimerInterval = null;
+    }
+  }
+  function startCardioTimer(exId){
+    ui.cardioTimer = { exId: exId, startMs: Date.now() };
+    saveCardioTimer();
+    ensureCardioTimerTicking();
+    renderApp();
+  }
+  function cancelCardioTimer(){
+    ui.cardioTimer = null;
+    saveCardioTimer();
+    ensureCardioTimerTicking();
+    renderApp();
+  }
+  function stopCardioTimer(exId){
+    var sec = cardioTimerElapsed();
+    ui.cardioTimer = null;
+    saveCardioTimer();
+    ensureCardioTimerTicking();
+    if (sec < 1){ renderApp(); return; }
+    var d = cardioDraft(exId);
+    d.min = String(Math.floor(sec / 60));
+    d.sec = String(sec % 60);
+    renderApp();
+    showToast('Timer stopped — add distance if you want, then save');
+  }
+
+  function cardioDerivedHtml(ex, d){
+    var sec = cardioDraftSeconds(d), km = cardioDraftKm(d), bits = [];
+    if (sec > 0 && km){
+      var pace = cardioPaceSec(sec, km);
+      if (pace) bits.push('<span>Pace <b>' + fmtClock(pace) + ' /' + cardioDistUnit() + '</b></span>');
+    }
+    var kcal = sec > 0 ? cardioKcal(ex.name, sec) : null;
+    if (kcal) bits.push('<span>~<b>' + kcal + '</b> kcal</span>');
+    var last = cardioLast(ex.name, ex.id);
+    if (km && last && last.distanceKm > 0){
+      var diff = kmToDisplay(km) - kmToDisplay(last.distanceKm);
+      if (Math.abs(diff) >= 0.005){
+        bits.push('<span class="' + (diff > 0 ? 'up' : 'down') + '">' + (diff > 0 ? '▲ +' : '▼ −') + (Math.round(Math.abs(diff) * 100) / 100) + ' ' + cardioDistUnit() + ' vs last</span>');
+      }
+    }
+    return bits.join('') || '&nbsp;';
+  }
+  function refreshCardioForm(exId){
+    var session = getActiveSession();
+    var ex = session && findExercise(session, exId);
+    if (!ex) return;
+    var d = cardioDraft(exId);
+    var add = document.querySelector('.cx-add[data-ex="' + exId + '"]');
+    if (add) add.disabled = !(cardioDraftSeconds(d) > 0);
+    var el = document.getElementById('cxDerived-' + exId);
+    if (el) el.innerHTML = cardioDerivedHtml(ex, d);
+    refreshFinishSessionBtn();
+  }
+
+  function addCardioEntry(exId){
+    var session = getActiveSession();
+    var ex = session && findExercise(session, exId);
+    if (!ex) return;
+    var d = cardioDraft(exId), info = cardioInfo(ex.name);
+    var sec = cardioDraftSeconds(d);
+    if (sec <= 0){ showToast('Enter a time first'); return; }
+    if (sec > 86400){ showToast('That’s over 24 hours — check the time'); return; }
+    var km = cardioDraftKm(d);
+    if (km && km > 1000){ showToast('That distance looks too long — check it'); return; }
+    var incl = null;
+    if (info && info.incline && d.incl != null && String(d.incl).trim() !== ''){
+      incl = parseFloat(d.incl);
+      if (isNaN(incl) || incl < 0 || incl > 40){ showToast('Incline should be between 0 and 40%'); return; }
+    }
+    if (!Array.isArray(ex.cardio)) ex.cardio = [];
+    ex.kind = 'cardio';
+    ex.cardio.push({
+      id: uid(),
+      durationSec: sec,
+      distanceKm: km ? Math.round(km * 1000) / 1000 : null,
+      inclinePct: incl,
+      timestamp: new Date().toISOString()
+    });
+    delete ui.cardioDrafts[exId];
+    saveSessions();
+    logActivity('Added cardio ' + fmtClock(sec) + (km ? ' · ' + fmtDist(km) + ' ' + cardioDistUnit() : '') + ' to "' + ex.name + '"', 'Log');
+    renderApp();
+    showToast('Cardio saved');
+  }
+  function deleteCardioEntry(exId, entryId){
+    var session = getActiveSession();
+    var ex = session && findExercise(session, exId);
+    if (!ex || !Array.isArray(ex.cardio)) return;
+    ex.cardio = ex.cardio.filter(function(e){ return e.id !== entryId; });
+    saveSessions();
+    logActivity('Deleted a cardio entry from "' + ex.name + '"', 'Log');
+    renderApp();
+  }
+
+  function renderCardioCardCollapsed(ex){
+    var en = cardioEntries(ex), sec = 0, km = 0;
+    en.forEach(function(e){ sec += e.durationSec || 0; km += e.distanceKm || 0; });
+    var summary = en.length ? fmtClock(sec) + ' min' + (km > 0 ? ' &middot; ' + fmtDist(km) + ' ' + cardioDistUnit() : '') : 'no entries';
+    return '<div class="exercise-card collapsed cx-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'" data-ex="'+ex.id+'" data-muscle="Cardio">' +
+             '<div class="exercise-head-collapsed" data-action="toggle-exercise-done" data-ex="'+ex.id+'">' +
+               '<div class="eh-title"><h3>'+esc(ex.name)+'</h3><span class="cx-chip">'+CARDIO_HEART_SVG+'Cardio</span></div>' +
+               '<div class="exercise-collapsed-meta"><span>&#10003; '+summary+'</span><span class="chevron">&#8964;</span></div>' +
+             '</div></div>';
+  }
+
+  function renderCardioCard(session, ex){
+    if (ex.done) return renderCardioCardCollapsed(ex);
+    loadCardioTimerOnce();
+    ensureCardioTimerTicking();
+    var info = cardioInfo(ex.name);
+    var showDist = !info || info.dist !== false;
+    var showIncl = !!(info && info.incline);
+    var entries = cardioEntries(ex);
+    var last = cardioLast(ex.name, ex.id);
+    var d = cardioDraft(ex.id);
+    var timerHere = !!(ui.cardioTimer && ui.cardioTimer.exId === ex.id);
+    var u = cardioDistUnit();
+    var html = '<div class="exercise-card cx-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'" data-ex="'+ex.id+'" data-muscle="Cardio">';
+    html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
+              '<div class="eh-badges"><span class="cx-chip">'+CARDIO_HEART_SVG+'Cardio</span></div></div>' +
+              '<div class="exercise-head-actions">' +
+                '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
+                '<button class="icon-btn" data-action="open-exercise-menu" data-ex="'+ex.id+'" aria-label="Exercise options">&#8942;</button>' +
+              '</div></div>';
+    html += '<div class="exercise-card-body">';
+    if (last){
+      html += '<div class="cx-last"><small>LAST</small><b>'+esc(cardioEntryText(last))+'</b></div>';
+    }
+    entries.forEach(function(e, i){
+      var pace = cardioPaceSec(e.durationSec, e.distanceKm);
+      html += '<div class="cx-row">' +
+                '<span class="cx-n">'+(i+1)+'</span>' +
+                '<span class="cx-main">'+cardioEntryHtml(e) + (pace ? '<em>'+fmtClock(pace)+' /'+u+'</em>' : '') + '</span>' +
+                '<button class="set-act-btn" data-action="cardio-delete-entry" data-ex="'+ex.id+'" data-entry="'+e.id+'" aria-label="Delete entry">&#10005;</button>' +
+              '</div>';
+    });
+    if (timerHere){
+      html += '<div class="cx-timer"><small>TIMER RUNNING</small><b id="cardioTimerClock">'+fmtClock(cardioTimerElapsed())+'</b></div>' +
+              '<div class="cx-btns">' +
+                '<button class="cx-add" data-action="cardio-timer-cancel">CANCEL</button>' +
+                '<button class="cx-go stop" data-action="cardio-timer-stop" data-ex="'+ex.id+'">&#9632; STOP &amp; USE</button>' +
+              '</div>';
+    } else {
+      var tiles = 1 + (showDist ? 1 : 0) + (showIncl ? 1 : 0);
+      html += '<div class="cx-tiles t'+tiles+'">' +
+                '<div class="cx-t main"><i>TIME</i><div class="cx-time">' +
+                  '<input type="number" inputmode="numeric" min="0" placeholder="min" class="cd-in" data-f="min" data-ex="'+ex.id+'" value="'+(d.min != null ? esc(d.min) : '')+'">' +
+                  '<span>:</span>' +
+                  '<input type="number" inputmode="numeric" min="0" max="59" placeholder="sec" class="cd-in" data-f="sec" data-ex="'+ex.id+'" value="'+(d.sec != null ? esc(d.sec) : '')+'">' +
+                '</div></div>' +
+                (showDist ? '<div class="cx-t"><i>DISTANCE</i><div class="cx-one"><input type="number" inputmode="decimal" step="0.1" min="0" placeholder="0" class="cd-in" data-f="dist" data-ex="'+ex.id+'" value="'+(d.dist != null ? esc(d.dist) : '')+'"><small>'+u+'</small></div></div>' : '') +
+                (showIncl ? '<div class="cx-t"><i>INCLINE</i><div class="cx-one"><input type="number" inputmode="decimal" step="0.5" min="0" max="40" placeholder="0" class="cd-in" data-f="incl" data-ex="'+ex.id+'" value="'+(d.incl != null ? esc(d.incl) : '')+'"><small>%</small></div></div>' : '') +
+              '</div>' +
+              '<div class="cx-derived" id="cxDerived-'+ex.id+'">'+cardioDerivedHtml(ex, d)+'</div>' +
+              '<div class="cx-btns">' +
+                '<button class="cx-add" data-action="cardio-add" data-ex="'+ex.id+'"'+(cardioDraftSeconds(d) > 0 ? '' : ' disabled')+'>+ ADD ENTRY</button>' +
+                '<button class="cx-go" data-action="cardio-timer-start" data-ex="'+ex.id+'">&#9654; START TIMER</button>' +
+              '</div>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  /* ---- Insight: weekly cardio ---- */
+  function cardioGoalMin(){
+    var g = state.settings && parseInt(state.settings.cardioGoalMin, 10);
+    return g > 0 ? g : 150;
+  }
+  function computeWeeklyCardio(){
+    var weekStartMs = mondayOf(new Date()).getTime();
+    var out = { totalSec: 0, sessions: 0, km: 0, distSec: 0, days: [0, 0, 0, 0, 0, 0, 0], byAct: {} };
+    state.sessions.forEach(function(s){
+      if (s.status !== 'done') return;
+      var t = new Date(s.finishedAt || s.date).getTime();
+      if (isNaN(t) || t < weekStartMs) return;
+      var had = false;
+      (s.exercises || []).forEach(function(ex){
+        cardioEntries(ex).forEach(function(e){
+          var sec = e.durationSec || 0;
+          had = true;
+          out.totalSec += sec;
+          var dow = (new Date(t).getDay() + 6) % 7;
+          out.days[dow] += sec;
+          if (e.distanceKm > 0){ out.km += e.distanceKm; out.distSec += sec; }
+          var k = ex.name;
+          if (!out.byAct[k]) out.byAct[k] = { name: k, sec: 0, km: 0 };
+          out.byAct[k].sec += sec;
+          out.byAct[k].km += e.distanceKm || 0;
+        });
+      });
+      if (had) out.sessions++;
+    });
+    return out;
+  }
+  function getInsightView(){
+    return (state.settings && state.settings.insightView === 'cardio') ? 'cardio' : 'muscle';
+  }
+  function insightSwitchHtml(view){
+    return '<div class="mg-seg">' +
+             '<button type="button" class="'+(view === 'muscle' ? 'on' : '')+'" data-action="insight-view" data-view="muscle">Muscle</button>' +
+             '<button type="button" class="cd'+(view === 'cardio' ? ' on' : '')+'" data-action="insight-view" data-view="cardio">'+CARDIO_HEART_SVG+'Cardio</button>' +
+           '</div>';
+  }
+  function renderCardioOverviewHtml(){
+    var w = computeWeeklyCardio(), goal = cardioGoalMin();
+    var mins = Math.round(w.totalSec / 60);
+    var pct = Math.max(0, Math.min(1, w.totalSec / 60 / goal));
+    var R = 54, C = 2 * Math.PI * R;
+    var u = cardioDistUnit();
+    var monday = mondayOf(new Date()), sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 6);
+    var todayIdx = (new Date().getDay() + 6) % 7;
+    var pace = w.km > 0 && w.distSec > 0 ? cardioPaceSec(w.distSec, w.km) : null;
+    var dayMax = Math.max(30 * 60, Math.max.apply(null, w.days));
+    var letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+    var html = '<div class="mg-panel mg-cardio">';
+    html += '<div class="mg-panel-content"><div class="mg-panel-header">' +
+              '<div class="mg-panel-title-row"><h3>Cardio Overview</h3>' +
+                '<div class="mg-header-btns">' +
+                  '<button type="button" class="mg-settings-btn" data-action="toggle-cardio-goal" aria-label="Weekly cardio goal">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/></svg>' +
+                  '</button>' +
+                '</div>' +
+              '</div>' +
+              '<span class="mg-panel-sub"><b>'+fmtWeekShort(monday)+' – '+fmtWeekShort(sunday)+'</b> · Goal '+goal+' min</span></div></div>';
+    html += '<div class="cv-scroll">';
+    if (ui.cardioGoalOpen){
+      html += '<div class="cv-goal"><small>WEEKLY GOAL (MIN)</small><div>' + [90, 120, 150, 200, 300].map(function(g){
+        return '<button type="button" class="cv-goal-chip'+(g === goal ? ' on' : '')+'" data-action="set-cardio-goal" data-min="'+g+'">'+g+'</button>';
+      }).join('') + '</div></div>';
+    }
+    html += '<div class="cv-ring"><div class="cv-r"><svg viewBox="0 0 128 128"><circle cx="64" cy="64" r="'+R+'" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="11"/>' +
+              '<circle cx="64" cy="64" r="'+R+'" fill="none" stroke="#4fc3d9" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+(C * pct).toFixed(1)+' '+C.toFixed(1)+'"/></svg>' +
+              '<div><b>'+mins+'</b><small>OF '+goal+' MIN</small></div></div>' +
+            '<div class="cv-kp"><div><i>SESSIONS</i><b>'+w.sessions+'</b></div>' +
+              '<div><i>DISTANCE</i><b>'+(w.km > 0 ? fmtDist(w.km) : '–')+'<small>'+(w.km > 0 ? u : '')+'</small></b></div>' +
+              '<div><i>AVG PACE</i><b>'+(pace ? fmtClock(pace) : '–')+'<small>'+(pace ? '/' + u : '')+'</small></b></div></div></div>';
+    var left = Math.max(0, goal - mins);
+    html += '<div class="cv-card"><h4>MINUTES PER DAY<span>'+(left > 0 ? left + ' TO GO' : '✓ GOAL HIT')+'</span></h4><div class="cv-bars">' +
+              w.days.map(function(sec, i){
+                var h = sec > 0 ? Math.max(8, Math.round(sec / dayMax * 60)) : 4;
+                return '<div class="'+(i === todayIdx ? 't' : '')+'"><u class="'+(sec > 0 ? '' : 'z')+'" style="height:'+h+'px"></u><em>'+letters[i]+'</em></div>';
+              }).join('') + '</div></div>';
+    var acts = Object.keys(w.byAct).map(function(k){ return w.byAct[k]; }).sort(function(a, b){ return b.sec - a.sec; });
+    if (acts.length){
+      var topSec = acts[0].sec || 1;
+      html += '<div class="cv-card cv-acts">' + acts.map(function(a){
+        return '<div class="cv-a"><span class="n">'+esc(a.name)+'<i style="width:'+Math.max(6, Math.round(a.sec / topSec * 100))+'%"></i></span>' +
+               '<span class="m">'+(a.km > 0 ? fmtDist(a.km) + ' ' + u : '')+'</span><b>'+Math.round(a.sec / 60)+' min</b></div>';
+      }).join('') + '</div>';
+    } else {
+      html += '<div class="cv-card cv-empty"><b>No cardio logged this week</b><span>Add Exercise → filter → Cardio, then log a Treadmill, Bike or Walk.</span></div>';
+    }
+    var msg;
+    if (mins >= goal) msg = '<b>Goal hit</b> · nice work this week';
+    else if (mins === 0) msg = '<b>'+goal+' min</b> to your weekly goal · a 20-minute session is a good start';
+    else msg = '<b>'+left+' min</b> to your weekly goal';
+    html += '<div class="cv-banner">'+msg+'</div>';
+    html += '</div>';
+    html += insightSwitchHtml('cardio');
+    html += '</div>';
+    return html;
+  }
+
   function renderExerciseCard(session, ex){
+    if (isCardioEx(ex)) return renderCardioCard(session, ex);
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
     var refSets = getReferenceSets(session, ex.name);
@@ -12031,12 +12576,25 @@
               '<div class="hi-right">' +
                 '<button class="icon-btn hi-menu-btn" data-action="open-session-menu" data-session="'+s.id+'" aria-label="Session options">&#8942;</button>' +
                 '<div class="hi-stats"><span class="hi-vol">'+Math.round(toDisplay(sessionVolume(s))).toLocaleString()+'<small>'+unitLabel()+'</small>'+infoDotHtml('volume')+'</span>' +
-                  '<span class="hi-sub">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets</span></div>' +
+                  '<span class="hi-sub">'+s.exercises.length+' ex &middot; '+sessionSetCount(s)+' sets'+(sessionCardioCount(s) ? ' &middot; '+Math.round(sessionCardioSec(s) / 60)+' min cardio' : '')+'</span></div>' +
               '</div>' +
             '</div>';
     if (expanded){
       html += '<div class="history-item-body">';
       s.exercises.forEach(function(ex){
+        if (isCardioEx(ex)){
+          html += '<div class="hi-ex"><div class="hi-ex-main">' +
+                    '<div class="hi-ex-name">'+esc(ex.name)+' <span class="cx-chip sm">'+CARDIO_HEART_SVG+'Cardio</span></div>' +
+                    '<div class="hi-ex-sets"><div class="hx-rows">' + cardioEntries(ex).map(function(e, i){
+                      var pace = cardioPaceSec(e.durationSec, e.distanceKm);
+                      return '<div class="hx-row cardio"><span class="hx-n">'+(i+1)+'</span>' +
+                             '<span class="hx-w">'+fmtClock(e.durationSec)+'<i>min</i>' +
+                               (e.distanceKm > 0 ? '<em>&middot;</em>'+fmtDist(e.distanceKm)+'<i>'+cardioDistUnit()+'</i>' : '') +
+                               (e.inclinePct > 0 ? '<em>&middot;</em>'+e.inclinePct+'<i>% inc</i>' : '') + '</span>' +
+                             (pace ? '<span class="hx-time">'+fmtClock(pace)+' /'+cardioDistUnit()+'</span>' : '') + '</div>';
+                    }).join('') + '</div></div></div></div>';
+          return;
+        }
         html += '<div class="hi-ex">' +
                   '<div class="hi-ex-main">' +
                     '<div class="hi-ex-name">'+esc(ex.name)+
@@ -12796,6 +13354,7 @@
   // below it — both modes read the exact same weekly set counts
   // (computeWeeklyMuscleVolume), just scored against different caps.
   function renderMuscleGroupsOverviewHtml(){
+    if (getInsightView() === 'cardio') return renderCardioOverviewHtml();
     var weeklyData = computeWeeklyMuscleVolume();
     var monday = mondayOf(new Date());
     var sunday = new Date(monday);
@@ -12853,6 +13412,7 @@
 
     html += '<div class="mg-rows-sidebar">' + renderMuscleOverviewRows(activeProfile, weeklyData) + '</div>';
     html += '<div class="mg-banner-wrap">' + renderMuscleVolumeBannerHtml(activeProfile, weeklyData) + '</div>';
+    html += insightSwitchHtml('muscle');
 
     html += '</div>';
     return html;
@@ -13775,7 +14335,7 @@
   function renderInsight(){
     var names = allExerciseNames();
     var html = '';
-    if (names.length === 0){
+    if (names.length === 0 && !cardioEverLogged()){
       html += '<div class="empty tab-empty-state"><div class="glyph">' +
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
                   '<path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path>' +
@@ -16080,7 +16640,7 @@
   function logChatPendingExercises(){
     var session = getActiveSession();
     if (!session) return [];
-    return session.exercises.filter(function(e){ return !e.sets || e.sets.length === 0; });
+    return session.exercises.filter(function(e){ return (!e.sets || e.sets.length === 0) && !isCardioEx(e); });
   }
 
   /* ---- Free rule-based coverage for things that used to need the AI:
@@ -16289,7 +16849,7 @@
     // up (picked or loaded from a routine), set targets for exactly those.
     // Otherwise fall back to the exercises of the last finished session.
     var active = getActiveSession();
-    var planned = active && active.exercises ? active.exercises.filter(function(e){ return e && e.name; }) : [];
+    var planned = active && active.exercises ? active.exercises.filter(function(e){ return e && e.name && !isCardioEx(e); }) : [];
     var header, names;
     if (planned.length){
       names = planned.map(function(e){ return e.name; });
@@ -17679,7 +18239,7 @@
     ui.editingExerciseName = exId;
     ui.pendingSuggestMuscle = null;
     ui.exFilterPanelOpen = false;
-    ui.exSearchFilters = { muscles: [], equipment: [] };
+    ui.exSearchFilters = { muscles: [], equipment: [], types: [] };
     renderApp();
     if (autoFocus === false) return;
     // Focus synchronously, in the same tick as the user's tap — mobile
@@ -17727,7 +18287,16 @@
     // Only applies if the name being saved came from tapping a library
     // suggestion (see 'pick-ex-suggestion') — free-typed names never touch
     // ex.muscle, same as before this feature existed.
-    if (ui.pendingSuggestMuscle) ex.muscle = ui.pendingSuggestMuscle;
+    if (ui.pendingSuggestMuscle === 'Cardio'){
+      if (ex.sets.length){ ui.pendingSuggestMuscle = null; showToast('This exercise already has strength sets \u2014 add cardio as a new exercise'); return; }
+      ex.kind = 'cardio';
+      if (!Array.isArray(ex.cardio)) ex.cardio = [];
+      ex.muscle = 'Cardio';
+    } else if (ui.pendingSuggestMuscle){
+      if (isCardioEx(ex) && cardioEntries(ex).length){ ui.pendingSuggestMuscle = null; showToast('This exercise already has cardio logged \u2014 add strength as a new exercise'); return; }
+      if (isCardioEx(ex)){ delete ex.kind; delete ex.cardio; }
+      ex.muscle = ui.pendingSuggestMuscle;
+    }
     ui.pendingSuggestMuscle = null;
     saveSessions();
     if (oldName.trim().toLowerCase() !== name.trim().toLowerCase()){
@@ -18235,6 +18804,7 @@
     ui.expandedHistory[session.id] = true;
     if (restTimerInterval){ clearInterval(restTimerInterval); restTimerInterval = null; }
     ui.restTimer = null;
+    if (ui.cardioTimer){ ui.cardioTimer = null; saveCardioTimer(); ensureCardioTimerTicking(); }
     state.tab = 'history';
     showToast('Session saved');
     if (state.settings.hapticFeedback !== false && navigator.vibrate) navigator.vibrate([15, 30, 15]);
@@ -18340,7 +18910,7 @@
     if (!el) return;
     var activeSession = getActiveSession();
     var isMidEdit = !!ui.editingSet || !!ui.editingExerciseName || !!activeSessionUnsavedDraftExercise();
-    var canFinish = !!activeSession && sessionSetCount(activeSession) > 0 && !isMidEdit;
+    var canFinish = !!activeSession && sessionLogCount(activeSession) > 0 && !isMidEdit;
     el.disabled = !canFinish;
     el.classList.toggle('ready', canFinish);
   }
@@ -18350,6 +18920,10 @@
     if (!session) return null;
     for (var i = 0; i < session.exercises.length; i++){
       var ex = session.exercises[i];
+      if (isCardioEx(ex)){
+        if (!ex.done && cardioDraftHasInput(ui.cardioDrafts && ui.cardioDrafts[ex.id])) return ex;
+        continue;
+      }
       if (!ui.expandedAddSet[ex.id]) continue;
       var draft = ui.draftSets[ex.id];
       var hasWeight = draft && draft.weight != null && String(draft.weight).trim() !== '';
@@ -19375,7 +19949,7 @@
     var routine = {
       id: uid(),
       name: name,
-      exercises: session.exercises.map(function(ex){ return { name: ex.name, muscle: ex.muscle }; })
+      exercises: session.exercises.map(function(ex){ var r = { name: ex.name, muscle: ex.muscle }; if (isCardioEx(ex)) r.kind = 'cardio'; return r; })
     };
     state.routines.unshift(routine);
     saveRoutines();
@@ -19418,7 +19992,9 @@
       date: new Date().toISOString(),
       status: 'active',
       exercises: routine.exercises.map(function(ex){
-        return { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false };
+        var made = { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false };
+        if (ex.kind === 'cardio'){ made.kind = 'cardio'; made.cardio = []; }
+        return made;
       })
     };
     state.sessions.unshift(newSession);
@@ -20048,6 +20624,28 @@
       toggleMg3dPlain();
     } else if (action === 'open-muscle-volume-insight'){
       openMuscleVolumeInsight();
+    } else if (action === 'cardio-add'){
+      addCardioEntry(el.dataset.ex);
+    } else if (action === 'cardio-delete-entry'){
+      deleteCardioEntry(el.dataset.ex, el.dataset.entry);
+    } else if (action === 'cardio-timer-start'){
+      startCardioTimer(el.dataset.ex);
+    } else if (action === 'cardio-timer-stop'){
+      stopCardioTimer(el.dataset.ex);
+    } else if (action === 'cardio-timer-cancel'){
+      cancelCardioTimer();
+    } else if (action === 'insight-view'){
+      state.settings.insightView = el.dataset.view === 'cardio' ? 'cardio' : 'muscle';
+      saveSettings();
+      renderApp();
+    } else if (action === 'toggle-cardio-goal'){
+      ui.cardioGoalOpen = !ui.cardioGoalOpen;
+      renderApp();
+    } else if (action === 'set-cardio-goal'){
+      state.settings.cardioGoalMin = parseInt(el.dataset.min, 10) || 150;
+      ui.cardioGoalOpen = false;
+      saveSettings();
+      renderApp();
     } else if (action === 'open-rating-panel'){
       openRatingPanel();
     } else if (action === 'share-app'){
@@ -20245,6 +20843,13 @@
         else ui.draftSets[exId].reps = t.value;
         refreshRowAddSetBtn(exId);
         refreshFinishSessionBtn();
+      }
+    }
+    if (t.classList && t.classList.contains('cd-in')){
+      var cdEx = t.dataset.ex;
+      if (cdEx){
+        cardioDraft(cdEx)[t.dataset.f] = t.value;
+        refreshCardioForm(cdEx);
       }
     }
     if (t.id === 'historySearchInput'){
