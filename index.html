@@ -2063,7 +2063,7 @@
   /* Log cards: clean dark-to-gold base, a small 3D object on the right */
   .template-card.log-tpl-card{background-color:#181a1f;background-image:linear-gradient(110deg,#181a1f 45%,#3a2c0e 100%);}
   .log-tpl-card .tpl-bg{display:none;}
-  .template-card > canvas.lg3d{position:absolute;right:14px;top:4px;width:114px;height:94px;z-index:1;pointer-events:none;}
+  .template-card > img.lg3d-st,.template-card > canvas.lg3d{position:absolute;right:14px;top:4px;width:114px;height:94px;z-index:1;pointer-events:none;}
   .template-card.log-tpl-card{padding-right:118px;}
   .template-card.log-tpl-card.tpl-acc{padding-right:0;}
   .template-card.log-tpl-card.tpl-acc > .tpl-acc-head{padding-right:118px;}
@@ -8225,7 +8225,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var isCardioItem = muscle === 'Cardio';
     var img = isCardioItem ? CARDIO_IMG : (EXERCISE_IMG[name] || (muscle ? MUSCLE_IMG[muscle] : null));
     return '<button type="button" class="ex-suggest-item'+(opts.selected ? ' selected' : '')+'" data-action="'+action+'" data-name="'+esc(name)+'" data-muscle="'+esc(muscle || '')+'">' +
-      (isCardioItem ? '<canvas class="ex-suggest-img ex3d" data-k="'+esc(name)+'" width="300" height="300" aria-hidden="true"></canvas>' : (img ? '<img class="ex-suggest-img" src="'+img+'" alt="" loading="lazy">' : '')) +
+      (isCardioItem ? (s3off() ? '<img class="ex-suggest-img ex3d" src="images/3d/ex-'+exKind(name)+'.png" alt="" loading="lazy">' : '<canvas class="ex-suggest-img ex3d" data-k="'+esc(name)+'" width="300" height="300" aria-hidden="true"></canvas>') : (img ? '<img class="ex-suggest-img" src="'+img+'" alt="" loading="lazy">' : '')) +
       '<div class="ex-suggest-content">' +
         '<div class="ex-suggest-top">' +
           '<span class="ex-suggest-name">'+esc(name)+'</span>' +
@@ -16707,7 +16707,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                 '<button data-action="toggle-haptic-feedback" data-val="on" class="'+(state.settings.hapticFeedback !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-haptic-feedback" data-val="off" class="'+(state.settings.hapticFeedback === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row" data-sp="look-layout"><div><div class="sr-label">Simple view</div><div class="sr-sub">Turns off all 3D for a plain, lighter look. Good for older phones or saving battery.</div></div>' +
+    html += '<div class="settings-row" data-sp="look-layout"><div><div class="sr-label">Simple view</div><div class="sr-sub">Turns off live 3D (charts, trophies, spinning objects) for a lighter look. Cards show still 3D pictures; the muscle model stays.</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-simple3d" data-val="on" class="'+(state.settings.simple3d === true ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-simple3d" data-val="off" class="'+(state.settings.simple3d !== true ? 'active' : '')+'">OFF</button>' +
@@ -21046,7 +21046,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     });
     s.raf = requestAnimationFrame(ex3Frame);
   }
-  function initEx3d(tries){ if (s3off()){ document.querySelectorAll('canvas.ex3d:not([data-ok])').forEach(function(el){ el.setAttribute('data-ok','fb'); el.style.backgroundImage='url("'+CARDIO_IMG+'")'; el.style.backgroundSize='cover'; }); return; }
+  function initEx3d(tries){ if (s3off()) return;
     var els = document.querySelectorAll('canvas.ex3d');
     if (!els.length) return;
     var todo = Array.prototype.filter.call(els, function(el){ return !el.getAttribute('data-ok'); });
@@ -21163,7 +21163,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     todo.forEach(function(el){ el.setAttribute('data-ok', '1'); s.list.push({ el: el, kind: el.getAttribute('data-k'), ctx: el.getContext('2d'), phase: (ph++) * 1.1 }); });
     if (!s.raf) s.raf = requestAnimationFrame(lg3Frame);
   }
-  function lg3Html(kind){ if (s3off()) return ''; return '<canvas class="lg3d" data-k="' + kind + '" width="260" height="214" aria-hidden="true"></canvas>'; }
+  function lg3Html(kind){ if (s3off()) return '<img class="lg3d-st" src="images/3d/lg-' + kind + '.png" alt="" aria-hidden="true" width="260" height="214">'; return '<canvas class="lg3d" data-k="' + kind + '" width="260" height="214" aria-hidden="true"></canvas>'; }
 
   // ---------- Streak flame (Profile) ----------
   var fl3d = null;
