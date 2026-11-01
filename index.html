@@ -4610,7 +4610,14 @@
 
   .ach-sum{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--text-faint);text-transform:uppercase;margin:10px 2px 0;}
   .ach-sum b{color:var(--accent);font-size:15px;}
-  .sh-stage.ach-stage{height:520px;margin-top:0;}
+  .sh-stage.ach-stage{height:720px;margin-top:0;}
+  .ach-next{display:flex;align-items:center;gap:12px;width:100%;margin-top:10px;padding:12px 14px;border-radius:16px;background:linear-gradient(110deg,#181a1f 40%,#3a2c0e 100%);border:1px solid rgba(var(--accent-rgb),.35);color:inherit;font:inherit;text-align:left;cursor:pointer;}
+  .ach-next .pf-coin{width:46px;height:46px;flex:0 0 auto;--c1:#d98a4e;--c2:#8a4a1e;--c3:#f0b183;--ic:#2a1204;}
+  .ach-next.t2 .pf-coin{--c1:#d4dae1;--c2:#7d8793;--c3:#f4f6f8;--ic:#1c2229;}
+  .ach-next.t3 .pf-coin{--c1:#ffd266;--c2:#c98a10;--c3:#fff0b8;--ic:#3a2500;}
+  .ach-next small{color:var(--accent);font:700 9.5px 'JetBrains Mono',monospace;letter-spacing:.12em;}
+  .ach-next em{font:700 11px 'JetBrains Mono',monospace;color:var(--accent);font-style:normal;flex:0 0 auto;}
+  .ach-hint{text-align:center;font:500 11px 'Inter',sans-serif;color:var(--text-faint);padding:4px 0 8px;}
   .ach-list{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
   .ach-row{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border-radius:16px;background:var(--panel);border:1px solid rgba(255,255,255,.1);color:inherit;font:inherit;text-align:left;cursor:pointer;}
   .ach-row:active{background:var(--panel-2);}
@@ -16480,7 +16487,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else {
       h += '<div class="pf-empty">Log a few workouts and your heaviest lifts show up here.</div>';
     }
-    return h + '</div>' + profileBadgesHtml() + '</div>';
+    return h + '</div></div>';
   }
   // Share profile: draws the stats card to a canvas and hands it to the phone's
   // share sheet (falls back to saving the image where file sharing isn't supported).
@@ -20683,7 +20690,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var m = p3dMedal(b.tier); m.position.set(cols[col], y + 0.52, 0); m.rotation.y = -cols[col] * 0.12; group.add(m); hits.push({ obj: m, badge: b.id });
       var lb = p3dLabel(b.name.toUpperCase(), b.tier ? '#f2b134' : '#6b717b', 1.0); lb.position.set(cols[col], y - 0.3, 0.5); group.add(lb);
     });
-    var by = -0.2, tb = null;
+    var by = 2.75 - rowsN * 1.4 - 0.15, tb = null;
     if (top){ tb = p3dBoard(3.3); tb.position.y = by; group.add(tb); }
     if (top && top.length){
       var sc = [0.52, 0.62, 0.72];
@@ -20696,7 +20703,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var lb0 = p3dLabel('LOG LIFTS TO EARN TROPHIES', '#6b717b', 2.4); lb0.position.set(0, by + 0.45, 0.3); group.add(lb0);
     }
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
-    if (top){ camera.position.set(0, 1.8, 9.4); camera.lookAt(0, 1.4, 0); }
+    if (top){ var tTop = 3.8, tBot = by - 0.95, tcy = (tTop + tBot) / 2; camera.position.set(0, tcy + 0.4, (tTop - tBot) * 2.1); camera.lookAt(0, tcy, 0); }
     else { var cy = 2.75 - (rowsN - 1) * 0.7 + 0.05; camera.position.set(0, cy + 0.45, 3.2 * rowsN); camera.lookAt(0, cy, 0); }
     scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);
     renderer.render(scene, camera);
@@ -21506,14 +21513,22 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                '<span class="ach-bar"><i style="width:'+(b.next === null ? 100 : pct)+'%"></i></span></span>' +
                '<em>'+(b.tier ? ACH_TIER[b.tier] + '<br>' : '')+'<span>'+prog+'</span></em></button>';
     }).join('');
+    var best = null;
+    defs.forEach(function(b){ if (b.next === null) return; var r = b.v / b.next; if (!best || r > best.r) best = { b: b, r: r }; });
+    var nextUp = '';
+    if (best){
+      var nb = best.b, nprog = nb.pv ? nb.pv(nb.v) + ' / ' + nb.pv(nb.next) : (nb.fmt === String ? nb.v + ' / ' + nb.next : fmtBig(nb.v) + ' / ' + fmtBig(nb.next));
+      nextUp = '<button type="button" class="ach-next t'+(nb.tier + 1)+'" data-action="open-badge" data-badge="'+nb.id+'"><span class="pf-coin">'+BADGE_SVG[nb.id]+'</span>' +
+        '<span class="ach-tx"><small>NEXT UP \u00b7 '+ACH_TIER[nb.tier + 1]+'</small><b>'+esc(nb.name)+'</b><span class="ach-bar"><i style="width:'+Math.min(100, Math.round(best.r * 100))+'%"></i></span></span><em>'+nprog+'</em></button>';
+    }
     var svgX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
     panel.innerHTML = '<div class="sp-head"><button type="button" class="sp-btn" data-action="close-ach" aria-label="Close">'+svgX+'</button><h3>Achievements</h3></div>' +
       '<div class="sp-body"><div class="ach-sum"><b>'+earned+'</b> / '+(defs.length * 3)+' medals</div>' +
-      '<div class="sh-stage ach-stage" id="achShelfHost"></div><div class="ach-list">'+rows+'</div></div>';
+      nextUp + '<div class="sh-stage ach-stage" id="achShelfHost"></div><div class="ach-hint">Tap a medal or trophy for details</div></div>';
     el.classList.remove('hidden');
     var host = document.getElementById('achShelfHost');
     host.style.display = 'block';
-    var mount = function(tries){ shMount(host, defs, null, tries, mount); };
+    var mount = function(tries){ shMount(host, defs, profileStats().top, tries, mount); };
     mount(0);
     queueBackSync();
   }
