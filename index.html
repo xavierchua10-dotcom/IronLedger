@@ -2189,11 +2189,11 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:18px;
-    padding:26px 0 6px;
+    gap:clamp(8px,3.4vw,18px);
+    padding:22px 0 6px;
   }
   .rest-timer-adjust-btn{
-    width:54px;height:54px;
+    width:clamp(46px,13vw,54px);height:clamp(46px,13vw,54px);
     border-radius:50%;
     border:1.5px solid var(--accent);
     background:transparent;
@@ -2209,11 +2209,12 @@
   .rest-timer-adjust-btn:disabled{opacity:0.35;}
   .rest-timer-picker-time{
     font-family:'JetBrains Mono',monospace;
-    font-size:58px;
+    font-size:clamp(40px,14.2vw,58px);
     font-weight:700;
     letter-spacing:-0.02em;
     color:var(--text);
-    min-width:150px;
+    min-width:0;
+    white-space:nowrap;
     text-align:center;
     text-shadow:0 0 28px rgba(var(--accent-rgb),0.28);
   }
