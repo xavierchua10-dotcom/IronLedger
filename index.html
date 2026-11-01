@@ -14977,12 +14977,27 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         return;
       }
       controls.update();
-      mg3dUpdateLines();
+      if (!mg3dPerfLinesOff) mg3dUpdateLines();
       renderer.render(scene, camera);
       if (fpsDebugOn) mg3dFpsTick(); else if (mg3dFpsEl){ mg3dFpsEl.remove(); mg3dFpsEl = null; }
       mg3dState.rafId = requestAnimationFrame(animate);
     }
     // Optional FPS readout (hidden toggle: tap the version line in Help & about 5x)
+    // Diagnostic modes (tap the FPS readout to cycle): find out which part is slow on a real phone
+    var mg3dPerfLinesOff = false, mg3dPerfMode = 0;
+    var MG3D_PERF_MODES = ['normal', 'no blur', 'no blur + 1x res', 'no blur + 1x + no lines'];
+    function mg3dApplyPerfMode(m){
+      mg3dPerfMode = m;
+      var st = document.getElementById('perfNoBlur');
+      if (m >= 1 && !st){
+        st = document.createElement('style'); st.id = 'perfNoBlur';
+        st.textContent = '*{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}';
+        document.head.appendChild(st);
+      } else if (m < 1 && st){ st.remove(); }
+      renderer.setPixelRatio(m >= 2 ? 1 : Math.min(window.devicePixelRatio, 1.5));
+      renderer.setSize(mg3dState.wrap.clientWidth, mg3dState.wrap.clientHeight);
+      mg3dPerfLinesOff = m >= 3;
+    }
     var mg3dFpsEl = null, mg3dFpsFrames = 0, mg3dFpsLast = performance.now(), mg3dFpsWorst = 0, mg3dFpsPrev = 0;
     function mg3dFpsTick(){
       var t = performance.now();
@@ -14992,11 +15007,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       if (t - mg3dFpsLast < 1000) return;
       if (!mg3dFpsEl || !mg3dFpsEl.isConnected){
         mg3dFpsEl = document.createElement('div');
-        mg3dFpsEl.style.cssText = 'position:absolute;bottom:170px;left:8px;z-index:5;padding:3px 7px;border-radius:6px;background:rgba(0,0,0,0.7);color:#f2b134;font:600 11px/1.3 "JetBrains Mono",monospace;pointer-events:none;white-space:pre;';
+        mg3dFpsEl.style.cssText = 'position:absolute;bottom:170px;left:8px;z-index:5;pointer-events:auto;padding:3px 7px;border-radius:6px;background:rgba(0,0,0,0.7);color:#f2b134;font:600 11px/1.3 "JetBrains Mono",monospace;white-space:pre;';
+        mg3dFpsEl.addEventListener('click', function(ev){ ev.stopPropagation(); mg3dApplyPerfMode((mg3dPerfMode + 1) % MG3D_PERF_MODES.length); });
         mg3dState.wrap.appendChild(mg3dFpsEl);
       }
       var fps = Math.round(mg3dFpsFrames * 1000 / (t - mg3dFpsLast));
-      mg3dFpsEl.textContent = fps + ' fps  worst ' + Math.round(mg3dFpsWorst) + 'ms\n' + Math.round(renderer.info.render.triangles / 1000) + 'k tris  ' + renderer.domElement.width + 'x' + renderer.domElement.height;
+      mg3dFpsEl.textContent = fps + ' fps  worst ' + Math.round(mg3dFpsWorst) + 'ms\n' + Math.round(renderer.info.render.triangles / 1000) + 'k tris  ' + renderer.domElement.width + 'x' + renderer.domElement.height + '\n[tap] ' + MG3D_PERF_MODES[mg3dPerfMode];
       mg3dFpsFrames = 0; mg3dFpsLast = t; mg3dFpsWorst = 0;
     }
     mg3dState.animate = animate;
