@@ -6479,6 +6479,13 @@
   html[data-card-style="glass"] .pf-share{ box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,0.45),0 8px 24px rgba(242,177,52,0.28); }
   html[data-card-style="glass"] .tabbar{ background:rgba(22,25,30,0.46); -webkit-backdrop-filter:blur(24px) saturate(170%); backdrop-filter:blur(24px) saturate(170%); border-top:1px solid rgba(255,255,255,0.16); box-shadow:inset 0 1px 0 rgba(255,255,255,0.2); }
   html[data-card-style="glass"] .topbar{ background:rgba(22,25,30,0.42); border-bottom:1px solid rgba(255,255,255,0.14); }
+  /* Insight 3D view: backdrop blur over a constantly-redrawing WebGL canvas halves the frame rate on low-end phones
+     (measured: 30 -> 59 fps on a Redmi 14C). While the viewer is on screen, swap blur for a flat, slightly more solid fill. */
+  html:has(#mg3dViewer) *{ -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
+  html:has(#mg3dViewer) .mg-row-mini,
+  html:has(#mg3dViewer) .mg-seg{ background-color:rgba(26,29,34,0.80) !important; }
+  html:has(#mg3dViewer)[data-card-style="glass"] .tabbar{ background:rgba(22,25,30,0.88); }
+  html:has(#mg3dViewer)[data-card-style="glass"] .topbar{ background:rgba(22,25,30,0.7); }
   @media (prefers-reduced-transparency: reduce){
     html[data-card-style="glass"] .exercise-card,
   html[data-card-style="glass"] .history-item,
