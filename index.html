@@ -14616,6 +14616,49 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // comment or the UI drift into implying real muscle selection.
   // ===========================================================
   var fpsDebugOn = false; try { fpsDebugOn = localStorage.getItem('il_fps_debug') === '1'; } catch (e) {}
+  // App-wide FPS meter (same hidden toggle): shows speed on every screen so scrolling can be checked on a real phone.
+  // Tap it to switch the frosted-glass blur off/on everywhere, to see whether blur is what slows scrolling.
+  var gfps = { el: null, raf: 0, frames: 0, last: 0, prev: 0, worst: 0, noBlur: false };
+  function gfpsLoop(t){
+    if (!fpsDebugOn){ gfpsStop(); return; }
+    if (gfps.prev) gfps.worst = Math.max(gfps.worst, t - gfps.prev);
+    gfps.prev = t; gfps.frames++;
+    if (!gfps.last) gfps.last = t;
+    if (t - gfps.last >= 1000){
+      if (gfps.el){
+        var onInsight = !!document.getElementById('mg3dViewer');
+        gfps.el.style.display = onInsight ? 'none' : 'block';
+        gfps.el.textContent = Math.round(gfps.frames * 1000 / (t - gfps.last)) + ' fps  worst ' + Math.round(gfps.worst) + 'ms\n[tap] ' + (gfps.noBlur ? 'blur OFF' : 'normal');
+      }
+      gfps.frames = 0; gfps.last = t; gfps.worst = 0;
+    }
+    gfps.raf = requestAnimationFrame(gfpsLoop);
+  }
+  function gfpsStart(){
+    if (gfps.raf) return;
+    if (!gfps.el){
+      gfps.el = document.createElement('div');
+      gfps.el.style.cssText = 'position:fixed;left:8px;bottom:84px;z-index:99999;padding:3px 7px;border-radius:6px;background:rgba(0,0,0,0.75);color:#f2b134;font:600 11px/1.3 "JetBrains Mono",monospace;white-space:pre;pointer-events:auto;';
+      gfps.el.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        gfps.noBlur = !gfps.noBlur;
+        var st = document.getElementById('perfNoBlurG');
+        if (gfps.noBlur && !st){ st = document.createElement('style'); st.id = 'perfNoBlurG'; st.textContent = '*{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;}'; document.head.appendChild(st); }
+        else if (!gfps.noBlur && st){ st.remove(); }
+      });
+      document.body.appendChild(gfps.el);
+    }
+    gfps.prev = 0; gfps.last = 0; gfps.frames = 0;
+    gfps.raf = requestAnimationFrame(gfpsLoop);
+  }
+  function gfpsStop(){
+    if (gfps.raf) cancelAnimationFrame(gfps.raf);
+    gfps.raf = 0;
+    if (gfps.el){ gfps.el.remove(); gfps.el = null; }
+    var st = document.getElementById('perfNoBlurG'); if (st) st.remove();
+    gfps.noBlur = false;
+  }
+  setTimeout(function(){ if (fpsDebugOn) gfpsStart(); }, 1500);
   var mg3dState = null; // { scene, camera, renderer, controls, model } once initialized
   var mg3dCalloutTimer = null; // pending auto-hide timeout for the tap callout, see showMg3dCallout
   var mg3dCalloutAnimFrame = null; // pending RAF for the callout's zero-to-value fill/count-up animation
@@ -24802,6 +24845,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         var fpsOn = false;
         try { fpsOn = localStorage.getItem('il_fps_debug') !== '1'; localStorage.setItem('il_fps_debug', fpsOn ? '1' : '0'); } catch (e) {}
         fpsDebugOn = fpsOn;
+        if (fpsOn) gfpsStart(); else gfpsStop();
         showToast(fpsOn ? 'FPS readout on (open Insight)' : 'FPS readout off');
       }
     } else if (action === 'toggle-danger-zone'){
