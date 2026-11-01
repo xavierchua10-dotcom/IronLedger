@@ -4608,6 +4608,19 @@
   .pf-badge.t2 .pf-coin{--c1:#d4dae1;--c2:#7d8793;--c3:#f4f6f8;--ic:#1c2229;}
   .pf-badge.t3 .pf-coin{--c1:#ffd266;--c2:#c98a10;--c3:#fff0b8;--ic:#3a2500;}
 
+  .ach-banner{position:fixed;left:50%;top:calc(64px + var(--safe-top, 0px));transform:translate(-50%,-160%);opacity:0;width:calc(100% - 28px);max-width:440px;z-index:5000;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 10px;border-radius:18px;background:linear-gradient(110deg,#1b1d22 35%,#4a3410 100%);border:1px solid rgba(242,177,52,.7);box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 24px rgba(242,177,52,.25);color:#e9e6df;cursor:pointer;transition:transform .45s cubic-bezier(.2,.9,.3,1.1),opacity .3s;}
+  .ach-banner.show{transform:translate(-50%,0);opacity:1;}
+  .ach-banner .pf-coin{width:50px;height:50px;flex:0 0 auto;}
+  .ach-banner.t1 .pf-coin{--c1:#d98a4e;--c2:#8a4a1e;--c3:#f0b183;--ic:#2a1204;}
+  .ach-banner.t2 .pf-coin{--c1:#d4dae1;--c2:#7d8793;--c3:#f4f6f8;--ic:#1c2229;}
+  .ach-banner.t3 .pf-coin{--c1:#ffd266;--c2:#c98a10;--c3:#fff0b8;--ic:#3a2500;}
+  .ab-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .ab-tx small{font:700 9.5px 'JetBrains Mono',monospace;letter-spacing:.16em;color:var(--accent);}
+  .ab-tx b{font:700 19px 'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.03em;}
+  .ab-s{font:500 12px 'Inter',sans-serif;color:#9aa0a8;}
+  .ab-v{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.08em;color:#1c1500;background:var(--accent);padding:8px 11px;border-radius:999px;}
+  .ab-more{position:absolute;right:14px;top:-9px;background:#14161a;border:1px solid rgba(242,177,52,.7);color:var(--accent);font:700 10px 'JetBrains Mono',monospace;padding:2px 8px;border-radius:999px;}
+  @media (prefers-reduced-motion: reduce){ .ach-banner{transition:none;} }
   .ach-sum{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--text-faint);text-transform:uppercase;margin:10px 2px 0;}
   .ach-sum b{color:var(--accent);font-size:15px;}
   .sh-stage.ach-stage{height:720px;margin-top:0;}
@@ -12875,6 +12888,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     ui.showSessionSummary = false;
     ui.sessionSummary = null;
     renderSessionSummaryOverlay();
+    if (ui.pendingUnlocks){ var pu = ui.pendingUnlocks; ui.pendingUnlocks = null; setTimeout(function(){ showAchBanner(pu); }, 450); }
   }
   (function wireSessionSummary(){
     var overlayEl = document.getElementById('sessionSummaryOverlay');
@@ -21553,6 +21567,45 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       chip: b.next === null ? 'MAXED OUT' : prog });
   }
 
+  // ---------- "Achievement unlocked" banner ----------
+  function badgeTierMap(){
+    var m = {};
+    try { badgeDefs(true).forEach(function(b){ m[b.id] = b.tier; }); } catch (_) {}
+    return m;
+  }
+  function badgeUnlocks(before){
+    var out = [];
+    badgeDefs(true).forEach(function(b){ if (b.tier > (before[b.id] || 0)) out.push(b); });
+    out.sort(function(a, b){ return b.tier - a.tier; });
+    return out;
+  }
+  var achBannerTimer = null;
+  function hideAchBanner(){
+    var el = document.getElementById('achBanner');
+    if (achBannerTimer){ clearTimeout(achBannerTimer); achBannerTimer = null; }
+    if (!el) return;
+    el.classList.remove('show');
+    setTimeout(function(){ if (el.parentNode && !el.classList.contains('show')) el.parentNode.removeChild(el); }, 500);
+  }
+  function showAchBanner(list){
+    var old = document.getElementById('achBanner'); if (old && old.parentNode) old.parentNode.removeChild(old);
+    var b = list[0], more = list.length - 1;
+    var el = document.createElement('div');
+    el.id = 'achBanner'; el.className = 'ach-banner t' + b.tier; el.setAttribute('role', 'button');
+    el.innerHTML = (more > 0 ? '<span class="ab-more">+' + more + ' MORE</span>' : '') +
+      '<span class="pf-coin">' + BADGE_SVG[b.id] + '</span>' +
+      '<span class="ab-tx"><small>ACHIEVEMENT UNLOCKED</small><b>' + esc(b.name) + ' · ' + ACH_TIER[b.tier].charAt(0) + ACH_TIER[b.tier].slice(1).toLowerCase() + '</b>' +
+      '<span class="ab-s">' + esc(b.desc.replace('{n}', b.fmt(b.lv[b.tier - 1]))) + '</span></span><span class="ab-v">VIEW</span>';
+    el.addEventListener('click', function(){
+      hideAchBanner();
+      if (more > 0){ if (state.tab !== 'settings'){ state.tab = 'settings'; renderApp(); } openAchievements(); } else openBadge(b.id);
+    });
+    document.body.appendChild(el);
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.classList.add('show'); }); });
+    if (state.settings.hapticFeedback !== false && navigator.vibrate) navigator.vibrate([20, 40, 20]);
+    achBannerTimer = setTimeout(hideAchBanner, 6500);
+  }
+
   // ---------- Achievements page (opened from the Profile tab) ----------
   var ACH_TIER = ['LOCKED', 'BRONZE', 'SILVER', 'GOLD'];
   function achSummary(){
@@ -22183,6 +22236,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
   function finishSession(){
     var session = getActiveSession();
+    var tiersBefore = badgeTierMap();
     session.status = 'done';
     // Only stamp finishedAt the first time a session is finished — a
     // sensible no-op guard even though every session finished here is a
@@ -22201,6 +22255,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     flashSessionFinished(session.id);
     // How did it go vs last time? (skipped when there's nothing to compare with)
     if (state.settings.sessionSummary !== false) openSessionSummary(session);
+    // New medal tier earned by this session? Slide in the "Achievement unlocked" banner.
+    try {
+      var unl = badgeUnlocks(tiersBefore);
+      if (unl.length){
+        if (ui.showSessionSummary) ui.pendingUnlocks = unl;     // shown once the summary card is closed
+        else setTimeout(function(){ showAchBanner(unl); }, 1100);
+      }
+    } catch (_) {}
 
     // First-ever finished session: prompt for a rating once, then never
     // again automatically — reachable afterward only via Settings ->
