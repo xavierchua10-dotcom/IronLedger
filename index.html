@@ -4701,6 +4701,38 @@
   .ht-avoid{background:rgba(229,83,75,0.08);border:1px solid rgba(229,83,75,0.35);color:#f0aaa5;}
   .ht-ok{width:100%;margin-top:14px;background:var(--accent);color:#14161a;border:0;border-radius:12px;padding:13px;font:800 15px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
   .dc-panel{max-width:400px !important;padding:16px 14px 14px !important;text-align:left !important;}
+  /* ---- Today sheet ---- */
+  .dc-panel{max-height:calc(100vh - 40px);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .dc-fab-tag{position:absolute;right:-9px;bottom:-9px;background:var(--accent);color:#1c1500;font:700 9.5px 'JetBrains Mono',monospace;padding:2px 6px;border-radius:999px;border:2px solid var(--bg);line-height:1.2;}
+  .dc-fab-tag.ok{background:#5fd08a;}
+  .td-h{display:flex;align-items:center;gap:14px;margin:0 2px 14px;}
+  .td-ring{width:58px;height:58px;position:relative;flex:0 0 auto;}
+  .td-ring svg{width:58px;height:58px;transform:rotate(-90deg);}
+  .td-ring b{position:absolute;inset:0;display:grid;place-items:center;font:700 16px 'Oswald',sans-serif;color:var(--text);}
+  .td-ht{flex:1;min-width:0;}
+  .td-ht h3{margin:0;font:700 26px 'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.02em;color:var(--text);}
+  .td-ht small{display:block;font:500 11px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#8b9098;margin-top:2px;}
+  .td-plan{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;background:linear-gradient(110deg,#1b1d22 40%,#4a3410 100%);border:1px solid rgba(var(--accent-rgb),.45);margin-bottom:6px;text-align:left;}
+  .td-plan small{font:700 9.5px 'JetBrains Mono',monospace;letter-spacing:.16em;color:var(--accent);}
+  .td-plan b{display:block;font:700 22px 'Oswald',sans-serif;text-transform:uppercase;margin:2px 0;color:var(--text);}
+  .td-plan .s{font:500 12px 'Inter',sans-serif;color:#9aa0a8;}
+  .td-plan.done{opacity:.75;}
+  .td-go{margin-left:auto;border:0;background:var(--accent);color:#1c1500;font:700 12px 'JetBrains Mono',monospace;letter-spacing:.08em;padding:11px 16px;border-radius:999px;cursor:pointer;flex:0 0 auto;}
+  .td-donechip{margin-left:auto;font:700 11px 'JetBrains Mono',monospace;letter-spacing:.08em;color:#5fd08a;flex:0 0 auto;}
+  .td-lab{font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:.16em;color:var(--accent);margin:14px 2px 8px;text-align:left;}
+  .td-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:#1f2228;border:1px solid rgba(255,255,255,.08);margin-bottom:8px;width:100%;color:inherit;font:inherit;text-align:left;}
+  .td-btn{cursor:pointer;}
+  .td-ck{width:26px;height:26px;border-radius:9px;border:2px solid #4a4f58;flex:0 0 auto;display:grid;place-items:center;font-size:14px;font-weight:900;color:transparent;}
+  .td-row.done .td-ck{background:var(--accent);border-color:var(--accent);color:#1c1500;}
+  .td-row.done .t{color:#8b9098;text-decoration:line-through;}
+  .td-rt{flex:1;min-width:0;}
+  .td-row .t{font:600 14.5px 'Inter',sans-serif;color:var(--text);}
+  .td-row .m{font:500 11px 'JetBrains Mono',monospace;color:#8b9098;margin-top:2px;letter-spacing:.04em;}
+  .td-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:6px;overflow:hidden;}
+  .td-bar i{display:block;height:100%;background:var(--accent);}
+  .td-tag{font:700 9px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#8b9098;border:1px solid rgba(255,255,255,.14);padding:3px 7px;border-radius:999px;flex:0 0 auto;}
+  .td-foot{display:flex;justify-content:space-between;margin-top:14px;font:600 11px 'JetBrains Mono',monospace;letter-spacing:.06em;color:#8b9098;}
+  .td-foot b{color:var(--accent);}
   .dc-sheet-head{display:flex;align-items:center;justify-content:space-between;margin:0 4px 10px;}
   .dc-sheet-head span{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#8b9098;}
   .dc-x{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#c7ccd3;font-size:14px;cursor:pointer;}
@@ -12374,6 +12406,95 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // the Log tab shows after the app opens (and the challenge isn't done) a small
   // speech bubble points at it for a few seconds.
   var chBubbleTimer = null;
+  // ---------- Today (daily tasks) ----------
+  // Opens from the trophy button in the Log header: today's plan, three small tasks and the
+  // daily challenge. Finishing all three tasks marks the day as a "perfect day".
+  var TODAY_SETS = 10;
+  function todayData(){
+    if (!state.settings) state.settings = {};
+    var t = state.settings.today;
+    if (!isPlainObject(t)) t = state.settings.today = { days: {} };
+    if (!isPlainObject(t.days)) t.days = {};
+    return t;
+  }
+  function todayStatus(){
+    var e = todayData().days[chKey(new Date())] || {}, workout = false, sets = 0;
+    state.sessions.forEach(function(s){
+      if (s.status === 'done' && isSameLocalDay(s.finishedAt || s.date)) workout = true;
+      if ((s.status === 'done' || s.status === 'active') && isSameLocalDay(s.date)){
+        (s.exercises || []).forEach(function(ex){ if (!isCardioEx(ex)) sets += (ex.sets || []).length; });
+      }
+    });
+    var water = !!e.water, n = (workout ? 1 : 0) + (sets >= TODAY_SETS ? 1 : 0) + (water ? 1 : 0);
+    return { workout: workout, sets: sets, water: water, n: n };
+  }
+  function todaySync(st){
+    var d = todayData(), key = chKey(new Date()), e = d.days[key];
+    if (st.n === 3 && !(e && e.perfect)){
+      d.days[key] = { water: !!(e && e.water), perfect: true };
+      var keys = Object.keys(d.days);
+      if (keys.length > 400){ keys.sort(); keys.slice(0, keys.length - 400).forEach(function(k){ delete d.days[k]; }); }
+      saveSettings();
+    }
+  }
+  function todayPerfectCount(){
+    var d = todayData().days, n = 0;
+    Object.keys(d).forEach(function(k){ if (d[k] && d[k].perfect) n++; });
+    return n;
+  }
+  function todayToggleWater(){
+    var d = todayData(), key = chKey(new Date()), e = d.days[key] || {};
+    d.days[key] = { water: !e.water, perfect: !!e.perfect };
+    saveSettings();
+    renderApp();
+  }
+  // Next routine in your own rotation (the one after the last routine you finished).
+  function todayPlan(){
+    var rs = (state.routines || []).slice().reverse();
+    if (!rs.length) return null;
+    var byName = {}; rs.forEach(function(r, i){ byName[r.name] = i; });
+    var last = -1, lastT = 0, lastToday = false, activeToday = null;
+    state.sessions.forEach(function(s){
+      if (byName[s.name] === undefined) return;
+      if (s.status === 'active' && isSameLocalDay(s.date)) activeToday = rs[byName[s.name]];
+      if (s.status === 'done'){ var t = +new Date(s.date); if (t > lastT){ lastT = t; last = byName[s.name]; lastToday = isSameLocalDay(s.finishedAt || s.date); } }
+    });
+    if (activeToday) return { r: activeToday, state: 'active' };
+    if (last >= 0 && lastToday) return { r: rs[last], state: 'done' };
+    return { r: rs[last < 0 ? 0 : (last + 1) % rs.length], state: 'todo' };
+  }
+  function todaySheetHtml(){
+    var st = todayStatus(), now = new Date();
+    setTimeout(function(){ todaySync(st); }, 0);
+    var streak = chStreak(), C = 157.08, off = Math.round(C * (1 - st.n / 3) * 10) / 10;
+    var dateLbl = now.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+    var h = '<div class="td-h"><div class="td-ring"><svg viewBox="0 0 58 58"><circle cx="29" cy="29" r="25" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="6"/>' +
+      '<circle cx="29" cy="29" r="25" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="157.08" stroke-dashoffset="'+off+'"/></svg><b>'+st.n+'/3</b></div>' +
+      '<div class="td-ht"><h3>Today</h3><small>'+dateLbl+(streak > 0 ? ' · '+streak+' DAY STREAK' : '')+'</small></div>' +
+      '<button type="button" class="dc-x" data-action="close-challenge" aria-label="Close">&#10005;</button></div>';
+    var pl = todayPlan(), planH;
+    if (!pl){
+      planH = '<div class="td-plan"><div><small>TODAY’S PLAN</small><b>No plan yet</b><span class="s">Pick a template or split in Log</span></div><button type="button" class="td-go" data-action="today-log">BROWSE</button></div>';
+    } else {
+      var cnt = (pl.r.exercises || []).length + ' exercise' + ((pl.r.exercises || []).length === 1 ? '' : 's');
+      var btn = pl.state === 'todo' ? '<button type="button" class="td-go" data-action="today-start" data-id="'+esc(pl.r.id)+'">START</button>'
+              : (pl.state === 'active' ? '<button type="button" class="td-go" data-action="today-log">OPEN</button>' : '<span class="td-donechip">DONE ✓</span>');
+      planH = '<div class="td-plan'+(pl.state === 'done' ? ' done' : '')+'"><div><small>'+(pl.state === 'active' ? 'IN PROGRESS' : 'TODAY’S PLAN')+'</small><b>'+esc(pl.r.name || 'Routine')+'</b><span class="s">'+cnt+'</span></div>'+btn+'</div>';
+    }
+    var pct = Math.min(100, Math.round(st.sets / TODAY_SETS * 100));
+    var ck = '<span class="td-ck">✓</span>', ck0 = '<span class="td-ck"></span>';
+    var tasks = '<div class="td-lab">TASKS</div>' +
+      '<div class="td-row'+(st.workout ? ' done' : '')+'">'+(st.workout ? ck : ck0)+'<div class="td-rt"><div class="t">Finish a workout</div><div class="m">'+(st.workout ? 'DONE' : 'LOG ONE TODAY')+'</div></div><span class="td-tag">AUTO</span></div>' +
+      '<div class="td-row'+(st.sets >= TODAY_SETS ? ' done' : '')+'">'+(st.sets >= TODAY_SETS ? ck : ck0)+'<div class="td-rt"><div class="t">Do '+TODAY_SETS+' working sets</div><div class="m">'+Math.min(st.sets, TODAY_SETS)+' / '+TODAY_SETS+'</div><div class="td-bar"><i style="width:'+pct+'%"></i></div></div><span class="td-tag">AUTO</span></div>' +
+      '<button type="button" class="td-row td-btn'+(st.water ? ' done' : '')+'" data-action="today-water">'+(st.water ? ck : ck0)+'<div class="td-rt"><div class="t">Drink 2 L of water</div><div class="m">'+(st.water ? 'DONE' : 'TAP TO TICK')+'</div></div><span class="td-tag">HABIT</span></button>';
+    var foot = '<div class="td-foot"><span>ALL 3 = <b>PERFECT DAY</b></span><span>PERFECT DAYS <b>'+Math.max(todayPerfectCount(), st.n === 3 ? 1 : 0)+'</b></span></div>';
+    return h + planH + tasks + '<div class="td-lab">DAILY CHALLENGE</div>' + dailyChallengeCardHtml() + foot;
+  }
+  function todayTagHtml(){
+    var st = todayStatus();
+    return '<span class="dc-fab-tag'+(st.n === 3 ? ' ok' : '')+'">'+(st.n === 3 ? '✓' : st.n + '/3')+'</span>';
+  }
+
   function dailyChallengeButtonHtml(){
     var e = chEntry(), streak = chStreak();
     var showBubble = !e.done && !ui.challengeBubbleDone && !ui.challengeOpen;
@@ -12393,7 +12514,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       : '';
     return '<div class="dc-fab-wrap"><button type="button" class="dc-fab'+(e.done ? ' done' : '')+'" data-action="open-challenge" aria-label="Daily challenge'+(e.done ? ' (done)' : '')+'">' +
              '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>' +
-             '<i class="dc-fab-dot"></i></button>' + bubble + '</div>';
+             '<i class="dc-fab-dot"></i>'+todayTagHtml()+'</button>' + bubble + '</div>';
   }
   function hideChallengeBubble(){
     if (chBubbleTimer){ clearTimeout(chBubbleTimer); chBubbleTimer = null; }
@@ -12515,8 +12636,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       return;
     }
     overlay.classList.remove('hidden');
-    panel.innerHTML = '<div class="dc-sheet-head"><span>Today’s challenge</span><button type="button" class="dc-x" data-action="close-challenge" aria-label="Close">&#10005;</button></div>' +
-                      dailyChallengeCardHtml();
+    var keepTop = panel.scrollTop;
+    panel.innerHTML = todaySheetHtml();
+    panel.scrollTop = keepTop;
   }
 
   function renderLogTemplateChoices(){
@@ -24765,6 +24887,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     else if (a === 'challenge-add') challengeAdd(parseInt(el.dataset.n, 10) || 0);
     else if (a === 'challenge-done') challengeDone();
     else if (a === 'challenge-undo') challengeUndo();
+    else if (a === 'today-water') todayToggleWater();
+    else if (a === 'today-start'){ ui.challengeOpen = false; openStartRoutineConfirm(el.dataset.id); }
+    else if (a === 'today-log'){ ui.challengeOpen = false; state.tab = 'log'; renderApp(); }
   });
 
   var routineNameOverlayEl = document.getElementById('routineNameOverlay');
