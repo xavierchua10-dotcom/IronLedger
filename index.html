@@ -4429,6 +4429,19 @@
   }
   /* the model sits below the chip grid instead of behind it */
   .mg-3d-viewer{top:262px;}
+
+  /* ---- Simple view (Settings): no 3D anywhere ---- */
+  body.simple3d.tab-insight-active main#view{overflow-y:auto;padding:16px 16px calc(100px + var(--safe-bottom));}
+  body.simple3d.tab-insight-active .mg-panel.mg-simple{height:auto;min-height:0;overflow:visible;background:none;}
+  .mg-simple .mg-panel-content{padding:4px 2px 10px;}
+  .mg-simple .mg-rows-sidebar{position:static;display:block;pointer-events:auto;margin:0 0 12px;}
+  .mg-simple .mg-col{position:static;width:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+  .mg-simple .mg-col .mg-row-mini{position:static;}
+  .mg-simple .mg-rows-sidebar .mg-row-mini{background:#181a1f;-webkit-backdrop-filter:none;backdrop-filter:none;}
+  .mg-simple .mg-rows-sidebar .mg-row-mini-stat{display:block;}
+  .mg-simple .mg-banner-wrap{position:static;margin:0 0 14px;}
+  .mg-simple .mg-seg{position:static;transform:none;margin:14px auto 0;}
+  body.simple3d .stopwatch-glass-btn,body.simple3d #plStage,body.simple3d .sh-stage,body.simple3d .pf-flame,body.simple3d canvas.lg3d{display:none !important;}
   /* ---- Insight polish ---- */
   .mg-band-fade{position:absolute;left:0;right:0;top:182px;height:80px;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(20,22,26,0),#14161a);}
 
@@ -13783,7 +13796,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var stat = g.sets > cap ? (g.sets - cap) + ' OVER CAP'
                : (g.sets >= greenFloor ? '\u2713 ON TARGET'
                : (g.sets > 0 ? (greenFloor - g.sets) + ' TO GO' : 'NOT TRAINED'));
-      var chipHtml = '<button type="button" class="mg-row-mini'+chipClass+'" data-action="mg-3d-focus-muscle" data-muscle="'+esc(g.key)+'">' +
+      var chipHtml = '<button type="button" class="mg-row-mini'+chipClass+'"'+(s3off() ? '' : ' data-action="mg-3d-focus-muscle"')+' data-muscle="'+esc(g.key)+'">' +
                 '<span class="mg-row-mini-name"><span>'+esc(g.label)+'</span><em>'+g.sets+'<small>/'+cap+'</small></em></span>' +
                 '<span class="mg-row-mini-bar-track"><span class="mg-row-mini-bar-fill'+stateClass+'" data-target-pct="'+pct+'" style="width:'+pct+'%"></span></span>' +
                 '<span class="mg-row-mini-stat">'+stat+'</span>' +
@@ -14347,7 +14360,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!ui.progressOverviewMode) ui.progressOverviewMode = 'regular';
     var activeProfile = getActiveProfile();
 
-    var html = '<div class="mg-panel'+(activeProfile.key === 'intensity' ? ' mg-panel-intensity' : '')+'">';
+    var simple = s3off();
+    var html = '<div class="mg-panel'+(activeProfile.key === 'intensity' ? ' mg-panel-intensity' : '')+(simple ? ' mg-simple' : '')+'">';
 
     // The 3D model sits as a full-bleed background layer for the whole
     // panel (position:absolute, inset:0, z-index:0) rather than a
@@ -14362,6 +14376,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // only does its expensive first-time setup once -- safe to call on
     // every render even though this whole panel's HTML gets rebuilt
     // from scratch each time Insight re-renders.
+    if (!simple){
     html += '<div class="mg-3d-viewer" id="mg3dViewer"><div class="mg-3d-loading" id="mg3dLoading">' +
               '<div class="mg-3d-loading-spinner"></div>' +
               '<div class="mg-3d-loading-bar-track"><div class="mg-3d-loading-bar-fill" id="mg3dLoadingBar"></div></div>' +
@@ -14379,6 +14394,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
         html += '<div class="mg-3d-legend" aria-hidden="true"><span><i style="background:var(--success)"></i>On target</span><span><i style="background:var(--accent)"></i>Building</span><span><i style="background:var(--accent-2)"></i>Over cap</span></div>';
 
+    }
     html += '<div class="mg-panel-content">';
     html += '<div class="mg-panel-header">' +
               '<div class="mg-panel-title-row"><h3>Muscle Volume Overview'+infoDotHtml('mgvolume')+'</h3>' +
@@ -14391,7 +14407,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                   '</button>' +
                 '</div>' +
               '</div>' +
-              '<span class="mg-panel-sub"><b>'+fmtWeekShort(monday)+' \u2013 '+fmtWeekShort(sunday)+'</b> \u00b7 '+esc(activeProfile.badge)+' \u00b7 <span class="mg-3d-hint-inline">tap a muscle to focus</span></span></div>';
+              '<span class="mg-panel-sub"><b>'+fmtWeekShort(monday)+' \u2013 '+fmtWeekShort(sunday)+'</b> \u00b7 '+esc(activeProfile.badge)+(simple ? '' : ' \u00b7 <span class="mg-3d-hint-inline">tap a muscle to focus</span>')+'</span></div>';
     html += '</div>'; // .mg-panel-content (header only now -- rows moved to their own sidebar, see below)
 
     html += '<div class="mg-rows-sidebar">' + renderMuscleOverviewRows(activeProfile, weeklyData) + '</div>';
@@ -14489,7 +14505,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var cur = mg3dState.renderer.getSize(new THREE.Vector2());
     if (cur.x !== w || cur.y !== h) mg3dState.renderer.setSize(w, h);
   }
-  function initMg3dViewer(){
+  function initMg3dViewer(){ if (s3off()) return;
     var wrap = document.getElementById('mg3dViewer');
     if (!wrap || typeof THREE === 'undefined') return;
 
@@ -14838,7 +14854,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     s.renderer.render(s.scene, s.camera);
     s.raf = requestAnimationFrame(cv3dFrame);
   }
-  function initCardioRing3d(tries){
+  function initCardioRing3d(tries){ if (s3off()) return;
     var box = document.getElementById('cvRing3d');
     if (!box) return;
     if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initCardioRing3d((tries || 0) + 1); }, 400); return; }
@@ -15577,7 +15593,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       else o.v = vals.map(function(v){ return v == null ? 0 : nrm(v); });
       return o;
     })();
-    svg = '<svg class="cp-svg" data-c3="'+esc(JSON.stringify(c3q))+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img">';
+    svg = '<svg class="cp-svg"'+(s3off() ? '' : ' data-c3="'+esc(JSON.stringify(c3q))+'"')+' viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img">';
     // faint grid + y labels (3 ticks)
     for (var g = 0; g < 3; g++){
       var gv = lo + (hi - lo) * (g / 2), gy = yOf(gv);
@@ -16704,6 +16720,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                 '<button data-action="toggle-haptic-feedback" data-val="on" class="'+(state.settings.hapticFeedback !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-haptic-feedback" data-val="off" class="'+(state.settings.hapticFeedback === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
+    html += '<div class="settings-row" data-sp="look-layout"><div><div class="sr-label">Simple view</div><div class="sr-sub">Turns off all 3D for a plain, lighter look. Good for older phones or saving battery.</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="toggle-simple3d" data-val="on" class="'+(state.settings.simple3d === true ? 'active' : '')+'">ON</button>' +
+                '<button data-action="toggle-simple3d" data-val="off" class="'+(state.settings.simple3d !== true ? 'active' : '')+'">OFF</button>' +
+              '</div></div>';
     html += '<div class="settings-row" data-sp="feel-haptic"><div><div class="sr-label">Set flash effect</div><div class="sr-sub">Pulses the sets counter and timestamp when you log a set</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-set-flash" data-val="on" class="'+(state.settings.setFlashEffect !== false ? 'active' : '')+'">ON</button>' +
@@ -17047,6 +17068,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // canvas to that stale size via an inline style (from Three's own
     // renderer.setSize), so even once the panel visually grows a moment
     // later the render wouldn't grow with it.
+    document.body.classList.toggle('simple3d', s3off());
     document.body.classList.toggle('tab-insight-active', state.tab === 'insight');
     document.body.classList.toggle('tab-progress-active', state.tab === 'progress');
     document.body.classList.toggle('tab-settings-active', state.tab === 'settings');
@@ -20287,7 +20309,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     s.raf = requestAnimationFrame(rgFrame);
   }
   function openRestGlass(){
-    if (!ui.restTimer) return;
+    if (!ui.restTimer || s3off()) return;
     var ov = rgOverlayEl(), stage = document.getElementById('rgStage');
     ov.className = 'tp-overlay on tp-modal';
     if (!rg3d && typeof THREE !== 'undefined'){
@@ -20352,6 +20374,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     return { grid: grid, max: max, peak: Math.max.apply(null, wk), total: total, n: n };
   }
   function skylineCardHtml(){
+    if (s3off()) return '';
     var d = skylineData();
     if (d.n < 2 || d.max <= 0) return '';
     return '<div class="sky-card"><div class="sky-h">SKYLINE<span>LAST 12 WEEKS · VOLUME PER DAY</span></div>' +
@@ -20368,7 +20391,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     s.renderer.render(s.scene, s.camera);
     s.raf = requestAnimationFrame(skyFrame);
   }
-  function initSkyline(tries){
+  function initSkyline(tries){ if (s3off()) return;
     var host = document.getElementById('sky3dHost');
     if (!host) return;
     if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initSkyline((tries || 0) + 1); }, 400); return; }
@@ -20545,7 +20568,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     ov.className = 'tp-overlay on tp-modal';
     document.getElementById('plUse').style.display = inp ? '' : 'none';
     if (pl3d){ closePlateGl(); }
-    if (typeof THREE !== 'undefined'){
+    if (typeof THREE !== 'undefined' && !s3off()){
       var w = stage.clientWidth || 300, h = stage.clientHeight || 210;
       pl3d = plBuild(stage);
       if (pl3d){
@@ -20647,7 +20670,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     s.renderer.render(s.scene, s.camera);
     s.raf = requestAnimationFrame(shelfFrame);
   }
-  function initShelf(tries){
+  function initShelf(tries){ if (s3off()) return;
     var host = document.getElementById('sh3dHost');
     if (!host) return;
     if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initShelf((tries || 0) + 1); }, 400); return; }
@@ -20701,6 +20724,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!s.raf){ s.last = 0; s.raf = requestAnimationFrame(shelfFrame); }
   }
 
+  // Simple view: Settings switch that turns every 3D scene off (plain 2D look, no WebGL at all).
+  function s3off(){ return !!(state && state.settings && state.settings.simple3d === true); }
+
   // ---------- WebGL context janitor ----------
   // Phones allow only a handful of live WebGL contexts; past that the browser kills the OLDEST one
   // and its canvas turns into a white "sad face" box. Every on-screen renderer is tracked here:
@@ -20716,8 +20742,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     r.forceContextLoss = function(){ e.dead = true; return fcl.apply(r, arguments); };
     try { r.domElement.addEventListener('webglcontextrestored', function(){ window.dispatchEvent(new Event('p3d-restored')); }); } catch (_) {}
   }
+  var P3D_KEEP = 6; // contexts allowed to stay live; parking only starts beyond this
   function p3dSweep(){
-    var now = Date.now();
+    var now = Date.now(), cand = [], live = 0;
     p3dTracked = p3dTracked.filter(function(e){ return !e.dead; }); window.__p3dTracked = p3dTracked;
     p3dTracked.forEach(function(e){
       var dom = e.r.domElement, conn = dom.isConnected;
@@ -20729,21 +20756,26 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         }
       } else if (e.seen && !e.parked){
         if (!e.since) e.since = now;
-        else if (now - e.since > 3000){
-          try {
-            var gl = e.r.getContext(); e.ext = gl.getExtension('WEBGL_lose_context');
-            if (e.ext && !gl.isContextLost()){ e.ext.loseContext(); e.parked = true; }
-          } catch (_) {}
-        }
+        else if (now - e.since > 4000) cand.push(e);
       }
+      if (!e.parked) live++;
     });
+    if (live <= P3D_KEEP || !cand.length) return;
+    cand.sort(function(a, b){ return a.since - b.since; });
+    for (var i = 0; i < cand.length && live > P3D_KEEP; i++){
+      var e = cand[i];
+      try {
+        var gl = e.r.getContext(); e.ext = gl.getExtension('WEBGL_lose_context');
+        if (e.ext && !gl.isContextLost()){ e.ext.loseContext(); e.parked = true; live--; }
+      } catch (_) {}
+    }
   }
   (function(){
     var t = setInterval(function(){
       if (typeof THREE === 'undefined' || !THREE.WebGLRenderer) return;
       clearInterval(t);
       var Orig = THREE.WebGLRenderer;
-      var Wrapped = function(params){ var r = new Orig(params); p3dTrack(r); return r; };
+      var Wrapped = function(params){ if (s3off()) throw new Error('3D off'); var r = new Orig(params); p3dTrack(r); return r; };
       Wrapped.prototype = Orig.prototype;
       try { THREE.WebGLRenderer = Wrapped; } catch (_) {}
     }, 30);
@@ -20860,7 +20892,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       }
     }
   }
-  function init3dCharts(tries){
+  function init3dCharts(tries){ if (s3off()) return;
     var svgs = document.querySelectorAll('svg[data-c3]:not([data-c3ok])');
     if (!svgs.length) return;
     if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ init3dCharts((tries || 0) + 1); }, 400); return; }
@@ -21026,7 +21058,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     });
     s.raf = requestAnimationFrame(ex3Frame);
   }
-  function initEx3d(tries){
+  function initEx3d(tries){ if (s3off()){ document.querySelectorAll('canvas.ex3d:not([data-ok])').forEach(function(el){ el.setAttribute('data-ok','fb'); el.style.backgroundImage='url("'+CARDIO_IMG+'")'; el.style.backgroundSize='cover'; }); return; }
     var els = document.querySelectorAll('canvas.ex3d');
     if (!els.length) return;
     var todo = Array.prototype.filter.call(els, function(el){ return !el.getAttribute('data-ok'); });
@@ -21123,7 +21155,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     });
     s.raf = requestAnimationFrame(lg3Frame);
   }
-  function initLg3d(tries){
+  function initLg3d(tries){ if (s3off()) return;
     var els = document.querySelectorAll('canvas.lg3d');
     if (!els.length) return;
     var todo = Array.prototype.filter.call(els, function(el){ return !el.getAttribute('data-ok'); });
@@ -21143,7 +21175,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     todo.forEach(function(el){ el.setAttribute('data-ok', '1'); s.list.push({ el: el, kind: el.getAttribute('data-k'), ctx: el.getContext('2d'), phase: (ph++) * 1.1 }); });
     if (!s.raf) s.raf = requestAnimationFrame(lg3Frame);
   }
-  function lg3Html(kind){ return '<canvas class="lg3d" data-k="' + kind + '" width="260" height="214" aria-hidden="true"></canvas>'; }
+  function lg3Html(kind){ if (s3off()) return ''; return '<canvas class="lg3d" data-k="' + kind + '" width="260" height="214" aria-hidden="true"></canvas>'; }
 
   // ---------- Streak flame (Profile) ----------
   var fl3d = null;
@@ -21169,7 +21201,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     s.renderer.render(s.scene, s.camera);
     s.raf = requestAnimationFrame(flameFrame);
   }
-  function initFlame(tries){
+  function initFlame(tries){ if (s3off()) return;
     var host = document.getElementById('fl3dHost');
     if (!host) return;
     if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initFlame((tries || 0) + 1); }, 400); return; }
@@ -21230,7 +21262,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     s.renderer.render(s.scene, s.camera);
     s.raf = requestAnimationFrame(cvbFrame);
   }
-  function initCvBars(tries){
+  function initCvBars(tries){ if (s3off()) return;
     var host = document.getElementById('cvBars3d');
     if (!host) return;
     if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initCvBars((tries || 0) + 1); }, 400); return; }
@@ -21357,7 +21389,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     });
     s.raf = requestAnimationFrame(actFrame);
   }
-  function initActObjects(tries){
+  function initActObjects(tries){ if (s3off()) return;
     var els = document.querySelectorAll('canvas.cv-a-3d');
     if (!els.length) return;
     if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initActObjects((tries || 0) + 1); }, 400); return; }
@@ -21534,7 +21566,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     ov.className = 'tp-overlay on ' + (o.pr ? 'tp-pr' : 'tp-modal');
     var stage = document.getElementById('tpStage'), fb = document.getElementById('tpFb');
     fb.textContent = o.obj === 'trophy' ? '🏆' : (o.obj === 'ring' ? '✅' : '🏅');
-    var g = tpEnsure3d();
+    var g = s3off() ? null : tpEnsure3d();
     stage.classList.toggle('nofx', !g);
     if (g){
       stage.appendChild(g.canvas);
@@ -24115,6 +24147,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       renderApp();
     } else if (action === 'toggle-haptic-feedback'){
       state.settings.hapticFeedback = (el.dataset.val === 'on');
+      saveSettings();
+      renderApp();
+    } else if (action === 'toggle-simple3d'){
+      state.settings.simple3d = (el.dataset.val === 'on');
       saveSettings();
       renderApp();
     } else if (action === 'toggle-set-flash'){
