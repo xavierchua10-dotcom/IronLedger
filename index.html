@@ -4702,7 +4702,8 @@
   .ht-ok{width:100%;margin-top:14px;background:var(--accent);color:#14161a;border:0;border-radius:12px;padding:13px;font:800 15px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
   .dc-panel{max-width:400px !important;padding:16px 14px 14px !important;text-align:left !important;}
   /* ---- Today sheet ---- */
-  .dc-panel{max-height:calc(100vh - 40px);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  /* #id + class beats the later .confirm-panel{overflow:hidden}, which used to clip the Today sheet on shorter phones with no way to scroll to the Done button */
+  #challengePanel.dc-panel{max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
   .dc-fab-tag{position:absolute;right:-9px;bottom:-9px;background:var(--accent);color:#1c1500;font:700 9.5px 'JetBrains Mono',monospace;padding:2px 6px;border-radius:999px;border:2px solid var(--bg);line-height:1.2;}
   .dc-fab-tag.ok{background:#5fd08a;}
   .td-h{display:flex;align-items:center;gap:14px;margin:0 2px 14px;}
@@ -23620,7 +23621,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     { tab: 'insight', selector: '.mg-panel', fallback: '#view', title: 'Insight', text: 'See your weekly set volume per muscle group on the 3D model \u2014 tap a muscle to focus the camera on it.' },
     { tab: 'settings', sp: 'work', selector: '[data-action="open-bodyweight-picker"]', fallback: '#view', title: 'Bodyweight & goal', text: 'Set these once \u2014 they power real load tracking on bodyweight exercises and shape how Pro Tips suggests your next set.' },
     { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="accentColor"]', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
-    { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="cardBg"]', fallback: '#view', title: 'Card style', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
+    { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="cardBg"]', fallback: '#view', title: 'Card background', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
     { tab: 'settings', sp: 'work', selector: '.settings-row .seg', fallback: '#view', title: 'Units', text: 'Switch between kg and lb any time. Your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.' }
   ];
 
@@ -23676,6 +23677,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function positionTourBubble(targetEl){
     var ring = document.getElementById('tourSpotlight');
     var bubble = document.getElementById('tourBubble');
+    // The whole-page fallback ('#view') is not a real target: a ring around the
+    // entire screen just looks like a red frame, so those steps center the bubble.
+    if (targetEl && targetEl.id === 'view') targetEl = null;
     if (!targetEl){
       ring.classList.add('hidden');
       bubble.classList.add('tour-bubble-centered');
@@ -23703,7 +23707,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // estBubbleHeight is a rough guess since the bubble isn't laid out at
     // measurement time; the clamp only needs to be in the right ballpark
     // to keep it fully on-screen, not pixel-exact.
-    var estBubbleHeight = 170;
+    var estBubbleHeight = Math.max(170, bubble.offsetHeight || 0);
     var spaceBelow = window.innerHeight - rect.bottom;
     var spaceAbove = rect.top;
     var top = (spaceBelow >= 150 || spaceBelow >= spaceAbove)
