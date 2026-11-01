@@ -16353,22 +16353,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
     var areaPath = path + ' L' + xAt(n-1).toFixed(1) + ',' + (h-pad) + ' L' + xAt(0).toFixed(1) + ',' + (h-pad) + ' Z';
 
-    var c3p = (function(){
-      function nrm(v){ return 0.1 + ((v - min) / (max - min)) * 0.8; }
-      var xf = points.map(function(p, i){ return slotted ? (p.slot + 0.5) / opts.slots : (n === 1 ? 0.5 : 0.04 + 0.92 * i / (n - 1)); });
-      var xl = [];
-      if (slotted && opts.labels){
-        var stp = (opts.view === 'week' && opts.labels.length > 6) ? 2 : 1;
-        opts.labels.forEach(function(l, i){ if ((opts.labels.length - 1 - i) % stp === 0) xl.push({ x: (i + 0.5) / opts.slots, t: l }); });
-      } else {
-        var ix = n === 1 ? [0] : n < 4 ? [0, n - 1] : [0, Math.floor((n - 1) / 2), n - 1];
-        ix.forEach(function(i){ var dt = new Date(points[i].date); if (!isNaN(dt)) xl.push({ x: xf[i], t: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }); });
-      }
-      return { k: 'line', xs: xf, a: points.map(function(p){ return nrm(p.e1rm); }), b: showWeight ? points.map(function(p){ return nrm(p.topKg); }) : null,
-               col: parseInt(trendHex.slice(1), 16), fill: parseInt(trendHex.slice(1), 16) === 0x5fb86a ? 0x2f7a3e : (parseInt(trendHex.slice(1), 16) === 0xc1443c ? 0x7a2f2a : 0x7a5a1c),
-               ticks: [min, (min + max) / 2, max].map(function(v){ return { y: nrm(v), t: fmtWeight(v) }; }), xl: xl };
-    })();
-    var svg = '<svg data-c3="'+esc(JSON.stringify(c3p))+'" viewBox="0 0 '+w+' '+h+'" width="100%" height="140" preserveAspectRatio="none">';
+    var svg = '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="140" preserveAspectRatio="none">';
     svg += '<defs><linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">' +
              '<stop offset="0%" stop-color="'+trendHex+'" stop-opacity="0.28"/>' +
              '<stop offset="100%" stop-color="'+trendHex+'" stop-opacity="0"/>' +
