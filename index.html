@@ -82,7 +82,7 @@
      + draco_decoder.wasm) and only falls back to the plain-JS
      draco_decoder.js on browsers that can't do WASM, which is rare
      enough now not to be worth preloading preemptively too. -->
-<link rel="preload" href="model.glb" as="fetch" crossorigin>
+<link rel="preload" href="model.glb?v=2" as="fetch" crossorigin>
 <link rel="preload" href="draco/draco_wasm_wrapper.js" as="fetch" crossorigin>
 <link rel="preload" href="draco/draco_decoder.wasm" as="fetch" crossorigin>
 <style>
@@ -14844,7 +14844,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var dracoLoader = new THREE.DRACOLoader();
     dracoLoader.setDecoderPath('draco/');
     loader.setDRACOLoader(dracoLoader);
-    loader.load('model.glb', function(gltf){
+    loader.load('model.glb?v=2', function(gltf){
       var model = gltf.scene;
       var box = new THREE.Box3().setFromObject(model);
       var size = box.getSize(new THREE.Vector3());
