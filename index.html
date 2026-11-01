@@ -2812,6 +2812,7 @@
     cursor:pointer;
     transition:border-color 0.12s ease, background 0.12s ease;
   }
+  .ex-suggest-img.ex3d{display:block;background:radial-gradient(circle at 50% 45%,#35778a 0%,#245565 38%,#171d22 78%);}
   .ex-suggest-img{
     width:100%;
     aspect-ratio:1/1;
@@ -8211,7 +8212,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var isCardioItem = muscle === 'Cardio';
     var img = isCardioItem ? CARDIO_IMG : (EXERCISE_IMG[name] || (muscle ? MUSCLE_IMG[muscle] : null));
     return '<button type="button" class="ex-suggest-item'+(opts.selected ? ' selected' : '')+'" data-action="'+action+'" data-name="'+esc(name)+'" data-muscle="'+esc(muscle || '')+'">' +
-      (img ? '<img class="ex-suggest-img" src="'+img+'" alt="" loading="lazy">' : '') +
+      (isCardioItem ? '<canvas class="ex-suggest-img ex3d" data-k="'+esc(name)+'" width="300" height="300" aria-hidden="true"></canvas>' : (img ? '<img class="ex-suggest-img" src="'+img+'" alt="" loading="lazy">' : '')) +
       '<div class="ex-suggest-content">' +
         '<div class="ex-suggest-top">' +
           '<span class="ex-suggest-name">'+esc(name)+'</span>' +
@@ -20846,6 +20847,142 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       }).observe(app, { childList: true, subtree: true });
     }
     if (document.getElementById('app')) arm(); else document.addEventListener('DOMContentLoaded', arm);
+  })();
+
+  // ---------- 3D cardio picks (exercise search tiles) ----------
+  var ex3d = null;
+  function exKind(name){
+    var n = String(name || '').toLowerCase();
+    if (/bike|cycl|spin/.test(n)) return 'wheel';
+    if (/row/.test(n)) return 'rower';
+    if (/ellip/.test(n)) return 'ell';
+    if (/stair/.test(n)) return 'stairs';
+    if (/jump|rope|skip/.test(n)) return 'rope';
+    if (/walk/.test(n)) return 'feet';
+    if (/run|jog|sprint/.test(n) && !/tread/.test(n)) return 'track';
+    if (/tread/.test(n)) return 'tread';
+    return 'ring';
+  }
+  function exMats(){
+    var M = function(c, m, r, e, ei){ return new THREE.MeshStandardMaterial({ color: c, metalness: m, roughness: r, emissive: e || 0, emissiveIntensity: ei || 0 }); };
+    return { M: M, dk: M(0x2a2d33, 0.4, 0.55), cy: M(0x4fc3d9, 0.4, 0.3, 0x1b7f93, 0.5), st: M(0xaab2ba, 0.7, 0.3), bk: M(0x14161a, 0.3, 0.6) };
+  }
+  function exObject(kind){
+    var X = exMats(), M = X.M, dk = X.dk, cy = X.cy, st = X.st, bk = X.bk;
+    function box(w, h, d, m, x, y, z, rz){ var b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x || 0, y || 0, z || 0); if (rz) b.rotation.z = rz; return b; }
+    function cyl(r, h, m, x, y, z, rx, rz){ var b = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 28), m); b.position.set(x || 0, y || 0, z || 0); if (rx) b.rotation.x = rx; if (rz) b.rotation.z = rz; return b; }
+    function rod(a, b, r, m){ var A = new THREE.Vector3(a[0], a[1], a[2]), B = new THREE.Vector3(b[0], b[1], b[2]), d = B.clone().sub(A), L = d.length(); var o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 10), m); o.position.copy(A).add(B).multiplyScalar(0.5); o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); return o; }
+    var g = new THREE.Group(), i;
+    if (kind === 'tread'){
+      g.add(box(2.1, 0.16, 0.85, dk)); g.add(box(1.9, 0.05, 0.6, bk, 0, 0.1, 0));
+      [-1, 1].forEach(function(s){ g.add(cyl(0.11, 0.87, cy, s * 1.02, 0, 0, Math.PI / 2)); });
+      [-0.34, 0.34].forEach(function(z){ g.add(rod([0.9, 0.05, z], [0.78, 1.0, z], 0.035, st)); });
+      var con = box(0.36, 0.28, 0.85, cy, 0.78, 1.05, 0); con.rotation.z = 0.3; g.add(con); g.add(box(0.05, 0.04, 0.8, st, 0.7, 0.78, 0));
+      g.rotation.set(0.3, 0.9, 0);
+    } else if (kind === 'wheel'){
+      g.add(new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.08, 18, 72), dk)); g.add(new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.028, 10, 72), cy));
+      for (i = 0; i < 14; i++){ var sp = cyl(0.009, 1.75, st); sp.rotation.z = i * Math.PI / 14; g.add(sp); }
+      g.add(cyl(0.12, 0.2, cy, 0, 0, 0, Math.PI / 2)); g.add(cyl(0.05, 0.5, st, 0, 0, 0, Math.PI / 2)); g.add(box(0.34, 0.06, 0.16, dk, 0, -0.4, 0.3));
+      g.rotation.set(0.2, 0.8, 0);
+    } else if (kind === 'rower'){
+      g.add(box(2.4, 0.07, 0.14, st, 0, -0.2, 0)); g.add(cyl(0.45, 0.13, cy, -0.98, 0.15, 0, Math.PI / 2));
+      var cg = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.03, 8, 40), dk); cg.position.set(-0.98, 0.15, 0.07); g.add(cg);
+      g.add(box(0.36, 0.08, 0.28, dk, 0.4, -0.06, 0)); g.add(box(0.1, 0.32, 0.42, dk, -0.55, -0.03, 0, -0.4));
+      g.add(rod([-0.98, 0.15, 0], [-0.25, -0.1, 0], 0.015, dk)); g.add(box(0.06, 0.06, 0.4, cy, -0.25, -0.1, 0));
+      [-1.15, 1.1].forEach(function(x){ g.add(box(0.1, 0.06, 0.5, dk, x, -0.27, 0)); });
+      g.rotation.set(0.35, 0.8, 0);
+    } else if (kind === 'ell'){
+      g.add(box(2.0, 0.12, 0.55, dk, 0, -0.35, 0)); g.add(cyl(0.38, 0.14, cy, -0.75, 0, 0, Math.PI / 2));
+      [-0.28, 0.28].forEach(function(z){ g.add(box(0.7, 0.08, 0.22, bk, 0.15, -0.2 + z * 0.2, z)); g.add(rod([-0.75, 0, z], [0.2, -0.15, z], 0.03, st)); g.add(rod([0.75, 0.05, z * 0.6], [0.25, 1.0, z * 0.6], 0.03, st)); });
+      g.add(rod([0.75, 0, 0], [0.75, 1.05, 0], 0.05, cy));
+      var ec = box(0.34, 0.26, 0.5, cy, 0.75, 1.12, 0); ec.rotation.z = 0.25; g.add(ec);
+      g.rotation.set(0.3, 0.8, 0);
+    } else if (kind === 'stairs'){
+      for (i = 0; i < 5; i++){
+        var sb = box(1.6, 0.2, 0.7, i % 2 ? dk : M(0x33373e, 0.4, 0.5), 0, -0.45 + i * 0.3, 0); sb.position.x = -0.5 + i * 0.3; g.add(sb);
+        g.add(box(0.3, 0.2, 0.72, cy, -0.5 + i * 0.3 - 0.5, -0.45 + i * 0.3, 0));
+      }
+      g.add(rod([0.6, 0, 0.3], [0.95, 1.3, 0.3], 0.04, st)); g.add(rod([0.6, 0, -0.3], [0.95, 1.3, -0.3], 0.04, st));
+      g.rotation.set(0.3, 0.9, 0);
+    } else if (kind === 'track'){
+      [[1.2, 0.12, dk], [0.9, 0.05, cy], [1.5, 0.05, st]].forEach(function(a){ var o = new THREE.Mesh(new THREE.TorusGeometry(a[0], a[1], 12, 80), a[2]); o.scale.set(1.35, 0.8, 1); o.rotation.x = Math.PI / 2; g.add(o); });
+      var rn = new THREE.Mesh(new THREE.SphereGeometry(0.17, 20, 16), M(0xffffff, 0.2, 0.3, 0x88ddee, 0.5)); rn.position.set(1.6, 0.15, 0); g.add(rn);
+      g.rotation.set(0.65, 0.5, 0);
+    } else if (kind === 'feet'){
+      [[-0.5, 0.45, 0.12, 0], [0.5, -0.45, -0.1, 1]].forEach(function(a){
+        var f = new THREE.Group(), m = a[3] ? M(0x6fdcee, 0.35, 0.3, 0x1b7f93, 0.55) : M(0x4fc3d9, 0.35, 0.35, 0x155f70, 0.45);
+        var ball = new THREE.Mesh(new THREE.SphereGeometry(0.34, 28, 18), m); ball.scale.set(0.85, 0.28, 1.05); ball.position.z = -0.42; f.add(ball);
+        var arch = new THREE.Mesh(new THREE.SphereGeometry(0.2, 20, 14), m); arch.scale.set(0.75, 0.22, 1.5); arch.position.set(0.07, 0, 0.1); f.add(arch);
+        var heel = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 16), m); heel.scale.set(0.95, 0.26, 1); heel.position.z = 0.62; f.add(heel);
+        [-0.24, -0.12, 0, 0.12, 0.24].forEach(function(tx, j){ var t = new THREE.Mesh(new THREE.SphereGeometry(j === 4 ? 0.058 : 0.075, 14, 10), m); t.scale.set(1, 0.55, 1); t.position.set(tx, 0, -0.86 + Math.abs(tx) * 0.35); f.add(t); });
+        f.position.set(a[0], 0, a[1]); f.rotation.y = a[2]; g.add(f);
+      });
+      g.rotation.set(0.85, 0, 0);
+    } else if (kind === 'rope'){
+      var cv = new THREE.CatmullRomCurve3([new THREE.Vector3(-0.7, -0.8, 0), new THREE.Vector3(-1.25, 0, 0.1), new THREE.Vector3(-0.9, 1.0, 0.15), new THREE.Vector3(0, 1.4, 0.2), new THREE.Vector3(0.9, 1.0, 0.15), new THREE.Vector3(1.25, 0, 0.1), new THREE.Vector3(0.7, -0.8, 0)]);
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(cv, 80, 0.045, 10), cy));
+      [-1, 1].forEach(function(s){ g.add(cyl(0.1, 0.62, dk, s * 0.7, -1.0, 0)); g.add(cyl(0.11, 0.08, cy, s * 0.7, -0.72, 0)); g.add(cyl(0.11, 0.08, cy, s * 0.7, -1.3, 0)); });
+      g.rotation.set(0.1, 0.7, 0);
+    } else {
+      g.add(new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.2, 24, 64), cy)); g.rotation.set(0.3, 0.5, 0);
+    }
+    var holder = new THREE.Group(); holder.add(g); holder.updateMatrixWorld(true);
+    var bb = new THREE.Box3().setFromObject(holder), c = bb.getCenter(new THREE.Vector3()), sp2 = bb.getBoundingSphere(new THREE.Sphere());
+    g.position.sub(c);
+    var spin = new THREE.Group(); spin.add(g); spin.position.set(-0.04 * sp2.radius, -0.08 * sp2.radius, 0);
+    return { spin: spin, z: sp2.radius / Math.sin(12 * Math.PI / 180) * 0.86 };
+  }
+  function ex3Frame(now){
+    var s = ex3d;
+    if (!s) return;
+    s.list = s.list.filter(function(it){ return it.el.isConnected; });
+    if (!s.list.length){ s.raf = null; return; }
+    if (now - s.last < 33){ s.raf = requestAnimationFrame(ex3Frame); return; }
+    s.last = now;
+    var vh = window.innerHeight || 800, t = now / 1000;
+    s.list.forEach(function(it){
+      var r = it.el.getBoundingClientRect();
+      if (r.bottom < -20 || r.top > vh + 20 || r.width < 4) return;
+      var o = s.objs[it.kind] || (s.objs[it.kind] = exObject(it.kind));
+      if (s.cur !== o){ if (s.cur) s.scene.remove(s.cur.spin); s.scene.add(o.spin); s.cur = o; }
+      o.spin.rotation.y = t * 0.55 + it.phase;
+      s.camera.position.set(0, 0.25, o.z); s.camera.lookAt(0, -0.12, 0);
+      s.renderer.render(s.scene, s.camera);
+      it.ctx.clearRect(0, 0, 300, 300); it.ctx.drawImage(s.canvas, 0, 0);
+    });
+    s.raf = requestAnimationFrame(ex3Frame);
+  }
+  function initEx3d(tries){
+    var els = document.querySelectorAll('canvas.ex3d');
+    if (!els.length) return;
+    var todo = Array.prototype.filter.call(els, function(el){ return !el.getAttribute('data-ok'); });
+    if (!todo.length) return;
+    function fallback(){ todo.forEach(function(el){ el.setAttribute('data-ok', 'fb'); el.style.backgroundImage = 'url("' + CARDIO_IMG + '")'; el.style.backgroundSize = 'cover'; }); }
+    if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initEx3d((tries || 0) + 1); }, 400); else fallback(); return; }
+    if (!ex3d){
+      var canvas = document.createElement('canvas'), renderer;
+      try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { fallback(); return; }
+      renderer.setPixelRatio(1); renderer.setSize(300, 300, false);
+      var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(24, 1, 0.1, 60);
+      scene.add(new THREE.HemisphereLight(0xdfe9ef, 0x1a1c20, 0.75));
+      var key = new THREE.DirectionalLight(0xffffff, 0.95); key.position.set(3, 4, 5); scene.add(key);
+      var rim = new THREE.DirectionalLight(0x6fe0f5, 0.8); rim.position.set(-4, 2, -3); scene.add(rim);
+      ex3d = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, objs: {}, cur: null, list: [], raf: null, last: 0 };
+    }
+    var s = ex3d, ph = 0;
+    todo.forEach(function(el){ el.setAttribute('data-ok', '1'); s.list.push({ el: el, kind: exKind(el.getAttribute('data-k')), ctx: el.getContext('2d'), phase: (ph++) * 0.9 }); });
+    if (!s.raf) s.raf = requestAnimationFrame(ex3Frame);
+  }
+  (function(){
+    var pend = false;
+    function arm(){
+      if (typeof MutationObserver === 'undefined' || !document.body) return;
+      new MutationObserver(function(){
+        if (pend) return; pend = true;
+        requestAnimationFrame(function(){ pend = false; initEx3d(); });
+      }).observe(document.body, { childList: true, subtree: true });
+    }
+    if (document.body) arm(); else document.addEventListener('DOMContentLoaded', arm);
   })();
 
   // ---------- Streak flame (Profile) ----------
