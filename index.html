@@ -12431,10 +12431,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function todaySync(st){
     var d = todayData(), key = chKey(new Date()), e = d.days[key];
     if (st.n === 3 && !(e && e.perfect)){
+      var tiersBefore = badgeTierMap();
       d.days[key] = { water: !!(e && e.water), perfect: true };
       var keys = Object.keys(d.days);
       if (keys.length > 400){ keys.sort(); keys.slice(0, keys.length - 400).forEach(function(k){ delete d.days[k]; }); }
       saveSettings();
+      try { var unl = badgeUnlocks(tiersBefore); if (unl.length) setTimeout(function(){ showAchBanner(unl); }, 900); } catch (_) {}
     }
   }
   function todayPerfectCount(){
@@ -20823,6 +20825,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var t = new THREE.Mesh(new THREE.TorusGeometry(rr, 0.16, 10, 40, arc), mat); t.rotation.z = a0; t.position.z = 0.1; g.add(t);
       var e = a0 + arc, ex_ = Math.cos(e) * rr, ey = Math.sin(e) * rr, tx = -Math.sin(e), ty = Math.cos(e), nx = Math.cos(e), ny = Math.sin(e);
       poly([[ex_ + tx * 0.85, ey + ty * 0.85], [ex_ + nx * 0.62, ey + ny * 0.62], [ex_ - nx * 0.62, ey - ny * 0.62]], 0.2, 0);
+    } else if (id === 'perfect'){
+      ring(1, 0.84);
+      [[-0.55, -0.02, -0.18, -0.4], [-0.18, -0.4, 0.58, 0.42]].forEach(function(sg){
+        var len = Math.hypot(sg[2] - sg[0], sg[3] - sg[1]), m = box(len, 0.22, (sg[0] + sg[2]) / 2, (sg[1] + sg[3]) / 2); m.rotation.z = Math.atan2(sg[3] - sg[1], sg[2] - sg[0]);
+      });
+      disc(0.11, -0.55, -0.02); disc(0.11, -0.18, -0.4); disc(0.11, 0.58, 0.42);
     } else if (id === 'early'){
       var sun = new THREE.Shape(); sun.absarc(0, -0.2, 0.55, 0, Math.PI, false); sun.closePath(); ex(sun);
       box(1.9, 0.16, 0, -0.3);
@@ -21619,6 +21627,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     variety: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>',
     reps: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.400-5.700"/><path d="M20 4v5h-5"/></svg>',
     early: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="14" r="4.500"/><path d="M12 2.500v3M4.500 7l2 2M19.500 7l-2 2M1.500 14h3M19.500 14h3" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" fill="none"/></svg>',
+    perfect: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.500 12.500l5 5L19.500 7"/></svg>',
     daily: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.500"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>'
   };
   function badgeDefs(all){
@@ -21664,7 +21673,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { id:'bwclub',  name:'Bodyweight club', v:bestRatio, lv:[1, 1.5, 2],              fmt:ratio,                                   pv:ratio, desc:'Lift {n} your bodyweight in a squat, bench or deadlift' },
       { id:'variety', name:'Explorer',        v:Object.keys(names).length, lv:[10, 30, 60], fmt:String,                              desc:'Try {n} different exercises' },
       { id:'reps',    name:'Rep machine',     v:reps,      lv:[1000, 5000, 25000],      fmt:num,                                     pv:num, desc:'Log {n} reps in total' },
-      { id:'early',   name:'Early bird',      v:early,     lv:[5, 20, 50],              fmt:String,                                  desc:'Start {n} workouts before 7am' }
+      { id:'early',   name:'Early bird',      v:early,     lv:[5, 20, 50],              fmt:String,                                  desc:'Start {n} workouts before 7am' },
+      { id:'perfect', name:'Perfect days',    v:todayPerfectCount(), lv:[3, 14, 50],    fmt:String,                                  desc:'Complete all 3 daily tasks on {n} days' }
     ];
   }
   function profileBadgesHtml(){
