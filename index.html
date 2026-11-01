@@ -4565,7 +4565,8 @@
   .sh-stage{display:none;position:relative;height:430px;margin:-6px 0 0;}
   .pf-badges.sh-ready .sh-stage{display:block;}
   .pf-badges.sh-ready .pf-badge-grid{display:none;}
-  .sh-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;}
+  .sh-stage canvas,.sh-stage img.sh-still{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;}
+  .sh-stage{cursor:pointer;-webkit-tap-highlight-color:transparent;}
   .pf-stat{position:relative;}
   .pf-flame{position:absolute;right:8px;top:6px;width:56px;height:66px;pointer-events:none;}
   .pf-flame canvas{width:100%;height:100%;display:block;}
@@ -20636,70 +20637,80 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   }
 
   // ---------- Trophy shelf (Profile) ----------
-  var sh3d = null;
-  function shelfFrame(now){
-    var s = sh3d;
-    if (!s) return;
-    if (!s.canvas.isConnected){ s.raf = null; return; }
-    var dt = Math.min(0.05, (now - (s.last || now)) / 1000); s.last = now;
-    if (!s.dragging){ s.vyaw *= Math.max(0, 1 - dt * 3); s.yaw += s.vyaw * dt; s.yaw += (0 - s.yaw) * Math.min(1, dt * 1.6); }
-    s.yaw = Math.max(-0.7, Math.min(0.7, s.yaw));
-    s.group.rotation.y = s.yaw;
-    s.renderer.render(s.scene, s.camera);
-    s.raf = requestAnimationFrame(shelfFrame);
+  // Drawn once into a still picture (no live WebGL on this card); tapping a medal or trophy
+  // is matched against screen rectangles saved at draw time.
+  var shStill = null;
+  function shBake(sig, defs, top, host){
+    var w = host.clientWidth || 340, h = host.clientHeight || 430;
+    var canvas = document.createElement('canvas'), renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, preserveDrawingBuffer: true }); } catch (err) { return null; }
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(28, 1, 0.1, 60);
+    scene.add(new THREE.HemisphereLight(0xdfe9ef, 0x1a1c20, 0.6));
+    var key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(3, 5, 5); scene.add(key);
+    var rim = new THREE.DirectionalLight(0xf2b134, 0.8); rim.position.set(-4, 2, -3); scene.add(rim);
+    var group = new THREE.Group(); scene.add(group);
+    var hits = [];
+    var cols = [-1.0, 0, 1.0];
+    defs.forEach(function(b, i){
+      var row = Math.floor(i / 3), col = i % 3, y = 2.75 - row * 1.4;
+      if (col === 0){ var bd = p3dBoard(3.3); bd.position.y = y; group.add(bd); }
+      var m = p3dMedal(b.tier); m.position.set(cols[col], y + 0.52, 0); m.rotation.y = -cols[col] * 0.12; group.add(m); hits.push({ obj: m, badge: b.id });
+      var lb = p3dLabel(b.name.toUpperCase(), b.tier ? '#f2b134' : '#6b717b', 1.0); lb.position.set(cols[col], y - 0.3, 0.5); group.add(lb);
+    });
+    var by = -0.2, tb = p3dBoard(3.3); tb.position.y = by; group.add(tb);
+    if (top.length){
+      var sc = [0.52, 0.62, 0.72];
+      top.forEach(function(l, i){
+        var tr = p3dTrophy(sc[2 - i] * (top.length === 1 ? 1.1 : 1)); tr.position.set(cols[i], by, 0); tr.rotation.y = -0.3; group.add(tr); hits.push({ obj: tr, lift: l });
+        var nm = l.name.length > 13 ? l.name.slice(0, 12) + '\u2026' : l.name;
+        var lb = p3dLabel(nm.toUpperCase() + '\n' + fmtWeight(l.weightKg) + ' ' + unitLabel().toUpperCase(), '#f2b134', 1.15); lb.position.set(cols[i], by - 0.36, 0.5); group.add(lb);
+      });
+    } else {
+      var lb0 = p3dLabel('LOG LIFTS TO EARN TROPHIES', '#6b717b', 2.4); lb0.position.set(0, by + 0.45, 0.3); group.add(lb0);
+    }
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    camera.position.set(0, 1.8, 9.4); camera.lookAt(0, 1.4, 0);
+    scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);
+    renderer.render(scene, camera);
+    var url = ''; try { url = canvas.toDataURL('image/png'); } catch (_) {}
+    var out = hits.map(function(hh){
+      var box = new THREE.Box3().setFromObject(hh.obj), x0 = 9, y0 = 9, x1 = -9, y1 = -9;
+      [box.min.x, box.max.x].forEach(function(x){ [box.min.y, box.max.y].forEach(function(y){ [box.min.z, box.max.z].forEach(function(z){
+        var v = new THREE.Vector3(x, y, z).project(camera), px = (v.x + 1) / 2, py = (1 - v.y) / 2;
+        x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+      }); }); });
+      return { x0: x0, y0: y0, x1: x1, y1: y1, badge: hh.badge, lift: hh.lift };
+    });
+    p3dClear(group);
+    try { renderer.dispose(); renderer.forceContextLoss(); } catch (_) {}
+    return url ? { sig: sig, url: url, hits: out } : null;
   }
   function initShelf(tries){
     var host = document.getElementById('sh3dHost');
     if (!host) return;
     if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initShelf((tries || 0) + 1); }, 400); return; }
-    if (!sh3d){
-      var canvas = document.createElement('canvas'), renderer;
-      try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { return; }
-      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-      var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(28, 1, 0.1, 60);
-      scene.add(new THREE.HemisphereLight(0xdfe9ef, 0x1a1c20, 0.6));
-      var key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(3, 5, 5); scene.add(key);
-      var rim = new THREE.DirectionalLight(0xf2b134, 0.8); rim.position.set(-4, 2, -3); scene.add(rim);
-      var group = new THREE.Group(); scene.add(group);
-      var s0 = sh3d = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, group: group, hits: [], ray: new THREE.Raycaster(), yaw: 0, vyaw: 0, dragging: false, raf: null, last: 0 };
-      p3dDrag(canvas, s0, { k: 0.008, onTap: function(e){
-        var r = canvas.getBoundingClientRect(), v = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-        s0.ray.setFromCamera(v, s0.camera);
-        var meshes = []; s0.hits.forEach(function(h){ h.obj.traverse(function(m){ if (m.isMesh){ m.userData.hit = h; meshes.push(m); } }); });
-        var hit = s0.ray.intersectObjects(meshes, false)[0];
-        if (!hit) return;
-        var h = hit.object.userData.hit;
-        if (h.badge) openBadge(h.badge);
-        else if (h.lift) openTrophyPopup({ pr:false, obj:'trophy', tier:3, kick:'BEST LIFT', title:h.lift.name, sub: fmtWeight(h.lift.weightKg) + ' ' + unitLabel() + ' × ' + h.lift.reps, chip:'EST. 1RM ' + fmtWeight(h.lift.e) + ' ' + unitLabel().toUpperCase() });
-      } });
-    }
-    var s = sh3d;
-    p3dClear(s.group); s.hits = [];
     var defs = badgeDefs(), top = profileStats().top;
-    var cols = [-1.0, 0, 1.0];
-    defs.forEach(function(b, i){
-      var row = Math.floor(i / 3), col = i % 3, y = 2.75 - row * 1.4;
-      if (col === 0){ var bd = p3dBoard(3.3); bd.position.y = y; s.group.add(bd); }
-      var m = p3dMedal(b.tier); m.position.set(cols[col], y + 0.52, 0); m.rotation.y = -cols[col] * 0.12; s.group.add(m); s.hits.push({ obj: m, badge: b.id });
-      var lb = p3dLabel(b.name.toUpperCase(), b.tier ? '#f2b134' : '#6b717b', 1.0); lb.position.set(cols[col], y - 0.3, 0.5); s.group.add(lb);
-    });
-    var by = -0.2, tb = p3dBoard(3.3); tb.position.y = by; s.group.add(tb);
-    if (top.length){
-      var sc = [0.52, 0.62, 0.72];
-      top.forEach(function(l, i){
-        var tr = p3dTrophy(sc[2 - i] * (top.length === 1 ? 1.1 : 1)); tr.position.set(cols[i], by, 0); tr.rotation.y = -0.3; s.group.add(tr); s.hits.push({ obj: tr, lift: l });
-        var nm = l.name.length > 13 ? l.name.slice(0, 12) + '…' : l.name;
-        var lb = p3dLabel(nm.toUpperCase() + '\n' + fmtWeight(l.weightKg) + ' ' + unitLabel().toUpperCase(), '#f2b134', 1.15); lb.position.set(cols[i], by - 0.36, 0.5); s.group.add(lb);
-      });
-    } else {
-      var lb0 = p3dLabel('LOG LIFTS TO EARN TROPHIES', '#6b717b', 2.4); lb0.position.set(0, by + 0.45, 0.3); s.group.add(lb0);
-    }
-    host.appendChild(s.canvas);
+    var sig = JSON.stringify([defs.map(function(b){ return [b.id, b.tier, b.name]; }), top.map(function(l){ return [l.name, l.weightKg, l.reps]; }), unitLabel(), Math.min(2, window.devicePixelRatio || 1)]);
     host.parentNode.classList.add('sh-ready');
-    var w = host.clientWidth || 340, h = host.clientHeight || 430;
-    s.renderer.setSize(w, h, false); s.camera.aspect = w / h; s.camera.updateProjectionMatrix();
-    s.camera.position.set(0, 1.8, 9.4); s.camera.lookAt(0, 1.4, 0);
-    if (!s.raf){ s.last = 0; s.raf = requestAnimationFrame(shelfFrame); }
+    if (!shStill || shStill.sig !== sig){
+      var st = shBake(sig, defs, top, host);
+      if (!st){ host.parentNode.classList.remove('sh-ready'); return; }
+      shStill = st;
+    }
+    var img = new Image(); img.className = 'sh-still'; img.alt = ''; img.draggable = false; img.src = shStill.url;
+    host.innerHTML = ''; host.appendChild(img);
+    var hitsNow = shStill.hits;
+    host.addEventListener('click', function(e){
+      var r = host.getBoundingClientRect(), px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height, best = null, area = 9;
+      hitsNow.forEach(function(h){
+        if (px >= h.x0 && px <= h.x1 && py >= h.y0 && py <= h.y1){ var a = (h.x1 - h.x0) * (h.y1 - h.y0); if (a < area){ area = a; best = h; } }
+      });
+      if (!best) return;
+      var h = best;
+      if (h.badge) openBadge(h.badge);
+        else if (h.lift) openTrophyPopup({ pr:false, obj:'trophy', tier:3, kick:'BEST LIFT', title:h.lift.name, sub: fmtWeight(h.lift.weightKg) + ' ' + unitLabel() + ' × ' + h.lift.reps, chip:'EST. 1RM ' + fmtWeight(h.lift.e) + ' ' + unitLabel().toUpperCase() });
+    });
   }
 
   // ---------- WebGL context janitor ----------
@@ -21153,7 +21164,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function lg3Html(kind){ return '<img class="lg3d-st" src="images/3d/lg-' + kind + '.png" alt="" aria-hidden="true" width="260" height="214">'; }
 
   // ---------- Streak flame (Profile) ----------
-  var fl3d = null;
   function flTongue(rad, hh, col, em, op, bx, bz, lean, sk){
     var pts = [];
     for (var i = 0; i <= 28; i++){ var t = i / 28; pts.push(new THREE.Vector2(Math.max(0.0008, rad * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.55)), 1.1) * (1 - 0.55 * t * t)), t * hh)); }
@@ -21163,49 +21173,39 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: col, emissive: em, emissiveIntensity: 0.85, roughness: 0.65, transparent: true, opacity: op }));
     m.position.set(bx, 0, bz); return m;
   }
-  function flameFrame(now){
-    var s = fl3d;
-    if (!s) return;
-    if (!s.canvas.isConnected){ s.raf = null; return; }
-    var t = now / 1000;
-    s.tongues.forEach(function(m, i){
-      m.scale.y = 1 + 0.07 * Math.sin(t * (4.2 + i * 0.9) + i * 1.7) * s.live;
-      m.scale.x = 1 + 0.05 * Math.sin(t * (3.1 + i * 0.7) + i);
-    });
-    s.group.rotation.y = -0.3 + Math.sin(t * 0.8) * 0.35;
-    s.renderer.render(s.scene, s.camera);
-    s.raf = requestAnimationFrame(flameFrame);
+  var flStill = {};
+  function flBake(n, host){
+    var w = host.clientWidth || 56, h = host.clientHeight || 66;
+    var canvas = document.createElement('canvas'), renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, preserveDrawingBuffer: true }); } catch (err) { return null; }
+    renderer.setPixelRatio(Math.min(3, Math.max(2, window.devicePixelRatio || 1)));
+    var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(26, 0.85, 0.1, 50);
+    scene.add(new THREE.HemisphereLight(0xffe0c0, 0x1a1c20, 0.7));
+    var key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(2, 3, 5); scene.add(key);
+    var group = new THREE.Group(); scene.add(group);
+    var alive = n > 0, k = alive ? 0.62 + 0.38 * Math.min(n, 10) / 10 : 0.34;
+    var defs = alive ? [
+      [0.8, 2.0, 0xd8421a, 0x8c2208, 0.96, 0, -0.05, 0.18, 0.08], [0.4, 1.75, 0xe8541c, 0x9c2c0a, 0.96, -0.5, 0.02, -0.42, -0.1],
+      [0.4, 1.55, 0xe8541c, 0x9c2c0a, 0.96, 0.5, 0, 0.46, 0.1], [0.62, 1.5, 0xf29a2a, 0xb86c10, 0.97, 0, 0.06, 0.1, 0.05], [0.34, 1.0, 0xffd878, 0xe0a428, 1, 0, 0.14, 0.04, 0.02]
+    ] : [[0.8, 1.2, 0x5a2a1c, 0x3a0f06, 0.95, 0, 0, 0.05, 0.02], [0.4, 0.7, 0xa03a14, 0x6a1a05, 0.95, 0, 0.1, 0.02, 0.0]];
+    defs.forEach(function(d){ group.add(flTongue.apply(null, d)); });
+    group.scale.setScalar(k); group.rotation.y = -0.3; group.position.y = -0.1;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    camera.position.set(0, 1.0 * k + 0.2, 7.4); camera.lookAt(0, 0.85 * k + 0.15, 0);
+    renderer.render(scene, camera);
+    var url = ''; try { url = canvas.toDataURL('image/png'); } catch (_) {}
+    p3dClear(group);
+    try { renderer.dispose(); renderer.forceContextLoss(); } catch (_) {}
+    return url || null;
   }
   function initFlame(tries){
     var host = document.getElementById('fl3dHost');
     if (!host) return;
     if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initFlame((tries || 0) + 1); }, 400); return; }
-    if (!fl3d){
-      var canvas = document.createElement('canvas'), renderer;
-      try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); } catch (err) { return; }
-      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-      var scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(26, 0.85, 0.1, 50);
-      scene.add(new THREE.HemisphereLight(0xffe0c0, 0x1a1c20, 0.7));
-      var key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(2, 3, 5); scene.add(key);
-      var group = new THREE.Group(); scene.add(group);
-      fl3d = { renderer: renderer, canvas: canvas, scene: scene, camera: camera, group: group, tongues: [], live: 1, raf: null };
-    }
-    var s = fl3d, n = parseInt(host.getAttribute('data-n'), 10) || 0;
-    p3dClear(s.group); s.tongues = [];
-    var alive = n > 0, k = alive ? 0.62 + 0.38 * Math.min(n, 10) / 10 : 0.34;
-    s.live = alive ? 1 : 0.2;
-    var defs = alive ? [
-      [0.8, 2.0, 0xd8421a, 0x8c2208, 0.96, 0, -0.05, 0.18, 0.08], [0.4, 1.75, 0xe8541c, 0x9c2c0a, 0.96, -0.5, 0.02, -0.42, -0.1],
-      [0.4, 1.55, 0xe8541c, 0x9c2c0a, 0.96, 0.5, 0, 0.46, 0.1], [0.62, 1.5, 0xf29a2a, 0xb86c10, 0.97, 0, 0.06, 0.1, 0.05], [0.34, 1.0, 0xffd878, 0xe0a428, 1, 0, 0.14, 0.04, 0.02]
-    ] : [[0.8, 1.2, 0x5a2a1c, 0x3a0f06, 0.95, 0, 0, 0.05, 0.02], [0.4, 0.7, 0xa03a14, 0x6a1a05, 0.95, 0, 0.1, 0.02, 0.0]];
-    defs.forEach(function(d){ var m = flTongue.apply(null, d); s.group.add(m); s.tongues.push(m); });
-    s.group.scale.setScalar(k);
-    host.appendChild(s.canvas);
-    var w = host.clientWidth || 56, h = host.clientHeight || 66;
-    s.renderer.setSize(w, h, false); s.camera.aspect = w / h; s.camera.updateProjectionMatrix();
-    s.camera.position.set(0, 1.0 * k + 0.2, 7.4); s.camera.lookAt(0, 0.85 * k + 0.15, 0);
-    s.group.position.y = -0.1;
-    if (!s.raf) s.raf = requestAnimationFrame(flameFrame);
+    var n = parseInt(host.getAttribute('data-n'), 10) || 0, key = n > 0 ? Math.min(n, 10) : 0;
+    if (!flStill[key]){ var u = flBake(key, host); if (!u) return; flStill[key] = u; }
+    var img = new Image(); img.alt = ''; img.draggable = false; img.src = flStill[key]; img.style.cssText = 'width:100%;height:100%;display:block;';
+    host.innerHTML = ''; host.appendChild(img);
   }
   function initProfile3d(){
     if (document.getElementById('sh3dHost')) initShelf();
