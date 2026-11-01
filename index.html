@@ -4583,7 +4583,7 @@
   .tp-overlay{display:none;position:fixed;inset:0;z-index:1200;align-items:center;justify-content:center;padding:20px;background:rgba(8,9,11,0.74);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
   .tp-overlay.on{display:flex;animation:tpIn .24s ease both;}
   .tp-overlay.on.out{animation:tpOut .18s ease both;}
-  .tp-overlay.tp-pr{background:radial-gradient(ellipse 80% 50% at 50% 45%,rgba(242,177,52,0.20),rgba(8,9,11,0.5));-webkit-backdrop-filter:none;backdrop-filter:none;pointer-events:none;}
+  .tp-overlay.tp-pr{background:radial-gradient(ellipse 80% 50% at 50% 45%,rgba(242,177,52,0.20),rgba(8,9,11,0.5));-webkit-backdrop-filter:none;backdrop-filter:none;}
   .tp-overlay.tp-pr .tp-card{pointer-events:auto;}
   .tp-card{position:relative;width:min(340px,100%);text-align:center;padding:20px 18px 16px;border-radius:24px;background:rgba(20,22,26,0.94);border:1px solid rgba(242,177,52,0.38);box-shadow:0 22px 60px rgba(0,0,0,0.6);}
   .tp-overlay.on .tp-card{animation:tpPop .34s cubic-bezier(.2,.9,.3,1.25) both;}
@@ -22222,6 +22222,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     document.body.appendChild(ov);
     ov.addEventListener('click', function(e){
       if (e.target.closest('[data-action="close-trophy"]')) closeTrophyPopup();
+      else if (e.target === ov && ov.classList.contains('tp-pr')) closeTrophyPopup();   // PR card: a tap outside only dismisses it, never reaches the screen underneath
       else if (!ov.classList.contains('tp-pr') && e.target === ov && Date.now() - (ov._openedAt || 0) > 600) closeTrophyPopup();
     });
     return ov;
