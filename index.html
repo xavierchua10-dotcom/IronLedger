@@ -18441,6 +18441,81 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     { keywords: ['log', 'logging', 'logged'], answer: 'To log a set: open the Log tab, tap + to add an exercise, then tap Add Set and enter the weight and reps. I can\u2019t log for you \u2014 I\u2019m just here for questions.' },
     { keywords: ['density'], answer: 'Settings \u203a Appearance has Accent color, Card background and Card style.' }
   ];
+  /* ---- Feature guide ("intel") ------------------------------------
+     The whole app, explained offline: a hand-written list of what each
+     feature is, where to find it and how it works, matched by phrase so
+     "how does the plate calculator work" or "what is a perfect day" get a
+     real answer for everyone (no AI call, no Pro needed). Only fires on
+     question-shaped messages, after the data intents (PRs, stats, next
+     workout, cardio) have had their turn. Keep answers short; one idea each.
+     Order matters: first match wins, so specific entries sit above general. */
+  var LOG_CHAT_FEATURE_OVERVIEW =
+    "Here’s what SaviorFit Logger does:\n\n" +
+    "LOG — add exercises (search, 3D muscle picker, cardio), log sets, rest timer, plate calculator, supersets, routines, templates and splits, Build my plan, and the Today sheet.\n" +
+    "HISTORY — every finished session; edit, repeat, delete, filter by date, print a PDF receipt.\n" +
+    "INSIGHT — your weekly muscle volume on a 3D model, plus a Cardio view.\n" +
+    "PROGRESS — charts and e1RM trends per lift (and cardio), PRs, share a progress picture.\n" +
+    "PROFILE — your stats, best lifts, Achievements medals and trophies, Share profile, and Settings.\n" +
+    "PRO — Tips & Target, full Progress, the AI Log Assistant, 7-day Brief and the Pro PDF.\n\n" +
+    "Ask about any of them — like “how does the plate calculator work”, “what is a perfect day” or “what does Pro include”.";
+  var LOG_CHAT_FEATURES = [
+    { re: /\b(plate|plates)\b/, a: "Tap the plate icon next to an exercise’s weight to open the plate calculator. It shows which plates go on each side of the bar (20 kg bar, or 45 lb in pounds), and “Use” drops the total into your set." },
+    { re: /\bsuper-?\s?sets?\b/, a: "Tap the ⋮ menu on an exercise card and choose “Link as Superset”, then pick the partner exercise. Choose “Unlink Superset” from the same menu to separate them. Cardio can’t be linked." },
+    { re: /\b(cardio|treadmill|run(ning)?|bike|cycling|rowing\s*machine|elliptical|walk(ing)?)\b/, a: "Cardio is added from the Add Exercise search bar (not the muscle picker) — pick a machine tile, then enter duration, distance and incline, or use the built-in timer to start and stop. Insight has a weekly cardio overview with a minutes goal, and Progress has a Cardio view (weekly and monthly views and the full history are Pro)." },
+    { re: /\b(rest\s*timer|rest\s*time|timer)\b/, a: "The rest timer lives behind the clock icon in the header. In Settings › Workout you can set it to Auto (starts when you log a set) or Manual, plus the default duration, sound and vibration. You can adjust or skip it while it runs." },
+    { re: /\b(perfect\s*days?|today\s*sheet|daily\s*tasks?|the\s*trophy\s*button)\b/, a: "The trophy button on the Log tab opens Today. It has 3 daily tasks — finish a workout, do 10 working sets, and drink 2 L of water — plus today’s planned routine. Ticking all 3 makes it a Perfect Day, and Perfect Days count toward a medal in Achievements." },
+    { re: /\b(daily\s*challenge|challenge|streak)\b/, a: "The Daily Challenge is one bodyweight challenge per day (like 100 Push-ups or a 3 min Plank) on the Today sheet. Mark it done to build a daily streak. It never touches your workouts, volume or PRs. Don’t confuse it with your weekly workout streak on Profile." },
+    { re: /\b(achievements?|medals?|trophy|trophies|badges?)\b/, a: "Profile › Achievements is your medal room: 12 medals (Workouts, Week streak, Record breaker, Total lifted, Heavy club, Daily challenge, Cardio distance, Bodyweight club, Explorer, Rep machine, Early bird, Perfect days), each Bronze, Silver, then Gold, plus a trophy for each of your best lifts. A banner pops up when you unlock a new tier — tap it to view. The Next up card shows what’s closest." },
+    { re: /\b(profile|share\s*profile|best\s*lifts?)\b/, a: "The Profile tab (far right) shows your avatar, total lifted, weekly streak, PR count, your best lifts, and a Share profile button that makes a picture to send. Achievements and Settings are inside it." },
+    { re: /\b(insight(\s*(tab|page|screen))?|3d\s*(model|body|view)|muscle\s*(map|model)|heat\s*map)\b/, a: "Insight shows your week of training on a 3D body — tap a muscle to focus it and see its sets against target. The gear button switches the targets between Regular, Intensity (fewer, harder sets) and your own Custom numbers. A Muscle | Cardio switch at the bottom flips to your weekly cardio overview." },
+    { re: /\b(custom\s*targets?|weekly\s*targets?|set\s*targets?\s*for\s*muscles?|muscle\s*targets?)\b/, a: "On Insight, tap the gear button to pick how weekly volume is scored: Regular, Intensity, or Custom where you type your own weekly set targets per muscle group." },
+    { re: /\b(e1rm|1rm|one\s*rep\s*max|estimated\s*max)\b.*\b(what|how|mean|calc\w*)\b|\b(what|how)\b.*\b(e1rm|estimated\s*1rm|estimated\s*one)/, a: "e1RM is your estimated one-rep max, worked out from the weight and reps of your top set so you can track strength even when you don’t test a true max. Progress charts plot it over time." },
+    { re: /\b(progress\s*(tab|chart|graph|page|screen)|charts?|graphs?)\b|\b(?:what(?:'s| is)|explain)\s+(?:the\s+)?progress\s*\??$/, a: "Progress has a chart for each lift: a trend line and a bar view of your e1RM and top sets, with range buttons and a lift picker. The share button turns the chart into a picture. Free shows a recent window; Pro unlocks all-time history, weekly and monthly views and the bodyweight trend. A Strength | Cardio switch flips to cardio progress." },
+    { re: /\b(share|sharing)\b/, a: "You can share three things: a progress picture from the chart on Progress, your Profile card (Share profile), and the app itself (Settings › Help & about › Share App)." },
+    { re: /\b(history\s*(tab|page|screen)|what(?:'s| is)\s+(?:the\s+)?history|date\s*range|filter\s*by\s*date)\b/, a: "History lists your finished sessions by week. Tap one to open it, use the pencil on an exercise to edit just that exercise, or the ⋮ menu on a session to edit it, repeat it, delete it or print it. The calendar icon filters by date range." },
+    { re: /\b(reference\s*button|repeat\s*(a\s*)?(session|workout)|repeat\s*button)\b/, a: "“Repeat” (⋮ on a session in History) starts a new session with the same exercises. The Reference button on those exercises shows what you lifted last time so you can beat it." },
+    { re: /\b(print|pdf|receipt)\b/, a: "A session’s ⋮ menu in History has Print, which makes a workout “receipt” PDF. Pro gets the upgraded layout with timestamps on every set and add-weight / add-reps guidance." },
+    { re: /\b(brief|activity\s*(feed|log)|change\s*log)\b/, a: "The Brief is a feed of the changes you make in Log and History (adds, edits, deletes). Find it in Settings › Routines & Brief. Basic keeps the last 24 hours; Pro keeps 7 days. You can delete single entries or clear it." },
+    { re: /\b(notifications?|bell|push\s*notifications?|reminders?)\b/, a: "The bell in the header holds in-app notices (like a nudge when you haven’t trained in a while, or plan updates) — tap Dismiss to clear one. Phone push notifications can be switched on in Settings › Feedback & alerts." },
+    { re: /\b(how[- ]?to\s*(button|guide|section)|exercise\s*(photo|picture|guide|demo)|form\s*(tips?|guide)|equipment\s*guide)\b/, a: "Exercise cards have a “? How to” button with a short guide and a photo for the lift. In the exercise picker, the ? button next to the equipment filters opens the Equipment Guide, a picture of dumbbell, barbell, straight bar, EZ bar and cable attachments." },
+    { re: /\b(add(ing)?\s*(an?\s*)?(exercise|custom)|custom\s*exercise|exercise\s*library|muscle\s*picker|search\s*(for\s*)?exercises?)\b/, a: "On the Log tab tap Add Exercise. Search by name (it knows aliases), filter by equipment, or open the 3D muscle picker and tap a body part. If it isn’t in the library, type the name and add it as a custom exercise." },
+    { re: /\b(bodyweight|body\s*weight)\s*(exercises?|moves?|calc\w*|setting|picker)\b|\bset\s*(my\s*)?(bodyweight|body\s*weight)\b/, a: "Set your bodyweight in Settings › Workout (or in Build my plan). It makes load calculations bodyweight-aware, so pull-ups, dips and push-ups count part of your own weight." },
+    { re: /\b(build\s*my\s*plan|redo\s*my\s*plan|quick\s*setup|templates?|splits?|ppl|bro\s*split)\b/, a: "On an empty Log tab: “Build my plan” asks 4 quick questions (bodyweight, goal, experience, training days) and picks a template. You can also start from the Beginner template or expand Training splits for Push/Pull/Legs, Upper/Lower, Full Body and Bro Split." },
+    { re: /\b(routines?|save\s*as\s*routine)\b/, a: "Save as Routine (on the Log tab) stores your current exercise list. Saved routines sit under My Routines on an empty Log tab — tap one to start a workout pre-loaded. Manage or delete them in Settings › Routines & Brief." },
+    { re: /\b(session\s*summary|session\s*done|finish(ing)?\s*(a\s*)?(session|workout))\b/, a: "Finish a workout from the Log tab and a Session done card shows your totals. You can switch that summary off in Settings › Feedback & alerts. Finishing always asks first, and the session then moves to History." },
+    { re: /\b(quick\s*add)\b/, a: "Quick add (Settings › Workout) skips the “Add exercise?” and “Add a set?” pop-ups so logging is faster. Deleting and finishing still ask first." },
+    { re: /\b(set\s*flash|flash\s*effect|haptics?|vibrat\w*)\b/, a: "Settings › Feedback & alerts lets you toggle haptic feedback (vibration on actions), the flash effect when a set is logged, and rest-timer sound and vibration." },
+    { re: /\b(accent|colou?rs?|theme|appearance|card\s*(style|background)|glass|sheen)\b/, a: "Settings › Appearance changes the accent color (Gold, Ice Blue, Emerald, Violet), the card background, and the card style (Default, Sheen or Liquid Glass)." },
+    { re: /\bunits?\b|\bkg\s*(\/|or|to)\s*lbs?\b|\blbs?\s*(\/|or|to)\s*kg\b|\b(change|switch)\b.*\b(kg|lbs?|pounds|kilograms)\b/, a: "Tap the KG/LB button at the top of the Log tab, or set the default in Settings › Workout. Your history is kept in kilograms underneath, so switching never changes your data." },
+    { re: /\b(export|import|backups?|back\s*up|restore)\b/, a: "Settings › Your data has Export (downloads a JSON backup of sessions, routines and settings) and Import (restores from one). Signed-in accounts also sync to the cloud automatically." },
+    { re: /\b(guest|sync|cloud|devices?|sign\s*up|log\s*in|login|google\s*sign|account)\b/, a: "You can use the app as a guest (saved on this phone only) or with a free account (email or Google) that syncs across devices. When a guest signs up, their workouts are added to the new account automatically; logging into an existing account asks first, and you can undo." },
+    { re: /\b(delete\s*(my\s*)?account|clear\s*data|danger\s*zone|reset\s*log)\b/, a: "Reset Log clears today’s exercises only. Clear Data (Settings › Your data › danger zone) wipes your logged data, and Delete account removes the account itself. Each one asks for confirmation." },
+    { re: /\b(guided\s*tour|tour|walkthrough|tutorial|onboarding)\b/, a: "Settings › Help & about › Guided tour replays the walkthrough of the app. “Build my plan” on the Log tab re-runs the setup questions." },
+    { re: /\b(install|home\s*screen|play\s*store|android|app\s*store|offline)\b/, a: "SaviorFit Logger is on Google Play and can also be installed from the browser to your home screen (Settings › Help & about › Install App). Your data stays on the device and syncs to your account when you’re signed in." },
+    { re: /\b(back\s*button|swipe\s*back)\b/, a: "On Android, Back steps you out of whatever’s open, then returns to the Log tab from any other tab, and pressing it again on Log exits the app." },
+    { re: /\b(ai|assistant|log\s*assistant|chat\s*bot|coach|what\s*can\s*you\s*do|remember)\b/, a: "I’m the Log Assistant. I answer questions about the app, exercises and split days, and I can read your data: PRs, stats, progress, muscle volume, cardio, what you did on a past day and your next targets. I can’t log or edit sets. Say “remember I have a bad shoulder” and I’ll keep that note (“what do you remember”, “forget that”). Pro adds AI answers for anything else, up to 60 a day." },
+    { re: /\b(tips?\s*(&|and)\s*targets?|next\s*targets?|overload)\b/, a: "Tips & Target (Pro) gives you a clear weight or rep goal for your next session on each exercise, based on what you lifted before. Ask me “what’s next” to see them all." },
+    { re: /\b(pro|premium|subscription|subscribe|upgrade|free\s*trial|trial|pricing|price|how\s*much|cost|basic\s*plan|free\s*vs|cancel\s*(my\s*)?(subscription|pro|plan))\b/, a: function(){
+        return "Basic is free: unlimited logging, History, Insight, cardio, routines, templates and Achievements. Pro adds Tips & Target, full Progress (all-time, weekly and monthly views, weight trend), the AI Log Assistant, a 7-day Brief and the Pro PDF. It’s $" + PRICE_MONTHLY.toFixed(2) + "/month or $" + PRICE_ANNUAL.toFixed(2) + "/year, with a 30-day free trial (no card, once per account). Cancel anytime from Settings › Plan › Manage Subscription.";
+      } }
+  ];
+  function logChatFeatureAnswer(text){
+    var lower = text.toLowerCase().trim();
+    if (/\b(what|which)\b.*\b(features?|(can|does)\s+(this|the|your)?\s*app\s+(do|have)|can\s+you\s+do)\b|\b(list|show|tell|all|whole|full|every)\b.*\bfeatures?\b|^\s*(app\s+)?features?\s*[?!.]*$|^\s*what\s+(is|does)\s+(this|the)\s+app\b|^\s*(what\s+can\s+i\s+do|what\s+do\s+you\s+(have|offer))\b/.test(lower)){
+      return LOG_CHAT_FEATURE_OVERVIEW;
+    }
+    // Only question-shaped messages — "bench 60x10" style lookups and the
+    // data intents above must never be swallowed by a keyword here.
+    if (!/\b(how|what|what'?s|where|which|does|do|can|could|is|are|why|when|explain|tell\s+me|show\s+me\s+how|about)\b|\?\s*$/.test(lower)) return null;
+    for (var i = 0; i < LOG_CHAT_FEATURES.length; i++){
+      if (LOG_CHAT_FEATURES[i].re.test(lower)){
+        var a = LOG_CHAT_FEATURES[i].a;
+        return typeof a === 'function' ? a() : a;
+      }
+    }
+    return null;
+  }
+
   function faqMatch(text){
     var tokens = (text || '').toLowerCase().split(/\s+/).filter(Boolean);
     var best = null, bestScore = 0;
@@ -19220,6 +19295,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     }
 
     if (logChatIsCardioQuestion(lower)) return logChatCardio(text);
+
+    // The app itself — "how does the plate calculator work", "what is a perfect day",
+    // "what features are there" — answered from the built-in feature guide.
+    var featureAnswer = logChatFeatureAnswer(text);
+    if (featureAnswer) return featureAnswer;
 
     // PRs \u2014 "my PRs", "bench PR", "what's my squat max". A bare
     // "what is a PR" stays with the FAQ below.
