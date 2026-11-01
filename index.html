@@ -13626,7 +13626,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               '</button>';
       html += '</div>';
       html += '<div class="history-no-match hidden" id="historyNoMatch">No sessions match your search.</div>';
-      if (!dateFilterActive && !(ui.historySearch && ui.historySearch.trim())) html += skylineCardHtml();
+      if (!dateFilterActive && !(ui.historySearch && ui.historySearch.trim())) /* skyline removed */
 
       // A custom date range narrows the candidate pool before weekly
       // bucketing below; text search then further hides non-matching rows
