@@ -5826,19 +5826,19 @@
   .tabbar button:active{background:var(--panel-2);}
 
   /* Fade+shift transition for the content swap on a main tab switch —
-     see switchTabWithFade(). Out: 140ms, in: 160ms, per spec. */
+     see switchTabWithFade(). Out: 70ms, in: 110ms (was 140/160 -- felt like a delay on slower phones). */
   /* Insight has a floating Muscle|Cardio pill and a full-bleed scene; sliding
      them 6px during the fade looked like a jump, so those fades are opacity-only. */
   #view.subtab-flat.subtab-fade-out,#view.subtab-flat.subtab-fade-in{transform:none !important;}
   #view.subtab-fade-out{
     opacity:0;
     transform:translateY(6px);
-    transition:opacity 140ms ease, transform 140ms ease;
+    transition:opacity 70ms ease, transform 70ms ease;
   }
   #view.subtab-fade-in{
     opacity:1;
     transform:translateY(0);
-    transition:opacity 160ms ease, transform 160ms ease;
+    transition:opacity 110ms ease, transform 110ms ease;
   }
 
   /* ---------- Log Assistant chat context bar — sits inside the chat
@@ -17230,8 +17230,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         freshView.classList.remove('subtab-fade-in');
         freshView.classList.remove('subtab-flat');
         ui.tabAnimating = false;
-      }, 170);
-    }, 140);
+      }, 120);
+    }, 70);
   }
 
   // The most-trained exercise OTHER than whichever one Progress is
