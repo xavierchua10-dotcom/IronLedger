@@ -20701,6 +20701,64 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!s.raf){ s.last = 0; s.raf = requestAnimationFrame(shelfFrame); }
   }
 
+  // ---------- WebGL context janitor ----------
+  // Phones allow only a handful of live WebGL contexts; past that the browser kills the OLDEST one
+  // and its canvas turns into a white "sad face" box. Every on-screen renderer is tracked here:
+  // when its canvas has been off-screen for a few seconds its context is parked (released), and it
+  // is restored the moment the canvas is back in the page. Never-attached helper renderers (the
+  // shared offscreen ones that draw into 2D canvases) are left alone.
+  var p3dTracked = [], p3dSweepQ = false;
+  window.__p3dTracked = p3dTracked;
+  function p3dTrack(r){
+    var e = { r: r, seen: false, since: 0, parked: false, dead: false, ext: null };
+    p3dTracked.push(e);
+    var fcl = r.forceContextLoss;
+    r.forceContextLoss = function(){ e.dead = true; return fcl.apply(r, arguments); };
+    try { r.domElement.addEventListener('webglcontextrestored', function(){ window.dispatchEvent(new Event('p3d-restored')); }); } catch (_) {}
+  }
+  function p3dSweep(){
+    var now = Date.now();
+    p3dTracked = p3dTracked.filter(function(e){ return !e.dead; }); window.__p3dTracked = p3dTracked;
+    p3dTracked.forEach(function(e){
+      var dom = e.r.domElement, conn = dom.isConnected;
+      if (conn){
+        e.seen = true; e.since = 0;
+        if (e.parked){
+          e.parked = false;
+          try { if (e.ext) e.ext.restoreContext(); } catch (_) {}
+        }
+      } else if (e.seen && !e.parked){
+        if (!e.since) e.since = now;
+        else if (now - e.since > 3000){
+          try {
+            var gl = e.r.getContext(); e.ext = gl.getExtension('WEBGL_lose_context');
+            if (e.ext && !gl.isContextLost()){ e.ext.loseContext(); e.parked = true; }
+          } catch (_) {}
+        }
+      }
+    });
+  }
+  (function(){
+    var t = setInterval(function(){
+      if (typeof THREE === 'undefined' || !THREE.WebGLRenderer) return;
+      clearInterval(t);
+      var Orig = THREE.WebGLRenderer;
+      var Wrapped = function(params){ var r = new Orig(params); p3dTrack(r); return r; };
+      Wrapped.prototype = Orig.prototype;
+      try { THREE.WebGLRenderer = Wrapped; } catch (_) {}
+    }, 30);
+    setInterval(p3dSweep, 1000);
+    function arm(){
+      if (typeof MutationObserver === 'undefined' || !document.body) return;
+      new MutationObserver(function(){
+        if (p3dSweepQ) return; p3dSweepQ = true;
+        requestAnimationFrame(function(){ p3dSweepQ = false; p3dSweep(); });
+      }).observe(document.body, { childList: true, subtree: true });
+    }
+    if (document.body) arm(); else document.addEventListener('DOMContentLoaded', arm);
+    window.addEventListener('p3d-restored', function(){ if (typeof c3Wake === 'function') c3Wake(); });
+  })();
+
   // ---------- 3D progress charts (strength trend + cardio) ----------
   // The SVG builders stamp a data-c3 payload on their <svg>; init3dCharts() swaps it for a
   // lightly tilted WebGL scene (fixed angle, small drag/tap nudge that springs back).
