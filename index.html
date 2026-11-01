@@ -4608,6 +4608,24 @@
   .pf-badge.t2 .pf-coin{--c1:#d4dae1;--c2:#7d8793;--c3:#f4f6f8;--ic:#1c2229;}
   .pf-badge.t3 .pf-coin{--c1:#ffd266;--c2:#c98a10;--c3:#fff0b8;--ic:#3a2500;}
 
+  .ach-sum{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--text-faint);text-transform:uppercase;margin:10px 2px 0;}
+  .ach-sum b{color:var(--accent);font-size:15px;}
+  .sh-stage.ach-stage{height:520px;margin-top:0;}
+  .ach-list{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
+  .ach-row{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border-radius:16px;background:var(--panel);border:1px solid rgba(255,255,255,.1);color:inherit;font:inherit;text-align:left;cursor:pointer;}
+  .ach-row:active{background:var(--panel-2);}
+  .ach-row .pf-coin{width:46px;height:46px;flex:0 0 auto;}
+  .ach-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+  .ach-tx b{font:700 15px 'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.03em;color:var(--text);}
+  .ach-tx small{font:500 11.5px/1.3 'Inter',sans-serif;color:var(--text-faint);}
+  .ach-bar{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:3px;}
+  .ach-bar i{display:block;height:100%;background:var(--accent);border-radius:2px;}
+  .ach-row em{font-style:normal;text-align:right;font:700 10px/1.4 'JetBrains Mono',monospace;letter-spacing:.06em;color:var(--accent);flex:0 0 auto;max-width:96px;}
+  .ach-row em span{color:var(--text-faint);font-weight:500;}
+  .ach-row.t0 .pf-coin{opacity:0.6;}
+  .ach-row.t1 .pf-coin{--c1:#d98a4e;--c2:#8a4a1e;--c3:#f0b183;--ic:#2a1204;}
+  .ach-row.t2 .pf-coin{--c1:#d4dae1;--c2:#7d8793;--c3:#f4f6f8;--ic:#1c2229;}
+  .ach-row.t3 .pf-coin{--c1:#ffd266;--c2:#c98a10;--c3:#fff0b8;--ic:#3a2500;}
   .pf-best{margin-top:12px;background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 16px 4px;}
   .pf-best-h{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--accent);margin-bottom:8px;}
   .pf-lift{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid rgba(255,255,255,.07);}
@@ -6488,6 +6506,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   <div class="tour-spotlight hidden" id="tourSpotlight"></div>
   <div class="tour-bubble hidden" id="tourBubble"></div>
   <div class="confirm-overlay settings-page hidden" id="settingsPage"><div class="sp-panel" id="settingsPagePanel"></div></div>
+  <div class="confirm-overlay settings-page hidden" id="achPage"><div class="sp-panel" id="achPanel"></div></div>
   <div class="confirm-overlay hidden" id="installOverlay">
     <div class="pro-panel" id="installPanel"></div>
   </div>
@@ -16834,7 +16853,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
     // The Profile tab itself is short: profile card + stats + a Settings card.
     // The settings list opens as a full-screen page (renderSettingsPage).
+    var achS = achSummary();
     document.getElementById('view').innerHTML = profileHeroHtml() +
+      '<button type="button" class="pf-settings-card" data-action="open-achievements">' +
+        '<span class="pf-settings-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.500 14.200L7 22l5-3 5 3-1.500-7.800"/></svg></span>' +
+        '<span class="pf-settings-tx"><div class="pf-settings-t">Achievements</div><div class="pf-settings-s">'+achS.earned+' / '+achS.total+' medals \u00b7 your trophy shelf</div></span>' +
+        '<span class="pf-settings-chev">\u203a</span></button>' +
       '<button type="button" class="pf-settings-card" data-action="open-settings-page">' +
         '<span class="pf-settings-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>' +
         '<span class="pf-settings-tx"><div class="pf-settings-t">Settings</div><div class="pf-settings-s">Account, plan, units, rest timer, data</div></span>' +
@@ -17072,6 +17096,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     else if (state.tab === 'progress') renderProgress();
     else if (state.tab === 'settings') renderSettings();
     else if (state.tab === 'insight') renderInsight();
+    if (state.tab !== 'settings'){ var achEl = document.getElementById('achPage'); if (achEl) achEl.classList.add('hidden'); }
     if (state.tab !== 'settings' && ui.settingsOpen){
       ui.settingsOpen = false; ui.settingsPage = null;
       var spEl = document.getElementById('settingsPage'); if (spEl) spEl.classList.add('hidden');
@@ -20639,9 +20664,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // ---------- Trophy shelf (Profile) ----------
   // Drawn once into a still picture (no live WebGL on this card); tapping a medal or trophy
   // is matched against screen rectangles saved at draw time.
-  var shStill = null;
+  var shCache = {};
   function shBake(sig, defs, top, host){
-    var w = host.clientWidth || 340, h = host.clientHeight || 430;
+    var w = host.clientWidth || 340, h = host.clientHeight || 430, rowsN = Math.ceil(defs.length / 3);
     var canvas = document.createElement('canvas'), renderer;
     try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, preserveDrawingBuffer: true }); } catch (err) { return null; }
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
@@ -20658,19 +20683,21 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var m = p3dMedal(b.tier); m.position.set(cols[col], y + 0.52, 0); m.rotation.y = -cols[col] * 0.12; group.add(m); hits.push({ obj: m, badge: b.id });
       var lb = p3dLabel(b.name.toUpperCase(), b.tier ? '#f2b134' : '#6b717b', 1.0); lb.position.set(cols[col], y - 0.3, 0.5); group.add(lb);
     });
-    var by = -0.2, tb = p3dBoard(3.3); tb.position.y = by; group.add(tb);
-    if (top.length){
+    var by = -0.2, tb = null;
+    if (top){ tb = p3dBoard(3.3); tb.position.y = by; group.add(tb); }
+    if (top && top.length){
       var sc = [0.52, 0.62, 0.72];
       top.forEach(function(l, i){
         var tr = p3dTrophy(sc[2 - i] * (top.length === 1 ? 1.1 : 1)); tr.position.set(cols[i], by, 0); tr.rotation.y = -0.3; group.add(tr); hits.push({ obj: tr, lift: l });
         var nm = l.name.length > 13 ? l.name.slice(0, 12) + '\u2026' : l.name;
         var lb = p3dLabel(nm.toUpperCase() + '\n' + fmtWeight(l.weightKg) + ' ' + unitLabel().toUpperCase(), '#f2b134', 1.15); lb.position.set(cols[i], by - 0.36, 0.5); group.add(lb);
       });
-    } else {
+    } else if (top) {
       var lb0 = p3dLabel('LOG LIFTS TO EARN TROPHIES', '#6b717b', 2.4); lb0.position.set(0, by + 0.45, 0.3); group.add(lb0);
     }
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
-    camera.position.set(0, 1.8, 9.4); camera.lookAt(0, 1.4, 0);
+    if (top){ camera.position.set(0, 1.8, 9.4); camera.lookAt(0, 1.4, 0); }
+    else { var cy = 2.75 - (rowsN - 1) * 0.7 + 0.05; camera.position.set(0, cy + 0.45, 3.2 * rowsN); camera.lookAt(0, cy, 0); }
     scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);
     renderer.render(scene, camera);
     var url = ''; try { url = canvas.toDataURL('image/png'); } catch (_) {}
@@ -20689,14 +20716,18 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function initShelf(tries){
     var host = document.getElementById('sh3dHost');
     if (!host) return;
-    if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ initShelf((tries || 0) + 1); }, 400); return; }
-    var defs = badgeDefs(), top = profileStats().top;
-    var sig = JSON.stringify([defs.map(function(b){ return [b.id, b.tier, b.name]; }), top.map(function(l){ return [l.name, l.weightKg, l.reps]; }), unitLabel(), Math.min(2, window.devicePixelRatio || 1)]);
+    shMount(host, badgeDefs(), profileStats().top, tries, initShelf);
+  }
+  function shMount(host, defs, top, tries, retry){
+    if (typeof THREE === 'undefined'){ if ((tries || 0) < 12) setTimeout(function(){ retry((tries || 0) + 1); }, 400); return; }
+    var sig = JSON.stringify([defs.map(function(b){ return [b.id, b.tier, b.name]; }), top ? top.map(function(l){ return [l.name, l.weightKg, l.reps]; }) : 0, unitLabel(), Math.min(2, window.devicePixelRatio || 1), host.clientHeight]);
     host.parentNode.classList.add('sh-ready');
-    if (!shStill || shStill.sig !== sig){
+    var shStill = shCache[sig];
+    if (!shStill){
       var st = shBake(sig, defs, top, host);
       if (!st){ host.parentNode.classList.remove('sh-ready'); return; }
-      shStill = st;
+      if (Object.keys(shCache).length > 3) shCache = {};
+      shCache[sig] = shStill = st;
     }
     var img = new Image(); img.className = 'sh-still'; img.alt = ''; img.draggable = false; img.src = shStill.url;
     host.innerHTML = ''; host.appendChild(img);
@@ -21380,9 +21411,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     prs: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.900 6.400 7.100.7-5.300 4.800 1.600 7-6.300-3.700-6.300 3.700 1.600-7L2 9.100l7.100-.7z"/></svg>',
     volume: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600"><circle cx="12" cy="12" r="8.500"/><circle cx="12" cy="12" r="2.600" fill="currentColor"/></svg>',
     heavy: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M1.500 20L9 7.500l4.200 6.800 3-4.300L22.500 20z"/></svg>',
+    cardio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.200"/><circle cx="18" cy="6" r="2.200"/><path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/></svg>',
+    bwclub: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 8h16l1.500 12h-19zM9 8a3 3 0 1 1 6 0z"/></svg>',
+    variety: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>',
+    reps: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.400-5.700"/><path d="M20 4v5h-5"/></svg>',
+    early: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="14" r="4.500"/><path d="M12 2.500v3M4.500 7l2 2M19.500 7l-2 2M1.500 14h3M19.500 14h3" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" fill="none"/></svg>',
     daily: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.500"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>'
   };
-  function badgeDefs(){
+  function badgeDefs(all){
     var p = profileStats(), ch = 0;
     try { ch = Math.max((chData().best || 0), chStreak()); } catch (err) {}
     var kgFmt = function(kg){ return fmtBig(kg) + ' ' + unitLabel(); };
@@ -21393,11 +21429,40 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { id:'volume',   name:'Total lifted',   v:p.totalKg,  lv:[10000, 100000, 500000],  fmt:kgFmt,   desc:'Lift {n} in total' },
       { id:'heavy',    name:'Heavy club',     v:p.maxKg,    lv:[60, 100, 140],           fmt:kgFmt,   desc:'Lift {n} in a single set' },
       { id:'daily',    name:'Daily challenge',v:ch,         lv:[3, 7, 30],               fmt:String,  desc:'Complete the daily challenge {n} days in a row' }
-    ].map(function(b){
+    ].concat(all ? badgeExtras() : []).map(function(b){
       var tier = 0; b.lv.forEach(function(l){ if (b.v >= l) tier++; });
       b.tier = tier; b.next = tier < 3 ? b.lv[tier] : null;
       return b;
     });
+  }
+  // Extra medals: only on the Achievements page (the Profile shelf keeps the original six).
+  function badgeExtras(){
+    var km = 0, names = {}, reps = 0, early = 0, bestRatio = 0;
+    var bw = state.settings && state.settings.bodyweightKg;
+    state.sessions.forEach(function(s){
+      if (s.status !== 'done') return;
+      var d = new Date(s.date);
+      if (!isNaN(d) && d.getHours() < 7) early++;
+      (s.exercises || []).forEach(function(ex){
+        if (ex.name) names[ex.name] = true;
+        if (isCardioEx(ex)){ cardioEntries(ex).forEach(function(e){ km += e.distanceKm || 0; }); return; }
+        var big = /back squat|bench press|deadlift/i.test(ex.name || '') && !/romanian|stiff|dumbbell|incline|decline|machine|smith|trap|single|split/i.test(ex.name || '');
+        (ex.sets || []).forEach(function(st){
+          if (st.reps > 0) reps += st.reps;
+          if (big && bw > 0 && st.weightKg > 0 && st.reps > 0){ var r = st.weightKg / bw; if (r > bestRatio) bestRatio = r; }
+        });
+      });
+    });
+    var du = cardioDistUnit(), dist = kmToDisplay(km);
+    var num = function(v){ return Math.round(v).toLocaleString('en-US'); };
+    var ratio = function(v){ return (Math.round(v * 100) / 100) + '\u00d7'; };
+    return [
+      { id:'cardio',  name:'Cardio distance', v:dist,      lv:[50, 250, 1000],          fmt:function(n){ return num(n) + ' ' + du; }, pv:function(v){ return num(v) + ' ' + du; }, desc:'Cover {n} of cardio distance' },
+      { id:'bwclub',  name:'Bodyweight club', v:bestRatio, lv:[1, 1.5, 2],              fmt:ratio,                                   pv:ratio, desc:'Lift {n} your bodyweight in a squat, bench or deadlift' },
+      { id:'variety', name:'Explorer',        v:Object.keys(names).length, lv:[10, 30, 60], fmt:String,                              desc:'Try {n} different exercises' },
+      { id:'reps',    name:'Rep machine',     v:reps,      lv:[1000, 5000, 25000],      fmt:num,                                     pv:num, desc:'Log {n} reps in total' },
+      { id:'early',   name:'Early bird',      v:early,     lv:[5, 20, 50],              fmt:String,                                  desc:'Start {n} workouts before 7am' }
+    ];
   }
   function profileBadgesHtml(){
     var defs = badgeDefs(), earned = 0;
@@ -21410,15 +21475,52 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     return '<div class="pf-badges"><div class="pf-badges-h">TROPHY SHELF<span>'+earned+' / '+(defs.length * 3)+'</span></div><div class="sh-stage" id="sh3dHost"></div><div class="pf-badge-grid">'+tiles+'</div></div>';
   }
   function openBadge(id){
-    var b = badgeDefs().filter(function(x){ return x.id === id; })[0];
+    var b = badgeDefs(true).filter(function(x){ return x.id === id; })[0];
     if (!b) return;
     var need = b.next === null ? b.lv[2] : b.next;
-    var prog = b.fmt === String ? b.v + ' / ' + need : fmtBig(b.v) + ' / ' + fmtBig(need);
+    var prog = b.pv ? b.pv(b.v) + ' / ' + b.pv(need) : (b.fmt === String ? b.v + ' / ' + need : fmtBig(b.v) + ' / ' + fmtBig(need));
     openTrophyPopup({ pr:false, obj:'medal', tier:b.tier,
       kick: b.tier ? TP_TIERS[b.tier].name + ' BADGE' : 'LOCKED',
       title: b.name,
       sub: b.desc.replace('{n}', b.fmt(b.next === null ? b.lv[2] : b.next)),
       chip: b.next === null ? 'MAXED OUT' : prog });
+  }
+
+  // ---------- Achievements page (opened from the Profile tab) ----------
+  var ACH_TIER = ['LOCKED', 'BRONZE', 'SILVER', 'GOLD'];
+  function achSummary(){
+    var defs = badgeDefs(true), e = 0; defs.forEach(function(b){ e += b.tier; });
+    return { earned: e, total: defs.length * 3 };
+  }
+  function openAchievements(){
+    var el = document.getElementById('achPage'), panel = document.getElementById('achPanel');
+    if (!el || !panel) return;
+    var defs = badgeDefs(true), earned = 0;
+    var rows = defs.map(function(b){
+      earned += b.tier;
+      var need = b.next === null ? b.lv[2] : b.next, pct = Math.max(0, Math.min(100, Math.round(b.v / need * 100)));
+      var prog = b.next === null ? 'MAXED' : (b.pv ? b.pv(b.v) + ' / ' + b.pv(need) : (b.fmt === String ? b.v + ' / ' + need : fmtBig(b.v) + ' / ' + fmtBig(need)));
+      return '<button type="button" class="ach-row t'+b.tier+'" data-action="open-badge" data-badge="'+b.id+'">' +
+               '<span class="pf-coin">'+BADGE_SVG[b.id]+'</span>' +
+               '<span class="ach-tx"><b>'+esc(b.name)+'</b><small>'+esc(b.desc.replace('{n}', b.fmt(need)))+'</small>' +
+               '<span class="ach-bar"><i style="width:'+(b.next === null ? 100 : pct)+'%"></i></span></span>' +
+               '<em>'+(b.tier ? ACH_TIER[b.tier] + '<br>' : '')+'<span>'+prog+'</span></em></button>';
+    }).join('');
+    var svgX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+    panel.innerHTML = '<div class="sp-head"><button type="button" class="sp-btn" data-action="close-ach" aria-label="Close">'+svgX+'</button><h3>Achievements</h3></div>' +
+      '<div class="sp-body"><div class="ach-sum"><b>'+earned+'</b> / '+(defs.length * 3)+' medals</div>' +
+      '<div class="sh-stage ach-stage" id="achShelfHost"></div><div class="ach-list">'+rows+'</div></div>';
+    el.classList.remove('hidden');
+    var host = document.getElementById('achShelfHost');
+    host.style.display = 'block';
+    var mount = function(tries){ shMount(host, defs, null, tries, mount); };
+    mount(0);
+    queueBackSync();
+  }
+  function closeAchievements(){
+    var el = document.getElementById('achPage');
+    if (el) el.classList.add('hidden');
+    queueBackSync();
   }
 
   // ---------- Trophy / medal popup ----------
@@ -23759,6 +23861,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       ui.settingsPage = el.dataset.page; renderApp(); queueBackSync();
     } else if (action === 'settings-back'){
       ui.settingsPage = null; renderApp(); queueBackSync();
+    } else if (action === 'open-achievements'){
+      openAchievements();
+    } else if (action === 'close-ach'){
+      closeAchievements();
     } else if (action === 'close-settings'){
       closeSettingsPage();
     } else if (action === 'share-profile'){
