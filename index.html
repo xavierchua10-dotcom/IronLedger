@@ -826,6 +826,14 @@
     margin-bottom:18px;
   }
   .session-meta b{color:var(--accent);font-weight:600;}
+  .session-meta > span{white-space:nowrap;}
+  .session-meta .sm-short{display:none;}
+  @media (max-width:400px){
+    .session-meta{gap:9px;font-size:11px;padding-top:8px;}
+    .session-meta .sm-long{display:none;}
+    .session-meta .sm-short{display:inline;}
+    .session-meta-actions{gap:5px;}
+  }
 
   /* ---------- Exercise card ---------- */
   .exercise-card{
@@ -7945,6 +7953,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function weightRepsError(weightKg, reps, exerciseName, muscle){
     var isBW = exerciseName && isBodyweightExercise(exerciseName);
     if (weightKg === null || (isBW ? weightKg < 0 : weightKg <= 0) || isNaN(reps) || reps <= 0) return 'Enter a weight and reps first';
+    if (reps % 1 !== 0) return 'Reps should be a whole number';
     if (reps > MAX_LOGGABLE_REPS) return 'That\u2019s over ' + MAX_LOGGABLE_REPS + ' reps \u2014 double check the number';
     var priorBest = exerciseName ? bestLoggedWeightKg(exerciseName) : 0;
     if (priorBest > 0){
@@ -12763,7 +12772,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
             '</div>';
     html += '<div class="session-meta">' +
               '<span>'+fmtDate(session.date)+'</span>' +
-              '<span><b>'+session.exercises.length+'</b> exercises</span>' +
+              '<span><b>'+session.exercises.length+'</b><span class="sm-long"> exercises</span><span class="sm-short"> ex</span></span>' +
               '<span><b'+(ui.flashSetsCounter ? ' class="flash"' : '')+'>'+sessionSetCount(session)+'</b> sets</span>' +
               '<div class="session-meta-actions">' +
                 '<button class="unit-toggle ex-plate-btn" data-action="open-plates" aria-label="Plate calculator"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="1.500" y="6" width="3" height="12" rx="1"/><rect x="5.500" y="3.500" width="3.500" height="17" rx="1"/><rect x="9" y="11" width="6" height="2"/><rect x="15" y="3.500" width="3.500" height="17" rx="1"/><rect x="19.500" y="6" width="3" height="12" rx="1"/></svg></button>' +
@@ -13248,7 +13257,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var d = cardioDraft(exId), info = cardioInfo(ex.name);
     var sec = cardioDraftSeconds(d);
     if (sec <= 0){ showToast('Enter a time first'); return; }
+    if (parseFloat(d.sec) >= 60){ showToast('Seconds should be under 60'); return; }
     if (sec > 86400){ showToast('That’s over 24 hours — check the time'); return; }
+    if (String(d.dist == null ? '' : d.dist).trim() !== '' && parseFloat(d.dist) < 0){ showToast('Check the distance'); return; }
     var km = cardioDraftKm(d);
     if (km && km > 1000){ showToast('That distance looks too long — check it'); return; }
     var incl = null;
@@ -15984,16 +15995,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function renderInsight(){
     var names = allExerciseNames();
     var html = '';
-    if (names.length === 0 && !cardioEverLogged()){
-      html += '<div class="empty tab-empty-state"><div class="glyph">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                  '<path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path>' +
-                '</svg>' +
-              '</div>' +
-              '<p>Nothing to show yet.<br>Log a few sessions and your Insight will appear here.</p></div>';
-      document.getElementById('view').innerHTML = html;
-      return;
-    }
+    // No empty-state here any more: a brand-new user still sees the 3D model and
+    // weekly targets (all at zero) instead of a blank "nothing to show" screen.
     // Free for everyone -- was gated the same way Progress's dashboard
     // view used to be (progressAccessState().locked, the progress-lock-
     // overlay/blur), removed on request. No account-tier branching left
@@ -16578,7 +16581,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // ---------- Profile (top of the Profile/Settings tab) ----------
   function profileStats(){
     var done = state.sessions.filter(function(s){ return s.status === 'done'; });
-    var total = 0, prs = 0, best = {}, first = null, weeks = {}, maxKg = 0;
+    var total = 0, prs = 0, best = {}, first = null, weeks = {}, maxKg = 0, prsByEx = {};
     function mondayKey(d){
       var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
       x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
@@ -16592,7 +16595,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         if (isCardioEx(ex)) return;
         var lift = !isBodyweightExercise(ex.name) && !isHoldExercise(ex.name);
         ex.sets.forEach(function(st){
-          if (st.isPR) prs++;
+          if (st.isPR){ prs++; prsByEx[ex.name] = (prsByEx[ex.name] || 0) + 1; }
           if (!lift || !(st.weightKg > 0) || !(st.reps > 0)) return;
           if (st.weightKg > maxKg) maxKg = st.weightKg;
           var e = e1rm(st.weightKg, st.reps), cur = best[ex.name];
@@ -16608,7 +16611,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!weeks[mondayKey(cur)]) cur.setDate(cur.getDate() - 7);
     while (weeks[mondayKey(cur)]){ streak++; cur.setDate(cur.getDate() - 7); }
     var top = Object.keys(best).map(function(k){ return best[k]; }).sort(function(a,b){ return b.e - a.e; }).slice(0, 3);
-    return { workouts: done.length, totalKg: total, prs: prs, streak: streak, top: top, maxKg: maxKg,
+    // A lift's first-ever PR is just its starting point; only later ones beat a record.
+    var prsBeaten = 0;
+    Object.keys(prsByEx).forEach(function(k){ prsBeaten += Math.max(0, prsByEx[k] - 1); });
+    return { workouts: done.length, totalKg: total, prs: prs, prsBeaten: prsBeaten, streak: streak, top: top, maxKg: maxKg,
              since: first ? first.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '' };
   }
   function profileName(){
@@ -21879,7 +21885,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     return [
       { id:'workouts', name:'Workouts',       v:p.workouts, lv:[10, 50, 100],            fmt:String,  desc:'Finish {n} workouts' },
       { id:'streak',   name:'Week streak',    v:p.streak,   lv:[2, 6, 12],               fmt:String,  desc:'Train {n} weeks in a row' },
-      { id:'prs',      name:'Record breaker', v:p.prs,      lv:[5, 25, 100],             fmt:String,  desc:'Set {n} personal records' },
+      { id:'prs',      name:'Record breaker', v:p.prsBeaten, lv:[5, 25, 100],            fmt:String,  desc:'Beat your own record {n} times' },
       { id:'volume',   name:'Total lifted',   v:p.totalKg,  lv:[10000, 100000, 500000],  fmt:kgFmt,   desc:'Lift {n} in total' },
       { id:'heavy',    name:'Heavy club',     v:p.maxKg,    lv:[60, 100, 140],           fmt:kgFmt,   desc:'Lift {n} in a single set' },
       { id:'daily',    name:'Daily challenge',v:ch,         lv:[3, 7, 30],               fmt:String,  desc:'Complete the daily challenge {n} days in a row' }
@@ -22611,6 +22617,17 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function finishSession(){
     var session = getActiveSession();
     var tiersBefore = badgeTierMap();
+    // Exercises that never got a set (or cardio entry) are left-over cards, not
+    // part of the workout: don't save them into History as empty entries.
+    var keptEx = (session.exercises || []).filter(function(ex){
+      return isCardioEx(ex) ? !!(ex.cardio && ex.cardio.length) : !!(ex.sets && ex.sets.length);
+    });
+    if (keptEx.length && keptEx.length !== session.exercises.length){
+      session.exercises = keptEx;
+      var keptIds = {};
+      keptEx.forEach(function(ex){ keptIds[ex.id] = true; });
+      keptEx.forEach(function(ex){ if (ex.supersetWith && !keptIds[ex.supersetWith]) delete ex.supersetWith; });
+    }
     session.status = 'done';
     // Only stamp finishedAt the first time a session is finished — a
     // sensible no-op guard even though every session finished here is a
@@ -22638,14 +22655,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       }
     } catch (_) {}
 
-    // First-ever finished session: prompt for a rating once, then never
+    // Third finished session (not the first: a brand-new user hasn't felt the app yet): prompt for a rating once, then never
     // again automatically — reachable afterward only via Settings ->
     // Support -> "Rate SaviorFit Logger". Marked shown immediately so it
     // can't double-fire, and delayed past the toast/flash animation so it
     // doesn't collide with the "Session saved" moment.
     if (!state.settings.ratingPromptShown){
       var doneCount = state.sessions.filter(function(s){ return s.status === 'done'; }).length;
-      if (doneCount === 1){
+      if (doneCount >= 3){
         state.settings.ratingPromptShown = true;
         saveSettings();
         setTimeout(openRatingPanel, 1500);
@@ -23448,6 +23465,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var info = cardioInfo(ex.name);
     var sec = Math.round((parseFloat(row.min) || 0) * 60 + (parseFloat(row.sec) || 0));
     if (sec <= 0){ showToast('Enter a time first'); return; }
+    if ((parseFloat(row.sec) || 0) >= 60){ showToast('Seconds should be under 60'); return; }
     if (sec > 86400){ showToast('That’s over 24 hours — check the time'); return; }
     var km = null;
     if (String(row.dist).trim() !== ''){
