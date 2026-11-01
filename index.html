@@ -5869,6 +5869,19 @@
     transition:opacity 0.25s ease, transform 0.25s ease;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+  .undo-toast{
+    position:fixed; bottom:calc(90px + var(--safe-bottom)); left:50%;
+    transform:translateX(-50%) translateY(8px);
+    display:flex; align-items:center; gap:14px; max-width:calc(100% - 32px);
+    background:var(--panel-3); border:1px solid var(--line); color:var(--text);
+    padding:10px 10px 10px 18px; border-radius:var(--radius-xl);
+    font-size:13px; z-index:60; opacity:0; white-space:nowrap; transition:opacity 0.25s ease, transform 0.25s ease;
+  }
+  .undo-toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+  .undo-toast button{
+    background:transparent; border:1px solid var(--accent, #f2b134); color:var(--accent, #f2b134);
+    font:inherit; font-weight:700; letter-spacing:0.04em; padding:6px 14px; border-radius:999px; cursor:pointer;
+  }
 
   /* ---------- Delete confirmation overlay ---------- */
   .confirm-overlay{
@@ -10482,7 +10495,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         ui.confirmModal = {
           kind: 'guest-signup-nudge',
           title: 'Save your plan',
-          message: 'Sign up free to keep your plan and workouts safe and synced across your devices. Your current data stays with you.',
+          message: 'Sign up free to keep your plan and workouts safe and synced across your devices. Your guest workouts will be added to your new account.',
           confirmLabel: 'Sign up',
           cancelLabel: 'Maybe later',
           variant: 'primary'
@@ -17413,6 +17426,153 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // provisions (once, ever) the account's tier/trial/subscription
   // fields on the same /users/{uid} doc, then keeps them live via a
   // realtime listener.
+  /* =========================================================
+     GUEST -> ACCOUNT IMPORT
+     Guest data lives in the plain (unscoped) storage keys; a real account
+     uses uid-scoped keys, so nothing used to carry over. After an account
+     is entered, any guest workouts/routines are merged in: automatically
+     for a brand-new account, and after a yes/no for an existing one. The
+     merge only ever ADDS (sessions deduped by id, routines/notes by
+     name/text) and is undoable from the toast.
+     ========================================================= */
+  var STORAGE_GUEST_IMPORT = 'il_guest_import_done_v1';
+  var guestImportUndo = null;
+  function readGuestSlot(){
+    function rd(k){ try{ var r = localStorage.getItem(k); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
+    var chat = rd(STORAGE_CHAT_MEMORY), st = rd(STORAGE_SETTINGS);
+    return {
+      sessions: sanitizeSessionList(rd(STORAGE_SESSIONS)),
+      routines: sanitizeRoutineList(rd(STORAGE_ROUTINES)),
+      chat: Array.isArray(chat) ? chat.filter(isPlainObject) : [],
+      settings: isPlainObject(st) ? st : null
+    };
+  }
+  function guestImportable(g){
+    return g.sessions.filter(function(x){ return x.status !== 'active' || (x.exercises && x.exercises.length); });
+  }
+  function guestSig(g){
+    var ss = guestImportable(g);
+    return ss.length + ':' + (ss[0] && ss[0].id || '') + ':' + g.routines.length;
+  }
+  function guestHasData(g){ return guestImportable(g).length > 0 || g.routines.length > 0; }
+  function markGuestImportHandled(g){ safeSetItem(STORAGE_GUEST_IMPORT, guestSig(g)); }
+
+  function importGuestData(isNewAccount){
+    var g = readGuestSlot();
+    if (!guestHasData(g) || !state.currentAccount || state.currentAccount === 'guest') return;
+    var raw = {};
+    [STORAGE_SESSIONS, STORAGE_ROUTINES, STORAGE_CHAT_MEMORY].forEach(function(k){
+      try{ raw[k] = localStorage.getItem(k); }catch(e){ raw[k] = null; }
+    });
+    var snap = {
+      sessions: JSON.stringify(state.sessions), routines: JSON.stringify(state.routines),
+      chat: JSON.stringify(state.chatMemory), settings: JSON.stringify(state.settings),
+      guest: raw, prevMark: (function(){ try{ return localStorage.getItem(STORAGE_GUEST_IMPORT); }catch(e){ return null; } })()
+    };
+    var haveIds = {}, hasActive = false;
+    state.sessions.forEach(function(x){ if (x.id) haveIds[x.id] = 1; if (x.status === 'active') hasActive = true; });
+    var added = [];
+    guestImportable(g).forEach(function(x){
+      if (x.id && haveIds[x.id]) return;
+      if (x.status === 'active'){ if (hasActive) return; hasActive = true; }
+      added.push(x);
+    });
+    if (added.length){
+      state.sessions = state.sessions.concat(added).sort(function(a, b){
+        var ta = new Date(a.date).getTime(), tb = new Date(b.date).getTime();
+        if (isNaN(ta) || isNaN(tb)) return 0;
+        return tb - ta;
+      });
+    }
+    var rnames = {};
+    state.routines.forEach(function(r){ rnames[(r.name || '').trim().toLowerCase()] = 1; });
+    var addedR = 0;
+    g.routines.forEach(function(r){
+      var k = (r.name || '').trim().toLowerCase();
+      if (rnames[k]) return;
+      rnames[k] = 1; state.routines.push(r); addedR++;
+    });
+    var texts = {};
+    state.chatMemory.forEach(function(c){ texts[c && c.text] = 1; });
+    g.chat.forEach(function(c){ if (!texts[c.text]){ texts[c.text] = 1; state.chatMemory.push(c); } });
+    if (isNewAccount && g.settings){
+      Object.keys(g.settings).forEach(function(k){
+        if (k === 'avatar' || k === 'today') return;
+        if (!(k in state.settings)) state.settings[k] = g.settings[k];
+      });
+    }
+    saveSessions(); saveRoutines(); saveChatMemory(); saveSettings();
+    markGuestImportHandled(g);
+    [STORAGE_SESSIONS, STORAGE_ROUTINES, STORAGE_CHAT_MEMORY].forEach(function(k){ safeRemoveItem(k); });
+    guestImportUndo = snap;
+    renderApp();
+    var n = added.length;
+    showUndoToast(n ? (n + ' guest workout' + (n === 1 ? '' : 's') + ' added') : 'Guest data added', 'Undo', undoGuestImport);
+  }
+  function undoGuestImport(){
+    var snap = guestImportUndo; guestImportUndo = null;
+    if (!snap) return;
+    try{
+      state.sessions = sanitizeSessionList(JSON.parse(snap.sessions));
+      state.routines = sanitizeRoutineList(JSON.parse(snap.routines));
+      state.chatMemory = JSON.parse(snap.chat);
+      state.settings = JSON.parse(snap.settings);
+    }catch(e){ return; }
+    saveSessions(); saveRoutines(); saveChatMemory(); saveSettings();
+    Object.keys(snap.guest).forEach(function(k){
+      if (snap.guest[k] === null) safeRemoveItem(k); else safeSetItem(k, snap.guest[k]);
+    });
+    if (snap.prevMark === null) safeRemoveItem(STORAGE_GUEST_IMPORT); else safeSetItem(STORAGE_GUEST_IMPORT, snap.prevMark);
+    renderApp();
+    showToast('Undone');
+  }
+  var undoToastTimer = null;
+  function showUndoToast(msg, label, fn){
+    var el = document.getElementById('undoToast');
+    if (!el){
+      el = document.createElement('div');
+      el.id = 'undoToast'; el.className = 'undo-toast';
+      document.body.appendChild(el);
+    }
+    el.innerHTML = '<span></span><button type="button"></button>';
+    el.firstChild.textContent = msg;
+    var b = el.querySelector('button');
+    b.textContent = label;
+    b.onclick = function(){ hideUndoToast(); fn(); };
+    void el.offsetWidth;
+    el.classList.add('show');
+    if (undoToastTimer) clearTimeout(undoToastTimer);
+    undoToastTimer = setTimeout(hideUndoToast, 9000);
+  }
+  function hideUndoToast(){
+    var el = document.getElementById('undoToast');
+    if (el) el.classList.remove('show');
+  }
+  function offerGuestImport(isNewAccount){
+    var g = readGuestSlot();
+    if (!guestHasData(g)) return;
+    var done = null;
+    try{ done = localStorage.getItem(STORAGE_GUEST_IMPORT); }catch(e){}
+    if (!isNewAccount && done === guestSig(g)) return; // already declined this exact guest data
+    if (isNewAccount){
+      setTimeout(function(){ importGuestData(true); }, 600);
+      return;
+    }
+    setTimeout(function(){
+      if (!state.currentAccount || state.currentAccount === 'guest' || ui.confirmModal) return;
+      var n = guestImportable(g).length;
+      ui.confirmModal = {
+        kind: 'guest-import',
+        title: 'Add your guest workouts?',
+        message: 'This phone has ' + n + ' workout' + (n === 1 ? '' : 's') + ' saved as a guest. Add them to this account? Your existing history stays exactly as it is.',
+        confirmLabel: 'Add them',
+        cancelLabel: 'Not now',
+        variant: 'primary'
+      };
+      renderConfirmModal();
+    }, 900);
+  }
+
   var keptLocalChanges = false;
   function isCloudDirty(acct){
     try { return localStorage.getItem(STORAGE_CLOUD_DIRTY + '::' + acct) === '1'; }
@@ -17506,6 +17666,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         showAppShell();
         renderApp();
       }
+      try { offerGuestImport(isNewAccount); } catch (err) { console.error('guest import offer failed:', err); }
     });
   }
 
@@ -24825,6 +24986,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!el) return;
     var action = el.dataset.action;
     if (action === 'cancel-confirm'){
+      if (ui.confirmModal && ui.confirmModal.kind === 'guest-import'){ try { markGuestImportHandled(readGuestSlot()); } catch (_) {} }
       dismissConfirmModal();
     } else if (action === 'confirm-modal-action'){
       var m = ui.confirmModal;
@@ -24844,6 +25006,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       else if (m && m.kind === 'start-routine') startRoutine(m.routineId);
       else if (m && m.kind === 'start-template') applyTemplate(m.templateKey);
       else if (m && m.kind === 'guest-signup-nudge') promptGuestSignUp();
+      else if (m && m.kind === 'guest-import') importGuestData(false);
       else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
       else if (m && m.kind === 'clear-data') clearAllData();
       else if (m && m.kind === 'clear-brief') clearBrief();
