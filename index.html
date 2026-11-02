@@ -1413,6 +1413,8 @@
   .exercise-head-collapsed .ex-pic-sm{flex:0 0 auto;width:44px;height:44px;border-radius:10px;background:#fff;border:1.5px solid rgba(var(--accent-rgb),0.5);overflow:hidden;}
   .exercise-head-collapsed .ex-pic-sm img{width:100%;height:100%;object-fit:contain;display:block;background:#fff;}
   .exercise-head-collapsed .ex-pic-sm img.rd3{background:#14161a;}
+  .exercise-card .ex-pic.cx-pic,.exercise-head-collapsed .cx-pic-sm{background:#14161a;}
+  .exercise-card .ex-pic-img.ex3d,.exercise-head-collapsed .ex-pic-sm img.ex3d{background:#14161a;}
 
   .exercise-volume{
     display:flex;
@@ -13817,12 +13819,23 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     renderApp();
   }
 
+  // Picture for a cardio Log card: a still of the live 3D figure (filled in by the shared canvas), tap -> How to.
+  function cardioPicImgHtml(ex, cls){
+    var lib = cardioLibItem(ex.name);
+    if (!lib) return null;
+    var hit = rdStills[ex.name + '|Cardio'];
+    return '<img class="'+cls+(hit ? ' rd3' : ' ex3d')+'" alt="" src="'+(hit || RD_BLANK)+'"' +
+      ' data-orig="images/3d/ex-'+exKind(ex.name)+'.png" data-rdx="1" data-rdn="'+esc(ex.name)+'" data-rdm="Cardio" data-rde="'+esc(lib.equipment || '')+'"'+(hit ? ' data-rdd="1"' : '')+'>';
+  }
+
   function renderCardioCardCollapsed(ex){
     var en = cardioEntries(ex), sec = 0, km = 0;
     en.forEach(function(e){ sec += e.durationSec || 0; km += e.distanceKm || 0; });
     var summary = en.length ? fmtClock(sec) + ' min' + (km > 0 ? ' &middot; ' + fmtDist(km) + ' ' + cardioDistUnit() : '') : 'no entries';
+    var cpSm = cardioPicImgHtml(ex, 'ex-pic-img-sm');
     return '<div class="exercise-card collapsed cx-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'" data-ex="'+ex.id+'" data-muscle="Cardio">' +
              '<div class="exercise-head-collapsed" data-action="toggle-exercise-done" data-ex="'+ex.id+'">' +
+               (cpSm ? '<span class="ex-pic-sm cx-pic-sm">'+cpSm+'</span>' : '') +
                '<div class="eh-title"><h3>'+esc(ex.name)+'</h3><span class="cx-chip">'+CARDIO_HEART_SVG+'Cardio</span></div>' +
                '<div class="exercise-collapsed-meta"><span>&#10003; '+summary+'</span><span class="chevron">&#8964;</span></div>' +
              '</div></div>';
@@ -13841,7 +13854,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var timerHere = !!(ui.cardioTimer && ui.cardioTimer.exId === ex.id);
     var u = cardioDistUnit();
     var html = '<div class="exercise-card cx-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'" data-ex="'+ex.id+'" data-muscle="Cardio">';
-    html += '<div class="exercise-head"><div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
+    var cpic = cardioPicImgHtml(ex, 'ex-pic-img');
+    html += '<div class="exercise-head">' +
+              (cpic ? '<button type="button" class="ex-pic cx-pic" data-action="open-howto" data-ex-name="'+esc(ex.name)+'" aria-label="How to do '+esc(ex.name)+'">'+cpic+
+                '<span class="ex-pic-zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg></span></button>' : '') +
+              '<div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
               '<div class="eh-badges"><span class="cx-chip">'+CARDIO_HEART_SVG+'Cardio</span>'+howtoButtonHtml(ex.name)+'</div></div>' +
               '<div class="exercise-head-actions">' +
                 '<button class="icon-btn" data-action="toggle-exercise-done" data-ex="'+ex.id+'" aria-label="Minimize '+esc(ex.name)+'">&#8963;</button>' +
