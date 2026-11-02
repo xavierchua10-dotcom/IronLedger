@@ -1783,6 +1783,25 @@
   .log-tpl-or::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(var(--accent-rgb),0.35),rgba(var(--accent-rgb),0));}
   .log-tpl-list .log-tpl-card{min-height:0;padding:12px 16px;margin-bottom:10px;}
   .log-tpl-list .log-tpl-card:last-child{margin-bottom:0;}
+  /* "How you train" card on the Log tab: one sentence + a thin bar showing
+     how the last 4 weeks of sets split into strength / size / endurance reps. */
+  .train-mix{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin:0 0 var(--density-card-gap);}
+  .train-mix-t{font:600 12px/1 'Oswald',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;}
+  .train-mix-big{font:600 18px/1.3 'Inter',sans-serif;color:var(--text);}
+  .train-mix-big b{color:var(--accent);font-weight:700;}
+  .train-mix-sub{font-size:12px;color:var(--text-faint);margin:3px 0 14px;}
+  .train-mix-bar{display:flex;height:14px;border-radius:7px;overflow:hidden;gap:3px;margin-bottom:10px;}
+  .train-mix-bar > span{display:block;height:100%;min-width:4px;}
+  .train-mix-bar .tm-s{background:var(--accent);}
+  .train-mix-bar .tm-m{background:rgba(var(--accent-rgb),0.6);}
+  .train-mix-bar .tm-e{background:rgba(var(--accent-rgb),0.28);}
+  .train-mix-leg{display:flex;justify-content:space-between;font-size:12px;color:var(--text-faint);}
+  .train-mix-leg span{display:inline-flex;align-items:center;gap:6px;}
+  .train-mix-leg span.top{color:var(--text);font-weight:600;}
+  .train-mix-leg i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  .train-mix-leg .tm-s i{background:var(--accent);}
+  .train-mix-leg .tm-m i{background:rgba(var(--accent-rgb),0.6);}
+  .train-mix-leg .tm-e i{background:rgba(var(--accent-rgb),0.28);}
   .warmup-reminder{
     text-align:center;
     padding:14px 28px 0;
@@ -13567,6 +13586,55 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
            '<div class="log-tpl-list log-tpl-wiz">' + wizCard + '</div>';
   }
 
+  /* "How you train": share of the last 4 weeks of sets by rep range.
+     1-5 reps = strength, 6-12 = size, 13+ = endurance. Holds (seconds) are
+     skipped. Hidden until there are at least 10 sets to look at. */
+  function trainMixData(){
+    var from = Date.now() - 28 * 24 * 60 * 60 * 1000, now = Date.now();
+    var c = { s: 0, m: 0, e: 0 };
+    (state.sessions || []).forEach(function(se){
+      if (!se || se.status !== 'done') return;
+      var t = new Date(se.finishedAt || se.date).getTime();
+      if (!t || t <= from || t > now) return;
+      (se.exercises || []).forEach(function(ex){
+        if (!ex || isHoldExercise(ex.name)) return;
+        (ex.sets || []).forEach(function(st){
+          var r = Number(st && st.reps);
+          if (!isFinite(r) || r <= 0) return;
+          if (r <= 5) c.s++; else if (r <= 12) c.m++; else c.e++;
+        });
+      });
+    });
+    var total = c.s + c.m + c.e;
+    if (total < 10) return null;
+    return { c: c, total: total };
+  }
+  function trainMixHtml(){
+    try {
+      var d = trainMixData();
+      if (!d) return '';
+      var names = { s: 'strength', m: 'size', e: 'endurance' };
+      var keys = ['s', 'm', 'e'].sort(function(a, b){ return d.c[b] - d.c[a]; });
+      var top = keys[0], share = d.c[top] / d.total;
+      var big = share >= 0.5
+        ? 'Most of your sets are for <b>' + names[top] + '</b>'
+        : 'A mix of <b>' + names[keys[0]] + '</b> and <b>' + names[keys[1]] + '</b>';
+      var bar = '', leg = '';
+      [['s', 'Strength'], ['m', 'Size'], ['e', 'Endurance']].forEach(function(x){
+        var n = d.c[x[0]];
+        if (n > 0) bar += '<span class="tm-' + x[0] + '" style="flex:' + n + ' 1 0"></span>';
+        leg += '<span class="tm-' + x[0] + (x[0] === top ? ' top' : '') + '"><i></i>' + x[1] + '</span>';
+      });
+      return '<div class="train-mix">' +
+               '<div class="train-mix-t">How you train</div>' +
+               '<div class="train-mix-big">' + big + '</div>' +
+               '<div class="train-mix-sub">Last 4 weeks</div>' +
+               '<div class="train-mix-bar">' + bar + '</div>' +
+               '<div class="train-mix-leg">' + leg + '</div>' +
+             '</div>';
+    } catch (e) { return ''; }
+  }
+
   function renderLog(){
     var session = getActiveSession();
     var html = '';
@@ -13602,6 +13670,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
     if (session.exercises.length === 0){
       html += addExerciseRow;
+      html += trainMixHtml();
       html += renderLogTemplateChoices();
       html += '<div class="warmup-reminder">Take a few minutes to <b>warm up</b> before you go heavy \u2014 some light reps and a bit of mobility now saves you an injury later.</div>';
     } else {
@@ -18044,7 +18113,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // One light sweep, left to right, over the cards currently on screen. Called when the
   // app opens, when you come back to it after a while, and on every tab switch. It adds a
   // throwaway layer to each card and removes it again, so nothing else is touched.
-  var SHINE_SELECTORS = '.template-card, .exercise-card, .history-item, .history-week-panel, .pf-stat, .pf-best, .pf-settings-card, .pf-streak, .chart-stats, .chart-wrap, .routine-item';
+  var SHINE_SELECTORS = '.template-card, .train-mix, .exercise-card, .history-item, .history-week-panel, .pf-stat, .pf-best, .pf-settings-card, .pf-streak, .chart-stats, .chart-wrap, .routine-item';
   function playCardShine(){
     try {
       if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
