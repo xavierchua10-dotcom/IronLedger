@@ -4752,6 +4752,10 @@
   .ht-head h3{font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;text-transform:uppercase;color:var(--accent);margin:0;line-height:1.1;}
   .ht-head small{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#8b9098;}
   .ht-img{width:100%;max-height:210px;object-fit:cover;border-radius:12px;display:block;margin:0 0 10px;}
+  .ht-media{position:relative;margin:0 0 10px;}
+  .ht-media .ht-img{margin:0;}
+  .ht-media .ex-view-pills{position:absolute;top:8px;right:8px;margin:0;z-index:4;background:rgba(20,22,26,0.78);}
+  .ht-rd{position:relative;width:100%;height:250px;border-radius:12px;overflow:hidden;background:#14161a;}
   .ht-step{display:flex;gap:11px;align-items:flex-start;margin:9px 0;}
   .ht-step span{flex:0 0 24px;height:24px;border-radius:50%;background:var(--accent);color:#14161a;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;}
   .ht-step p{margin:0;font-size:14.5px;line-height:1.35;color:#dfe3e8;}
@@ -13101,11 +13105,48 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     panel.innerHTML =
       '<div class="ht-head"><div><h3>'+esc(name)+'</h3>'+(sub ? '<small>'+esc(sub)+'</small>' : '')+'</div>' +
       '<button type="button" class="dc-x" data-action="close-howto" aria-label="Close">&#10005;</button></div>' +
-      (img ? '<img class="ht-img" src="'+esc(img)+'" alt="'+esc(name)+'">' : '') +
+      ((img || lib) ? '<div class="ht-media">' + (img ? '<img class="ht-img" src="'+esc(img)+'" alt="'+esc(name)+'">' : '') + (lib ? exViewPillsHtml() : '') + '</div>' : '') +
       '<div class="ht-steps">'+steps+'</div>' +
       '<div class="ht-box ht-start"><b>Tip</b> '+esc(h.start)+'</div>' +
       '<div class="ht-box ht-avoid"><b>Avoid</b> '+esc(h.avoid)+'</div>' +
       '<button type="button" class="ht-ok" data-action="close-howto">Got it</button>';
+    updateHowtoMedia();
+  }
+  // How-to picture: the 2D illustration, or (3D) the live animated figure you can drag to rotate.
+  function updateHowtoMedia(){
+    var media = document.querySelector('#howtoPanel .ht-media');
+    if (!media || !ui.howtoEx) return;
+    var img = media.querySelector('.ht-img'), old = media.querySelector('.ht-rd');
+    if (exViewMode !== '3d'){ if (old) old.remove(); if (img) img.style.display = ''; return; }
+    if (old) return;
+    var name = ui.howtoEx;
+    var lib = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === name; })[0];
+    if (!lib) return;
+    loadRagdollScript(function(ok){
+      if (!ok || ui.howtoEx !== name || exViewMode !== '3d') return;
+      var m = document.querySelector('#howtoPanel .ht-media');
+      if (!m || m.querySelector('.ht-rd')) return;
+      var spec = null;
+      try { spec = window.RDMap(name, lib.equipment, lib.muscle); } catch(e){ spec = null; }
+      if (!spec) return;
+      var im = m.querySelector('.ht-img');
+      var stage = document.createElement('div');
+      stage.className = 'ht-rd';
+      try {
+        m.insertBefore(stage, m.firstChild);
+        if (im) im.style.display = 'none';
+        getRdHost(stage);
+        var hint = document.createElement('div');
+        hint.className = 'confirm-rd-hint'; hint.textContent = 'drag to rotate';
+        stage.appendChild(hint);
+        window.R3.show(spec);
+        if (window.R3.V && window.R3.V.resize) window.R3.V.resize();
+      } catch(e){
+        rdState.failed = true;
+        if (stage.parentNode) stage.parentNode.removeChild(stage);
+        if (im) im.style.display = '';
+      }
+    });
   }
 
   function renderChallengePanel(){
@@ -23938,7 +23979,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     return rdStills[key] || null;
   }
   var rdPumping = false, rdPumpTimer = 0;
-  function rdPopupOpen(){ return !!document.querySelector('#confirmPanel .confirm-rd'); }
+  function rdPopupOpen(){ return !!document.querySelector('#confirmPanel .confirm-rd, #howtoPanel .ht-rd'); }
   function pumpExerciseStills(){
     if (rdPumping || exViewMode !== '3d') return;
     if (!document.querySelector('img[data-rdn]:not([data-rdd])')) return;
@@ -23990,6 +24031,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         else { delete im.dataset.rdd; im.src = RD_BLANK; }
       }
     });
+    if (ui.howtoEx) updateHowtoMedia();
     schedulePump();
   }
   try { new MutationObserver(schedulePump).observe(document.body, { childList: true, subtree: true }); } catch(e){}
@@ -25888,6 +25930,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (e.target === howtoOverlayEl){ closeHowto(); return; }
     var el = e.target.closest('[data-action]');
     if (el && el.dataset.action === 'close-howto') closeHowto();
+    else if (el && el.dataset.action === 'set-ex-view') setExView(el.dataset.view);
   });
 
   var challengeOverlayEl = document.getElementById('challengeOverlay');
