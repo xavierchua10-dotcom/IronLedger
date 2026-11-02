@@ -11710,7 +11710,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
           '<div class="hc-rule"><b>Set 1:</b> heavy, a few reps left in the tank.<br><b>Set 2:</b> same weight, go to failure.<br>After set 2 the exercise locks as <b>Done</b>.</div>' +
         '</div>' +
         '<div class="pro-panel-footer">' +
-          '<button type="button" class="hc-start" data-action="hc-start" data-template="'+hcKey+'">Start Hardcore '+esc(hcName)+'</button>' +
+          (state.currentAccount === 'guest'
+            ? '<div class="hc-hint" style="text-align:center;margin:0 0 8px;">Hardcore Mode needs a free account</div>'
+            : '') +
+          '<button type="button" class="hc-start" data-action="hc-start" data-template="'+hcKey+'">'+(state.currentAccount === 'guest' ? 'Sign up to start Hardcore' : 'Start Hardcore '+esc(hcName))+'</button>' +
         '</div>';
       return;
     }
@@ -11791,6 +11794,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function applyTemplate(templateKey){
     var tpl = WORKOUT_TEMPLATES[templateKey];
     if (!tpl) return;
+    if (tpl.hardcore && state.currentAccount === 'guest'){ promptGuestSignUp(); return; }
     var session = getActiveSession();
     session.name = tpl.label;
     session.exercises = tpl.exercises.map(function(ex){
@@ -26822,6 +26826,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else if (el.dataset.action === 'hc-start'){
       var hcT = el.dataset.template;
       closeTemplatePicker();
+      if (state.currentAccount === 'guest'){ promptGuestSignUp(); return; }   // Hardcore Mode is for signed-in accounts
       applyTemplate(hcT);
     }
   });
