@@ -4280,13 +4280,13 @@
   .chart-stats{
     display:flex;
     justify-content:space-between;
-    margin-bottom:8px;
+    margin-bottom:16px;
     font-family:'JetBrains Mono',monospace;
   }
   .chart-stats .cs-block .cs-label{font-size:10px;color:#c7ccd3;text-transform:uppercase;letter-spacing:0.05em;}
   .chart-stats .cs-block .cs-val{font-size:16px;color:var(--accent);font-weight:700;}
-  .chart-stats .cs-row{display:flex;align-items:center;gap:7px;white-space:nowrap;}
-  .chart-stats .cs-delta{display:inline-flex;align-items:center;font-size:11px;font-weight:700;line-height:1;padding:4px 8px;border-radius:999px;border:1px solid;opacity:0;animation:csDeltaIn .35s ease .6s forwards;}
+  .chart-stats .cs-row{display:flex;flex-direction:column;align-items:flex-start;gap:8px;white-space:nowrap;margin-top:4px;}
+  .chart-stats .cs-delta{display:inline-flex;align-items:center;font-size:11px;font-weight:700;line-height:1;padding:5px 10px;border-radius:999px;border:1px solid;opacity:0;animation:csDeltaIn .35s ease .6s forwards;}
   .chart-stats .cs-delta.up{color:#4cc86e;background:rgba(76,200,110,0.16);border-color:rgba(76,200,110,0.7);}
   .chart-stats .cs-delta.down{color:#f05f5a;background:rgba(240,95,90,0.16);border-color:rgba(240,95,90,0.7);}
   .chart-stats .cs-delta.same{color:#a0a7b0;background:rgba(160,167,176,0.12);border-color:rgba(160,167,176,0.45);}
