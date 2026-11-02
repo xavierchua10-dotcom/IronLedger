@@ -25928,9 +25928,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else if (action === 'preview-notif'){
       var pk = el.dataset.kind;
       if (window.SaviorFirebase && window.SaviorFirebase.callPreviewNotification){
-        showToast('Sending a preview\u2026');
+        showToast('Preview arrives in ~8s \u2014 leave the app now');
         window.SaviorFirebase.callPreviewNotification(pk).then(function(r){
-          showToast(r && r.sent ? 'Preview sent \u2014 leave the app to see it' : 'Not sent: ' + ((r && r.reason) || 'push failed'));
+          showToast(r && r.sent ? 'Preview sent' : 'Not sent: ' + ((r && r.reason) || 'push failed'));
         }).catch(function(err){ showToast('Preview failed (' + ((err && (err.code || err.message)) || 'error') + ')'); });
       }
     } else if (action === 'toggle-push'){
