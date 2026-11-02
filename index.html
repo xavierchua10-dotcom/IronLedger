@@ -4285,6 +4285,13 @@
   }
   .chart-stats .cs-block .cs-label{font-size:10px;color:#c7ccd3;text-transform:uppercase;letter-spacing:0.05em;}
   .chart-stats .cs-block .cs-val{font-size:16px;color:var(--accent);font-weight:700;}
+  .chart-stats .cs-row{display:flex;align-items:center;gap:7px;white-space:nowrap;}
+  .chart-stats .cs-delta{display:inline-flex;align-items:center;font-size:11px;font-weight:700;line-height:1;padding:4px 8px;border-radius:999px;border:1px solid;opacity:0;animation:csDeltaIn .35s ease .6s forwards;}
+  .chart-stats .cs-delta.up{color:#4cc86e;background:rgba(76,200,110,0.16);border-color:rgba(76,200,110,0.7);}
+  .chart-stats .cs-delta.down{color:#f05f5a;background:rgba(240,95,90,0.16);border-color:rgba(240,95,90,0.7);}
+  .chart-stats .cs-delta.same{color:#a0a7b0;background:rgba(160,167,176,0.12);border-color:rgba(160,167,176,0.45);}
+  @keyframes csDeltaIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion: reduce){.chart-stats .cs-delta{animation:none;opacity:1;}}
   /* Little color key next to each stat label — doubles as the chart legend
      when the trend line also draws the weight-progression line. */
   .chart-stats .cs-swatch{
@@ -16217,10 +16224,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var weightLineOn = showWeightLine && pro;
     var swatch1RM = weightLineOn ? '<i class="cs-swatch" style="background:'+chartTrendHex(points)+'"></i>' : '';
     var swatchWeight = weightLineOn ? '<i class="cs-swatch" style="background:'+WEIGHT_LINE_HEX+'"></i>' : '';
+    // ▲/▼ chips: latest session vs the one before it (needs 2+ sessions).
+    var prevPt = points.length >= 2 ? points[points.length - 2] : null;
+    var deltaChip1 = prevPt ? progressDeltaChipHtml(latest.e1rm - prevPt.e1rm) : '';
+    var deltaChip2 = prevPt ? progressDeltaChipHtml(latest.topKg - prevPt.topKg) : '';
     html += '<div class="chart-wrap">';
     html += '<div class="chart-stats">' +
-              '<div class="cs-block"><div class="cs-label">'+swatch1RM+'Est. best 1RM'+infoDotHtml('1rm')+'</div><div class="cs-val" id="csValBest1RM" data-target="'+best.e1rm+'">0 '+unitLabel()+'</div></div>' +
-              '<div class="cs-block"><div class="cs-label">'+swatchWeight+'Latest top set'+infoDotHtml('topset')+'</div><div class="cs-val" id="csValLatestTop" data-target="'+latest.topKg+'">0 '+unitLabel()+'</div></div>' +
+              '<div class="cs-block"><div class="cs-label">'+swatch1RM+'Est. best 1RM'+infoDotHtml('1rm')+'</div><div class="cs-row"><div class="cs-val" id="csValBest1RM" data-target="'+best.e1rm+'">0 '+unitLabel()+'</div>'+deltaChip1+'</div></div>' +
+              '<div class="cs-block"><div class="cs-label">'+swatchWeight+'Latest top set'+infoDotHtml('topset')+'</div><div class="cs-row"><div class="cs-val" id="csValLatestTop" data-target="'+latest.topKg+'">0 '+unitLabel()+'</div>'+deltaChip2+'</div></div>' +
             '</div>';
     if (points.length >= 2){
       chartCarouselPage = 0;
@@ -16888,6 +16899,13 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function shareDelta(deltaKg){
     var sign = deltaKg > 0.04 ? '+' : (deltaKg < -0.04 ? '\u2212' : '');
     return sign + fmtWeight(Math.abs(deltaKg)) + ' ' + unitLabel();
+  }
+  function progressDeltaChipHtml(deltaKg){
+    var shown = Math.round(toDisplay(Math.abs(deltaKg)) * 10) / 10;
+    if (!isFinite(deltaKg) || shown < 0.1) return '<span class="cs-delta same" title="Same as last session">= same</span>';
+    var up = deltaKg > 0;
+    return '<span class="cs-delta '+(up ? 'up' : 'down')+'" title="'+(up ? 'Up' : 'Down')+' vs last session">' +
+      (up ? '\u25B2 +' : '\u25BC \u2212') + fmtWeight(Math.abs(deltaKg)) + ' ' + unitLabel() + '</span>';
   }
   function progressShareData(name){
     var pts = collectExercisePoints(name);
