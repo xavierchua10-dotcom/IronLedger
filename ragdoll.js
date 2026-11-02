@@ -104,10 +104,10 @@ function drawProp(spec, p, K, Hn){
   return out;
 }
 function render(spec, u, time){
-  var p = mix(spec.A, spec.B, u), K = kin(p), o = '', i;
+  var p = spec.gen ? spec.gen(time||0) : mix(spec.A, spec.B, u), K = kin(p), o = '', i;
   o += '<rect x="-300" y="-300" width="900" height="700" fill="'+BG+'"/><rect x="-300" y="'+FL+'" width="900" height="200" fill="#1a1c21"/><line x1="-300" y1="'+FL+'" x2="600" y2="'+FL+'" stroke="#3c4048" stroke-width="2"/>';
   o += '<ellipse cx="150" cy="'+(FL+1)+'" rx="95" ry="4" fill="#000" opacity=".35"/>';
-  (spec.scene ? spec.scene(K, p) : []).forEach(function(s){ o += shape(s); });
+  (spec.scene ? spec.scene(K, p, time||0) : []).forEach(function(s){ o += shape(s); });
   // far limbs
   o += cap(K.H, K.kneeF, 13, SKD) + cap(K.kneeF, K.ankF, 10, SKD) + foot(K.ankF, K.fa2, 7, SKD);
   o += cap(K.S, K.elbF, 10, SKD) + cap(K.elbF, K.handF, 8.5, SKD);
@@ -164,6 +164,7 @@ function fitBox(spec){
     if (p.ps) { xs.push(K.S[0]+p.ps[0]); ys.push(K.S[1]+p.ps[1]); }
     if (spec.prop === 'bar' || spec.prop === 'ez') { xs.push(K.hand[0]-20, K.hand[0]+20); ys.push(K.hand[1]-20); }
   });
+  (spec.fit || []).forEach(function(q){ xs.push(q[0]); ys.push(q[1]); });
   if (spec.scene){ var K0 = kin(spec.A); spec.scene(K0, spec.A).forEach(function(s){ if (s.a){ xs.push(s.a[0], s.b[0]); ys.push(s.a[1], s.b[1]); } else if (s.x !== undefined){ xs.push(s.x, s.x+(s.w||0)); ys.push(s.y, s.y+(s.h||0)); } }); }
   ys.push(FL + 6);
   var x0 = Math.min.apply(0,xs)-24, x1 = Math.max.apply(0,xs)+24, y0 = Math.min.apply(0,ys)-22, y1 = Math.max.apply(0,ys);
@@ -476,6 +477,223 @@ M.calfSeated = function(){
   return {A:SEAT({tor:2,hd:[188,150],hl:undefined,fa:0,fa2:0}), B:{ft:[186,196],fa:42,fa2:42}, prop:'pad', muscle:'calves',
     scene:function(K){ var o=seatScene(138,166,70)(); o.push({k:'l',a:[K.knee[0]-16,K.knee[1]-9],b:[K.knee[0]+4,K.knee[1]-9],w:10,c:PADC},{k:'r',x:K.ank[0]-6,y:K.ank[1]+4,w:36,h:6,r:3}); return o; }};
 };
+
+// ---------- cardio (continuous, time-driven motions: spec.gen(t) returns the pose; spec.scene3 / spec.dyn3 build the 3D machine) ----------
+var DEG = Math.PI/180, GOLD = '#f2b134';
+function sm01(v){ v = Math.max(0,Math.min(1,v)); return v*v*(3-2*v); }
+function shoulderOf(hx,hy,tor){ return [hx+Math.sin(tor*DEG)*60, hy-Math.cos(tor*DEG)*60]; }
+function armFar(S,ang,len){ return [S[0]+len*Math.sin(ang*DEG), S[1]+len*Math.cos(ang*DEG)]; }
+// one foot on a walking / running stride: stance (foot slides back on the ground) then swing (foot lifts and returns forward)
+function stride(ph,o){
+  ph = ph - Math.floor(ph);
+  if (ph < o.st){ var k = ph/o.st; return {p:[o.hx+o.xf+(o.xb-o.xf)*k, o.g], a:-8+o.toe*sm01((k-0.45)/0.55)}; }
+  var q = (ph-o.st)/(1-o.st);
+  return {p:[o.hx+o.xb+(o.xf-o.xb)*sm01(q), o.g-o.lift*Math.sin(Math.PI*q)], a:o.toe*0.7*(1-sm01(q*1.2)) - 8*sm01(q)};
+}
+function gaitGen(o){
+  return function(t){
+    var ph = (t/o.T) % 1, f1 = stride(ph,o), f2 = stride(ph+0.5,o);
+    var hy = o.hy + o.bob*Math.cos(4*Math.PI*(ph-o.mid));
+    var S = shoulderOf(o.hx,hy,o.tor), sw = Math.cos(2*Math.PI*ph)*o.arm;
+    return {hx:o.hx,hy:hy,tor:o.tor,ft:f1.p,fa:f1.a,ft2:f2.p,fa2:f2.a,kb:-1,kb2:-1,eb:1,eb2:1,nk:0,as:-sw,al:o.al,hd2:armFar(S,sw,o.al),lz:0.02,hz:0.0,ez:0.12};
+  };
+}
+var RUN = {T:0.66,hx:150,hy:123,g:206,xf:30,xb:-36,lift:30,st:0.38,toe:34,bob:3.2,mid:0.19,tor:9,arm:62,al:44};
+var WALK = {T:1.05,hx:150,hy:122,g:206,xf:26,xb:-26,lift:9,st:0.62,toe:26,bob:1.8,mid:0.25,tor:2,arm:26,al:58};
+function cardioSpec(gen,extra,T){
+  var sp = {gen:gen, T:T, stillT:T*0.12, A:gen(0), B:gen(T*0.5), muscle:'quads'};
+  return Object.assign(sp,extra||{});
+}
+function groundSpeed(o){ return (o.xf-o.xb)/(o.st*o.T); }
+// floor markers that slide back at exactly the speed the planted foot moves (so the feet don't skate)
+function dashes(o,y,zs,len){
+  var v = groundSpeed(o), gap = 70;
+  return function(E,t){ for (var i = 0; i < 6; i++){ var x = ((i*gap - v*t) % (gap*6) + gap*6) % (gap*6) - 40; zs.forEach(function(z){ E.box(E.P(x,y,z), len*0.01, 0.004, 0.03, E.GOLDM); }); } };
+}
+M.run = function(){
+  var sp = cardioSpec(gaitGen(RUN),{muscle:'quads',wide:true,fit:[[80,206],[230,206],[150,60]]},RUN.T);
+  var dz = dashes(RUN,FL+0.4,[-0.55,0.55],16);
+  sp.dyn3 = function(E,K,p,t){ dz(E,t); };
+  sp.scene3 = function(){};
+  sp.scene = function(K,p,t){ var v = groundSpeed(RUN), o=[]; for (var i=0;i<6;i++){ var x=((i*70 - v*(t||0)) % 420 + 420) % 420 - 60; o.push({k:'l',a:[x,FL+4],b:[x+16,FL+4],w:3,c:GOLD}); } return o; };
+  return sp;
+};
+M.walk = function(){
+  var sp = cardioSpec(gaitGen(WALK),{muscle:'calves',wide:true,fit:[[80,206],[230,206],[150,60]]},WALK.T);
+  var dz = dashes(WALK,FL+0.4,[-0.55,0.55],16);
+  sp.dyn3 = function(E,K,p,t){ dz(E,t); };
+  sp.scene3 = function(){};
+  sp.scene = function(K,p,t){ var v = groundSpeed(WALK), o=[]; for (var i=0;i<6;i++){ var x=((i*70 - v*(t||0)) % 420 + 420) % 420 - 60; o.push({k:'l',a:[x,FL+4],b:[x+16,FL+4],w:3,c:GOLD}); } return o; };
+  return sp;
+};
+// ---- treadmill: same stride on a belt (belt top y=200), console + handrails in front
+var TRD = Object.assign({}, RUN, {T:0.74,hx:140,hy:109,g:194,xf:28,xb:-32,lift:26,st:0.4,bob:2.6,tor:7});
+M.treadmill = function(){
+  var gen = gaitGen(TRD), v = groundSpeed(TRD);
+  var sp = cardioSpec(gen,{muscle:'quads',wide:true,fit:[[60,203],[240,203],[226,70]]},TRD.T);
+  sp.scene = function(K,p,t){
+    var o = [{k:'l',a:[64,203],b:[236,203],w:9,c:'#2b2e35'},{k:'l',a:[76,208],b:[76,FL],w:5,c:'#3a3e46'},{k:'l',a:[226,208],b:[226,FL],w:5,c:'#3a3e46'},
+      {k:'l',a:[232,203],b:[226,84],w:7,c:'#3a3e46'},{k:'r',x:208,y:72,w:42,h:20,r:5},{k:'l',a:[226,110],b:[190,118],w:4,c:'#5a606b'}];
+    for (var i = 0; i < 7; i++){ var x = ((i*26 - v*(t||0)) % 182 + 182) % 182 + 62; o.push({k:'l',a:[x,198.5],b:[x+8,198.5],w:2,c:'#555b66'}); }
+    return o;
+  };
+  sp.scene3 = function(E){
+    var P = E.P, z = 0.31;
+    E.box(P(150,203,0), 1.74, 0.06, 0.56, E.DARK);                       // belt deck
+    [-1,1].forEach(function(s){
+      E.box(P(150,205,s*z), 1.74, 0.09, 0.06, E.METAL);                  // side rails
+      E.rod(P(76,208,s*z), P(76,FL,s*z), 0.02, E.DARK); E.rod(P(226,208,s*z), P(226,FL,s*z), 0.02, E.DARK);
+      E.rod(P(232,205,s*z), P(226,88,s*z), 0.024, E.METAL);              // uprights
+      E.rod(P(226,112,s*z), P(188,119,s*z), 0.018, E.METAL);             // handrails
+    });
+    E.rod(P(188,119,-z), P(188,119,z), 0.016, E.METAL);
+    E.box(P(224,82,0), 0.2, 0.15, 0.7, E.DARK, 0.25); E.box(P(227,82.5,0), 0.02, 0.1, 0.5, E.GOLDM, 0.25);
+  };
+  sp.dyn3 = function(E,K,p,t){   // belt slats sliding back at foot speed
+    for (var i = 0; i < 7; i++){ var x = ((i*26 - v*t) % 182 + 182) % 182 + 62; E.box(E.P(x,200.2,0), 0.035, 0.004, 0.5, E.METAL); }
+  };
+  return sp;
+};
+// ---- stationary bike: foot on a crank circle, hands on the bars
+var BIKE = {T:0.9,BB:[160,180],R:17,hx:110,hy:128,tor:38,hand:[200,106],sad:[108,136]};
+M.bike = function(){
+  var o = BIKE;
+  var gen = function(t){
+    var th = (t/o.T)*2*Math.PI, f1 = [o.BB[0]+o.R*Math.cos(th), o.BB[1]+o.R*Math.sin(th)], f2 = [o.BB[0]-o.R*Math.cos(th), o.BB[1]-o.R*Math.sin(th)];
+    var hy = o.hy + 0.8*Math.sin(2*th);
+    return {hx:o.hx,hy:hy,tor:o.tor,ft:f1,ft2:f2,fa:-4,fa2:-4,kb:-1,kb2:-1,eb:1,eb2:1,nk:-10,hd:o.hand,hd2:[o.hand[0],o.hand[1]],lz:0.03,hz:0.0,ez:0.06};
+  };
+  var sp = cardioSpec(gen,{muscle:'quads',wide:true,fit:[[80,210],[236,210],[200,92]]},BIKE.T);
+  sp.scene = function(){ return [{k:'l',a:[96,FL-3],b:[226,FL-3],w:6,c:'#2b2e35'},{k:'l',a:[124,186],b:[198,176],w:6,c:'#3a3e46'},{k:'l',a:[126,188],b:[108,138],w:5,c:'#3a3e46'},{k:'r',x:92,y:132,w:30,h:7,r:3},
+    {k:'l',a:[198,176],b:[202,106],w:6,c:'#3a3e46'},{k:'c',x:202,y:176,r:24},{k:'l',a:[194,104],b:[210,104],w:5,c:'#5a606b'}]; };
+  sp.scene3 = function(E){
+    var P = E.P;
+    E.rod(P(124,186,0), P(198,176,0), 0.03, E.DARK);                    // spine
+    E.rod(P(126,188,0), P(108,138,0), 0.026, E.METAL);                   // seat post
+    E.box(P(104,134,0), 0.3, 0.05, 0.2, E.DARK, 0.12);                   // saddle
+    E.rod(P(198,176,0), P(202,106,0), 0.03, E.DARK);                     // front post
+    E.cylz(P(202,172,0), 0.24, 0.07, E.PLATE); E.cylz(P(202,172,0.036), 0.215, 0.01, E.GOLDM);   // flywheel
+    E.rod(P(202,106,-0.22), P(202,106,0.22), 0.018, E.METAL);            // handlebar
+    E.ball(P(202,106,-0.22), 0.03, E.DARK); E.ball(P(202,106,0.22), 0.03, E.DARK);
+    E.box(P(108,209,0), 0.06, 0.04, 0.62, E.DARK); E.box(P(222,209,0), 0.06, 0.04, 0.62, E.DARK); E.rod(P(108,209,0), P(222,209,0), 0.02, E.DARK);
+    E.cylz(P(o.BB[0],o.BB[1],0), 0.03, 0.34, E.METAL);                   // crank axle
+  };
+  sp.dyn3 = function(E,K,p,t){
+    var P = E.P, bb = o.BB;
+    [[K.ank,0.14],[K.ankF,-0.14]].forEach(function(q){ E.rod(P(bb[0],bb[1],q[1]), P(q[0][0],q[0][1],q[1]), 0.016, E.METAL); E.box(P(q[0][0],q[0][1]+2,q[1]), 0.13, 0.025, 0.09, E.DARK); });
+    var a = t*6; E.rod(P(202+Math.cos(a)*20,172+Math.sin(a)*20,0.04), P(202-Math.cos(a)*20,172-Math.sin(a)*20,0.04), 0.007, E.GOLDM);
+  };
+  return sp;
+};
+// ---- rowing machine: legs, then body, then arms; and back
+var ROW = {T:2.4};
+M.rower = function(){
+  var gen = function(t){
+    var c = (t/ROW.T) % 1, s = c < 0.4 ? sm01(c/0.4) : 1 - sm01((c-0.4)/0.6);          // 0 = catch, 1 = finish
+    var Lg = sm01(s/0.55), Bd = sm01((s-0.3)/0.55), Ar = sm01((s-0.62)/0.38);
+    var hx = 168 + (122-168)*Lg, hy = 170 + (176-170)*Lg, tor = 26 + (-24-26)*Bd;
+    var hs = [62 + (26-62)*Ar, 32 + (22-32)*Ar];
+    return {hx:hx,hy:hy,tor:tor,ft:[204,182],ft2:[204,182],fa:-30,fa2:-30,kb:-1,kb2:-1,eb:1,eb2:1,nk:-6*(1-Bd),hs:hs,lz:0.04,hz:0.0,ez:0.1};
+  };
+  var sp = cardioSpec(gen,{muscle:'back',wide:true,fit:[[40,206],[246,206],[200,100]]},ROW.T);
+  sp.scene = function(K){ return [{k:'l',a:[52,200],b:[234,200],w:6,c:'#4a4f58'},{k:'r',x:K.H[0]-14,y:K.H[1]+6,w:30,h:7,r:3},{k:'c',x:234,y:172,r:24},{k:'l',a:[206,186],b:[214,176],w:5,c:'#3a3e46'}]; };
+  sp.scene3 = function(E){
+    var P = E.P;
+    E.box(P(142,200,0), 1.9, 0.045, 0.1, E.METAL);                      // rail
+    E.box(P(54,206,0), 0.07, 0.1, 0.5, E.DARK); E.box(P(228,206,0), 0.07, 0.1, 0.5, E.DARK);
+    E.cylz(P(234,170,0), 0.28, 0.14, E.PLATE); E.cylz(P(234,170,0.075), 0.255, 0.012, E.GOLDM);
+    E.rod(P(228,206,-0.2), P(228,170,-0.2), 0.02, E.DARK); E.rod(P(228,206,0.2), P(228,170,0.2), 0.02, E.DARK);
+    [-1,1].forEach(function(s){ E.box(P(208,184,s*0.15), 0.2, 0.03, 0.1, E.DARK, -0.5); });   // foot plates
+  };
+  sp.dyn3 = function(E,K,p,t){
+    var P = E.P, h = K.hand;
+    E.box(P(K.H[0],188,0), 0.26, 0.045, 0.2, E.DARK);                    // sliding seat
+    E.rod(P(h[0],h[1],-0.22), P(h[0],h[1],0.22), 0.016, E.GOLDM);        // handle
+    E.rod(P(h[0],h[1],0), P(234,170,0), 0.006, E.METAL);                 // chain to the flywheel
+  };
+  return sp;
+};
+// ---- elliptical: feet on pedals moving in long ovals, hands on swinging handles
+var ELL = {T:1.15,hx:150,hy:98,tor:3,xc:152,yc:178,a:26,b:9};
+M.elliptical = function(){
+  var o = ELL;
+  var gen = function(t){
+    var th = (t/o.T)*2*Math.PI, c = Math.cos(th), s = Math.sin(th), S = shoulderOf(o.hx,o.hy,o.tor);
+    var f1 = [o.xc+o.a*c, o.yc+o.b*s], f2 = [o.xc-o.a*c, o.yc-o.b*s];
+    var an = 38*Math.cos(th+Math.PI) , hn = [188-16*c, 78+0], hf = [188+16*c, 78];
+    return {hx:o.hx,hy:o.hy+1.2*Math.sin(2*th),tor:o.tor,ft:f1,ft2:f2,fa:-4+10*c,fa2:-4-10*c,kb:-1,kb2:-1,eb:1,eb2:1,nk:0,hd:hn,hd2:hf,lz:0.03,hz:0.0,ez:0.1};
+  };
+  var sp = cardioSpec(gen,{muscle:'glutes',wide:true,fit:[[64,208],[240,208],[206,50]]},ELL.T);
+  sp.scene = function(){ return [{k:'l',a:[70,FL-5],b:[232,FL-5],w:6,c:'#2b2e35'},{k:'l',a:[212,FL-5],b:[210,66],w:7,c:'#3a3e46'},{k:'r',x:192,y:52,w:40,h:18,r:5},{k:'c',x:92,y:178,r:14}]; };
+  sp.scene3 = function(E){
+    var P = E.P, z = 0.3;
+    E.box(P(150,208,0), 1.7, 0.06, 0.08, E.DARK);
+    E.box(P(72,206,0), 0.07, 0.07, 0.7, E.DARK); E.box(P(228,206,0), 0.07, 0.07, 0.7, E.DARK);
+    [-1,1].forEach(function(s){ E.rod(P(222,206,s*0.22), P(210,64,s*0.22), 0.026, E.METAL); E.cylz(P(92,178,s*0.2), 0.14, 0.05, E.PLATE); });
+    E.box(P(206,56,0), 0.24, 0.14, 0.62, E.DARK, 0.15); E.box(P(209,56.5,0), 0.02, 0.09, 0.45, E.GOLDM, 0.15);
+    E.rod(P(92,178,-0.2), P(92,178,0.2), 0.02, E.METAL);
+  };
+  sp.dyn3 = function(E,K,p,t){
+    var P = E.P, piv = [210,70];
+    [[K.ank,0.16,K.hand],[K.ankF,-0.16,K.handF]].forEach(function(q){
+      E.rod(P(92,178,q[1]*1.2), P(q[0][0]-2,q[0][1]+3,q[1]), 0.018, E.METAL);                   // crank-linked pedal arm
+      E.box(P(q[0][0],q[0][1]+4,q[1]), 0.2, 0.03, 0.13, E.DARK);                                 // pedal
+      E.rod(P(piv[0],piv[1],q[1]*1.4), P(q[2][0],q[2][1],q[1]*1.25), 0.018, E.METAL);            // handle arm
+      E.ball(P(q[2][0],q[2][1],q[1]*1.25), 0.03, E.GOLDM);
+    });
+  };
+  return sp;
+};
+// ---- stair climber: two pedals going up and down in turn, hands on the rails
+var STR = {T:1.4,hx:146,hy:96,tor:6,yc:178,amp:15,hand:[198,96]};
+M.stairs = function(){
+  var o = STR;
+  var gen = function(t){
+    var th = (t/o.T)*2*Math.PI, s = Math.sin(th), f1 = [o.hx+22, o.yc+o.amp*s], f2 = [o.hx+22, o.yc-o.amp*s];
+    return {hx:o.hx,hy:o.hy+1.5*Math.cos(th),tor:o.tor,ft:f1,ft2:f2,fa:-3,fa2:-3,kb:-1,kb2:-1,eb:1,eb2:1,nk:0,hd:o.hand,hd2:[o.hand[0],o.hand[1]],lz:0.03,hz:0.0,ez:0.08};
+  };
+  var sp = cardioSpec(gen,{muscle:'glutes',wide:true,fit:[[80,210],[240,210],[210,60]]},STR.T);
+  sp.scene = function(){ return [{k:'l',a:[90,FL-5],b:[230,FL-5],w:8,c:'#2b2e35'},{k:'l',a:[216,FL-5],b:[214,70],w:7,c:'#3a3e46'},{k:'r',x:196,y:56,w:36,h:18,r:5},{k:'l',a:[186,100],b:[214,100],w:4,c:'#5a606b'}]; };
+  sp.scene3 = function(E){
+    var P = E.P;
+    E.box(P(160,208,0), 1.5, 0.07, 0.62, E.DARK);
+    [-1,1].forEach(function(s){ E.rod(P(220,206,s*0.3), P(214,72,s*0.3), 0.026, E.METAL); E.rod(P(214,102,s*0.3), P(184,102,s*0.3), 0.018, E.METAL); });
+    E.box(P(212,64,0), 0.22, 0.14, 0.7, E.DARK, 0.2); E.box(P(215,64.5,0), 0.02, 0.09, 0.5, E.GOLDM, 0.2);
+  };
+  sp.dyn3 = function(E,K,p,t){
+    var P = E.P;
+    [[K.ank,0.14],[K.ankF,-0.14]].forEach(function(q){
+      E.box(P(q[0][0]+4,q[0][1]+5,q[1]), 0.3, 0.035, 0.18, E.DARK);
+      E.rod(P(q[0][0]-14,208,q[1]), P(q[0][0]-14,q[0][1]+5,q[1]), 0.014, E.METAL);              // piston
+    });
+  };
+  return sp;
+};
+// ---- jump rope: small hops, rope turning overhead -> under the feet each hop
+var JR = {T:0.5,hx:150,g:206,hy0:122};
+M.rope = function(){
+  var gen = function(t){
+    var rho = (t/JR.T) % 1, lift = 11*Math.pow(Math.sin(Math.PI*rho),2), wr = 2*Math.PI*rho;
+    var hy = JR.hy0 - lift, S = shoulderOf(JR.hx,hy,0), hc = [S[0]+26+4*Math.cos(wr), S[1]+52+4*Math.sin(wr)];
+    return {hx:JR.hx,hy:hy,tor:0,ft:[JR.hx+4,JR.g-lift*1.2],ft2:[JR.hx-4,JR.g-lift*1.2],fa:14*(lift/11),fa2:14*(lift/11),kb:-1,kb2:-1,eb:1,eb2:1,nk:0,hd:hc,hd2:hc,lz:0.03,hz:0.1,ez:0.14};
+  };
+  var sp = cardioSpec(gen,{muscle:'calves',fit:[[100,14],[200,214]]},JR.T);
+  sp.scene = function(K,p,t){
+    var rho = ((t||0)/JR.T) % 1, ang = Math.PI/2 - 2*Math.PI*rho, c = [K.hand[0], K.hand[1]], R = 94;
+    return [{k:'l',a:c,b:[c[0]+R*Math.cos(ang), c[1]-R*Math.sin(ang)],w:2.4,c:GOLD}];
+  };
+  sp.scene3 = function(){};
+  sp.dyn3 = function(E,K,p,t){
+    var P = E.P, rho = (t/JR.T) % 1, ang = Math.PI/2 - 2*Math.PI*rho, R = 94, hc = K.hand, z0 = 0.2, prev = null;
+    for (var i = 0; i <= 14; i++){
+      var s = -1 + i/7, bulge = Math.sqrt(Math.max(0,1-s*s)), pt = P(hc[0]+R*bulge*Math.cos(ang), hc[1]-R*bulge*Math.sin(ang), z0*s);
+      if (prev) E.rod(prev, pt, 0.008, E.GOLDM); prev = pt;
+    }
+    [-1,1].forEach(function(sg){ E.ball(P(hc[0],hc[1],sg*z0), 0.03, E.DARK); });
+  };
+  return sp;
+};
+
 g.RDM = M;
 })(window);
 ;
@@ -485,6 +703,14 @@ g.RDM = M;
 var M = g.RDM;
 function pr(e, cableOk){ e = (e||'').toLowerCase(); return e === 'dumbbell' ? 'db' : e === 'cable' ? 'cable' : e === 'machine' ? 'lever' : e === 'ez-bar' ? 'ez' : e === 'barbell' ? 'bar' : 'none'; }
 var TABLE = [
+  [/^Treadmill$/, function(){ var s = M.treadmill(); s.stillT = s.T*0.3; return s; }],
+  [/^Stationary Bike$/, function(){ var s = M.bike(); s.stillT = s.T*0.12; return s; }],
+  [/^Rowing Machine$/, function(){ var s = M.rower(); s.stillT = s.T*0.25; return s; }],
+  [/^Elliptical$/, function(){ var s = M.elliptical(); s.stillT = s.T*0.3; return s; }],
+  [/^Stair Climber$/, function(){ var s = M.stairs(); s.stillT = s.T*0.12; return s; }],
+  [/^Running \(Outdoor\)$/, function(){ var s = M.run(); s.stillT = s.T*0.3; return s; }],
+  [/^Walking$/, function(){ var s = M.walk(); s.stillT = s.T*0.55; return s; }],
+  [/^Jump Rope$/, function(){ var s = M.rope(); s.stillT = s.T*0.3; return s; }],
   [/^Close-Grip Bench/, function(){ return M.bench(0,'bar','triceps',true); }],
   [/^Barbell Bench Press/, function(n,e){ return M.bench(0,'bar'); }],
   [/^Dumbbell Bench Press/, function(){ return M.bench(0,'db'); }],
@@ -643,6 +869,15 @@ var GOLDM = new THREE.MeshStandardMaterial({color:0xf2b134, roughness:0.35, meta
 var HI = new THREE.MeshBasicMaterial({color:0xf2b134, transparent:true, opacity:0.55, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2});
 var CYL = new THREE.CylinderGeometry(1,1,1,18,1,true), SPH = new THREE.SphereGeometry(1,18,14);
 var UP = new THREE.Vector3(0,1,0);
+var BOX1 = new THREE.BoxGeometry(1,1,1);
+// helpers handed to cardio machine builders (spec.scene3 = static machine, spec.dyn3 = moving parts, redrawn every frame)
+function envFor(group){
+  function rod(a,b,r,mat){ var c = Cap(mat||DARK); setCap(c,a,b,r); group.add(c); return c; }
+  function box(mid,sx,sy,sz,mat,rotZ){ var m = new THREE.Mesh(BOX1, mat||DARK); m.scale.set(sx,sy,sz); m.position.copy(mid); if (rotZ) m.rotation.z = rotZ; group.add(m); return m; }
+  function cylz(pos,rad,len,mat){ var m = new THREE.Mesh(CYL, mat||DARK); m.scale.set(rad,len,rad); m.rotation.x = Math.PI/2; m.position.copy(pos); group.add(m); return m; }
+  function ball(pos,r,mat){ var b = Ball(mat||DARK, r); b.position.copy(pos); group.add(b); return b; }
+  return {P:P, rod:rod, box:box, cylz:cylz, ball:ball, DARK:DARK, METAL:METAL, GOLDM:GOLDM, PLATE:PLATE, V:V};
+}
 
 // capsule between two points; rx = radius in the figure plane, rz = radius across the body
 function Cap(mat){
@@ -724,6 +959,7 @@ function addRod(a, b, r, mat){ var c = Cap(mat); setCap(c, a, b, r); V.props.add
 function addBox(mid, sx, sy, sz, mat, rotZ){ var m = new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz), mat || DARK); m.position.copy(mid); if (rotZ) m.rotation.z = rotZ; V.props.add(m); return m; }
 function buildScene(spec){
   clearProps();
+  if (spec.scene3){ spec.scene3(envFor(V.props)); return; }
   if (!spec.scene) return;
   if (spec.dipBars){ [-1,1].forEach(function(sg){ addRod(P(112,130,sg*0.32), P(196,130,sg*0.32), 0.022, METAL); [116,192].forEach(function(px){ addRod(P(px,130,sg*0.32), P(px,FL,sg*0.32), 0.02, DARK); }); }); return; }
   if (spec.lp){   // 45-degree leg press: rails and base on both sides of the lifter, back pad and seat on the centre line
@@ -761,6 +997,7 @@ function buildProps(spec, K, p, t){
   // dynamic props (follow the hands): rebuilt cheaply each frame from a small pool
   var pool = V.dyn || (V.dyn = new THREE.Group()); if (!pool.parent) V.scene.add(pool);
   while (pool.children.length) pool.remove(pool.children[0]);
+  if (spec.dyn3){ spec.dyn3(envFor(pool), K, p, t); return; }
   var kind = spec.prop; if (!kind || kind === 'none') return;
   if (p.fd && V.h3){      // pec deck: vertical pads on the forearms, lever arms back to a pivot
     var pv0 = P(K.S[0]-22, K.S[1]+12, 0); var pb0 = Ball(DARK, 0.05); pb0.position.copy(pv0); pool.add(pb0);
@@ -810,7 +1047,7 @@ function buildProps(spec, K, p, t){
 }
 var _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
 function pose(spec, u, t){
-  var p = Ragdoll.mix(spec.A, spec.B, u), K = Ragdoll.kin(p), B = V.B;
+  var p = spec.gen ? spec.gen(t) : Ragdoll.mix(spec.A, spec.B, u), K = Ragdoll.kin(p), B = V.B;
   var ZS = 0.2, ZH = 0.1;       // shoulder / hip half width
   var Hn = P(K.H[0],K.H[1],0), Sn = P(K.S[0],K.S[1],0);
   setCap(B.torso, P(K.H[0]+(K.S[0]-K.H[0])*0.06, K.H[1]+(K.S[1]-K.H[1])*0.06, 0), P(K.H[0]+(K.S[0]-K.H[0])*0.98, K.H[1]+(K.S[1]-K.H[1])*0.98,0), 0.125, 0.185);
@@ -822,12 +1059,12 @@ function pose(spec, u, t){
   // shoulders (across the body)
   [[B.shN, ZS],[B.shF,-ZS]].forEach(function(s){ setCap(s[0], P(K.S[0],K.S[1],s[1]*0.0-0.0), P(K.S[0],K.S[1],s[1]), 0.0001, 0.0001); s[0].visible = false; });
   // legs
-  var lz = p.lz || 0;
+  var lz = p.lz || 0; V._legs = [];
   function leg(th, sh, ft, hipz, knee, ank, fa, mat){
     var sg = hipz > 0 ? 1 : -1, kz = hipz + sg*lz*0.5, az = hipz + sg*lz;
     var Hh = P(K.H[0],K.H[1],hipz), Kn = P(knee[0],knee[1],kz), An = P(ank[0],ank[1],az);
     setCap(th, Hh, Kn, 0.075, 0.075); setCap(sh, Kn, An, 0.058, 0.058);
-    var toe = P(ank[0]+Math.cos(fa)*15, ank[1]+Math.sin(fa)*15, az); setCap(ft, P(ank[0]-3,ank[1]+1,az), toe, 0.036, 0.05);
+    var toe = P(ank[0]+Math.cos(fa)*15, ank[1]+Math.sin(fa)*15, az); (V._legs = V._legs || []).push([Hh, Kn, An, toe]); setCap(ft, P(ank[0]-3,ank[1]+1,az), toe, 0.036, 0.05);
   }
   leg(B.thighN,B.shinN,B.footN, ZH, K.knee, K.ank, K.fa);
   leg(B.thighF,B.shinF,B.footF, -ZH, K.kneeF, K.ankF, K.fa2);
@@ -860,6 +1097,7 @@ function pose(spec, u, t){
   var js = [P(K.knee[0],K.knee[1],ZH+lz*0.5), P(K.kneeF[0],K.kneeF[1],-ZH-lz*0.5), an[1], af[1], an[0], af[0], P(K.H[0],K.H[1],ZH), P(K.H[0],K.H[1],-ZH)];
   B.joints.forEach(function(j,i){ j.position.copy(js[i]); });
   buildProps(spec, K, p, t);
+  if (V.body){ V.body.update({H:Hn, S:Sn, hd:hd, arms:[an, af], legs:V._legs}); }
   // gold muscle highlight
   var hi = V.hi; hi.forEach(function(h){ h.visible = false; });
   var m = spec.muscle, pulse = 0.5 + 0.2*Math.sin(t*5); HI.opacity = pulse;
@@ -888,8 +1126,14 @@ function loop(now){
   V.renderer.render(V.scene, V.cam);
 }
 function show(spec){ V.paused = false; V.spec = spec; buildScene(spec); V.swing = true; frame(spec); }
-function snap(spec,u,az){ V.spec = spec; buildScene(spec); frame(spec); V.swing=false; setAz(az === undefined ? V.baseAz : az); pose(spec,u,0.6); V.ctl.update(); V.renderer.render(V.scene,V.cam); return V.renderer.domElement.toDataURL('image/jpeg',0.8); }
-g.R3 = { init:init, show:show, snap:snap, get V(){ return V; } };
+function snap(spec,u,az,tt){ V.spec = spec; buildScene(spec); frame(spec); V.swing=false; setAz(az === undefined ? V.baseAz : az); pose(spec,u,tt===undefined?(spec.stillT!==undefined?spec.stillT:0.6):tt); V.ctl.update(); V.renderer.render(V.scene,V.cam); return V.renderer.domElement.toDataURL('image/jpeg',0.8); }
+function setBody(b){   // b = RDBody.make(...) result, or null to go back to the capsule mannequin
+  if (V.body){ V.scene.remove(V.body.mesh); }
+  V.body = b || null;
+  if (b){ V.scene.add(b.mesh); }
+  V.rig.visible = !b;
+}
+g.R3 = { init:init, show:show, snap:snap, setBody:setBody, get V(){ return V; } };
 })(window);
 ;
 })();
