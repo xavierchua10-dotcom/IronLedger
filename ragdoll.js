@@ -188,6 +188,7 @@ function mount(el, spec, opts){
 }
 g.Ragdoll = { render:render, mount:mount, kin:kin, mix:mix, phase:phase, fitBox:fitBox, FL:FL, D:D };
 })(window);
+
 ;
 /* ---- motions ---- */
 /* Motion catalogue: each returns {A,B,prop,muscle,...}. Coordinates are in the 300x240 figure box (floor y=212). */
@@ -696,6 +697,7 @@ M.rope = function(){
 
 g.RDM = M;
 })(window);
+
 ;
 /* ---- map ---- */
 /* name -> motion spec. Equipment decides the prop (barbell / dumbbell / cable / machine). */
@@ -852,6 +854,7 @@ g.RDMap = function(name, equip, muscle){
   return null;
 };
 })(window);
+
 ;
 /* ---- ragdoll3d ---- */
 /* 3D mannequin driven by the same motion templates (A -> B poses, IK) as the 2D figures.
@@ -898,11 +901,11 @@ var V = null;       // viewer state
 function init(canvasHost, opts){
   opts = opts || {};
   var renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 1.5)); renderer.outputEncoding = THREE.sRGBEncoding;
+  var PR0 = Math.min(window.devicePixelRatio||1, 1.5); renderer.setPixelRatio(PR0); renderer.outputEncoding = THREE.sRGBEncoding;
   canvasHost.appendChild(renderer.domElement); renderer.domElement.style.display = 'block'; renderer.domElement.style.touchAction = 'none';
   var scene = new THREE.Scene(); scene.background = new THREE.Color(0x14161a);
   var cam = new THREE.PerspectiveCamera(36, 1, 0.05, 50);
-  var ctl = new THREE.OrbitControls(cam, renderer.domElement); ctl.enablePan = false; ctl.enableDamping = true; ctl.dampingFactor = 0.08; ctl.rotateSpeed = 0.8; ctl.minPolarAngle = 0.3; ctl.maxPolarAngle = 1.62;
+  var ctl = new THREE.OrbitControls(cam, renderer.domElement); ctl.enablePan = false; ctl.enableDamping = true; ctl.dampingFactor = 0.1; ctl.rotateSpeed = 0.5; ctl.minPolarAngle = 0.3; ctl.maxPolarAngle = 1.62;
   var key = new THREE.DirectionalLight(0xffffff, 1.2); key.position.set(2,3,2.5);
   var fill = new THREE.DirectionalLight(0xaeb8c2, 0.7); fill.position.set(-3,1.2,-2);
   scene.add(key, fill, new THREE.HemisphereLight(0x8a8f99, 0x2a2c31, 0.9));
@@ -934,7 +937,7 @@ function init(canvasHost, opts){
   B.joints = []; for (var i = 0; i < 8; i++){ var j = Ball(GOLDM, 0.032); rig.add(j); B.joints.push(j); }
   B.handN = Ball(BODY, 0.042); B.handF = Ball(BODYF, 0.042); rig.add(B.handN, B.handF);
   var hi = []; for (i = 0; i < 6; i++){ var h = Cap(HI); h.visible = false; rig.add(h); hi.push(h); }
-  V = { renderer:renderer, scene:scene, cam:cam, ctl:ctl, rig:rig, props:props, B:B, hi:hi, spec:null, t0:0, host:canvasHost, swing:true, last:0, raf:0 };
+  V = { pr:PR0, ema:0, slow:0, lastNow:0, renderer:renderer, scene:scene, cam:cam, ctl:ctl, rig:rig, props:props, B:B, hi:hi, spec:null, t0:0, host:canvasHost, swing:true, last:0, raf:0 };
   ctl.addEventListener('start', function(){ V.swing = false; });
   function resize(){ var w = canvasHost.clientWidth, h = canvasHost.clientHeight; if (!w || !h) return; renderer.setSize(w, h); cam.aspect = w/h; cam.updateProjectionMatrix(); frame(V.spec); }
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(resize).observe(canvasHost); else window.addEventListener('resize', resize);
@@ -1118,12 +1121,16 @@ function pose(spec, u, t){
 }
 function loop(now){
   V.raf = requestAnimationFrame(loop);
-  if (!V.spec || (V.vis === false) || V.paused || !V.host.isConnected) return;
+  if (!V.spec || (V.vis === false) || V.paused || !V.host.isConnected){ V.lastNow = 0; return; }
   var t = now/1000, u = Ragdoll.phase(t, V.spec);
   pose(V.spec, u, t);
   if (V.swing && V.baseAz !== undefined){ setAz(V.baseAz + 0.6*Math.sin(t*0.35)); }
   V.ctl.update();
   V.renderer.render(V.scene, V.cam);
+  // slow phone? quietly drop the render resolution so dragging stays smooth
+  if (V.lastNow){ var dt = now - V.lastNow; V.ema = V.ema ? V.ema*0.92 + dt*0.08 : dt; }
+  V.lastNow = now;
+  if (V.ema > 26 && V.pr > 1){ if (++V.slow > 12){ V.pr = Math.max(1, V.pr - 0.25); V.renderer.setPixelRatio(V.pr); if (V.resize) V.resize(); V.slow = 0; V.ema = 16; } } else V.slow = 0;
 }
 function show(spec){ V.paused = false; V.spec = spec; buildScene(spec); V.swing = true; frame(spec); }
 function snap(spec,u,az,tt){ V.spec = spec; buildScene(spec); frame(spec); V.swing=false; setAz(az === undefined ? V.baseAz : az); pose(spec,u,tt===undefined?(spec.stillT!==undefined?spec.stillT:0.6):tt); V.ctl.update(); V.renderer.render(V.scene,V.cam); return V.renderer.domElement.toDataURL('image/jpeg',0.8); }
@@ -1135,5 +1142,6 @@ function setBody(b){   // b = RDBody.make(...) result, or null to go back to the
 }
 g.R3 = { init:init, show:show, snap:snap, setBody:setBody, get V(){ return V; } };
 })(window);
+
 ;
 })();
