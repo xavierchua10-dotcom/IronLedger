@@ -7145,6 +7145,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     callWelcomePush: function(){
       return httpsCallable(cloudFunctions, 'sendWelcomePush')().then(function(res){ return res.data; });
     },
+    // Rest-over push: ask the server to buzz this phone when the rest timer ends
+    // (the web app itself can't run a timer while it's in the background).
+    callScheduleRestPing: function(endsAt){
+      return httpsCallable(cloudFunctions, 'scheduleRestPing')({ endsAt: endsAt }).then(function(res){ return res.data; });
+    },
+    callCancelRestPing: function(){
+      return httpsCallable(cloudFunctions, 'cancelRestPing')().then(function(res){ return res.data; });
+    },
     // Only ever called from inside the TWA (see startPlayCheckout) —
     // sends the Play purchaseToken to be verified server-side.
     callVerifyPlayPurchase: function(sku, purchaseToken){
@@ -11945,6 +11953,34 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     restTimerInterval = setInterval(tickRestTimer, 1000);
   }
 
+  // ---- Rest-over push (server buzzes the phone if you leave the app mid-rest) ----
+  var restPingScheduled = false;
+  function restPingAllowed(){
+    if (state.settings.restPing === false) return false;
+    if (!state.currentAccount || state.currentAccount === 'guest') return false;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false;
+    if (!(state.userDoc && state.userDoc.fcmToken)) return false;
+    var sf = window.SaviorFirebase;
+    return !!(sf && sf.callScheduleRestPing && sf.callCancelRestPing);
+  }
+  function scheduleRestPingNow(){
+    if (!ui.restTimer || !restPingAllowed()) return;
+    if (ui.restTimer.endsAt - Date.now() < 5000) return;
+    restPingScheduled = true;
+    window.SaviorFirebase.callScheduleRestPing(ui.restTimer.endsAt).then(function(r){
+      if (!r || !r.scheduled) restPingScheduled = false;
+    }).catch(function(){ restPingScheduled = false; });
+  }
+  function cancelRestPingNow(){
+    if (!restPingScheduled) return;
+    restPingScheduled = false;
+    try { window.SaviorFirebase.callCancelRestPing().catch(function(){}); } catch(e){}
+  }
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'hidden') scheduleRestPingNow();
+    else cancelRestPingNow();
+  });
+
   // Auto mode (Settings > Preferences > Rest timer start) skips the picker
   // entirely and starts straight from the saved default duration. Only
   // called when no timer is already running (see commitSet) — logging a
@@ -11962,10 +11998,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     }
     var remaining = Math.max(0, Math.ceil((ui.restTimer.endsAt - Date.now()) / 1000));
     if (remaining <= 0){
+      // Ended while you were away (the push already told you): clear it quietly.
+      var wasAway = Date.now() - ui.restTimer.endsAt > 4000;
       clearInterval(restTimerInterval);
       restTimerInterval = null;
       ui.restTimer = null;
       renderRestTimerBar();
+      if (wasAway) return;
+      cancelRestPingNow();
       showToast('Rest complete \u2014 back to it');
       if (navigator.vibrate && state.settings.restTimerVibrate !== false) navigator.vibrate([120, 60, 120]);
       if (state.settings.restTimerSound !== false) playRestTimerChime();
@@ -11977,6 +12017,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function skipRestTimer(){
     if (restTimerInterval){ clearInterval(restTimerInterval); restTimerInterval = null; }
     ui.restTimer = null;
+    cancelRestPingNow();
     renderRestTimerBar();
   }
 
@@ -17550,6 +17591,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               '<div class="seg">' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="on" class="'+(state.settings.restTimerVibrate !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="off" class="'+(state.settings.restTimerVibrate === false ? 'active' : '')+'">OFF</button>' +
+              '</div></div>';
+    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest-over alert</div><div class="sr-sub">Notification when rest ends, if you leave the app (needs notifications on)</div></div>' +
+              '<div class="seg">' +
+                '<button data-action="toggle-rest-ping" data-val="on" class="'+(state.settings.restPing !== false ? 'active' : '')+'">ON</button>' +
+                '<button data-action="toggle-rest-ping" data-val="off" class="'+(state.settings.restPing === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
     html += '<div class="settings-row" data-sp="feel-haptic"><div><div class="sr-label">Haptic feedback</div><div class="sr-sub">Short vibration when you log a set, hit a PR, finish a session, or tap tabs and switches</div></div>' +
               '<div class="seg">' +
@@ -23309,6 +23355,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     ui.expandedHistory[session.id] = true;
     if (restTimerInterval){ clearInterval(restTimerInterval); restTimerInterval = null; }
     ui.restTimer = null;
+    cancelRestPingNow();
     if (ui.cardioTimer){ ui.cardioTimer = null; saveCardioTimer(); ensureCardioTimerTicking(); }
     state.tab = 'history';
     showToast('Session saved');
@@ -25639,6 +25686,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       renderApp();
     } else if (action === 'toggle-rest-timer-sound'){
       state.settings.restTimerSound = (el.dataset.val === 'on');
+      saveSettings();
+      renderApp();
+    } else if (action === 'toggle-rest-ping'){
+      state.settings.restPing = (el.dataset.val === 'on');
+      if (!state.settings.restPing) cancelRestPingNow();
       saveSettings();
       renderApp();
     } else if (action === 'toggle-rest-timer-vibrate'){
