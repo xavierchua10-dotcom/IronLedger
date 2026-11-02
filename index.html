@@ -6082,6 +6082,8 @@
     font:600 10px/1 'JetBrains Mono',monospace; letter-spacing:.06em;
     color:rgba(255,255,255,.45); pointer-events:none; text-transform:uppercase;
   }
+  .confirm-media{position:relative;}
+  .confirm-media .ex-view-pills{position:absolute;top:10px;right:10px;margin:0;z-index:4;background:rgba(20,22,26,0.78);}
   .confirm-how{
     font-size:12.5px;
     color:var(--text-faint);
@@ -23867,6 +23869,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     sc.onerror = function(){ done(false); };
     document.head.appendChild(sc);
   }
+  function confirmViewPillsHtml(m){
+    return '<span class="ex-view-pills" role="group" aria-label="Picture style">' +
+      '<button type="button" data-action="set-confirm-view" data-view="2d" class="'+(m.view === '2d' ? 'on' : '')+'">2D</button>' +
+      '<button type="button" data-action="set-confirm-view" data-view="3d" class="'+(m.view === '3d' ? 'on' : '')+'">3D</button></span>';
+  }
   // The one shared WebGL canvas: created on first use inside `parent`, moved around afterwards.
   function getRdHost(parent){
     if (!rdState.host){
@@ -23966,12 +23973,13 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var libMatch = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === m.name; })[0];
     if (!libMatch) return;
     loadRagdollScript(function(ok){
-      if (!ok || ui.confirmModal !== m) return;
+      if (ui.confirmModal !== m) return;
+      if (!ok){ if (m.view === '3d'){ m.view = '2d'; renderConfirmModal(); } return; }
       var imgEl = document.querySelector('#confirmPanel .confirm-preview-img');
       if (!imgEl) return;
       var spec = null;
       try { spec = window.RDMap(m.name, libMatch.equipment, m.muscle || libMatch.muscle); } catch(e){ spec = null; }
-      if (!spec) return;
+      if (!spec){ m.view = '2d'; renderConfirmModal(); return; }
       var stage = document.createElement('div');
       stage.className = 'confirm-rd';
       try {
@@ -24017,9 +24025,16 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else {
       cfIcon = cfSvg('<polyline points="20 6 9 17 4 12"/>', 22);
     }
+    // Add-this-exercise popups for library exercises get a 2D / 3D switch; it opens in the same
+    // view as the exercise list behind it (2D photo unless 3D was chosen).
+    var rdEligible = !!(m.img && m.name && (m.kind === 'add-named-exercise' || m.kind === 'pick-exercise-name') &&
+      !/^Farmer/i.test(m.name) && EXERCISE_LIBRARY_FLAT.some(function(e){ return e.name === m.name; }));
+    if (rdEligible && !m.view) m.view = exViewMode === '3d' ? '3d' : '2d';
     panel.innerHTML =
       (m.img ? '' : '<div class="cf-icon">' + cfIcon + '</div>') +
-      (m.img ? '<img class="confirm-preview-img" src="'+esc(m.img)+'" alt="" loading="lazy">' : '') +
+      (m.img ? (rdEligible
+          ? '<div class="confirm-media"><img class="confirm-preview-img" src="'+esc(m.img)+'" alt="" loading="lazy">' + confirmViewPillsHtml(m) + '</div>'
+          : '<img class="confirm-preview-img" src="'+esc(m.img)+'" alt="" loading="lazy">') : '') +
       '<div class="confirm-title">' + esc(m.title) + '</div>' +
       '<div class="confirm-message">' + esc(m.message) + '</div>' +
       (m.how ? '<div class="confirm-how">' + esc(m.how) + '</div>' : '') +
@@ -24032,7 +24047,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
             '<button class="'+confirmClass+'" id="confirmActionBtn" data-action="confirm-modal-action"'+(counting?' disabled':'')+'>'+esc(counting ? confirmLabel + ' (' + m.countdown + ')' : confirmLabel)+'</button>') +
       '</div>';
 
-    if (m.img && m.name && (m.kind === 'add-named-exercise' || m.kind === 'pick-exercise-name')) mountExerciseFigure(m);
+    if (rdEligible && m.view === '3d') mountExerciseFigure(m);
 
     if (counting){
       confirmCountdownTimer = setInterval(function(){
@@ -25778,6 +25793,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var el = e.target.closest('[data-action]');
     if (!el) return;
     var action = el.dataset.action;
+    if (action === 'set-confirm-view'){
+      if (ui.confirmModal){ ui.confirmModal.view = el.dataset.view === '3d' ? '3d' : '2d'; renderConfirmModal(); }
+      return;
+    }
     if (action === 'cancel-confirm'){
       if (ui.confirmModal && ui.confirmModal.kind === 'guest-import'){ try { markGuestImportHandled(readGuestSlot()); } catch (_) {} }
       dismissConfirmModal();
