@@ -2865,6 +2865,11 @@
     cursor:pointer;
     transition:border-color 0.12s ease, background 0.12s ease;
   }
+  /* 2D / 3D switch for the exercise cards */
+  .ex-view-pills{margin-left:auto;display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid var(--line);}
+  .ex-view-pills button{border:0;background:transparent;color:var(--text-faint);font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.06em;padding:7px 12px;border-radius:999px;cursor:pointer;}
+  .ex-view-pills button.on{background:var(--accent);color:#1c1500;}
+  .ex-suggest-img.rd3{object-fit:contain;background:#14161a;}
   .ex-suggest-img.ex3d{display:block;background:radial-gradient(circle at 50% 45%,#35778a 0%,#245565 38%,#171d22 78%);}
   .ex-suggest-img{
     width:100%;
@@ -8372,13 +8377,34 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     return results;
   }
 
+  /* ---- 2D / 3D view of the exercise cards ----
+     2D = the normal illustrations. 3D = a still picture of the animated 3D figure, made on the
+     fly by the same shared canvas the Add-this-exercise popup uses (one picture at a time, the
+     ones on screen first, remembered until the app closes). If 3D can't load, cards keep their
+     illustration. */
+  var RD_BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+  var rdStills = {};
+  var exViewMode = '2d';
+  try { exViewMode = localStorage.getItem('sfl_ex_view') === '3d' ? '3d' : '2d'; } catch(e){}
+  function exViewPillsHtml(){
+    return '<span class="ex-view-pills" role="group" aria-label="Exercise picture style">' +
+      '<button type="button" data-action="set-ex-view" data-view="2d" class="'+(exViewMode === '2d' ? 'on' : '')+'">2D</button>' +
+      '<button type="button" data-action="set-ex-view" data-view="3d" class="'+(exViewMode === '3d' ? 'on' : '')+'">3D</button></span>';
+  }
   function exerciseSuggestItemHtml(name, muscle, equipment, how, opts){
     opts = opts || {};
     var action = opts.action || 'pick-ex-suggestion';
     var isCardioItem = muscle === 'Cardio';
     var img = isCardioItem ? CARDIO_IMG : (EXERCISE_IMG[name] || (muscle ? MUSCLE_IMG[muscle] : null));
+    var rdKey = name + '|' + (muscle || ''), rdHit = (!isCardioItem && exViewMode === '3d') ? rdStills[rdKey] : null;
+    var imgTag = '';
+    if (isCardioItem) imgTag = '<img class="ex-suggest-img ex3d" src="images/3d/ex-'+exKind(name)+'.png" alt="" loading="lazy">';
+    else if (img || exViewMode === '3d'){
+      imgTag = '<img class="ex-suggest-img'+(rdHit ? ' rd3' : '')+'" src="'+(exViewMode === '3d' ? (rdHit || RD_BLANK) : img)+'" alt="" loading="lazy"' +
+        ' data-orig="'+esc(img || '')+'" data-rdn="'+esc(name)+'" data-rdm="'+esc(muscle || '')+'" data-rde="'+esc(equipment || '')+'"'+(rdHit ? ' data-rdd="1"' : '')+'>';
+    }
     return '<button type="button" class="ex-suggest-item'+(opts.selected ? ' selected' : '')+'" data-action="'+action+'" data-name="'+esc(name)+'" data-muscle="'+esc(muscle || '')+'">' +
-      (isCardioItem ? '<img class="ex-suggest-img ex3d" src="images/3d/ex-'+exKind(name)+'.png" alt="" loading="lazy">' : (img ? '<img class="ex-suggest-img" src="'+img+'" alt="" loading="lazy">' : '')) +
+      imgTag +
       '<div class="ex-suggest-content">' +
         '<div class="ex-suggest-top">' +
           '<span class="ex-suggest-name">'+esc(name)+'</span>' +
@@ -8403,13 +8429,16 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var showStrength = !(f && f.types && f.types.length) || typeStrength;
     var showCardio = !(f && f.muscles.length) && (!(f && f.types && f.types.length) || typeCardio);
     if (!showStrength) muscles = [];
+    var exViewShown = false;
     var html = muscles.map(function(muscle){
       var items = EXERCISE_LIBRARY[muscle];
       if (f && f.equipment.length){
         items = items.filter(function(item){ return f.equipment.indexOf(item.equipment) !== -1; });
       }
       if (!items.length) return '';
-      return '<div class="section-label">'+esc(muscle)+' <span class="cnt">'+items.length+'</span></div>' +
+      var viewPills = '';
+      if (!exViewShown){ exViewShown = true; viewPills = exViewPillsHtml(); }
+      return '<div class="section-label">'+esc(muscle)+' <span class="cnt">'+items.length+'</span>'+viewPills+'</div>' +
         '<div class="ex-suggest-grid">' +
         items.map(function(item){
           // item.muscle is a per-item override (e.g. Upright Row is filed
@@ -23828,7 +23857,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (rdState.cbs){ rdState.cbs.push(cb); return; }
     rdState.cbs = [cb];
     var sc = document.createElement('script');
-    sc.src = 'ragdoll.js?v=2'; sc.async = true;
+    sc.src = 'ragdoll.js?v=3'; sc.async = true;
     var done = function(ok){
       if (!ok) rdState.failed = true;
       var q = rdState.cbs || []; rdState.cbs = null;
@@ -23838,6 +23867,101 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     sc.onerror = function(){ done(false); };
     document.head.appendChild(sc);
   }
+  // The one shared WebGL canvas: created on first use inside `parent`, moved around afterwards.
+  function getRdHost(parent){
+    if (!rdState.host){
+      rdState.host = document.createElement('div');
+      rdState.host.style.cssText = 'position:absolute;inset:0;';
+      parent.appendChild(rdState.host);
+      window.R3.init(rdState.host);
+    } else if (rdState.host.parentNode !== parent){
+      parent.appendChild(rdState.host);
+    }
+    return rdState.host;
+  }
+  function rdStillHolder(){
+    var h = document.getElementById('rdStillHolder');
+    if (!h){
+      h = document.createElement('div'); h.id = 'rdStillHolder';
+      h.style.cssText = 'position:fixed;left:-10000px;top:0;width:320px;height:320px;pointer-events:none;visibility:hidden;';
+      document.body.appendChild(h);
+    }
+    return h;
+  }
+  function rdRestoreImg(img){
+    img.dataset.rdd = '1';
+    img.classList.remove('rd3');
+    if (img.dataset.orig) img.src = img.dataset.orig;
+  }
+  function rdMakeStill(name, muscle, equipment){
+    var key = name + '|' + (muscle || '');
+    if (rdStills[key]) return rdStills[key];
+    var spec = window.RDMap(name, equipment, muscle);
+    if (!spec) return null;
+    getRdHost(rdStillHolder());
+    if (window.R3.V.resize) window.R3.V.resize();
+    var url = window.R3.snap(spec, 0.55);
+    window.R3.V.paused = true;
+    if (url && url.length > 2000) rdStills[key] = url;
+    return rdStills[key] || null;
+  }
+  var rdPumping = false, rdPumpTimer = 0;
+  function rdPopupOpen(){ return !!document.querySelector('#confirmPanel .confirm-rd'); }
+  function pumpExerciseStills(){
+    if (rdPumping || exViewMode !== '3d') return;
+    if (!document.querySelector('img.ex-suggest-img[data-rdn]:not([data-rdd])')) return;
+    rdPumping = true;
+    loadRagdollScript(function(ok){
+      if (!ok){
+        [].forEach.call(document.querySelectorAll('img.ex-suggest-img[data-rdn]:not([data-rdd])'), rdRestoreImg);
+        rdPumping = false; return;
+      }
+      (function step(){
+        if (exViewMode !== '3d'){ rdPumping = false; return; }
+        if (rdPopupOpen()){ setTimeout(step, 400); return; }
+        var list = [].slice.call(document.querySelectorAll('img.ex-suggest-img[data-rdn]:not([data-rdd])'));
+        if (!list.length){ rdPumping = false; return; }
+        var vh = window.innerHeight || 800, best = null, bestD = 1e9;
+        list.forEach(function(im){
+          var r = im.getBoundingClientRect();
+          var d = r.bottom < 0 ? -r.bottom + 5000 : (r.top > vh ? r.top - vh + 5000 : r.top);   // on screen first, top to bottom
+          if (d < bestD){ bestD = d; best = im; }
+        });
+        var im = best;
+        im.dataset.rdd = '1';
+        try {
+          var url = rdMakeStill(im.dataset.rdn, im.dataset.rdm, im.dataset.rde);
+          if (url){ im.src = url; im.classList.add('rd3'); } else rdRestoreImg(im);
+        } catch(e){
+          rdState.failed = true;
+          [].forEach.call(document.querySelectorAll('img.ex-suggest-img[data-rdn]'), rdRestoreImg);
+          rdPumping = false; return;
+        }
+        setTimeout(step, 20);
+      })();
+    });
+  }
+  function schedulePump(){
+    if (exViewMode !== '3d' || rdPumpTimer) return;
+    rdPumpTimer = setTimeout(function(){ rdPumpTimer = 0; pumpExerciseStills(); }, 60);
+  }
+  function setExView(mode){
+    mode = mode === '3d' ? '3d' : '2d';
+    exViewMode = mode;
+    try { localStorage.setItem('sfl_ex_view', mode); } catch(e){}
+    [].forEach.call(document.querySelectorAll('.ex-view-pills button'), function(b){ b.classList.toggle('on', b.dataset.view === mode); });
+    [].forEach.call(document.querySelectorAll('img.ex-suggest-img[data-rdn]'), function(im){
+      if (mode === '2d'){ delete im.dataset.rdd; im.classList.remove('rd3'); if (im.dataset.orig) im.src = im.dataset.orig; }
+      else {
+        var hit = rdStills[im.dataset.rdn + '|' + (im.dataset.rdm || '')];
+        if (hit){ im.src = hit; im.classList.add('rd3'); im.dataset.rdd = '1'; }
+        else { delete im.dataset.rdd; im.src = RD_BLANK; }
+      }
+    });
+    schedulePump();
+  }
+  try { new MutationObserver(schedulePump).observe(document.body, { childList: true, subtree: true }); } catch(e){}
+
   function mountExerciseFigure(m){
     var libMatch = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === m.name; })[0];
     if (!libMatch) return;
@@ -23852,14 +23976,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       stage.className = 'confirm-rd';
       try {
         imgEl.parentNode.replaceChild(stage, imgEl);
-        if (!rdState.host){
-          rdState.host = document.createElement('div');
-          rdState.host.style.cssText = 'position:absolute;inset:0;';
-          stage.appendChild(rdState.host);
-          window.R3.init(rdState.host);
-        } else {
-          stage.appendChild(rdState.host);
-        }
+        getRdHost(stage);
         var hint = document.createElement('div');
         hint.className = 'confirm-rd-hint'; hint.textContent = 'drag to rotate';
         stage.appendChild(hint);
@@ -25153,6 +25270,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else if (action === 'mm-back-to-grid'){
       ui.selectedMuscle = null;
       renderApp();
+    } else if (action === 'set-ex-view'){
+      setExView(el.dataset.view);
     } else if (action === 'mm-add-exercise'){
       openAddNamedExerciseConfirm(el.dataset.name, el.dataset.muscle);
     } else if (action === 'mm-custom'){

@@ -687,8 +687,8 @@ function init(canvasHost, opts){
       c.fillStyle = 'rgba(242,177,52,0.62)'; c.fillText(txt, 512, 66); tex.needsUpdate = true;
     }
     paint(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(paint);
-    var mark = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.2375), new THREE.MeshBasicMaterial({map:tex, transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3}));
-    var MA = 0.75; mark.rotation.set(-Math.PI/2, MA, 0, 'YXZ'); mark.position.set(Math.sin(MA)*0.72, 0.004, Math.cos(MA)*0.72); mark.renderOrder = 1; scene.add(mark);
+    var mark = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.1625), new THREE.MeshBasicMaterial({map:tex, transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3}));
+    var MA = 0.75; mark.rotation.set(-Math.PI/2, MA, 0, 'YXZ'); mark.position.set(Math.sin(MA)*0.62, 0.004, Math.cos(MA)*0.62); mark.renderOrder = 1; scene.add(mark);
   })();
   var rig = new THREE.Group(); scene.add(rig);              // body parts
   var props = new THREE.Group(); scene.add(props);          // exercise props (rebuilt per exercise)
@@ -880,14 +880,14 @@ function pose(spec, u, t){
 }
 function loop(now){
   V.raf = requestAnimationFrame(loop);
-  if (!V.spec || (V.vis === false)) return;
+  if (!V.spec || (V.vis === false) || V.paused || !V.host.isConnected) return;
   var t = now/1000, u = Ragdoll.phase(t, V.spec);
   pose(V.spec, u, t);
   if (V.swing && V.baseAz !== undefined){ setAz(V.baseAz + 0.6*Math.sin(t*0.35)); }
   V.ctl.update();
   V.renderer.render(V.scene, V.cam);
 }
-function show(spec){ V.spec = spec; buildScene(spec); V.swing = true; frame(spec); }
+function show(spec){ V.paused = false; V.spec = spec; buildScene(spec); V.swing = true; frame(spec); }
 function snap(spec,u,az){ V.spec = spec; buildScene(spec); frame(spec); V.swing=false; setAz(az === undefined ? V.baseAz : az); pose(spec,u,0.6); V.ctl.update(); V.renderer.render(V.scene,V.cam); return V.renderer.domElement.toDataURL('image/jpeg',0.8); }
 g.R3 = { init:init, show:show, snap:snap, get V(){ return V; } };
 })(window);
