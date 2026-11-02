@@ -6116,6 +6116,11 @@
     font:600 10px/1 'JetBrains Mono',monospace; letter-spacing:.06em;
     color:rgba(255,255,255,.45); pointer-events:none; text-transform:uppercase;
   }
+  .rd-brand{
+    position:absolute; left:10px; bottom:8px;
+    font:600 10px/1 'Oswald','JetBrains Mono',sans-serif; letter-spacing:.08em;
+    color:rgba(242,177,52,.7); pointer-events:none;
+  }
   .confirm-media{position:relative;}
   .confirm-media .ex-view-pills{position:absolute;top:10px;right:10px;margin:0;z-index:4;background:rgba(20,22,26,0.78);}
   .confirm-how{
@@ -13175,6 +13180,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         var hint = document.createElement('div');
         hint.className = 'confirm-rd-hint'; hint.textContent = 'drag to rotate';
         stage.appendChild(hint);
+        var brand = document.createElement('div');
+        brand.className = 'rd-brand'; brand.textContent = '@SAVIORFITLOGGER.APP';
+        stage.appendChild(brand);
         window.R3.show(spec);
         if (window.R3.V && window.R3.V.resize) window.R3.V.resize();
       } catch(e){
@@ -24126,6 +24134,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         var hint = document.createElement('div');
         hint.className = 'confirm-rd-hint'; hint.textContent = 'drag to rotate';
         stage.appendChild(hint);
+        var brand = document.createElement('div');
+        brand.className = 'rd-brand'; brand.textContent = '@SAVIORFITLOGGER.APP';
+        stage.appendChild(brand);
         window.R3.show(spec);
         if (window.R3.V && window.R3.V.resize) window.R3.V.resize();
       } catch(e){
