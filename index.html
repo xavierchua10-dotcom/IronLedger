@@ -4752,6 +4752,8 @@
   .ht-head h3{font-family:'Oswald',sans-serif;font-size:24px;font-weight:700;text-transform:uppercase;color:var(--accent);margin:0;line-height:1.1;}
   .ht-head small{font:700 11px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#8b9098;}
   .ht-img{width:100%;max-height:210px;object-fit:cover;border-radius:12px;display:block;margin:0 0 10px;}
+  #howtoOverlay{z-index:170;}   /* opens on top of the Add-this-exercise popup too */
+  .confirm-media .ht-float{position:absolute;top:10px;right:10px;z-index:4;height:30px;padding:0 12px;background:rgba(20,22,26,0.88);font-size:11px;}
   .ht-media{position:relative;margin:0 0 10px;}
   .ht-media .ht-img{margin:0;}
   .ht-media .ex-view-pills{position:absolute;top:8px;right:8px;margin:0;z-index:4;background:rgba(20,22,26,0.78);}
@@ -8401,9 +8403,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
      illustration. */
   var RD_BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
   var rdStills = {};
-  var exViewMode = '2d';
-  try { exViewMode = localStorage.getItem('sfl_ex_view') === '3d' ? '3d' : '2d'; } catch(e){}
+  var exViewMode = '2d';   // lists / cards always use the illustrations now; the live 3D figure lives in "How to"
   function exViewPillsHtml(){
+    return '';
     return '<span class="ex-view-pills" role="group" aria-label="Exercise picture style">' +
       '<button type="button" data-action="set-ex-view" data-view="2d" class="'+(exViewMode === '2d' ? 'on' : '')+'">2D</button>' +
       '<button type="button" data-action="set-ex-view" data-view="3d" class="'+(exViewMode === '3d' ? 'on' : '')+'">3D</button></span>';
@@ -13105,7 +13107,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     panel.innerHTML =
       '<div class="ht-head"><div><h3>'+esc(name)+'</h3>'+(sub ? '<small>'+esc(sub)+'</small>' : '')+'</div>' +
       '<button type="button" class="dc-x" data-action="close-howto" aria-label="Close">&#10005;</button></div>' +
-      ((img || lib) ? '<div class="ht-media">' + (img ? '<img class="ht-img" src="'+esc(img)+'" alt="'+esc(name)+'">' : '') + (lib ? exViewPillsHtml() : '') + '</div>' : '') +
+      ((img || lib) ? '<div class="ht-media">' + (img ? '<img class="ht-img" src="'+esc(img)+'" alt="'+esc(name)+'">' : '') + '</div>' : '') +
       '<div class="ht-steps">'+steps+'</div>' +
       '<div class="ht-box ht-start"><b>Tip</b> '+esc(h.start)+'</div>' +
       '<div class="ht-box ht-avoid"><b>Avoid</b> '+esc(h.avoid)+'</div>' +
@@ -13117,13 +13119,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var media = document.querySelector('#howtoPanel .ht-media');
     if (!media || !ui.howtoEx) return;
     var img = media.querySelector('.ht-img'), old = media.querySelector('.ht-rd');
-    if (exViewMode !== '3d'){ if (old) old.remove(); if (img) img.style.display = ''; return; }
     if (old) return;
     var name = ui.howtoEx;
     var lib = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === name; })[0];
     if (!lib) return;
     loadRagdollScript(function(ok){
-      if (!ok || ui.howtoEx !== name || exViewMode !== '3d') return;
+      if (!ok || ui.howtoEx !== name) return;
       var m = document.querySelector('#howtoPanel .ht-media');
       if (!m || m.querySelector('.ht-rd')) return;
       var spec = null;
@@ -24100,7 +24101,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     panel.innerHTML =
       (m.img ? '' : '<div class="cf-icon">' + cfIcon + '</div>') +
       (m.img ? (rdEligible
-          ? '<div class="confirm-media"><img class="confirm-preview-img" src="'+esc(m.img)+'" alt="" loading="lazy">' + confirmViewPillsHtml(m) + '</div>'
+          ? '<div class="confirm-media"><img class="confirm-preview-img" src="'+esc(m.img)+'" alt="" loading="lazy">' + (howtoFor(m.name) ? '<button type="button" class="ht-btn ht-float" data-action="open-howto" data-ex-name="'+esc(m.name)+'" aria-label="How to do '+esc(m.name)+'"><b>?</b> How to</button>' : '') + '</div>'
           : '<img class="confirm-preview-img" src="'+esc(m.img)+'" alt="" loading="lazy">') : '') +
       '<div class="confirm-title">' + esc(m.title) + '</div>' +
       '<div class="confirm-message">' + esc(m.message) + '</div>' +
@@ -25860,6 +25861,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var el = e.target.closest('[data-action]');
     if (!el) return;
     var action = el.dataset.action;
+    if (action === 'open-howto'){ openHowto(el.dataset.exName); return; }
     if (action === 'set-confirm-view'){
       // one shared 2D / 3D choice: the list behind the popup switches too
       var cv = el.dataset.view === '3d' ? '3d' : '2d';
