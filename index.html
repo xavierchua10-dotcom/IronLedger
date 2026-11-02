@@ -7147,8 +7147,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     },
     // Rest-over push: ask the server to buzz this phone when the rest timer ends
     // (the web app itself can't run a timer while it's in the background).
-    callScheduleRestPing: function(endsAt){
-      return httpsCallable(cloudFunctions, 'scheduleRestPing')({ endsAt: endsAt }).then(function(res){ return res.data; });
+    callScheduleRestPing: function(endsAt, ctx){
+      var payload = { endsAt: endsAt };
+      if (ctx && ctx.ex){ payload.ex = ctx.ex; payload.setNo = ctx.setNo; }
+      return httpsCallable(cloudFunctions, 'scheduleRestPing')(payload).then(function(res){ return res.data; });
     },
     callCancelRestPing: function(){
       return httpsCallable(cloudFunctions, 'cancelRestPing')().then(function(res){ return res.data; });
@@ -11951,6 +11953,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     renderRestTimerBar();
     if (restTimerInterval) clearInterval(restTimerInterval);
     restTimerInterval = setInterval(tickRestTimer, 1000);
+    clearRestNotifs();
     scheduleRestPingNow();
   }
 
@@ -11969,9 +11972,28 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     return '';
   }
   function restPingAllowed(){ return !restPingBlocker(); }
+  // An old "Rest over" sitting in the shade is noise once you're back in the app
+  // (or have started the next rest): close it.
+  function clearRestNotifs(){
+    try {
+      if (!('serviceWorker' in navigator)) return;
+      navigator.serviceWorker.ready.then(function(reg){
+        if (!reg.getNotifications) return;
+        return reg.getNotifications({ tag: 'rest-over' }).then(function(list){ list.forEach(function(n){ n.close(); }); });
+      }).catch(function(){});
+    } catch(e){}
+  }
+  setTimeout(clearRestNotifs, 3000);
   // Last attempt, kept so Settings can say what happened (survives app restarts).
   function restPingLog(msg){
-    try { localStorage.setItem('il_rp_diag', JSON.stringify({ t: Date.now(), m: msg })); } catch(e){}
+    try {
+      localStorage.setItem('il_rp_diag', JSON.stringify({ t: Date.now(), m: msg }));
+      var hist = JSON.parse(localStorage.getItem('il_rp_hist') || '[]');
+      // "asking server..." and its answer are one story: replace the pending line instead of stacking
+      if (hist.length && /asking server|still waiting/.test(hist[hist.length-1].m) && !/asking server/.test(msg)) hist.pop();
+      hist.push({ t: Date.now(), m: msg });
+      localStorage.setItem('il_rp_hist', JSON.stringify(hist.slice(-4)));
+    } catch(e){}
     try { var el = document.getElementById('rpStatus'); if (el && fpsDebugOn) el.textContent = restPingStatusLine(); } catch(e){}
   }
   // Normal users only see a hint when something blocks the alert. The test
@@ -11982,35 +12004,56 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var dev = !!fpsDebugOn;
     if (!dev) return '';
     return '<br>' + (dev ? '<button type="button" data-action="test-rest-ping" style="margin:6px 0;padding:6px 12px;border-radius:8px;border:1px solid var(--accent,#f2b134);background:none;color:var(--accent,#f2b134);font:600 12px Inter,sans-serif">Send test alert (20s)</button><br>' : '') +
-      '<span id="rpStatus" style="font-family:var(--font-mono,monospace);font-size:11px;opacity:.75">' + esc(restPingStatusLine()) + '</span>';
+      '<span id="rpStatus" style="font-family:var(--font-mono,monospace);font-size:11px;opacity:.75;white-space:pre-wrap">' + esc(restPingStatusLine()) + '</span>';
   }
   function restPingStatusLine(){
     var b = restPingBlocker();
-    var last = '';
+    var lines = [];
     try {
-      var d = JSON.parse(localStorage.getItem('il_rp_diag') || 'null');
-      if (d && d.m){
+      var hist = JSON.parse(localStorage.getItem('il_rp_hist') || '[]');
+      hist.forEach(function(d){
         var t = new Date(d.t);
-        last = ' Last try ' + String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0') + ' \u2014 ' + d.m;
-      }
+        lines.push(String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0') + ':' + String(t.getSeconds()).padStart(2,'0') + ' ' + d.m);
+      });
     } catch(e){}
-    return (b ? 'Not ready: ' + b + '.' : 'Ready.') + last;
+    return (b ? 'Not ready: ' + b + '.' : 'Ready.') + (lines.length ? '\n' + lines.join('\n') : '');
   }
-  function pingServer(endsAt, label){
+  // What the alert should say: the set you just finished (only if it was recent).
+  function restPingCtx(){
+    var c = ui.lastSetCtx;
+    if (!c || !c.ex || Date.now() - c.at > 10 * 60 * 1000) return null;
+    return { ex: String(c.ex).slice(0, 40), setNo: c.setNo };
+  }
+  function pingServer(endsAt, label, isRetry){
     var t0 = Date.now();
     restPingScheduled = true;
     restPingForEnds = endsAt;
     restPingLog(label + 'asking server\u2026');
     var slow = setTimeout(function(){ restPingLog(label + 'still waiting after 10s\u2026'); }, 10000);
-    window.SaviorFirebase.callScheduleRestPing(endsAt).then(function(r){
+    window.SaviorFirebase.callScheduleRestPing(endsAt, restPingCtx()).then(function(r){
       clearTimeout(slow);
       var ms = Date.now() - t0;
-      if (!r || !r.scheduled){ restPingScheduled = false; restPingForEnds = 0; restPingLog(label + 'server said no (' + ((r && r.reason) || '?') + ') ' + ms + 'ms'); }
+      if (!r || !r.scheduled){
+        restPingScheduled = false; restPingForEnds = 0;
+        restPingLog(label + 'server said no (' + ((r && r.reason) || '?') + ') ' + ms + 'ms');
+        if (!isRetry && r && /server error|enqueue failed/.test(r.reason || '')){
+          setTimeout(function(){
+            if (endsAt - Date.now() > 4000 && restPingAllowed() && !restPingScheduled) pingServer(endsAt, label + 'retry: ', true);
+          }, 2600);
+        }
+      }
       else restPingLog(label + 'server scheduled it \u2713 ' + ms + 'ms');
     }).catch(function(err){
       clearTimeout(slow);
       restPingScheduled = false; restPingForEnds = 0;
-      restPingLog(label + 'call failed (' + ((err && (err.code || err.message)) || 'error') + ') ' + (Date.now() - t0) + 'ms');
+      var code = String((err && (err.code || err.message)) || 'error');
+      restPingLog(label + 'call failed (' + code + ') ' + (Date.now() - t0) + 'ms');
+      // One quiet retry for a hiccup (the server rate-limits to 1 call / 2s, so wait a beat).
+      if (!isRetry && /internal|unavailable|deadline|network/i.test(code)){
+        setTimeout(function(){
+          if (endsAt - Date.now() > 4000 && restPingAllowed() && !restPingScheduled) pingServer(endsAt, label + 'retry: ', true);
+        }, 2600);
+      }
     });
   }
   function scheduleRestPingNow(){
@@ -12044,6 +12087,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // Coming back doesn't cancel it: a push that lands while the app is open is
     // swallowed (see initForegroundPush) and the in-app timer handles the end.
     if (document.visibilityState === 'hidden') scheduleRestPingNow();
+    else clearRestNotifs();
   });
 
   // Auto mode (Settings > Preferences > Rest timer start) skips the picker
@@ -23086,6 +23130,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       showToast(joke || ('New ' + (prKind === 'weight' ? 'weight ' : prKind === 'reps' ? 'rep ' : '') + 'PR on ' + ex.name + '!'));
       if (!joke && prevBest > 0 && weightKg > 0 && !isHoldExercise(ex.name)) tpMaybePRTrophy(ex, weightKg, reps, prevBest);
     }
+    ui.lastSetCtx = { ex: ex.name, setNo: ex.sets.length, at: Date.now() };   // for the rest-over alert text
     if (state.settings.restTimerAutoStart && !ui.restTimer && shouldAutoStartRestAfterSet(ex)){
       autoStartRestTimer();
     }
