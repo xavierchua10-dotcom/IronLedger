@@ -11951,10 +11951,13 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     renderRestTimerBar();
     if (restTimerInterval) clearInterval(restTimerInterval);
     restTimerInterval = setInterval(tickRestTimer, 1000);
+    scheduleRestPingNow();
   }
 
   // ---- Rest-over push (server buzzes the phone if you leave the app mid-rest) ----
   var restPingScheduled = false;
+  var restPingForEnds = 0;      // the endsAt value the server was last asked about
+  var restPingSoonTimer = null;
   // Why the alert can't work right now ('' = it can). Also shown in Settings.
   function restPingBlocker(){
     if (state.settings.restPing === false) return 'Switched OFF';
@@ -11987,25 +11990,32 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function pingServer(endsAt, label){
     var t0 = Date.now();
     restPingScheduled = true;
+    restPingForEnds = endsAt;
     restPingLog(label + 'asking server\u2026');
     var slow = setTimeout(function(){ restPingLog(label + 'still waiting after 10s\u2026'); }, 10000);
     window.SaviorFirebase.callScheduleRestPing(endsAt).then(function(r){
       clearTimeout(slow);
       var ms = Date.now() - t0;
-      if (!r || !r.scheduled){ restPingScheduled = false; restPingLog(label + 'server said no (' + ((r && r.reason) || '?') + ') ' + ms + 'ms'); }
+      if (!r || !r.scheduled){ restPingScheduled = false; restPingForEnds = 0; restPingLog(label + 'server said no (' + ((r && r.reason) || '?') + ') ' + ms + 'ms'); }
       else restPingLog(label + 'server scheduled it \u2713 ' + ms + 'ms');
     }).catch(function(err){
       clearTimeout(slow);
-      restPingScheduled = false;
+      restPingScheduled = false; restPingForEnds = 0;
       restPingLog(label + 'call failed (' + ((err && (err.code || err.message)) || 'error') + ') ' + (Date.now() - t0) + 'ms');
     });
   }
   function scheduleRestPingNow(){
     if (!ui.restTimer) return;
+    if (restPingForEnds === ui.restTimer.endsAt && restPingScheduled) return;   // server already knows this one
     var b = restPingBlocker();
     if (b){ restPingLog('skipped: ' + b); return; }
     if (ui.restTimer.endsAt - Date.now() < 5000){ restPingLog('skipped: under 5s left'); return; }
     pingServer(ui.restTimer.endsAt, '');
+  }
+  // Used when +/-15s changes the end time: wait a beat so quick taps make one call.
+  function scheduleRestPingSoon(){
+    clearTimeout(restPingSoonTimer);
+    restPingSoonTimer = setTimeout(scheduleRestPingNow, 2300);
   }
   // Settings "Test" button: asks the server to buzz in 20s, and reports the round trip.
   function testRestPing(){
@@ -12014,13 +12024,17 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     pingServer(Date.now() + 20000, 'TEST: ');
   }
   function cancelRestPingNow(){
+    clearTimeout(restPingSoonTimer);
+    restPingForEnds = 0;
     if (!restPingScheduled) return;
     restPingScheduled = false;
     try { window.SaviorFirebase.callCancelRestPing().catch(function(){}); } catch(e){}
   }
   document.addEventListener('visibilitychange', function(){
+    // The alert is already booked when the rest starts; this is just a backup.
+    // Coming back doesn't cancel it: a push that lands while the app is open is
+    // swallowed (see initForegroundPush) and the in-app timer handles the end.
     if (document.visibilityState === 'hidden') scheduleRestPingNow();
-    else cancelRestPingNow();
   });
 
   // Auto mode (Settings > Preferences > Rest timer start) skips the picker
@@ -12046,7 +12060,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       restTimerInterval = null;
       ui.restTimer = null;
       renderRestTimerBar();
-      if (wasAway) return;
+      if (wasAway){ restPingScheduled = false; restPingForEnds = 0; return; }
       cancelRestPingNow();
       showToast('Rest complete \u2014 back to it');
       if (navigator.vibrate && state.settings.restTimerVibrate !== false) navigator.vibrate([120, 60, 120]);
@@ -21395,6 +21409,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         ui.restTimer.endsAt += nd;
         ui.restTimer.totalSeconds = Math.max(ui.restTimer.totalSeconds, Math.ceil((rem + nd) / 1000));
         renderRestTimerBar();
+        scheduleRestPingSoon();
       }
     });
     return ov;
@@ -26806,6 +26821,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       return;
     }
     window.SaviorFirebase.onForegroundPush(function(payload){
+      // The rest timer already chimes in-app; don't double up with its own push.
+      if (payload && payload.notification && payload.notification.title === 'Rest over') return;
       var body = (payload && payload.notification && payload.notification.body)
         || (payload && payload.data && payload.data.body)
         || 'New notification';
