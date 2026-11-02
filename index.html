@@ -11960,7 +11960,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   var restPingSoonTimer = null;
   // Why the alert can't work right now ('' = it can). Also shown in Settings.
   function restPingBlocker(){
-    if (state.settings.restPing === false) return 'Switched OFF';
     if (!state.currentAccount || state.currentAccount === 'guest') return 'Sign in first (guest mode can\u2019t get alerts)';
     if (typeof Notification === 'undefined') return 'This browser has no notifications';
     if (Notification.permission !== 'granted') return 'Notifications are blocked \u2014 allow them in Settings';
@@ -11981,9 +11980,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function restPingDebugHtml(){
     var b = restPingBlocker();
     var dev = !!fpsDebugOn;
-    if (!dev && (!b || b === 'Switched OFF')) return '';
+    if (!dev) return '';
     return '<br>' + (dev ? '<button type="button" data-action="test-rest-ping" style="margin:6px 0;padding:6px 12px;border-radius:8px;border:1px solid var(--accent,#f2b134);background:none;color:var(--accent,#f2b134);font:600 12px Inter,sans-serif">Send test alert (20s)</button><br>' : '') +
-      '<span id="rpStatus" style="font-family:var(--font-mono,monospace);font-size:11px;opacity:.75">' + esc(dev ? restPingStatusLine() : 'Not ready: ' + b + '.') + '</span>';
+      '<span id="rpStatus" style="font-family:var(--font-mono,monospace);font-size:11px;opacity:.75">' + esc(restPingStatusLine()) + '</span>';
   }
   function restPingStatusLine(){
     var b = restPingBlocker();
@@ -17658,11 +17657,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                 '<button data-action="toggle-rest-timer-vibrate" data-val="on" class="'+(state.settings.restTimerVibrate !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="off" class="'+(state.settings.restTimerVibrate === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest-over alert</div><div class="sr-sub">Notification when rest ends, if you leave the app (needs notifications on)'+restPingDebugHtml()+'</div></div>' +
-              '<div class="seg">' +
-                '<button data-action="toggle-rest-ping" data-val="on" class="'+(state.settings.restPing !== false ? 'active' : '')+'">ON</button>' +
-                '<button data-action="toggle-rest-ping" data-val="off" class="'+(state.settings.restPing === false ? 'active' : '')+'">OFF</button>' +
-              '</div></div>';
     html += '<div class="settings-row" data-sp="feel-haptic"><div><div class="sr-label">Haptic feedback</div><div class="sr-sub">Short vibration when you log a set, hit a PR, finish a session, or tap tabs and switches</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-haptic-feedback" data-val="on" class="'+(state.settings.hapticFeedback !== false ? 'active' : '')+'">ON</button>' +
@@ -17693,8 +17687,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var pushBlocked = (notifPerm === 'denied');
       var pushOn = !!(state.userDoc && state.userDoc.fcmToken) && notifPerm === 'granted';
       var pushSub = pushBlocked ? 'Blocked on this device \u2014 allow notifications for SaviorFit Logger in your phone\u2019s settings'
-                  : (pushOn ? 'Enabled on this device' : 'Get a nudge when it\u2019s been a while');
-      html += '<div class="settings-row" data-sp="feel-notif"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+pushSub+'</div></div>' +
+                  : (pushOn ? 'Enabled on this device \u2014 includes the alert when your rest timer ends' : 'Get a nudge when it\u2019s been a while, and an alert when your rest timer ends');
+      html += '<div class="settings-row" data-sp="feel-notif"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+pushSub+restPingDebugHtml()+'</div></div>' +
                 (pushBlocked ? '' : '<button class="sr-action" data-action="enable-push"'+(ui.pushBusy ? ' disabled' : '')+'>'+(ui.pushBusy ? '\u2026' : (pushOn ? 'Re-enable' : 'Enable'))+'</button>') +
               '</div>';
     }
