@@ -1893,6 +1893,21 @@
     margin-bottom:10px;
   }
   .template-card:last-child{margin-bottom:0;}
+  /* One-time light sweep across the visible cards (app open / tab switch) --
+     see playCardShine(). The sweep is its own absolutely-placed layer, so it
+     never changes a card's layout or clipping. */
+  .shine-sweep{
+    position:absolute !important; inset:0; z-index:5 !important; pointer-events:none;
+    border-radius:inherit; overflow:hidden;
+  }
+  .shine-sweep::before{
+    content:''; position:absolute; top:-20%; bottom:-20%; left:0; width:55%;
+    background:linear-gradient(100deg, rgba(242,177,52,0) 0%, rgba(255,226,150,.22) 45%, rgba(255,255,255,.30) 50%, rgba(255,226,150,.22) 55%, rgba(242,177,52,0) 100%);
+    transform:translateX(-120%) skewX(-18deg);
+    animation:shineSweepRun .85s cubic-bezier(.3,.1,.3,1) var(--shine-delay,0ms) 1 both;
+  }
+  @keyframes shineSweepRun{ from{ transform:translateX(-120%) skewX(-18deg); } to{ transform:translateX(260%) skewX(-18deg); } }
+  @media (prefers-reduced-motion: reduce){ .shine-sweep{ display:none !important; } }
   .template-divider{
     height:1px;
     background:var(--line);
@@ -18002,6 +18017,43 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     ui.progressBackToHistory = true;
     queueBackSync();
   }
+  // One light sweep, left to right, over the cards currently on screen. Called when the
+  // app opens, when you come back to it after a while, and on every tab switch. It adds a
+  // throwaway layer to each card and removes it again, so nothing else is touched.
+  var SHINE_SELECTORS = '.template-card, .exercise-card, .history-item, .history-week-panel, .pf-stat, .pf-best, .pf-settings-card, .pf-streak, .chart-stats, .chart-wrap, .routine-item';
+  function playCardShine(){
+    try {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var view = document.getElementById('view');
+      if (!view) return;
+      var vh = window.innerHeight;
+      var cards = Array.prototype.slice.call(view.querySelectorAll(SHINE_SELECTORS)).filter(function(el){
+        var r = el.getBoundingClientRect();
+        return r.width > 60 && r.height > 30 && r.bottom > 70 && r.top < vh - 60 && !el.querySelector('.shine-sweep') && !el.closest('.shine-sweep');
+      });
+      // A card inside another matched card (e.g. rows in a week panel) would double up: keep outermost only.
+      cards = cards.filter(function(el){ return !cards.some(function(o){ return o !== el && o.contains(el); }); }).slice(0, 8);
+      cards.forEach(function(el, i){
+        if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+        var sw = document.createElement('div');
+        sw.className = 'shine-sweep';
+        sw.style.setProperty('--shine-delay', (i * 90) + 'ms');
+        el.appendChild(sw);
+        setTimeout(function(){ if (sw.parentNode) sw.parentNode.removeChild(sw); }, 1300 + i * 90);
+      });
+    } catch (e) { /* purely cosmetic */ }
+  }
+  var lastShineHiddenAt = 0;
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'hidden'){ lastShineHiddenAt = Date.now(); return; }
+    if (lastShineHiddenAt && Date.now() - lastShineHiddenAt > 20000) setTimeout(playCardShine, 350);
+  });
+  setTimeout(function waitForFirstView(n){
+    var a = document.getElementById('app');
+    if (a && !a.classList.contains('hidden') && document.querySelector('#view .template-card, #view .pf-stat, #view .exercise-card, #view .history-item')){ setTimeout(playCardShine, 250); return; }
+    if ((n || 0) < 40) setTimeout(function(){ waitForFirstView((n || 0) + 1); }, 400);
+  }, 600);
+
   function switchTabWithFade(newTab){
     queueBackSync();
     if (newTab === state.tab){
@@ -18037,6 +18089,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       state.tab = newTab;
       renderApp();
       viewEl.scrollTop = tabScrollPositions[newTab] || 0;
+      setTimeout(playCardShine, 120);
       return;
     }
 
@@ -18057,6 +18110,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         freshView.classList.remove('subtab-flat');
         ui.tabAnimating = false;
       }, 120);
+      setTimeout(playCardShine, 140);
     }, 70);
   }
 
