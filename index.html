@@ -11955,21 +11955,48 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
   // ---- Rest-over push (server buzzes the phone if you leave the app mid-rest) ----
   var restPingScheduled = false;
-  function restPingAllowed(){
-    if (state.settings.restPing === false) return false;
-    if (!state.currentAccount || state.currentAccount === 'guest') return false;
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false;
-    if (!(state.userDoc && state.userDoc.fcmToken)) return false;
+  // Why the alert can't work right now ('' = it can). Also shown in Settings.
+  function restPingBlocker(){
+    if (state.settings.restPing === false) return 'Switched OFF';
+    if (!state.currentAccount || state.currentAccount === 'guest') return 'Sign in first (guest mode can\u2019t get alerts)';
+    if (typeof Notification === 'undefined') return 'This browser has no notifications';
+    if (Notification.permission !== 'granted') return 'Notifications are blocked \u2014 allow them in Settings';
+    if (!(state.userDoc && state.userDoc.fcmToken)) return 'Phone not registered for push yet \u2014 turn notifications off and on';
     var sf = window.SaviorFirebase;
-    return !!(sf && sf.callScheduleRestPing && sf.callCancelRestPing);
+    if (!(sf && sf.callScheduleRestPing && sf.callCancelRestPing)) return 'Still loading \u2014 try again in a moment';
+    return '';
+  }
+  function restPingAllowed(){ return !restPingBlocker(); }
+  // Last attempt, kept so Settings can say what happened (survives app restarts).
+  function restPingLog(msg){
+    try { localStorage.setItem('il_rp_diag', JSON.stringify({ t: Date.now(), m: msg })); } catch(e){}
+  }
+  function restPingStatusLine(){
+    var b = restPingBlocker();
+    var last = '';
+    try {
+      var d = JSON.parse(localStorage.getItem('il_rp_diag') || 'null');
+      if (d && d.m){
+        var t = new Date(d.t);
+        last = ' Last try ' + String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0') + ' \u2014 ' + d.m;
+      }
+    } catch(e){}
+    return (b ? 'Not ready: ' + b + '.' : 'Ready.') + last;
   }
   function scheduleRestPingNow(){
-    if (!ui.restTimer || !restPingAllowed()) return;
-    if (ui.restTimer.endsAt - Date.now() < 5000) return;
+    if (!ui.restTimer) return;
+    var b = restPingBlocker();
+    if (b){ restPingLog('skipped: ' + b); return; }
+    if (ui.restTimer.endsAt - Date.now() < 5000){ restPingLog('skipped: under 5s left'); return; }
     restPingScheduled = true;
+    restPingLog('asking server\u2026');
     window.SaviorFirebase.callScheduleRestPing(ui.restTimer.endsAt).then(function(r){
-      if (!r || !r.scheduled) restPingScheduled = false;
-    }).catch(function(){ restPingScheduled = false; });
+      if (!r || !r.scheduled){ restPingScheduled = false; restPingLog('server said no (' + ((r && r.reason) || '?') + ')'); }
+      else restPingLog('server scheduled it \u2713');
+    }).catch(function(err){
+      restPingScheduled = false;
+      restPingLog('call failed (' + ((err && (err.code || err.message)) || 'error') + ')');
+    });
   }
   function cancelRestPingNow(){
     if (!restPingScheduled) return;
@@ -17592,7 +17619,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                 '<button data-action="toggle-rest-timer-vibrate" data-val="on" class="'+(state.settings.restTimerVibrate !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="off" class="'+(state.settings.restTimerVibrate === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest-over alert</div><div class="sr-sub">Notification when rest ends, if you leave the app (needs notifications on)</div></div>' +
+    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest-over alert</div><div class="sr-sub">Notification when rest ends, if you leave the app (needs notifications on)<br><span style="font-family:var(--font-mono,monospace);font-size:11px;opacity:.75">'+esc(restPingStatusLine())+'</span></div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-rest-ping" data-val="on" class="'+(state.settings.restPing !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-ping" data-val="off" class="'+(state.settings.restPing === false ? 'active' : '')+'">OFF</button>' +
