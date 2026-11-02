@@ -25794,7 +25794,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!el) return;
     var action = el.dataset.action;
     if (action === 'set-confirm-view'){
-      if (ui.confirmModal){ ui.confirmModal.view = el.dataset.view === '3d' ? '3d' : '2d'; renderConfirmModal(); }
+      // one shared 2D / 3D choice: the list behind the popup switches too
+      var cv = el.dataset.view === '3d' ? '3d' : '2d';
+      setExView(cv);
+      if (ui.confirmModal){ ui.confirmModal.view = cv; renderConfirmModal(); }
       return;
     }
     if (action === 'cancel-confirm'){
