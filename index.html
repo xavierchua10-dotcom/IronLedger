@@ -1805,6 +1805,8 @@
   /* Hardcore Mode (red): its own card on the Log tab, the day cards in the
      picker, and the 2-set lock on each exercise. */
   .template-card.tpl-hc{border-color:#e5383b;background-color:#14171b;background-image:linear-gradient(135deg,#3a1013,#14171b 72%);}
+  .template-card.log-tpl-card.tpl-hc{background-color:#181a1f;background-image:linear-gradient(110deg,#181a1f 45%,#4a1519 100%);}
+  .session-finish-bar.hc .btn-primary:not(:disabled), .session-finish-bar.hc .add-set-global-btn:not(:disabled){background:#e5383b;color:#fff;}
   .tpl-hc .tpl-bg{display:none;}
   .tpl-hc .template-card-name{color:#ff4d4f;}
   .tpl-hc .tpl-chip{border-color:#e5383b;color:#ff6b6d;}
@@ -23964,6 +23966,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var canFinish = !!activeSession && sessionLogCount(activeSession) > 0 && !isMidEdit;
     el.disabled = !canFinish;
     el.classList.toggle('ready', canFinish);
+    // Hardcore workout: the bottom bar (Finish Session / Add Set) turns red.
+    var bar = document.getElementById('sessionFinishBar');
+    if (bar) bar.classList.toggle('hc', !!activeSession && (activeSession.exercises || []).some(function(e){ return e && e.hardcore; }));
   }
 
   function activeSessionUnsavedDraftExercise(){
