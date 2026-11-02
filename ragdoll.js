@@ -675,6 +675,21 @@ function init(canvasHost, opts){
   floor.rotation.x = -Math.PI/2; floor.position.y = -0.002; scene.add(floor);
   var ring = new THREE.Mesh(new THREE.RingGeometry(1.5,1.512,64), new THREE.MeshBasicMaterial({color:0xf2b134, transparent:true, opacity:0.35, side:THREE.DoubleSide}));
   ring.rotation.x = -Math.PI/2; ring.position.y = 0.001; scene.add(ring);
+  // brand mark painted on the floor in front of the figure
+  (function(){
+    var cv = document.createElement('canvas'); cv.width = 1024; cv.height = 128;
+    var tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
+    function paint(){
+      var c = cv.getContext('2d'); c.clearRect(0,0,1024,128);
+      c.font = '700 84px Oswald, Impact, "Arial Narrow", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      var txt = '@SAVIORFITLOGGER.APP', px = 84; c.font = '700 ' + px + 'px Oswald, Impact, "Arial Narrow", sans-serif';
+      var tw = c.measureText(txt).width; if (tw > 940){ px = Math.floor(px*940/tw); c.font = '700 ' + px + 'px Oswald, Impact, "Arial Narrow", sans-serif'; }
+      c.fillStyle = 'rgba(242,177,52,0.62)'; c.fillText(txt, 512, 66); tex.needsUpdate = true;
+    }
+    paint(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(paint);
+    var mark = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.2375), new THREE.MeshBasicMaterial({map:tex, transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3}));
+    var MA = 0.75; mark.rotation.set(-Math.PI/2, MA, 0, 'YXZ'); mark.position.set(Math.sin(MA)*0.72, 0.004, Math.cos(MA)*0.72); mark.renderOrder = 1; scene.add(mark);
+  })();
   var rig = new THREE.Group(); scene.add(rig);              // body parts
   var props = new THREE.Group(); scene.add(props);          // exercise props (rebuilt per exercise)
   var mk = function(mat){ var c = Cap(mat); rig.add(c); return c; };
