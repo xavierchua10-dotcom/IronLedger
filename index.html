@@ -2298,6 +2298,40 @@
   }
   .mm-overlay-head h2::before{content:'';width:3px;height:18px;border-radius:2px;background:var(--accent);flex-shrink:0;}
   .mm-title-wrap{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  /* ---------- 3D muscle picker (Pick by muscle group) ----------
+     Same overlay as before; the grid is replaced by a tappable 3D body.
+     The old grid is still one tap away (GRID button) and is also the
+     automatic fallback if WebGL / the model can't load. */
+  .mm-overlay-panel.mm-3d{height:min(92vh,820px);max-height:none;padding:14px 14px 12px;}
+  .mm-overlay.mm-3d-on{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(8,9,11,0.86);}
+  html:has(#mmpStage) *{-webkit-backdrop-filter:none !important;backdrop-filter:none !important;}
+  .mm-mode-btn{border:1px solid rgba(255,255,255,0.18);background:transparent;color:#c7ccd3;border-radius:12px;height:40px;padding:0 12px;font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.08em;cursor:pointer;touch-action:manipulation;}
+  .mm-mode-btn:active{color:var(--accent);border-color:var(--accent);}
+  .mmp-stage{position:relative;flex:1;min-height:0;border-radius:16px;overflow:hidden;background:#14161a;touch-action:none;}
+  .mmp-stage canvas{display:block;position:absolute;inset:0;width:100% !important;height:100% !important;touch-action:none;}
+  .mmp-seg{position:absolute;left:50%;top:8px;transform:translateX(-50%);display:flex;background:rgba(26,29,34,0.92);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:3px;z-index:3;}
+  .mmp-seg button{font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.1em;padding:11px 18px;border-radius:999px;color:#9aa1ab;background:transparent;border:0;cursor:pointer;touch-action:manipulation;position:relative;}
+  .mmp-seg button::after{content:'';position:absolute;inset:-6px -2px;}
+  .mmp-seg button.on{background:var(--accent);color:#1c1500;}
+  .mmp-pins{position:absolute;inset:0;pointer-events:none;z-index:2;}
+  .mmp-pin{position:absolute;left:0;top:0;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:#14161a;border:1.6px solid var(--accent);color:var(--accent);font:700 10.5px/21px 'JetBrains Mono',monospace;text-align:center;pointer-events:auto;cursor:pointer;opacity:0;padding:0;touch-action:manipulation;will-change:transform;}
+  .mmp-pin::after{content:'';position:absolute;inset:-10px;}
+  .mmp-pin.sel{background:var(--accent);color:#1c1500;box-shadow:0 0 0 5px rgba(var(--accent-rgb),0.25);}
+  .mmp-load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.08em;color:#8b9098;background:#14161a;z-index:4;}
+  .mmp-bottom{flex:0 0 clamp(190px,30vh,236px);padding-top:12px;display:flex;flex-direction:column;min-height:0;}
+  .mmp-hint{margin:auto 0;text-align:center;font-size:12.5px;line-height:1.5;color:#9aa1ab;padding:0 10px;}
+  .mmp-hint b{display:block;font:700 15px/1.2 'Oswald',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--text);margin-bottom:6px;}
+  .mmp-hint button{margin-top:12px;}
+  .mmp-sh{display:flex;align-items:baseline;justify-content:space-between;flex:none;}
+  .mmp-sh h3{margin:0;font:700 28px/1 'Oswald',sans-serif;letter-spacing:.03em;text-transform:uppercase;color:var(--text);}
+  .mmp-sh span{font:700 11px/1 'JetBrains Mono',monospace;color:var(--accent);letter-spacing:.08em;}
+  .mmp-sub{font-size:12px;color:#9aa1ab;margin:6px 0 10px;flex:none;}
+  .mmp-chips{display:flex;gap:8px;flex-wrap:wrap;flex:none;margin-bottom:12px;}
+  .mmp-chips button{font:600 12px/1 'Inter',sans-serif;padding:10px 12px;border-radius:999px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#d3d6db;cursor:pointer;touch-action:manipulation;}
+  .mmp-chips button:active{background:rgba(var(--accent-rgb),0.25);}
+  .mmp-go{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:#1c1500;border:0;border-radius:14px;padding:15px;font:700 15px/1 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 6px 22px rgba(var(--accent-rgb),0.28);cursor:pointer;margin-top:auto;touch-action:manipulation;width:100%;}
+  .mmp-go:active{filter:brightness(.92);}
+
   .mm-title-wrap.center{align-items:center;}
   .mm-sub{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.04em;color:var(--text-faint);padding-left:13px;}
   .mm-title-wrap.center .mm-sub{padding-left:0;}
@@ -7404,6 +7438,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     showReferenceOverlay: false, // gold reference button on repeated-session exercise cards
     referenceExerciseName: null,
     selectedMuscle: null,
+    mmpSel: null,        // muscle highlighted in the 3D picker
+    mmClassic: (function(){ try{ return localStorage.getItem('il_mm_classic') === '1'; }catch(e){ return false; } })(),
+    mmpFail: false,      // 3D picker couldn't start -> grid fallback
     pendingMuscle: null,
     editingSet: null,      // { exId, setId } or null
     historySearch: '',         // current History search query
@@ -9801,15 +9838,370 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     return html;
   }
 
+  /* =========================================================
+     3D MUSCLE PICKER  (Pick by muscle group -> tappable 3D body)
+     Runs its own small three.js scene inside #mmpStage. Loads the same
+     slimmed model.glb the Insight tab uses (browser-cached), paints 12
+     soft "zones" onto the mesh vertices once, and lets a tap pick the
+     zone under the finger. Picking a zone only sets ui.mmpSel and shows
+     a bottom sheet; adding an exercise / opening the full list reuse the
+     existing mm-add-exercise and mm-select-muscle actions untouched.
+     Falls back to the old grid if WebGL or the model fails.
+     ========================================================= */
+  var MMP_NAMES = ['Chest','Back','Shoulders','Traps','Biceps','Triceps','Forearms','Abs','Quads','Hamstrings','Glutes','Calves'];
+  var MMP_PAIR = {Chest:1,Shoulders:1,Biceps:1,Triceps:1,Forearms:1,Quads:1,Hamstrings:1,Glutes:1,Calves:1};
+  function mmpMir(cx,cy,rx,ry,rot){ rot = rot || 0; return [[cx,cy,rx,ry,rot],[410-cx,cy,rx,ry,-rot]]; }
+  // Zones measured off the real model at its default front/back view
+  // (screen px, figure centred on x=205, feet at y=727.5, 325.6 px per model unit).
+  var MMP_ZF = {
+    Chest:mmpMir(177,293,28,24,-4), Shoulders:mmpMir(132,269,20,24), Traps:[[205,240,34,10,0]],
+    Biceps:mmpMir(118,324,13,27,5), Forearms:mmpMir(105,400,13,36,4), Abs:[[205,385,26,50,0]],
+    Quads:mmpMir(172,536,28,66,0), Calves:mmpMir(166,652,15,34)
+  };
+  var MMP_ZB = {
+    Traps:[[205,262,38,30,0]], Back:mmpMir(180,350,27,46,10), Shoulders:mmpMir(132,269,20,24),
+    Triceps:mmpMir(117,324,13,28,5), Forearms:mmpMir(105,400,13,36,4), Glutes:mmpMir(178,452,26,28,0),
+    Hamstrings:mmpMir(170,538,27,52,0), Calves:mmpMir(166,652,15,34)
+  };
+  var MMP_S = 325.6, MMP_X0 = 205, MMP_YF = 727.5;
+  var mmp = null;            // live viewer state (null until first open / after teardown)
+  var mmpTeardownTimer = null;
+
+  function mmpSmooth(a,b,x){ x = Math.min(1, Math.max(0, (x-a)/(b-a))); return x*x*(3-2*x); }
+  function mmpEll(px,py,e){
+    var dx = px-e[0], dy = py-e[1], r = -e[4]*Math.PI/180, cs = Math.cos(r), sn = Math.sin(r);
+    var u = (dx*cs-dy*sn)/e[2], v = (dx*sn+dy*cs)/e[3], d = Math.sqrt(u*u+v*v);
+    return 1 - mmpSmooth(0.72, 1.05, d);
+  }
+  function mmpSupported(){
+    if (typeof THREE === 'undefined' || !THREE.GLTFLoader || !THREE.DRACOLoader || !THREE.OrbitControls) return false;
+    try{ var c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); }catch(e){ return false; }
+  }
+
+  function mmpCreate(){
+    var scene = new THREE.Scene(); scene.background = new THREE.Color(0x14161a);
+    var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    var renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    var controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableZoom = false; controls.enablePan = false; controls.enableDamping = true; controls.dampingFactor = 0.08; controls.rotateSpeed = 0.8;
+    var key = new THREE.DirectionalLight(0xffffff, 2.1); key.position.set(2,3,2);
+    var fill = new THREE.DirectionalLight(0xaeb8c2, 1.2); fill.position.set(-3,1,-1);
+    var nearFill = new THREE.DirectionalLight(0xffffff, 0.5); nearFill.position.set(0.5,1.7,0.9);
+    var hemi = new THREE.HemisphereLight(0x9b9b9b, 0x404040, 1.1);
+    scene.add(key, fill, nearFill, hemi);
+    mmp = { scene:scene, camera:camera, renderer:renderer, controls:controls, stage:null, ro:null, raf:null, model:null, mesh:null,
+            M:null, worldPos:null, uni:null, anchors:[], dist:2.4, tgt:new THREE.Vector3(0,0.9,0), elev:0.3, tween:null, loading:true, failed:false, down:null, zonesOn:true };
+    renderer.domElement.addEventListener('pointerdown', function(e){ mmp.down = {x:e.clientX, y:e.clientY, t:performance.now()}; mmp.tween = null; });
+    renderer.domElement.addEventListener('pointerup', function(e){
+      var d = mmp && mmp.down; if (!d) return; mmp.down = null;
+      var dx = e.clientX-d.x, dy = e.clientY-d.y;
+      if (dx*dx+dy*dy > 100 || performance.now()-d.t > 450) return;
+      mmpTap(e.clientX, e.clientY);
+    });
+    var loader = new THREE.GLTFLoader(), dr = new THREE.DRACOLoader(); dr.setDecoderPath('draco/'); loader.setDRACOLoader(dr);
+    loader.load('model.glb?v=2', function(gltf){
+      if (!mmp) return;
+      try{
+        var model = gltf.scene, box = new THREE.Box3().setFromObject(model), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+        var sc = 1.8/size.y; model.scale.setScalar(sc); model.position.set(-c.x*sc, -box.min.y*sc, -c.z*sc); scene.add(model); model.updateMatrixWorld(true);
+        model.traverse(function(n){ if (n.isMesh && !mmp.mesh) mmp.mesh = n; });
+        var orig = mmp.mesh.material;
+        mmp.mesh.material = new THREE.MeshStandardMaterial({ color:0x303030, roughness:0.8, metalness:0, normalMap: orig.normalMap || null });
+        mmp.model = model;
+        mmpBuildZones();
+        mmp.loading = false;
+        var ld = document.getElementById('mmpLoading'); if (ld) ld.style.display = 'none';
+        mmpBuildPins(); mmpSetSel(ui.mmpSel || null);
+      }catch(err){ console.error('mmp build', err); mmpFail(); }
+    }, null, function(err){ console.error('mmp load', err); mmpFail(); });
+    return mmp;
+  }
+
+  function mmpDispose(){
+    mmpStopLoop();
+    if (!mmp) return;
+    try{ if (mmp.ro) mmp.ro.disconnect(); mmp.controls.dispose(); mmp.renderer.dispose(); if (mmp.renderer.forceContextLoss) mmp.renderer.forceContextLoss(); }catch(e){}
+    mmp = null;
+  }
+  function mmpFail(){
+    ui.mmpFail = true;
+    mmpDispose();
+    if (ui.showMuscleMap) renderMuscleMapOverlay();
+    showToast('3D picker unavailable — showing the list');
+  }
+
+  function mmpBuildZones(){
+    var mesh = mmp.mesh, g = mesh.geometry, pos = g.attributes.position, nrm = g.attributes.normal, n = pos.count, r, i;
+    var worldPos = new Float32Array(n*3), M = [];
+    for (r = 0; r < 12; r++) M.push(new Float32Array(n));
+    var mw = mesh.matrixWorld, v = new THREE.Vector3(), nv = new THREE.Vector3();
+    var sums = [], wsum = [];
+    for (r = 0; r < 12; r++){ sums.push([[0,0,0,0,0,0],[0,0,0,0,0,0]]); wsum.push([0,0]); }
+    // flat zone list with a cheap bounding radius so most vertices skip the ellipse maths
+    var zl = [];
+    [MMP_ZF, MMP_ZB].forEach(function(Z, side){
+      Object.keys(Z).forEach(function(k){
+        var els = Z[k];
+        zl.push({ side:side, ri:MMP_NAMES.indexOf(k), name:k, els:els.map(function(e){ return { e:e, R:Math.max(e[2],e[3])*1.1 }; }) });
+      });
+    });
+    for (i = 0; i < n; i++){
+      v.fromBufferAttribute(pos, i).applyMatrix4(mw); nv.fromBufferAttribute(nrm, i).transformDirection(mw);
+      worldPos[i*3] = v.x; worldPos[i*3+1] = v.y; worldPos[i*3+2] = v.z;
+      var py = MMP_YF - v.y*MMP_S;
+      var ff = mmpSmooth(0.08, 0.5, nv.z), fb = mmpSmooth(0.08, 0.5, -nv.z);
+      var pxF = MMP_X0 + v.x*MMP_S, pxB = MMP_X0 - v.x*MMP_S;
+      for (var q = 0; q < zl.length; q++){
+        var z = zl[q], facing = z.side ? fb : ff;
+        if (facing <= 0.001) continue;
+        var px = z.side ? pxB : pxF, best = 0;
+        for (var w = 0; w < z.els.length; w++){
+          var el = z.els[w];
+          if (Math.abs(px-el.e[0]) > el.R || Math.abs(py-el.e[1]) > el.R) continue;
+          var m = mmpEll(px, py, el.e); if (m > best) best = m;
+        }
+        if (best <= 0) continue;
+        best *= facing;
+        if (best > M[z.ri][i]) M[z.ri][i] = best;
+        if (best > 0.3 && !(MMP_PAIR[z.name] && v.x <= 0)){
+          var s = sums[z.ri][z.side]; s[0] += v.x*best; s[1] += v.y*best; s[2] += v.z*best; s[3] += nv.x*best; s[4] += nv.y*best; s[5] += nv.z*best; wsum[z.ri][z.side] += best;
+        }
+      }
+    }
+    var og = new THREE.BufferGeometry();
+    og.setAttribute('position', pos); og.setAttribute('normal', nrm); if (g.index) og.setIndex(g.index);
+    for (var a = 0; a < 3; a++){
+      var arr = new Float32Array(n*4);
+      for (i = 0; i < n; i++){ for (var c = 0; c < 4; c++) arr[i*4+c] = M[a*4+c][i]; }
+      og.setAttribute('m'+a, new THREE.BufferAttribute(arr, 4));
+    }
+    var uni = { uA:{value:new THREE.Vector4()}, uB:{value:new THREE.Vector4()}, uC:{value:new THREE.Vector4()}, uFaint:{value:1}, uTime:{value:0}, uAcc:{value:new THREE.Color(0xf2b134)} };
+    var mat = new THREE.ShaderMaterial({
+      uniforms:uni, transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2,
+      vertexShader:'attribute vec4 m0;attribute vec4 m1;attribute vec4 m2;uniform vec4 uA;uniform vec4 uB;uniform vec4 uC;varying float vSel;varying float vAny;varying vec3 vN;varying vec3 vV;'+
+        'void main(){vSel=dot(m0,uA)+dot(m1,uB)+dot(m2,uC);vAny=max(max(max(m0.x,m0.y),max(m0.z,m0.w)),max(max(max(m1.x,m1.y),max(m1.z,m1.w)),max(max(m2.x,m2.y),max(m2.z,m2.w))));'+
+        'vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.0);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
+      fragmentShader:'uniform float uFaint;uniform float uTime;uniform vec3 uAcc;varying float vSel;varying float vAny;varying vec3 vN;varying vec3 vV;'+
+        'void main(){float rim=pow(1.0-abs(dot(normalize(vN),normalize(vV))),2.0);float s=clamp(vSel,0.0,1.0);'+
+        'float pulse=0.85+0.15*sin(uTime*4.0);float a=s*(0.58+0.25*rim)*pulse+uFaint*vAny*0.13*(1.0-s);'+
+        'vec3 col=mix(uAcc,vec3(1.0,0.88,0.55),s*0.4+rim*0.25);if(a<0.004)discard;gl_FragColor=vec4(col,a);}'
+    });
+    var ov = new THREE.Mesh(og, mat); ov.frustumCulled = false; mesh.add(ov);
+    mmp.M = M; mmp.worldPos = worldPos; mmp.uni = uni; mmp.anchors = [];
+    for (r = 0; r < 12; r++){
+      for (var sd = 0; sd < 2; sd++){
+        var ws = wsum[r][sd]; if (ws <= 0) continue; var sm = sums[r][sd];
+        mmp.anchors.push({ ri:r, side:sd, pos:new THREE.Vector3(sm[0]/ws, sm[1]/ws, sm[2]/ws), nrm:new THREE.Vector3(sm[3]/ws, sm[4]/ws, sm[5]/ws).normalize(), el:null });
+      }
+    }
+  }
+
+  function mmpBuildPins(){
+    var host = document.getElementById('mmpPins'); if (!host || !mmp || !mmp.anchors.length) return;
+    host.innerHTML = '';
+    mmp.anchors.forEach(function(a){
+      var nm = MMP_NAMES[a.ri];
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'mmp-pin'+(ui.mmpSel === nm ? ' sel' : '');
+      b.setAttribute('data-action', 'mmp-pin'); b.setAttribute('data-muscle', nm); b.setAttribute('aria-label', nm);
+      b.textContent = (EXERCISE_LIBRARY[nm] || []).length;
+      host.appendChild(b); a.el = b;
+    });
+  }
+
+  function mmpAccent(){
+    try{ var c = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); if (c && mmp && mmp.uni) mmp.uni.uAcc.value.set(c); }catch(e){}
+  }
+
+  function mmpSetSel(nm){
+    ui.mmpSel = nm || null;
+    if (!mmp || !mmp.uni) return;
+    var ri = nm ? MMP_NAMES.indexOf(nm) : -1, a = [0,0,0,0], b = [0,0,0,0], c = [0,0,0,0];
+    if (ri >= 0){ [a,b,c][Math.floor(ri/4)][ri%4] = 1; }
+    mmp.uni.uA.value.set(a[0],a[1],a[2],a[3]); mmp.uni.uB.value.set(b[0],b[1],b[2],b[3]); mmp.uni.uC.value.set(c[0],c[1],c[2],c[3]);
+    mmp.uni.uFaint.value = 1;
+    mmp.anchors.forEach(function(an){ if (an.el) an.el.classList.toggle('sel', MMP_NAMES[an.ri] === nm); });
+  }
+
+  function mmpSide(){ return Math.cos(Math.atan2(mmp.camera.position.x-mmp.tgt.x, mmp.camera.position.z-mmp.tgt.z)) >= 0 ? 'f' : 'b'; }
+  function mmpPlaceCam(a){
+    var p = mmp; p.camera.position.set(p.tgt.x + Math.sin(a)*p.dist, p.tgt.y + p.elev, p.tgt.z + Math.cos(a)*p.dist); p.camera.lookAt(p.tgt);
+  }
+  function mmpTurnTo(target){
+    var a0 = Math.atan2(mmp.camera.position.x-mmp.tgt.x, mmp.camera.position.z-mmp.tgt.z), d = target-a0;
+    while (d > Math.PI) d -= 2*Math.PI; while (d < -Math.PI) d += 2*Math.PI;
+    mmp.tween = { t0:performance.now(), a0:a0, d:d, dur:520 };
+  }
+  function mmpResize(){
+    if (!mmp || !mmp.stage) return;
+    var w = mmp.stage.clientWidth, h = mmp.stage.clientHeight; if (!w || !h) return;
+    var asp = w/h, t = 2*Math.tan(THREE.MathUtils.degToRad(22.5));
+    // fit the whole body: ~1.9 world units tall, and at least ~1.3 wide
+    mmp.dist = Math.max(1.9/t, 1.3/(t*asp));
+    mmp.elev = mmp.dist*0.12;
+    mmp.tgt.set(0, 0.9, 0);
+    mmp.camera.aspect = asp; mmp.camera.updateProjectionMatrix();
+    mmp.renderer.setSize(w, h);
+    var a = Math.atan2(mmp.camera.position.x-mmp.tgt.x, mmp.camera.position.z-mmp.tgt.z); if (!isFinite(a)) a = 0;
+    mmpPlaceCam(a); mmp.controls.target.copy(mmp.tgt);
+    var pol = Math.atan2(mmp.dist, mmp.elev); mmp.controls.minPolarAngle = mmp.controls.maxPolarAngle = pol;
+    mmp.controls.update();
+  }
+
+  function mmpMount(){
+    var stage = document.getElementById('mmpStage'); if (!stage) return;
+    if (mmpTeardownTimer){ clearTimeout(mmpTeardownTimer); mmpTeardownTimer = null; }
+    if (!mmp){
+      if (!mmpSupported()){ ui.mmpFail = true; renderMuscleMapOverlay(); return; }
+      try{ mmpCreate(); }catch(err){ console.error('mmp create', err); mmp = null; ui.mmpFail = true; renderMuscleMapOverlay(); return; }
+    }
+    mmp.stage = stage;
+    stage.insertBefore(mmp.renderer.domElement, stage.firstChild);
+    if (mmp.ro){ try{ mmp.ro.disconnect(); }catch(e){} }
+    if (typeof ResizeObserver !== 'undefined'){ mmp.ro = new ResizeObserver(function(){ mmpResize(); }); mmp.ro.observe(stage); }
+    mmpResize(); mmpAccent();
+    var ld = document.getElementById('mmpLoading'); if (ld && !mmp.loading) ld.style.display = 'none';
+    if (!mmp.loading){ mmpBuildPins(); mmpSetSel(ui.mmpSel || null); }
+    mmpSyncSeg();
+    mmpStartLoop();
+  }
+
+  function mmpSyncSeg(){
+    if (!mmp || !mmp.stage) return;
+    var s = mmpSide(), f = mmp.stage.querySelector('[data-side="f"]'), b = mmp.stage.querySelector('[data-side="b"]');
+    if (f) f.classList.toggle('on', s === 'f'); if (b) b.classList.toggle('on', s === 'b');
+  }
+
+  var mmpV3 = null;
+  function mmpLoop(now){
+    if (!mmp) return;
+    mmp.raf = null;
+    if (!mmp.stage || !mmp.stage.isConnected || !ui.showMuscleMap) return;   // overlay closed: stop until reopened
+    mmp.raf = requestAnimationFrame(mmpLoop);
+    if (mmp.tween){ var u = Math.min(1, (now-mmp.tween.t0)/mmp.tween.dur), e = u*u*(3-2*u); mmpPlaceCam(mmp.tween.a0 + mmp.tween.d*e); mmp.controls.target.copy(mmp.tgt); if (u >= 1) mmp.tween = null; }
+    mmp.controls.update();
+    if (mmp.uni) mmp.uni.uTime.value = now/1000;
+    var side = mmpSide(); mmpSyncSeg();
+    if (mmp.anchors.length){
+      if (!mmpV3) mmpV3 = { p:new THREE.Vector3(), c:new THREE.Vector3() };
+      var w = mmp.stage.clientWidth, h = mmp.stage.clientHeight;
+      for (var i = 0; i < mmp.anchors.length; i++){
+        var a = mmp.anchors[i]; if (!a.el) continue;
+        mmpV3.p.copy(a.pos).project(mmp.camera);
+        mmpV3.c.subVectors(mmp.camera.position, a.pos).normalize();
+        var show = ((a.side === 0) === (side === 'f')) && a.nrm.dot(mmpV3.c) > 0.35 && mmpV3.p.z < 1;
+        a.el.style.opacity = show ? '1' : '0'; a.el.style.pointerEvents = show ? 'auto' : 'none';
+        a.el.style.transform = 'translate('+((mmpV3.p.x*0.5+0.5)*w).toFixed(1)+'px,'+((-mmpV3.p.y*0.5+0.5)*h).toFixed(1)+'px)';
+      }
+    }
+    mmp.renderer.render(mmp.scene, mmp.camera);
+  }
+  function mmpStartLoop(){ if (mmp && !mmp.raf) mmp.raf = requestAnimationFrame(mmpLoop); }
+  function mmpStopLoop(){ if (mmp && mmp.raf){ cancelAnimationFrame(mmp.raf); mmp.raf = null; } }
+
+  function mmpTap(cx, cy){
+    if (!mmp || !mmp.mesh || !mmp.M) return;
+    var rect = mmp.renderer.domElement.getBoundingClientRect();
+    var ray = new THREE.Raycaster(), ptr = new THREE.Vector2((cx-rect.left)/rect.width*2-1, -((cy-rect.top)/rect.height)*2+1);
+    ray.setFromCamera(ptr, mmp.camera);
+    var hit = ray.intersectObject(mmp.mesh, false)[0];
+    if (!hit){ if (ui.mmpSel) mmpChoose(null); return; }
+    var f = hit.face, A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), bc = new THREE.Vector3();
+    A.fromArray(mmp.worldPos, f.a*3); B.fromArray(mmp.worldPos, f.b*3); C.fromArray(mmp.worldPos, f.c*3);
+    THREE.Triangle.getBarycoord(hit.point, A, B, C, bc);
+    var best = -1, bv = 0.28;
+    for (var r = 0; r < 12; r++){ var s = mmp.M[r][f.a]*bc.x + mmp.M[r][f.b]*bc.y + mmp.M[r][f.c]*bc.z; if (s > bv){ bv = s; best = r; } }
+    if (best < 0){ if (ui.mmpSel) mmpChoose(null); else showToast('No muscle zone here'); return; }
+    mmpChoose(MMP_NAMES[best]);
+  }
+
+  // Select (or clear) a muscle, update the bottom sheet, and turn the body if that muscle is only on the other side.
+  function mmpChoose(nm){
+    mmpSetSel(nm);
+    var pn = document.getElementById('mmOverlayPanel'); if (pn) pn.setAttribute('data-mmkey', '3d|'+(nm||''));
+    mmpUpdateBottom();
+    if (nm && mmp){
+      var onF = !!MMP_ZF[nm], onB = !!MMP_ZB[nm], side = mmpSide();
+      if (!onF && onB && side === 'f') mmpTurnTo(Math.PI); else if (onF && !onB && side === 'b') mmpTurnTo(0);
+    }
+  }
+
+  function mmpBottomHtml(){
+    var nm = ui.mmpSel;
+    if (!nm){
+      return '<div class="mmp-hint"><b>Tap a body part</b>Or tap a number. Drag the figure to turn it.' +
+             '<br><button type="button" class="mm-mode-btn" data-action="mm-classic-on">BROWSE AS LIST</button></div>';
+    }
+    var ex = EXERCISE_LIBRARY[nm] || [];
+    var chips = ex.slice(0, 4).map(function(e){
+      return '<button type="button" data-action="mm-add-exercise" data-name="'+esc(e.name)+'" data-muscle="'+esc(nm)+'">'+esc(e.name)+'</button>';
+    }).join('');
+    return '<div class="mmp-sh"><h3>'+esc(nm)+'</h3><span>'+ex.length+' EXERCISES</span></div>' +
+           '<div class="mmp-sub">Tap an exercise to add it, or see them all.</div>' +
+           '<div class="mmp-chips">'+chips+'</div>' +
+           '<button type="button" class="mmp-go" data-action="mm-select-muscle" data-muscle="'+esc(nm)+'">See all '+ex.length+' '+esc(nm)+' exercises &rsaquo;</button>';
+  }
+  function mmpUpdateBottom(){
+    var el = document.getElementById('mmpBottom'); if (el) el.innerHTML = mmpBottomHtml();
+  }
+
+  function mmpOnClose(){
+    mmpStopLoop();
+    if (!mmp || mmpTeardownTimer) return;
+    // keep the viewer warm for a bit (re-opening is instant), then free the WebGL context
+    mmpTeardownTimer = setTimeout(function(){
+      mmpTeardownTimer = null;
+      if (ui.showMuscleMap || !mmp) return;
+      mmpDispose();
+    }, 45000);
+  }
+
   function renderMuscleMapOverlay(){
     var overlay = document.getElementById('mmOverlay');
     var panel = document.getElementById('mmOverlayPanel');
     overlay.classList.toggle('hidden', !ui.showMuscleMap);
     if (!ui.showMuscleMap){
       panel.innerHTML = '';
+      panel.className = 'mm-overlay-panel';
+      panel.removeAttribute('data-mmkey');
+      overlay.classList.remove('mm-3d-on');
+      mmpOnClose();
       return;
     }
-    // Two-step flow: pick a muscle from the grid, then a dedicated
+    // Pick-by-muscle: a tappable 3D body first (tap a zone -> its exercises
+    // slide up below), the old two-step grid -> list as the fallback and via
+    // the "list" button. Opening a muscle's full list still uses the grid
+    // flow's list screen, so adding exercises works exactly as before.
+    var use3d = !ui.selectedMuscle && !ui.mmClassic && !ui.mmpFail;
+    var html;
+    if (use3d){
+      var key = '3d|' + (ui.mmpSel || '');
+      if (panel.getAttribute('data-mmkey') === key && document.getElementById('mmpStage')) { mmpStartLoop(); return; }
+      panel.className = 'mm-overlay-panel mm-3d';
+      overlay.classList.add('mm-3d-on');
+      panel.setAttribute('data-mmkey', key);
+      html = '<div class="mm-overlay-head"><div class="mm-title-wrap"><h2>Pick by Muscle</h2><div class="mm-sub">tap a body part</div></div>' +
+               '<div class="mm-head-actions">' +
+                 '<button type="button" class="mm-mode-btn" data-action="mm-classic-on" aria-label="Browse as a list">LIST</button> ' +
+                 '<button class="icon-btn" data-action="toggle-muscle-map" aria-label="Close">&#10005;</button>' +
+               '</div>' +
+             '</div>' +
+             '<div class="mmp-stage" id="mmpStage">' +
+               '<div class="mmp-seg"><button type="button" data-action="mmp-side" data-side="f" class="on">FRONT</button><button type="button" data-action="mmp-side" data-side="b">BACK</button></div>' +
+               '<div class="mmp-pins" id="mmpPins"></div>' +
+               '<div class="mmp-load" id="mmpLoading">LOADING BODY\u2026</div>' +
+             '</div>' +
+             '<div class="mmp-bottom" id="mmpBottom">' + mmpBottomHtml() + '</div>';
+      panel.innerHTML = html;
+      mmpMount();
+      return;
+    }
+    panel.className = 'mm-overlay-panel';
+    panel.removeAttribute('data-mmkey');
+    overlay.classList.remove('mm-3d-on');
+    mmpOnClose();
+    // Two-step flow (list/fallback): pick a muscle from the grid, then a dedicated
     // full-height list of exercises for it — not stacked together, so
     // picking a muscle doesn't leave the whole grid still taking up
     // most of the screen above a cramped sliver of list.
@@ -9826,6 +10218,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else {
       html = '<div class="mm-overlay-head"><div class="mm-title-wrap"><h2>Pick by Muscle Group</h2><div class="mm-sub">'+Object.keys(EXERCISE_LIBRARY).length+' groups \u00b7 tap to see exercises</div></div>' +
                  '<div class="mm-head-actions">' +
+                   (ui.mmpFail ? '' : '<button type="button" class="mm-mode-btn" data-action="mm-classic-off" aria-label="Show the 3D body">3D</button> ') +
                    '<button class="icon-btn mm-help-btn" data-action="toggle-muscle-map-help" aria-label="How this works">' +
                      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
                    '</button>' +
@@ -24647,11 +25040,20 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       skipRestTimer();
     } else if (action === 'toggle-muscle-map'){
       ui.showMuscleMap = !ui.showMuscleMap;
+      ui.mmpSel = null;
       ui.showMuscleMapHelp = false;
       if (mmHelpTimer){ clearTimeout(mmHelpTimer); mmHelpTimer = null; }
       ui.selectedMuscle = null;
       ui.pendingMuscle = null;
       renderApp();
+    } else if (action === 'mmp-pin'){
+      mmpChoose(el.dataset.muscle);
+    } else if (action === 'mmp-side'){
+      if (mmp && mmp.camera) mmpTurnTo(el.dataset.side === 'b' ? Math.PI : 0);
+    } else if (action === 'mm-classic-on' || action === 'mm-classic-off'){
+      ui.mmClassic = (action === 'mm-classic-on');
+      try{ localStorage.setItem('il_mm_classic', ui.mmClassic ? '1' : '0'); }catch(e){}
+      renderMuscleMapOverlay();
     } else if (action === 'toggle-muscle-map-help'){
       ui.showMuscleMapHelp = !ui.showMuscleMapHelp;
       if (mmHelpTimer){ clearTimeout(mmHelpTimer); mmHelpTimer = null; }
