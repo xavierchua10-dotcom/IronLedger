@@ -7152,6 +7152,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       if (ctx && ctx.ex){ payload.ex = ctx.ex; payload.setNo = ctx.setNo; }
       return httpsCallable(cloudFunctions, 'scheduleRestPing')(payload).then(function(res){ return res.data; });
     },
+    // Settings dev tools: sends yourself a sample of 'weekly' or 'plan'.
+    callPreviewNotification: function(kind){
+      return httpsCallable(cloudFunctions, 'previewNotification')({ kind: kind }).then(function(res){ return res.data; });
+    },
     callCancelRestPing: function(){
       return httpsCallable(cloudFunctions, 'cancelRestPing')().then(function(res){ return res.data; });
     },
@@ -12004,6 +12008,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var dev = !!fpsDebugOn;
     if (!dev) return '';
     return '<br>' + (dev ? '<button type="button" data-action="test-rest-ping" style="margin:6px 0;padding:6px 12px;border-radius:8px;border:1px solid var(--accent,#f2b134);background:none;color:var(--accent,#f2b134);font:600 12px Inter,sans-serif">Send test alert (20s)</button><br>' : '') +
+      '<br><button type="button" data-action="preview-notif" data-kind="weekly" style="margin:4px 6px 4px 0;padding:5px 10px;border-radius:8px;border:1px solid var(--accent,#f2b134);background:none;color:var(--accent,#f2b134);font:600 11px Inter,sans-serif">Preview weekly</button>' +
+      '<button type="button" data-action="preview-notif" data-kind="plan" style="margin:4px 0;padding:5px 10px;border-radius:8px;border:1px solid var(--accent,#f2b134);background:none;color:var(--accent,#f2b134);font:600 11px Inter,sans-serif">Preview plan</button><br>' +
       '<span id="rpStatus" style="font-family:var(--font-mono,monospace);font-size:11px;opacity:.75;white-space:pre-wrap">' + esc(restPingStatusLine()) + '</span>';
   }
   function restPingStatusLine(){
@@ -17784,6 +17790,18 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                   '<button data-action="toggle-push" data-val="off" class="'+(pushOn ? '' : 'active')+'">OFF</button>' +
                 '</div>') +
               '</div>';
+      if (pushOn){
+        html += '<div class="settings-row" data-sp="feel-notif"><div><div class="sr-label">Weekly summary</div><div class="sr-sub">Sunday evening: your sessions, volume and PRs for the week</div></div>' +
+                  '<div class="seg">' +
+                    '<button data-action="toggle-notif-weekly" data-val="on" class="'+(state.settings.notifWeekly !== false ? 'active' : '')+'">ON</button>' +
+                    '<button data-action="toggle-notif-weekly" data-val="off" class="'+(state.settings.notifWeekly === false ? 'active' : '')+'">OFF</button>' +
+                  '</div></div>';
+        html += '<div class="settings-row" data-sp="feel-notif"><div><div class="sr-label">Plan &amp; trial reminders</div><div class="sr-sub">A heads-up shortly before your trial or plan ends</div></div>' +
+                  '<div class="seg">' +
+                    '<button data-action="toggle-notif-plan" data-val="on" class="'+(state.settings.notifPlan !== false ? 'active' : '')+'">ON</button>' +
+                    '<button data-action="toggle-notif-plan" data-val="off" class="'+(state.settings.notifPlan === false ? 'active' : '')+'">OFF</button>' +
+                  '</div></div>';
+      }
     }
     // Reuses the exact same install-app action and triggerInstallPrompt()
     // as the top-of-app banner (see near the bottom of this script) —
@@ -25899,6 +25917,22 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       endTour();
     } else if (action === 'open-brief'){
       openBrief();
+    } else if (action === 'toggle-notif-weekly'){
+      state.settings.notifWeekly = (el.dataset.val === 'on');
+      saveSettings();
+      renderApp();
+    } else if (action === 'toggle-notif-plan'){
+      state.settings.notifPlan = (el.dataset.val === 'on');
+      saveSettings();
+      renderApp();
+    } else if (action === 'preview-notif'){
+      var pk = el.dataset.kind;
+      if (window.SaviorFirebase && window.SaviorFirebase.callPreviewNotification){
+        showToast('Sending a preview\u2026');
+        window.SaviorFirebase.callPreviewNotification(pk).then(function(r){
+          showToast(r && r.sent ? 'Preview sent \u2014 leave the app to see it' : 'Not sent: ' + ((r && r.reason) || 'push failed'));
+        }).catch(function(err){ showToast('Preview failed (' + ((err && (err.code || err.message)) || 'error') + ')'); });
+      }
     } else if (action === 'toggle-push'){
       var wantPush = (el.dataset.val === 'on');
       var havePush = !!(state.userDoc && state.userDoc.fcmToken) && typeof Notification !== 'undefined' && Notification.permission === 'granted';
