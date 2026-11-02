@@ -1802,6 +1802,26 @@
   .train-mix-leg .tm-s i{background:var(--accent);}
   .train-mix-leg .tm-m i{background:rgba(var(--accent-rgb),0.6);}
   .train-mix-leg .tm-e i{background:rgba(var(--accent-rgb),0.28);}
+  /* Hardcore Mode (red): its own card on the Log tab, the day cards in the
+     picker, and the 2-set lock on each exercise. */
+  .template-card.tpl-hc{border-color:#e5383b;background-color:#14171b;background-image:linear-gradient(135deg,#3a1013,#14171b 72%);}
+  .tpl-hc .tpl-bg{display:none;}
+  .tpl-hc .template-card-name{color:#ff4d4f;}
+  .tpl-hc .tpl-chip{border-color:#e5383b;color:#ff6b6d;}
+  .template-card.tpl-hc > .template-card-chev{color:#ff4d4f;border-color:#e5383b;background:rgba(229,56,59,0.10);}
+  .template-card.tpl-hc.tpl-pick-card::before{background:#e5383b;}
+  .template-card.tpl-hc .tpl-pick-meta .tpl-chip--count{background:rgba(229,56,59,0.14);border-color:#e5383b;color:#ff6b6d;}
+  .template-card > svg.hc-flame{position:absolute;}
+  .template-card.tpl-hc .tpl-pick-top .tpl-pick-chev{color:#ff4d4f;border-color:#e5383b;background:rgba(229,56,59,0.10);}
+  .tpl-hc .tpl-pick-chev{color:#ff4d4f;}
+  .tpl-hc:active{border-color:#ff4d4f;}
+  .hc-flame{position:absolute;right:16px;top:12px;width:62px;height:76px;z-index:1;pointer-events:none;}
+  .hc-rule{margin:0 0 14px;background:#2a0f11;border:1px solid #5a1d20;border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.55;color:#e2b9ba;}
+  .hc-rule b{color:#ff6b6d;}
+  .exercise-card.hardcore{border-color:rgba(229,56,59,0.55);box-shadow:inset 3px 0 0 #e5383b;}
+  .ex-stat-hc small{color:#ff6b6d;}
+  .hc-hint{font-size:11.5px;font-weight:600;letter-spacing:.04em;color:#ff6b6d;margin:8px 0 6px;}
+  .hc-done{margin-top:8px;text-align:center;padding:12px;border:1px dashed rgba(229,56,59,0.55);border-radius:var(--radius);color:#ff6b6d;font:700 12px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;}
   .warmup-reminder{
     text-align:center;
     padding:14px 28px 0;
@@ -9606,6 +9626,38 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         { name: 'Cable Crunch', muscle: 'Abs', sets: 3 }
       ]
     },
+    // Hardcore Mode (a trial): just 2 sets per exercise, both all-out. Not part of
+    // the regular splits -- it has its own card on the Log tab (HARDCORE_CATEGORY).
+    hcPush: {
+      label: 'Hardcore Push', category: 'hardcore', hardcore: true,
+      exercises: [
+        { name: 'Barbell Bench Press', muscle: 'Chest', sets: 2 },
+        { name: 'Dumbbell Incline Bench Press', muscle: 'Chest', sets: 2 },
+        { name: 'Barbell Shoulder Press', muscle: 'Shoulders', sets: 2 },
+        { name: 'Dumbbell Lateral Raise', muscle: 'Shoulders', sets: 2 },
+        { name: 'Tricep Pushdown', muscle: 'Triceps', sets: 2 }
+      ]
+    },
+    hcPull: {
+      label: 'Hardcore Pull', category: 'hardcore', hardcore: true,
+      exercises: [
+        { name: 'Pull-ups', muscle: 'Back', sets: 2 },
+        { name: 'Barbell Row', muscle: 'Back', sets: 2 },
+        { name: 'Face Pull', muscle: 'Shoulders', sets: 2 },
+        { name: 'Barbell Bicep Curl', muscle: 'Biceps', sets: 2 },
+        { name: 'Dumbbell Hammer Curl', muscle: 'Biceps', sets: 2 }
+      ]
+    },
+    hcLegs: {
+      label: 'Hardcore Legs', category: 'hardcore', hardcore: true,
+      exercises: [
+        { name: 'Back Squat', muscle: 'Quads', sets: 2 },
+        { name: 'Leg Press', muscle: 'Quads', sets: 2 },
+        { name: 'Barbell Romanian Deadlift', muscle: 'Hamstrings', sets: 2 },
+        { name: 'Seated Leg Curl', muscle: 'Hamstrings', sets: 2 },
+        { name: 'Machine Standing Calf Raise', muscle: 'Calves', sets: 2 }
+      ]
+    },
     upper: {
       label: 'Upper Day A',
       category: 'upperLower',
@@ -9792,6 +9844,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     { id: 'fullBody', label: 'Full Body', description: 'Everything, every session.', meta: '3 days / week', keys: ['fullBodyA', 'fullBodyB', 'fullBodyC'] },
     { id: 'broSplit', label: 'Bro Split', description: 'One muscle group per day.', meta: '5 days / week', dividerBefore: 'or choose a bro split', keys: ['broChest', 'broBack', 'broShoulders', 'broArms', 'broLegs'] },
   ];
+  // Hardcore Mode lives outside the list above on purpose: it has its own red card
+  // on the Log tab and never shows up among the regular splits.
+  var HARDCORE_CATEGORY = { id: 'hardcore', label: 'Hardcore Mode', description: 'Just 2 sets per exercise. Both all-out.', keys: ['hcPush', 'hcPull', 'hcLegs'] };
+  var HC_MAX_SETS = 2;
 
   // Pulls the trailing variant letter off a template label ('Push Day A' ->
   // 'A', 'Full Body C' -> 'C') so the picker can drop a divider line
@@ -11580,7 +11636,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     overlay.classList.remove('hidden');
 
     var cat = ui.templatePickerCategory
-      ? WORKOUT_TEMPLATE_CATEGORIES.find(function(c){ return c.id === ui.templatePickerCategory; })
+      ? WORKOUT_TEMPLATE_CATEGORIES.concat([HARDCORE_CATEGORY]).find(function(c){ return c.id === ui.templatePickerCategory; })
       : null;
 
     if (!cat){
@@ -11610,6 +11666,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         '<button class="pro-panel-close" data-action="close-template-picker" aria-label="Close">&#10005;</button>' +
       '</div>' +
       '<div class="pro-panel-body tpl-pick-body">' +
+        (cat.id === 'hardcore' ? '<div class="hc-rule"><b>Set 1:</b> heavy, a few reps left in the tank.<br><b>Set 2:</b> same weight, go to failure.<br>After set 2 the exercise locks as <b>Done</b>.</div>' : '') +
         keys.map(function(key, i){
           var tpl = WORKOUT_TEMPLATES[key];
           var prevTpl = i > 0 ? WORKOUT_TEMPLATES[keys[i - 1]] : null;
@@ -11636,7 +11693,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
             var more = tpl.exercises.length - 2;
             detail = '<div class="tpl-pick-pre">' + firstTwo + (more > 0 ? ' +' + more + ' more' : '') + '</div>';
           }
-          return label + '<button type="button" class="template-card tpl-pick-card" data-action="select-template" data-template="'+key+'">' +
+          return label + '<button type="button" class="template-card tpl-pick-card'+(tpl.hardcore ? ' tpl-hc' : '')+'" data-action="select-template" data-template="'+key+'">' +
             templateBgHtml() +
             '<div class="tpl-pick-top"><div class="template-card-name">'+esc(tpl.label)+'</div><span class="tpl-pick-chev" aria-hidden="true">&#8250;</span></div>' +
             '<div class="tpl-pick-mus">'+muscles+'</div>' +
@@ -11659,6 +11716,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       kind: 'start-template',
       title: 'Start ' + tpl.label + '?',
       message: 'This loads ' + tpl.exercises.length + ' exercises into this session, ready to log' +
+                (tpl.hardcore ? ' \u2014 just 2 sets each, both all-out' : '') +
                 (hasOptional ? ' \u2014 a couple are optional, delete any you\u2019re skipping today' : '') + '.',
       confirmLabel: 'Start',
       variant: 'primary',
@@ -11677,7 +11735,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var session = getActiveSession();
     session.name = tpl.label;
     session.exercises = tpl.exercises.map(function(ex){
-      return { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false, targetSets: ex.sets || null };
+      var o = { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false, targetSets: ex.sets || null };
+      if (tpl.hardcore) o.hardcore = true;
+      return o;
     });
     saveSessions();
     showToast('Started ' + tpl.label);
@@ -13491,6 +13551,18 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     panel.scrollTop = keepTop;
   }
 
+  function hardcoreCardHtml(){
+    var flame = '<svg class="hc-flame" viewBox="0 0 24 30" aria-hidden="true"><defs><linearGradient id="hcfg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#c1121f"/><stop offset="1" stop-color="#ff7a45"/></linearGradient></defs>' +
+      '<path d="M12 1c1 5-3 7-3 12 0 2 1 3 2 4-3-1-5-4-4-8-3 3-4 6-4 9 0 6 4 10 9 10s9-4 9-10c0-7-5-9-6-14-1 2-1 4-2 5-1-2-1-5-1-8z" fill="url(#hcfg)"/>' +
+      '<path d="M12 15c1 3 4 4 4 8 0 3-2 5-4 5s-4-2-4-5c0-2 1-3 2-4 0 1 1 2 2 2 0-2 0-4 0-6z" fill="#ffd27a" opacity=".9"/></svg>';
+    return '<button type="button" class="template-card template-cat-card log-tpl-card tpl-hc" data-action="log-template-category" data-category="hardcore">' +
+      flame +
+      '<div class="template-card-name">Hardcore Mode</div>' +
+      '<div class="template-card-sub">Just 2 sets per exercise. Both all-out.</div>' +
+      '<div class="tpl-chips"><span class="tpl-chip">2 sets / exercise</span><span class="tpl-chip">To failure</span></div>' +
+      '<span class="template-card-chev" aria-hidden="true">&#8250;</span>' +
+    '</button>';
+  }
   function renderLogTemplateChoices(){
     var cats = WORKOUT_TEMPLATE_CATEGORIES.map(function(c){
       return { c: c, keys: templatesInCategory(c) };
@@ -13576,6 +13648,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         (open ? '<div class="tpl-acc-rows">'+rows+'</div>' : '') +
       '</div>';
     }
+    cards += '<div class="log-tpl-or"><span>or go hardcore</span></div>' + hardcoreCardHtml();
     if (setupPending){
       return '<div class="log-tpl-or"><span>new here? start with a quick setup</span></div>' +
              '<div class="log-tpl-list log-tpl-wiz log-tpl-wiz--top">' + wizCard + '</div>' +
@@ -14374,7 +14447,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
     var refSets = getReferenceSets(session, ex.name);
     var supersetPartner = ex.supersetWith ? findExercise(session, ex.supersetWith) : null;
-    var html = '<div class="exercise-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+(supersetPartner ? ' superset-linked' : '')+'" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
+    var html = '<div class="exercise-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+(supersetPartner ? ' superset-linked' : '')+(ex.hardcore ? ' hardcore' : '')+'" data-ex="'+ex.id+'" data-muscle="'+esc(ex.muscle||'')+'">';
     var exPic = exPicImgHtml(ex, 'ex-pic-img');
     var lastBestEarly = lastBestSetOf(ex.name, refSets);
     html += '<div class="exercise-head">' +
@@ -14410,7 +14483,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // while only 1 is done, not just a one-time nudge that vanishes the
     // moment logging starts.
     var statTiles = '';
-    if (ex.targetSets){
+    if (ex.hardcore){
+      statTiles += '<div class="ex-stat ex-stat-hc"><small>Hardcore</small><b>' + HC_MAX_SETS + '<i>sets</i> \u00b7 set 2 to failure</b></div>';
+    } else if (ex.targetSets){
       var hintRange = currentRepRange();
       statTiles += '<div class="ex-stat"><small>Suggested</small><b>' + ex.targetSets + '<i>sets</i> \u00d7 ' + hintRange.min + '\u2013' + hintRange.max + '<i>reps</i></b></div>';
     }
@@ -14472,6 +14547,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                   '<button class="cancel-edit-btn" data-action="cancel-set-edit" aria-label="Cancel edit">&#10005;</button>' +
                 '</div>' +
               '</div>';
+    } else if (ex.hardcore && ex.sets.length >= HC_MAX_SETS){
+      html += '<div class="hc-done">Done &middot; ' + HC_MAX_SETS + ' of ' + HC_MAX_SETS + ' sets</div>';
     } else {
       var isOpen = !!ui.expandedAddSet[ex.id];
       if (isOpen){
@@ -14485,6 +14562,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         // without typing some arbitrary nonzero placeholder number.
         var isBW = isBodyweightExercise(ex.name);
         var rowReady = draftWeightKg !== null && (isBW ? draftWeightKg >= 0 : draftWeightKg > 0) && !isNaN(draftReps) && draftReps > 0;
+        if (ex.hardcore) html += '<div class="hc-hint">Set ' + (ex.sets.length + 1) + ' of ' + HC_MAX_SETS + (ex.sets.length + 1 >= HC_MAX_SETS ? ' \u00b7 go to failure' : ' \u00b7 heavy') + '</div>';
         html += '<div class="add-set-row'+(ui.freshAddSetRow === ex.id ? ' just-added' : '')+'"'+(isBW ? ' style="grid-template-columns:auto 1fr 1fr auto;position:relative;"' : '')+'>' +
                   (isBW ? '<button class="bw-help-icon" data-action="toggle-bw-help" aria-label="What is this?">' +
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="10.5" x2="12" y2="16"></line><line x1="12" y1="7.5" x2="12.01" y2="7.5"></line></svg>' +
@@ -14499,7 +14577,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                 '</div>';
       } else {
         html += '<button class="add-set-toggle-btn" data-action="open-add-set" data-ex="'+ex.id+'">' +
-                  '<span class="plus-glyph">&#43;</span> Add Set '+(ex.sets.length+1) +
+                  '<span class="plus-glyph">&#43;</span> Add Set '+(ex.sets.length+1) + (ex.hardcore ? ' of ' + HC_MAX_SETS : '') +
                 '</button>';
       }
     }
@@ -23285,6 +23363,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   }
 
   function commitSet(ex, weightKg, reps){
+    if (ex && ex.hardcore && ex.sets.length >= HC_MAX_SETS){
+      showToast('Hardcore Mode: ' + HC_MAX_SETS + ' sets is the limit');
+      return;
+    }
     var setId = uid();
     var prevBest = bestE1RM(ex.name, null);
     var prKind = classifyPR(buildPRState(ex.name), effectiveLoadKg(ex.name, weightKg), reps, isHoldExercise(ex.name));
