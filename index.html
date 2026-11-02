@@ -12163,6 +12163,30 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
      the inline "been X days" reminder banner already uses, so the bell
      never disagrees with what those already say elsewhere in the app.
      ========================================================= */
+  // Same numbers the Sunday push uses: finished sessions in the last 7 days.
+  function weekSummaryForBell(){
+    var from = Date.now() - 7 * 24 * 60 * 60 * 1000, count = 0, vol = 0, prs = 0;
+    (state.sessions || []).forEach(function(se){
+      if (!se || se.status !== 'done') return;
+      var t = new Date(se.finishedAt || se.date).getTime();
+      if (!t || t <= from || t > Date.now()) return;
+      count++;
+      (se.exercises || []).forEach(function(ex){
+        (ex.sets || []).forEach(function(st){
+          var w = Number(st.weightKg), r = Number(st.reps);
+          if (isFinite(w) && isFinite(r) && w > 0 && r > 0) vol += w * r;
+          if (st.isPR) prs++;
+        });
+      });
+    });
+    if (!count) return null;
+    var lb = state.settings.unit === 'lb', v = lb ? kgToLb(vol) : vol;
+    var volTxt = v >= 1000 ? (v / 1000).toFixed(1) + (lb ? 'k lb' : ' t') : Math.round(v) + (lb ? ' lb' : ' kg');
+    var parts = [count + ' session' + (count === 1 ? '' : 's')];
+    if (vol > 0) parts.push(volTxt + ' lifted');
+    if (prs > 0) parts.push(prs + ' PR' + (prs === 1 ? '' : 's'));
+    return parts.join(' \u00b7 ');
+  }
   function getNotifications(){
     var list = [];
     if (!isDevOverride() && state.currentAccount !== 'guest' && state.userDoc && !isPaidPlanActive()){
@@ -12193,6 +12217,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         urgent: true,
         dismissAction: 'dismiss-reminder'
       });
+    }
+    var wk = weekSummaryForBell();
+    if (wk && state.currentAccount !== 'guest'){
+      list.push({ title: 'Your last 7 days', message: wk + ' \ud83d\udcaa', urgent: false });
     }
     return list;
   }
