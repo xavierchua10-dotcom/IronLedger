@@ -12754,6 +12754,23 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   setInterval(maybeRefreshPushToken, 20000);
   document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') maybeRefreshPushToken(); });
 
+  // New sign-ups only: a one-screen explanation, then the real permission prompt.
+  // Returns true if it put the screen up (the caller then waits for the answer).
+  function askNotificationsFirst(){
+    if (typeof Notification === 'undefined' || Notification.permission !== 'default') return false;
+    if (!window.SaviorFirebase || !window.SaviorFirebase.requestPushToken) return false;
+    ui.confirmModal = {
+      kind: 'notif-ask',
+      title: 'Turn on notifications?',
+      message: 'Get a ping the moment your rest timer ends \u2014 even with the app closed \u2014 plus a weekly summary of your training and a heads-up before your trial ends. You can change this any time in Settings.',
+      confirmLabel: 'Turn on',
+      cancelLabel: 'Not now',
+      variant: 'primary'
+    };
+    renderConfirmModal();
+    return true;
+  }
+
   function sendWelcomePush(){
     if (state.currentAccount === 'guest' || !window.SaviorFirebase || !window.SaviorFirebase.requestPushToken){
       return;
@@ -18631,7 +18648,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         // default so there's always something valid saved either way.
         state.settings.avatar = DEFAULT_AVATAR;
         saveSettings();
-        sendWelcomePush();
+        // The notification permission is now asked for later, after a short
+        // explanation (askNotificationsFirst, shown once the avatar is picked).
         ui.awaitingAvatarPick = true;
         renderAuthGate();
       } else {
@@ -24280,6 +24298,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // the top, so a plain cancel would otherwise jump back to the top of
   // a list the person had already scrolled through.
   function dismissConfirmModal(){
+    // "Not now" / back / Escape / tapping outside on the new-sign-up notifications ask all
+    // mean the same thing: skip it, and carry on to the setup wizard.
+    var wasNotifAsk = !!(ui.confirmModal && ui.confirmModal.kind === 'notif-ask');
+    if (wasNotifAsk) setTimeout(function(){ openOnboardingWizard(true); }, 0);
     ui.confirmModal = null;
     var exListBeforeCancel = document.getElementById('exSuggestList');
     var exScrollBeforeCancel = exListBeforeCancel ? exListBeforeCancel.scrollTop : 0;
@@ -26247,10 +26269,15 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       ui.awaitingAvatarPick = false;
       showAppShell();
       renderApp();
-      // Setup wizard opens as an overlay on top of the now-visible app
-      // shell, not as a replacement for it -- if it ever fails to open
-      // for some reason, the person isn't left stuck on a blank gate.
-      openOnboardingWizard(true);
+      // Short "why" screen before the system permission prompt (people say
+      // yes far more when they know what they get). Either answer then
+      // continues to the setup wizard.
+      if (!askNotificationsFirst()){
+        // Setup wizard opens as an overlay on top of the now-visible app
+        // shell, not as a replacement for it -- if it ever fails to open
+        // for some reason, the person isn't left stuck on a blank gate.
+        openOnboardingWizard(true);
+      }
     }
   });
   authGateEl.addEventListener('input', function(e){
@@ -26304,6 +26331,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       else if (m && m.kind === 'start-routine') startRoutine(m.routineId);
       else if (m && m.kind === 'start-template') applyTemplate(m.templateKey);
       else if (m && m.kind === 'guest-signup-nudge') promptGuestSignUp();
+      else if (m && m.kind === 'notif-ask'){ sendWelcomePush(); openOnboardingWizard(true); }
       else if (m && m.kind === 'guest-import') importGuestData(false);
       else if (m && m.kind === 'routine') deleteRoutine(m.routineId);
       else if (m && m.kind === 'clear-data') clearAllData();
