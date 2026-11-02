@@ -12596,10 +12596,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         showToast('Not enabled \u2014 ' + ((result && result.error) || 'unknown error'));
         return;
       }
-      window.SaviorFirebase.updateUserDoc(state.currentAccount, {
-        fcmToken: token,
-        fcmTokenUpdatedAt: Date.now()
-      }).then(function(){
+      var onFields = { fcmToken: token, fcmTokenUpdatedAt: Date.now() };
+      state.userDoc = Object.assign({}, state.userDoc, onFields);
+      window.SaviorFirebase.updateUserDoc(state.currentAccount, onFields).then(function(){
         showToast('Notifications enabled');
         renderApp();
       }).catch(function(err){
@@ -12623,12 +12622,16 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     ui.pushBusy = true;
     renderApp();
     cancelRestPingNow();
-    window.SaviorFirebase.updateUserDoc(state.currentAccount, { fcmToken: null, fcmTokenUpdatedAt: 0 }).then(function(){
+    var prevDoc = state.userDoc;
+    var offFields = { fcmToken: null, fcmTokenUpdatedAt: 0 };
+    state.userDoc = Object.assign({}, state.userDoc, offFields);   // switch flips at once; no waiting on the server echo
+    window.SaviorFirebase.updateUserDoc(state.currentAccount, offFields).then(function(){
       ui.pushBusy = false;
       showToast('Notifications off');
       renderApp();
     }).catch(function(err){
       ui.pushBusy = false;
+      state.userDoc = prevDoc;
       renderApp();
       showToast('Couldn\u2019t turn off \u2014 try again shortly');
       console.error('disable push failed:', err);
