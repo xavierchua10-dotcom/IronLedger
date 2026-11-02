@@ -11970,6 +11970,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // Last attempt, kept so Settings can say what happened (survives app restarts).
   function restPingLog(msg){
     try { localStorage.setItem('il_rp_diag', JSON.stringify({ t: Date.now(), m: msg })); } catch(e){}
+    try { var el = document.getElementById('rpStatus'); if (el) el.textContent = restPingStatusLine(); } catch(e){}
   }
   function restPingStatusLine(){
     var b = restPingBlocker();
@@ -11983,20 +11984,34 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } catch(e){}
     return (b ? 'Not ready: ' + b + '.' : 'Ready.') + last;
   }
+  function pingServer(endsAt, label){
+    var t0 = Date.now();
+    restPingScheduled = true;
+    restPingLog(label + 'asking server\u2026');
+    var slow = setTimeout(function(){ restPingLog(label + 'still waiting after 10s\u2026'); }, 10000);
+    window.SaviorFirebase.callScheduleRestPing(endsAt).then(function(r){
+      clearTimeout(slow);
+      var ms = Date.now() - t0;
+      if (!r || !r.scheduled){ restPingScheduled = false; restPingLog(label + 'server said no (' + ((r && r.reason) || '?') + ') ' + ms + 'ms'); }
+      else restPingLog(label + 'server scheduled it \u2713 ' + ms + 'ms');
+    }).catch(function(err){
+      clearTimeout(slow);
+      restPingScheduled = false;
+      restPingLog(label + 'call failed (' + ((err && (err.code || err.message)) || 'error') + ') ' + (Date.now() - t0) + 'ms');
+    });
+  }
   function scheduleRestPingNow(){
     if (!ui.restTimer) return;
     var b = restPingBlocker();
     if (b){ restPingLog('skipped: ' + b); return; }
     if (ui.restTimer.endsAt - Date.now() < 5000){ restPingLog('skipped: under 5s left'); return; }
-    restPingScheduled = true;
-    restPingLog('asking server\u2026');
-    window.SaviorFirebase.callScheduleRestPing(ui.restTimer.endsAt).then(function(r){
-      if (!r || !r.scheduled){ restPingScheduled = false; restPingLog('server said no (' + ((r && r.reason) || '?') + ')'); }
-      else restPingLog('server scheduled it \u2713');
-    }).catch(function(err){
-      restPingScheduled = false;
-      restPingLog('call failed (' + ((err && (err.code || err.message)) || 'error') + ')');
-    });
+    pingServer(ui.restTimer.endsAt, '');
+  }
+  // Settings "Test" button: asks the server to buzz in 20s, and reports the round trip.
+  function testRestPing(){
+    var b = restPingBlocker();
+    if (b){ restPingLog('test skipped: ' + b); return; }
+    pingServer(Date.now() + 20000, 'TEST: ');
   }
   function cancelRestPingNow(){
     if (!restPingScheduled) return;
@@ -17619,7 +17634,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                 '<button data-action="toggle-rest-timer-vibrate" data-val="on" class="'+(state.settings.restTimerVibrate !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="off" class="'+(state.settings.restTimerVibrate === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest-over alert</div><div class="sr-sub">Notification when rest ends, if you leave the app (needs notifications on)<br><span style="font-family:var(--font-mono,monospace);font-size:11px;opacity:.75">'+esc(restPingStatusLine())+'</span></div></div>' +
+    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest-over alert</div><div class="sr-sub">Notification when rest ends, if you leave the app (needs notifications on)<br><button type="button" data-action="test-rest-ping" style="margin:6px 0;padding:6px 12px;border-radius:8px;border:1px solid var(--accent,#f2b134);background:none;color:var(--accent,#f2b134);font:600 12px Inter,sans-serif">Send test alert (20s)</button><br><span id="rpStatus" style="font-family:var(--font-mono,monospace);font-size:11px;opacity:.75">'+esc(restPingStatusLine())+'</span></div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-rest-ping" data-val="on" class="'+(state.settings.restPing !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-ping" data-val="off" class="'+(state.settings.restPing === false ? 'active' : '')+'">OFF</button>' +
@@ -25715,6 +25730,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       state.settings.restTimerSound = (el.dataset.val === 'on');
       saveSettings();
       renderApp();
+    } else if (action === 'test-rest-ping'){
+      testRestPing();
     } else if (action === 'toggle-rest-ping'){
       state.settings.restPing = (el.dataset.val === 'on');
       if (!state.settings.restPing) cancelRestPingNow();
