@@ -6062,6 +6062,21 @@
     margin-bottom:14px;
     background:var(--panel);
   }
+  /* Animated 3D exercise figure that replaces the stock photo in the Add-this-exercise popup (drag to rotate) */
+  .confirm-rd{
+    position:relative;
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:var(--radius-md);
+    overflow:hidden;
+    margin-bottom:14px;
+    background:#14161a;
+  }
+  .confirm-rd-hint{
+    position:absolute; right:10px; bottom:8px;
+    font:600 10px/1 'JetBrains Mono',monospace; letter-spacing:.06em;
+    color:rgba(255,255,255,.45); pointer-events:none; text-transform:uppercase;
+  }
   .confirm-how{
     font-size:12.5px;
     color:var(--text-faint);
@@ -23802,6 +23817,60 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var mmListAfterCancel = document.querySelector('.mm-list-col-full');
     if (mmListAfterCancel) mmListAfterCancel.scrollTop = mmScrollBeforeCancel;
   }
+  /* Animated 3D figure for the Add-this-exercise popup. ragdoll.js (about 60 KB) is
+     only downloaded the first time the popup opens; one shared WebGL canvas is reused
+     every time. Anything unexpected (script blocked, WebGL unavailable, custom
+     exercise with no figure) leaves the normal photo exactly as it was. */
+  var rdState = { host: null, failed: false, cbs: null };
+  function loadRagdollScript(cb){
+    if (window.R3 && window.RDMap) return cb(true);
+    if (rdState.failed || typeof THREE === 'undefined' || !THREE.OrbitControls) return cb(false);
+    if (rdState.cbs){ rdState.cbs.push(cb); return; }
+    rdState.cbs = [cb];
+    var sc = document.createElement('script');
+    sc.src = 'ragdoll.js?v=1'; sc.async = true;
+    var done = function(ok){
+      if (!ok) rdState.failed = true;
+      var q = rdState.cbs || []; rdState.cbs = null;
+      q.forEach(function(f){ try{ f(ok && !!(window.R3 && window.RDMap)); }catch(e){} });
+    };
+    sc.onload = function(){ done(true); };
+    sc.onerror = function(){ done(false); };
+    document.head.appendChild(sc);
+  }
+  function mountExerciseFigure(m){
+    var libMatch = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === m.name; })[0];
+    if (!libMatch) return;
+    loadRagdollScript(function(ok){
+      if (!ok || ui.confirmModal !== m) return;
+      var imgEl = document.querySelector('#confirmPanel .confirm-preview-img');
+      if (!imgEl) return;
+      var spec = null;
+      try { spec = window.RDMap(m.name, libMatch.equipment, m.muscle || libMatch.muscle); } catch(e){ spec = null; }
+      if (!spec) return;
+      var stage = document.createElement('div');
+      stage.className = 'confirm-rd';
+      try {
+        imgEl.parentNode.replaceChild(stage, imgEl);
+        if (!rdState.host){
+          rdState.host = document.createElement('div');
+          rdState.host.style.cssText = 'position:absolute;inset:0;';
+          stage.appendChild(rdState.host);
+          window.R3.init(rdState.host);
+        } else {
+          stage.appendChild(rdState.host);
+        }
+        var hint = document.createElement('div');
+        hint.className = 'confirm-rd-hint'; hint.textContent = 'drag to rotate';
+        stage.appendChild(hint);
+        window.R3.show(spec);
+        if (window.R3.V && window.R3.V.resize) window.R3.V.resize();
+      } catch(e){
+        rdState.failed = true;
+        if (stage.parentNode) stage.parentNode.replaceChild(imgEl, stage);
+      }
+    });
+  }
   function renderConfirmModal(){
     var overlay = document.getElementById('confirmOverlay');
     var panel = document.getElementById('confirmPanel');
@@ -23845,6 +23914,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
           : '<button class="confirm-btn-cancel" data-action="cancel-confirm">'+esc(m.cancelLabel || 'Cancel')+'</button>' +
             '<button class="'+confirmClass+'" id="confirmActionBtn" data-action="confirm-modal-action"'+(counting?' disabled':'')+'>'+esc(counting ? confirmLabel + ' (' + m.countdown + ')' : confirmLabel)+'</button>') +
       '</div>';
+
+    if (m.img && m.name && (m.kind === 'add-named-exercise' || m.kind === 'pick-exercise-name')) mountExerciseFigure(m);
 
     if (counting){
       confirmCountdownTimer = setInterval(function(){
