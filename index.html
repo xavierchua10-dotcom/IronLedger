@@ -4228,7 +4228,11 @@
     cursor:pointer;
     margin-bottom:16px;
   }
-  .progress-ex-title-btn span{flex:1;min-width:0;overflow-wrap:break-word;white-space:normal;line-height:1.25;}
+  .progress-ex-title-btn .ptb-name{flex:1;min-width:0;overflow-wrap:break-word;white-space:normal;line-height:1.25;}
+  .progress-ex-title-btn.has-pic{padding:10px 16px 10px 10px;gap:14px;}
+  .progress-ex-title-btn .ptb-pic{flex:0 0 auto;position:relative;width:64px;height:64px;border-radius:14px;overflow:hidden;background:#fff;border:1.5px solid rgba(var(--accent-rgb),0.55);box-shadow:0 2px 10px rgba(0,0,0,0.4);}
+  .progress-ex-title-btn .ptb-pic img{width:100%;height:100%;object-fit:contain;display:block;}
+  .progress-ex-title-btn .ptb-pic i{position:absolute;right:3px;bottom:3px;width:20px;height:20px;border-radius:7px;background:rgba(20,22,26,0.85);color:var(--accent);font:800 12px/20px 'JetBrains Mono',monospace;font-style:normal;text-align:center;}
   .progress-ex-title-btn svg{flex-shrink:0;width:18px;height:18px;color:var(--text-dim);}
   .progress-ex-title-btn:active{background:var(--panel-2);}
   /* Same dark glow panel + faint grid as the cards (was a brick-wall photo) */
@@ -16147,8 +16151,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (fineMuscle){
       html += '<div class="progress-ex-muscle-label">'+esc(fineMuscle)+'</div>';
     }
-    html += '<button type="button" class="progress-ex-title-btn" data-action="show-progress-exercise-list" aria-label="Change exercise">' +
-              '<span>'+esc(ui.progressExercise)+'</span>' +
+    var progPhoto = EXERCISE_IMG[ui.progressExercise] || null;
+    var progPic = progPhoto
+      ? '<span class="ptb-pic"' + (howtoFor(ui.progressExercise) ? ' data-action="open-howto" data-ex-name="'+esc(ui.progressExercise)+'" role="button" aria-label="How to do '+esc(ui.progressExercise)+'"' : '') + '>' +
+          '<img src="'+esc(progPhoto)+'" alt="">' + (howtoFor(ui.progressExercise) ? '<i>?</i>' : '') + '</span>'
+      : '';
+    html += '<button type="button" class="progress-ex-title-btn'+(progPic ? ' has-pic' : '')+'" data-action="show-progress-exercise-list" aria-label="Change exercise">' +
+              progPic +
+              '<span class="ptb-name">'+esc(ui.progressExercise)+'</span>' +
               '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
             '</button>';
 
