@@ -11973,7 +11973,17 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // Last attempt, kept so Settings can say what happened (survives app restarts).
   function restPingLog(msg){
     try { localStorage.setItem('il_rp_diag', JSON.stringify({ t: Date.now(), m: msg })); } catch(e){}
-    try { var el = document.getElementById('rpStatus'); if (el) el.textContent = restPingStatusLine(); } catch(e){}
+    try { var el = document.getElementById('rpStatus'); if (el && fpsDebugOn) el.textContent = restPingStatusLine(); } catch(e){}
+  }
+  // Normal users only see a hint when something blocks the alert. The test
+  // button and last-try line are dev tools: 5 taps on the version line (same
+  // switch as the FPS readout) turns them on.
+  function restPingDebugHtml(){
+    var b = restPingBlocker();
+    var dev = !!fpsDebugOn;
+    if (!dev && (!b || b === 'Switched OFF')) return '';
+    return '<br>' + (dev ? '<button type="button" data-action="test-rest-ping" style="margin:6px 0;padding:6px 12px;border-radius:8px;border:1px solid var(--accent,#f2b134);background:none;color:var(--accent,#f2b134);font:600 12px Inter,sans-serif">Send test alert (20s)</button><br>' : '') +
+      '<span id="rpStatus" style="font-family:var(--font-mono,monospace);font-size:11px;opacity:.75">' + esc(dev ? restPingStatusLine() : 'Not ready: ' + b + '.') + '</span>';
   }
   function restPingStatusLine(){
     var b = restPingBlocker();
@@ -17648,7 +17658,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                 '<button data-action="toggle-rest-timer-vibrate" data-val="on" class="'+(state.settings.restTimerVibrate !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-timer-vibrate" data-val="off" class="'+(state.settings.restTimerVibrate === false ? 'active' : '')+'">OFF</button>' +
               '</div></div>';
-    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest-over alert</div><div class="sr-sub">Notification when rest ends, if you leave the app (needs notifications on)<br><button type="button" data-action="test-rest-ping" style="margin:6px 0;padding:6px 12px;border-radius:8px;border:1px solid var(--accent,#f2b134);background:none;color:var(--accent,#f2b134);font:600 12px Inter,sans-serif">Send test alert (20s)</button><br><span id="rpStatus" style="font-family:var(--font-mono,monospace);font-size:11px;opacity:.75">'+esc(restPingStatusLine())+'</span></div></div>' +
+    html += '<div class="settings-row" data-sp="work-rest"><div><div class="sr-label">Rest-over alert</div><div class="sr-sub">Notification when rest ends, if you leave the app (needs notifications on)'+restPingDebugHtml()+'</div></div>' +
               '<div class="seg">' +
                 '<button data-action="toggle-rest-ping" data-val="on" class="'+(state.settings.restPing !== false ? 'active' : '')+'">ON</button>' +
                 '<button data-action="toggle-rest-ping" data-val="off" class="'+(state.settings.restPing === false ? 'active' : '')+'">OFF</button>' +
@@ -25710,7 +25720,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         try { fpsOn = localStorage.getItem('il_fps_debug') !== '1'; localStorage.setItem('il_fps_debug', fpsOn ? '1' : '0'); } catch (e) {}
         fpsDebugOn = fpsOn;
         if (fpsOn) gfpsStart(); else gfpsStop();
-        showToast(fpsOn ? 'FPS readout on (open Insight)' : 'FPS readout off');
+        showToast(fpsOn ? 'Dev tools on: FPS readout + rest-alert test' : 'Dev tools off');
       }
     } else if (action === 'toggle-danger-zone'){
       ui.dangerZoneOpen = !ui.dangerZoneOpen;
