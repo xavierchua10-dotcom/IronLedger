@@ -12615,6 +12615,49 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     });
   }
 
+  // OFF: forget this phone's token so the server stops sending anything to it.
+  // fcmTokenUpdatedAt = 0 marks "turned off on purpose" (the silent refresh
+  // below only heals phones that were ON).
+  function disablePushNotifications(){
+    if (ui.pushBusy || state.currentAccount === 'guest') return;
+    ui.pushBusy = true;
+    renderApp();
+    cancelRestPingNow();
+    window.SaviorFirebase.updateUserDoc(state.currentAccount, { fcmToken: null, fcmTokenUpdatedAt: 0 }).then(function(){
+      ui.pushBusy = false;
+      showToast('Notifications off');
+      renderApp();
+    }).catch(function(err){
+      ui.pushBusy = false;
+      renderApp();
+      showToast('Couldn\u2019t turn off \u2014 try again shortly');
+      console.error('disable push failed:', err);
+    });
+  }
+
+  // Push tokens can go stale (the server drops one Google says is dead, or
+  // the browser rotates it) and nothing used to refresh them, so alerts just
+  // stopped. While the phone is allowed to notify and was turned ON before,
+  // quietly fetch the current token and save it if it changed.
+  var pushCheckAt = 0;
+  function maybeRefreshPushToken(){
+    if (Date.now() - pushCheckAt < 6 * 3600 * 1000) return;
+    if (!state.currentAccount || state.currentAccount === 'guest') return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    var u = state.userDoc;
+    if (!u || !(u.fcmToken || u.fcmTokenUpdatedAt > 0)) return;
+    if (!window.SaviorFirebase || !window.SaviorFirebase.requestPushToken || ui.pushBusy) return;
+    pushCheckAt = Date.now();
+    window.SaviorFirebase.requestPushToken(FCM_VAPID_KEY).then(function(r){
+      var cur = state.userDoc;
+      if (r && r.token && cur && r.token !== cur.fcmToken && (cur.fcmToken || cur.fcmTokenUpdatedAt > 0)){
+        return window.SaviorFirebase.updateUserDoc(state.currentAccount, { fcmToken: r.token, fcmTokenUpdatedAt: Date.now() });
+      }
+    }).catch(function(err){ console.error('push token refresh failed:', err); });
+  }
+  setInterval(maybeRefreshPushToken, 20000);
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible') maybeRefreshPushToken(); });
+
   function sendWelcomePush(){
     if (state.currentAccount === 'guest' || !window.SaviorFirebase || !window.SaviorFirebase.requestPushToken){
       return;
@@ -17689,7 +17732,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var pushSub = pushBlocked ? 'Blocked on this device \u2014 allow notifications for SaviorFit Logger in your phone\u2019s settings'
                   : (pushOn ? 'Enabled on this device \u2014 includes the alert when your rest timer ends' : 'Get a nudge when it\u2019s been a while, and an alert when your rest timer ends');
       html += '<div class="settings-row" data-sp="feel-notif"><div><div class="sr-label">Notifications</div><div class="sr-sub">'+pushSub+restPingDebugHtml()+'</div></div>' +
-                (pushBlocked ? '' : '<button class="sr-action" data-action="enable-push"'+(ui.pushBusy ? ' disabled' : '')+'>'+(ui.pushBusy ? '\u2026' : (pushOn ? 'Re-enable' : 'Enable'))+'</button>') +
+                (pushBlocked ? '' : '<div class="seg"'+(ui.pushBusy ? ' style="opacity:.55;pointer-events:none"' : '')+'>' +
+                  '<button data-action="toggle-push" data-val="on" class="'+(pushOn ? 'active' : '')+'">ON</button>' +
+                  '<button data-action="toggle-push" data-val="off" class="'+(pushOn ? '' : 'active')+'">OFF</button>' +
+                '</div>') +
               '</div>';
     }
     // Reuses the exact same install-app action and triggerInstallPrompt()
@@ -25805,6 +25851,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       endTour();
     } else if (action === 'open-brief'){
       openBrief();
+    } else if (action === 'toggle-push'){
+      var wantPush = (el.dataset.val === 'on');
+      var havePush = !!(state.userDoc && state.userDoc.fcmToken) && typeof Notification !== 'undefined' && Notification.permission === 'granted';
+      if (wantPush && !havePush) enablePushNotifications();
+      else if (!wantPush && havePush) disablePushNotifications();
     } else if (action === 'enable-push'){
       enablePushNotifications();
     } else if (action === 'open-pricing'){
