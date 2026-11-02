@@ -1809,11 +1809,18 @@
   .tpl-hc .template-card-name{color:#ff4d4f;}
   .tpl-hc .tpl-chip{border-color:#e5383b;color:#ff6b6d;}
   .template-card.tpl-hc > .template-card-chev{color:#ff4d4f;border-color:#e5383b;background:rgba(229,56,59,0.10);}
-  .template-card.tpl-hc.tpl-pick-card::before{background:#e5383b;}
-  .template-card.tpl-hc .tpl-pick-meta .tpl-chip--count{background:rgba(229,56,59,0.14);border-color:#e5383b;color:#ff6b6d;}
   .template-card > svg.hc-flame{position:absolute;}
-  .template-card.tpl-hc .tpl-pick-top .tpl-pick-chev{color:#ff4d4f;border-color:#e5383b;background:rgba(229,56,59,0.10);}
-  .tpl-hc .tpl-pick-chev{color:#ff4d4f;}
+  .hc-title{color:#ff4d4f !important;letter-spacing:.05em;}
+  .hc-sub{font-size:13px;color:var(--text-dim);margin:0 0 14px;}
+  .hc-tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .hc-day{flex:1;padding:10px 0;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--text-dim);font:600 13px 'Inter',sans-serif;cursor:pointer;}
+  .hc-day.on{border-color:#e5383b;color:#fff;background:#3a1013;}
+  .hc-ex{display:flex;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .hc-ex-n{flex:1;min-width:0;font-weight:600;font-size:15px;color:var(--text);}
+  .hc-ex-n small{display:block;color:var(--text-dim);font-weight:400;font-size:11px;margin-top:2px;}
+  .hc-pill{font-size:11px;font-weight:700;letter-spacing:.06em;color:#ff6b6d;border:1px solid #e5383b;border-radius:20px;padding:4px 10px;white-space:nowrap;}
+  .hc-start{width:100%;background:#e5383b;color:#fff;border:none;border-radius:var(--radius-md);padding:15px;font:700 14px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 22px rgba(229,56,59,0.28);}
+  .hc-start:active{opacity:.88;transform:scale(.98);}
   .tpl-hc:active{border-color:#ff4d4f;}
   .hc-flame{position:absolute;right:16px;top:12px;width:62px;height:76px;z-index:1;pointer-events:none;}
   .hc-rule{margin:0 0 14px;background:#2a0f11;border:1px solid #5a1d20;border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.55;color:#e2b9ba;}
@@ -11655,6 +11662,36 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       return;
     }
 
+    // Hardcore Mode has its own screen: day tabs, the exercise list, the rule, one red Start button.
+    if (cat.id === 'hardcore'){
+      var hcKeys = templatesInCategory(cat);
+      var hcKey = hcKeys.indexOf(ui.hcDay) !== -1 ? ui.hcDay : hcKeys[0];
+      var hcTpl = WORKOUT_TEMPLATES[hcKey];
+      var hcName = hcTpl.label.replace(/^Hardcore\s+/, '');
+      panel.innerHTML =
+        '<div class="pro-panel-header">' +
+          '<div class="pro-panel-header-left">' +
+            '<button class="pro-panel-back" data-action="template-picker-back" aria-label="Back">&#8249;</button>' +
+            '<h3 class="hc-title">Hardcore Mode</h3>' +
+          '</div>' +
+          '<button class="pro-panel-close" data-action="close-template-picker" aria-label="Close">&#10005;</button>' +
+        '</div>' +
+        '<div class="pro-panel-body">' +
+          '<div class="hc-sub">2 sets per exercise. Make both count.</div>' +
+          '<div class="hc-tabs">' + hcKeys.map(function(k){
+            return '<button type="button" class="hc-day'+(k === hcKey ? ' on' : '')+'" data-action="hc-pick-day" data-day="'+k+'">'+esc(WORKOUT_TEMPLATES[k].label.replace(/^Hardcore\s+/, ''))+'</button>';
+          }).join('') + '</div>' +
+          hcTpl.exercises.map(function(ex){
+            return '<div class="hc-ex"><div class="hc-ex-n">'+esc(ex.name)+'<small>'+esc(ex.muscle)+'</small></div><span class="hc-pill">'+ex.sets+' SETS</span></div>';
+          }).join('') +
+          '<div class="hc-rule"><b>Set 1:</b> heavy, a few reps left in the tank.<br><b>Set 2:</b> same weight, go to failure.<br>After set 2 the exercise locks as <b>Done</b>.</div>' +
+        '</div>' +
+        '<div class="pro-panel-footer">' +
+          '<button type="button" class="hc-start" data-action="hc-start" data-template="'+hcKey+'">Start Hardcore '+esc(hcName)+'</button>' +
+        '</div>';
+      return;
+    }
+
     // Step 2 — templates within the chosen category.
     var keys = templatesInCategory(cat);
     panel.innerHTML =
@@ -11666,7 +11703,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         '<button class="pro-panel-close" data-action="close-template-picker" aria-label="Close">&#10005;</button>' +
       '</div>' +
       '<div class="pro-panel-body tpl-pick-body">' +
-        (cat.id === 'hardcore' ? '<div class="hc-rule"><b>Set 1:</b> heavy, a few reps left in the tank.<br><b>Set 2:</b> same weight, go to failure.<br>After set 2 the exercise locks as <b>Done</b>.</div>' : '') +
         keys.map(function(key, i){
           var tpl = WORKOUT_TEMPLATES[key];
           var prevTpl = i > 0 ? WORKOUT_TEMPLATES[keys[i - 1]] : null;
@@ -11693,7 +11729,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
             var more = tpl.exercises.length - 2;
             detail = '<div class="tpl-pick-pre">' + firstTwo + (more > 0 ? ' +' + more + ' more' : '') + '</div>';
           }
-          return label + '<button type="button" class="template-card tpl-pick-card'+(tpl.hardcore ? ' tpl-hc' : '')+'" data-action="select-template" data-template="'+key+'">' +
+          return label + '<button type="button" class="template-card tpl-pick-card" data-action="select-template" data-template="'+key+'">' +
             templateBgHtml() +
             '<div class="tpl-pick-top"><div class="template-card-name">'+esc(tpl.label)+'</div><span class="tpl-pick-chev" aria-hidden="true">&#8250;</span></div>' +
             '<div class="tpl-pick-mus">'+muscles+'</div>' +
@@ -25632,7 +25668,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // and picker choices). Uses the same "Haptic feedback" setting as logging a
   // set; set logging, PRs and finishing keep their own stronger patterns.
   var HAPTIC_TICK_ACTIONS = {
-    'set-tab': 1, 'toggle-splits': 1, 'toggle-routines': 1, 'toggle-routine-row': 1, 'log-template-category': 1, 'select-template': 1,
+    'set-tab': 1, 'toggle-splits': 1, 'toggle-routines': 1, 'toggle-routine-row': 1, 'log-template-category': 1, 'select-template': 1, 'hc-pick-day': 1, 'hc-start': 1,
     'open-settings-picker': 1, 'pick-settings-value': 1, 'open-template-picker': 1
   };
   function hapticTick(el){
@@ -26754,6 +26790,13 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       backToTemplateCategories();
     } else if (el.dataset.action === 'select-template'){
       openStartTemplateConfirm(el.dataset.template);
+    } else if (el.dataset.action === 'hc-pick-day'){
+      ui.hcDay = el.dataset.day;
+      renderTemplatePickerOverlay();
+    } else if (el.dataset.action === 'hc-start'){
+      var hcT = el.dataset.template;
+      closeTemplatePicker();
+      applyTemplate(hcT);
     }
   });
 
