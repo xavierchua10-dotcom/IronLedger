@@ -23622,8 +23622,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     renderApp();
   }
 
-  // Pre-fills the weight/reps boxes of a fresh add-set row: this set's number from the last
-  // time you did the exercise, else the set you just logged, else the last set last time.
+  // Pre-fills the weight/reps boxes of a fresh add-set row: set 1 gets the "Last best" set
+  // (same source and pick as the Last best tile); every later set gets the set you just logged.
   // Only fills empty boxes, and never touches what you've already typed.
   function seedDraftFromLastTime(exId){
     try {
@@ -23632,11 +23632,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       if (!ex) return;
       var d = ui.draftSets[exId];
       if (d && (d.weight != null && d.weight !== '' || d.reps != null && d.reps !== '')) return;
-      var entry = mostRecentExerciseEntry(ex.name);
-      var idx = ex.sets.length, seed = null;
-      if (entry && entry.sets[idx]) seed = entry.sets[idx];
-      else if (ex.sets.length) seed = ex.sets[ex.sets.length - 1];
-      else if (entry) seed = entry.sets[entry.sets.length - 1];
+      var refSets = getReferenceSets(getActiveSession(), ex.name);
+      var seed = null;
+      if (ex.sets.length) seed = ex.sets[ex.sets.length - 1];
+      else seed = lastBestSetOf(ex.name, refSets);
       if (!seed || !(seed.reps > 0)) return;
       var bw = isBodyweightExercise(ex.name);
       if (!(seed.weightKg > 0) && !bw) return;
@@ -23713,6 +23712,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       showToast(err);
       return;
     }
+    ui.expandedAddSet[ex.id] = false;
     commitSet(ex, weightKg, reps);
   }
 
@@ -23744,8 +23744,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // safety benefit (weightRepsError above already catches bad input
     // before this point), and it used to also collapse the draft row
     // closed on confirm, forcing a re-tap to reopen it for the next set.
-    // Deliberately NOT touching ui.expandedAddSet here, so the row stays
-    // open and ready to type straight into for the next set.
+    // Row closes after logging; tapping "Add Set N" reopens it, pre-filled
+    // (see seedDraftFromLastTime). Set before commitSet so its render shows the button.
+    ui.expandedAddSet[ex.id] = false;
     commitSet(ex, weightKg, reps);
   }
 
