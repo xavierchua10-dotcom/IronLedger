@@ -13055,7 +13055,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       '<div class="gp-body">' +
         '<div class="gp-hero"><div class="gp-logo"><img src="images/logo-mark.png" alt=""></div><b>Lift smarter<br>with <em>Pro</em></b><span>Everything in Basic, plus:</span></div>' +
         '<ul class="gp-feats">' +
-          gpFeat('target', 'Tips &amp; Target', 'A clear weight or rep goal for your next session') +
+          gpFeat('target', 'Tips &amp; Target', 'A clear goal for your next session, plus set 1 prefilled with your Last best') +
           gpFeat('chart', 'Full Progress', 'All-time charts, weekly &amp; monthly views, weight trend') +
           gpFeat('spark', 'AI Log Assistant', 'Ask your gym coach anything, any time') +
           gpFeat('clock', '7-day Brief', 'Keep your activity feed for 7 days, not 24h') +
@@ -17991,7 +17991,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                 '<button class="sr-action" data-action="open-pricing">Start Trial</button></div>';
     } else {
       html += '<div class="settings-row"><div><div class="sr-label">Basic</div>' +
-                '<div class="sr-sub">Upgrade for Tips &amp; Target, full Progress, AI assistant &amp; Pro PDF</div></div>' +
+                '<div class="sr-sub">Upgrade for Tips &amp; Target, Last best prefill, full Progress, AI assistant &amp; Pro PDF</div></div>' +
                 '<button class="sr-action" data-action="open-pricing">Upgrade</button></div>';
     }
     html += '</div>';
@@ -19664,7 +19664,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     "INSIGHT — your weekly muscle volume on a 3D model, plus a Cardio view.\n" +
     "PROGRESS — charts and e1RM trends per lift (and cardio), PRs, share a progress picture.\n" +
     "PROFILE — your stats, best lifts, Achievements medals and trophies, Share profile, and Settings.\n" +
-    "PRO — Tips & Target, full Progress, the AI Log Assistant, 7-day Brief and the Pro PDF.\n\n" +
+    "PRO — Tips & Target, Last best prefill on set 1, full Progress, the AI Log Assistant, 7-day Brief and the Pro PDF.\n\n" +
     "Ask about any of them — like “how does the plate calculator work”, “what is a perfect day” or “what does Pro include”.";
   var LOG_CHAT_FEATURES = [
     { re: /\b(plate|plates)\b/, a: "Tap the plate icon next to an exercise’s weight to open the plate calculator. It shows which plates go on each side of the bar (20 kg bar, or 45 lb in pounds), and “Use” drops the total into your set." },
@@ -19704,7 +19704,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     { re: /\b(ai|assistant|log\s*assistant|chat\s*bot|coach|what\s*can\s*you\s*do|remember)\b/, a: "I’m the Log Assistant. I answer questions about the app, exercises and split days, and I can read your data: PRs, stats, progress, muscle volume, cardio, what you did on a past day and your next targets. I can’t log or edit sets. Say “remember I have a bad shoulder” and I’ll keep that note (“what do you remember”, “forget that”). Pro adds AI answers for anything else, up to 60 a day." },
     { re: /\b(tips?\s*(&|and)\s*targets?|next\s*targets?|overload)\b/, a: "Tips & Target (Pro) gives you a clear weight or rep goal for your next session on each exercise, based on what you lifted before. Ask me “what’s next” to see them all." },
     { re: /\b(pro|premium|subscription|subscribe|upgrade|free\s*trial|trial|pricing|price|how\s*much|cost|basic\s*plan|free\s*vs|cancel\s*(my\s*)?(subscription|pro|plan))\b/, a: function(){
-        return "Basic is free: unlimited logging, History, Insight, cardio, routines, templates and Achievements. Pro adds Tips & Target, full Progress (all-time, weekly and monthly views, weight trend), the AI Log Assistant, a 7-day Brief and the Pro PDF. It’s $" + PRICE_MONTHLY.toFixed(2) + "/month or $" + PRICE_ANNUAL.toFixed(2) + "/year, with a 30-day free trial (no card, once per account). Cancel anytime from Settings › Plan › Manage Subscription.";
+        return "Basic is free: unlimited logging, History, Insight, cardio, routines, templates and Achievements. Pro adds Tips & Target, Last best prefill on set 1, full Progress (all-time, weekly and monthly views, weight trend), the AI Log Assistant, a 7-day Brief and the Pro PDF. It’s $" + PRICE_MONTHLY.toFixed(2) + "/month or $" + PRICE_ANNUAL.toFixed(2) + "/year, with a 30-day free trial (no card, once per account). Cancel anytime from Settings › Plan › Manage Subscription.";
       } }
   ];
   function logChatFeatureAnswer(text){
@@ -23622,8 +23622,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     renderApp();
   }
 
-  // Pre-fills the weight/reps boxes of a fresh add-set row: set 1 gets the "Last best" set
-  // (same source and pick as the Last best tile); every later set gets the set you just logged.
+  // Pre-fills the weight/reps boxes of a fresh add-set row: for Pro, set 1 gets the "Last best"
+  // set (same source and pick as the Last best tile); for everyone, every later set gets the
+  // set you just logged.
   // Only fills empty boxes, and never touches what you've already typed.
   function seedDraftFromLastTime(exId){
     try {
@@ -23635,7 +23636,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var refSets = getReferenceSets(getActiveSession(), ex.name);
       var seed = null;
       if (ex.sets.length) seed = ex.sets[ex.sets.length - 1];
-      else seed = lastBestSetOf(ex.name, refSets);
+      else if (isProActive()) seed = lastBestSetOf(ex.name, refSets); // Pro: set 1 starts at Last best
       if (!seed || !(seed.reps > 0)) return;
       var bw = isBodyweightExercise(ex.name);
       if (!(seed.weightKg > 0) && !bw) return;
