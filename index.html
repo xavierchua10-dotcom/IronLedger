@@ -24449,7 +24449,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
     var newSession = {
       id: uid(),
-      name: '',
+      name: source.name || '',   // carry the title over (stays blank if the source was untitled)
       date: new Date().toISOString(),
       status: 'active',
       repeatedFromId: sessionId,
