@@ -88,6 +88,7 @@ function segMesh(i){
     var m=new THREE.Mesh(segGeo,new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(0.46-Math.min(k,30)*0.004,0.7,0.5-Math.min(k,30)*0.004)}));
     m.castShadow=true;scene.add(m);segs.push(m);
   }
+  segs[0].visible=false; // slot 0 is never used (the head is its own mesh); it used to sit at the board centre
   return segs[i];
 }
 var apple=new THREE.Mesh(new THREE.SphereGeometry(0.36,20,20),new THREE.MeshStandardMaterial({color:0xfbbf24,emissive:0x7a4a00,emissiveIntensity:0.5}));
