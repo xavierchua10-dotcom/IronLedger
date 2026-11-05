@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tic Tac Toe 3D</title>
+<style>
+@font-face{font-family:Inter;font-weight:400;font-display:swap;src:url('../fonts/inter-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:Inter;font-weight:600;font-display:swap;src:url('../fonts/inter-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:Inter;font-weight:700;font-display:swap;src:url('../fonts/inter-latin-700-normal.woff2') format('woff2');}
+</style>
+<style>
+:root{--bg:#0f2a2e;--slab:#2f5a5f;--tile:#1d4247;--ink:#e8f5f3;--muted:#8db3b0;--x:#ffb86b;--o:#7dd3fc;--btn:#1d4247;--panel:rgba(15,42,46,.8);color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.top{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:14px;right:14px;display:flex;flex-direction:column;gap:12px;max-width:420px;margin:0 auto}
+.modes{display:flex;gap:6px;background:var(--panel);padding:5px;border-radius:14px}
+.modes button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-weight:500;padding:9px;border-radius:10px;cursor:pointer}
+.modes button[aria-pressed="true"]{background:var(--bg);color:var(--ink)}
+.score{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center}
+.score div{font-size:13px;color:var(--muted)}
+.score b{display:block;font-size:28px;font-weight:800;line-height:1.1;color:var(--ink)}
+.sx b{color:var(--x)}.so b{color:var(--o)}
+.bottom{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);left:14px;right:14px;max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:12px;text-align:center}
+#status{font-size:22px;font-weight:800;min-height:30px}
+#again{border:0;border-radius:14px;padding:14px;font:inherit;font-size:18px;font-weight:800;background:var(--x);color:#2a1500;cursor:pointer}
+button:focus-visible{outline:3px solid var(--o);outline-offset:2px}
+.hint{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="3D tic tac toe board. Tap a tile to place a mark, drag to tilt."></canvas>
+<div class="top">
+<div class="modes" role="group" aria-label="Game mode"><button id="m1" aria-pressed="true">vs Computer</button><button id="m2" aria-pressed="false">2 Players</button></div>
+<div class="score"><div class="sx"><b id="sx">0</b>X wins</div><div><b id="sd">0</b>Draws</div><div class="so"><b id="so">0</b>O wins</div></div>
+</div>
+<div class="bottom"><div id="status" aria-live="polite"></div><button id="again">New round</button><div class="hint">Tap a tile to play. Drag to tilt the board.</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+function sfReport(game,data){try{data.sfGame=game;window.parent.postMessage(data,location.origin)}catch(e){}}
+if(typeof THREE==='undefined'){document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="color:#aeb3bd;font:16px Inter,sans-serif;text-align:center;margin-top:30vh;padding:0 24px">Couldn\u2019t load the 3D engine. Check your connection and try again.</p>'});}
+</script>
+<script>
+(function(){if(typeof THREE==='undefined')return;
+var css=getComputedStyle(document.documentElement);
+function col(n){return new THREE.Color(css.getPropertyValue(n).trim())}
+var cBg=col('--bg'),cTile=col('--tile'),cSlab=col('--slab'),cX=col('--x'),cO=col('--o');
+var canvas=document.getElementById('c');
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.shadowMap.enabled=true;
+var scene=new THREE.Scene();scene.background=cBg;
+scene.add(new THREE.HemisphereLight(0xffffff,0x20404a,0.85));
+var sun=new THREE.DirectionalLight(0xffffff,0.8);sun.position.set(5,10,6);sun.castShadow=true;
+sun.shadow.camera.left=-8;sun.shadow.camera.right=8;sun.shadow.camera.top=8;sun.shadow.camera.bottom=-8;sun.shadow.mapSize.set(1024,1024);
+scene.add(sun);
+var cam=new THREE.PerspectiveCamera(40,1,0.1,100);
+var theta=0.5,phi=0.95,rad=15;
+
+var S=2.2;
+var slab=new THREE.Mesh(new THREE.BoxGeometry(7.6,0.5,7.6),new THREE.MeshStandardMaterial({color:cSlab}));
+slab.position.y=-0.25;slab.receiveShadow=true;scene.add(slab);
+var tiles=[],tileGeo=new THREE.BoxGeometry(1.95,0.3,1.95);
+for(var i=0;i<9;i++){
+  var t=new THREE.Mesh(tileGeo,new THREE.MeshStandardMaterial({color:cTile.clone()}));
+  t.position.set((i%3-1)*S,0.1,(Math.floor(i/3)-1)*S);t.receiveShadow=true;t.userData.i=i;scene.add(t);tiles.push(t);
+}
+var xMat=new THREE.MeshStandardMaterial({color:cX,roughness:0.5}),oMat=new THREE.MeshStandardMaterial({color:cO,roughness:0.4});
+function makeX(){
+  var g=new THREE.Group(),b=new THREE.BoxGeometry(1.5,0.4,0.36);
+  var a=new THREE.Mesh(b,xMat),c=new THREE.Mesh(b,xMat);a.rotation.y=Math.PI/4;c.rotation.y=-Math.PI/4;
+  a.castShadow=c.castShadow=true;g.add(a);g.add(c);return g;
+}
+function makeO(){
+  var m=new THREE.Mesh(new THREE.TorusGeometry(0.55,0.19,16,36),oMat);m.rotation.x=Math.PI/2;m.castShadow=true;
+  var g=new THREE.Group();g.add(m);return g;
+}
+
+// logic
+var L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+var b,turn,over,vsCPU=true,sc={X:0,O:0,D:0},cpuTimer,pieces=[],winLine=null,st=document.getElementById('status');
+function winner(s){for(var k=0;k<L.length;k++){var l=L[k];if(s[l[0]]&&s[l[0]]===s[l[1]]&&s[l[0]]===s[l[2]])return{p:s[l[0]],l:l}}return null}
+function minimax(s,p,me){
+  var w=winner(s);if(w)return w.p===me?10:-10;
+  if(s.every(Boolean))return 0;
+  var best=p===me?-99:99;
+  for(var i=0;i<9;i++)if(!s[i]){s[i]=p;var v=minimax(s,p==='X'?'O':'X',me);s[i]=null;best=p===me?Math.max(best,v):Math.min(best,v)}
+  return best;
+}
+function cpuMove(){
+  var best=-99,mv=[];
+  for(var i=0;i<9;i++)if(!b[i]){b[i]='O';var v=minimax(b,'X','O');b[i]=null;if(v>best){best=v;mv=[i]}else if(v===best)mv.push(i)}
+  play(mv[Math.floor(Math.random()*mv.length)],true);
+}
+function say(){if(!over)st.textContent=vsCPU?(turn==='X'?'Your turn':'Computer is thinking…'):'Player '+turn+'’s turn'}
+function score(){document.getElementById('sx').textContent=sc.X;document.getElementById('so').textContent=sc.O;document.getElementById('sd').textContent=sc.D}
+function play(i,isCPU){
+  if(over||b[i]||(vsCPU&&turn==='O'&&!isCPU))return;
+  b[i]=turn;
+  var g=turn==='X'?makeX():makeO();g.position.set(tiles[i].position.x,0.9,tiles[i].position.z);g.scale.setScalar(0.01);scene.add(g);
+  pieces.push({g:g,i:i,t:0});
+  var w=winner(b);
+  if(w||b.every(Boolean))sfReport('ttt',{type:'round',result:w?w.p:'D',cpu:vsCPU});
+  if(w){over=true;sc[w.p]++;winLine=w.l;st.textContent=vsCPU?(w.p==='X'?'You win!':'Computer wins'):'Player '+w.p+' wins!'}
+  else if(b.every(Boolean)){over=true;sc.D++;st.textContent='It’s a draw'}
+  else{turn=turn==='X'?'O':'X';say();if(vsCPU&&turn==='O')cpuTimer=setTimeout(cpuMove,550)}
+  score();
+}
+function round(){
+  clearTimeout(cpuTimer);b=Array(9).fill(null);turn='X';over=false;winLine=null;
+  pieces.forEach(function(p){scene.remove(p.g)});pieces=[];say();
+}
+function mode(v){vsCPU=v;sc={X:0,O:0,D:0};score();
+  document.getElementById('m1').setAttribute('aria-pressed',v);document.getElementById('m2').setAttribute('aria-pressed',!v);round()}
+document.getElementById('m1').onclick=function(){mode(true)};
+document.getElementById('m2').onclick=function(){mode(false)};
+document.getElementById('again').onclick=round;
+
+// input: drag rotates, tap places
+var ray=new THREE.Raycaster(),ptr=new THREE.Vector2(),down=null,moved=0,hover=-1;
+canvas.addEventListener('pointerdown',function(e){down={x:e.clientX,y:e.clientY};moved=0;canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener('pointermove',function(e){
+  if(!down)return;
+  var dx=e.clientX-down.x,dy=e.clientY-down.y;moved+=Math.abs(dx)+Math.abs(dy);
+  theta=Math.max(-0.5,Math.min(1.5,theta-dx*0.008));phi=Math.max(0.45,Math.min(1.35,phi+dy*0.006));down={x:e.clientX,y:e.clientY};
+});
+canvas.addEventListener('pointerup',function(e){
+  if(down&&moved<10){
+    ptr.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ptr,cam);
+    var h=ray.intersectObjects(tiles)[0];if(h)play(h.object.userData.i);
+  }
+  down=null;
+});
+function resize(){renderer.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;rad=cam.aspect<1?21:15;cam.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();round();
+
+var last=performance.now();
+function frame(now){
+  var dt=Math.min((now-last)/1000,0.05);last=now;
+  cam.position.set(Math.sin(theta)*Math.cos(phi)*rad,Math.sin(phi)*rad,Math.cos(theta)*Math.cos(phi)*rad);cam.lookAt(0,-0.2,0);
+  pieces.forEach(function(p){
+    p.t=Math.min(1,p.t+dt*3);var e=1-Math.pow(1-p.t,3);
+    var win=winLine&&winLine.indexOf(p.i)>=0;
+    var s=e*(win?1+Math.sin(now/180)*0.08:1);p.g.scale.setScalar(Math.max(s,0.01));
+    p.g.position.y=0.25+0.65*(1-e)+(win?0.25+Math.abs(Math.sin(now/220))*0.25:0.5)*e;
+    p.g.rotation.y=(1-e)*3;
+  });
+  tiles.forEach(function(t,i){
+    var win=winLine&&winLine.indexOf(i)>=0;
+    t.material.color.lerp(win?new THREE.Color(b[i]==='X'?cX:cO).multiplyScalar(0.55):cTile,0.12);
+  });
+  renderer.render(scene,cam);requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
