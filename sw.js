@@ -40,7 +40,7 @@ messaging.onBackgroundMessage(function(payload){
   });
 });
 
-var CACHE_NAME = 'iron-ledger-v6';
+var CACHE_NAME = 'iron-ledger-v7';
 var CORE_ASSETS = [
   './',
   './index.html',
@@ -49,6 +49,7 @@ var CORE_ASSETS = [
   './icons/icon-512.png',
   './games/snake.html',
   './games/neon-dash.html',
+  './games/block-breaker.html',
   './games/tictactoe.html'
 ];
 

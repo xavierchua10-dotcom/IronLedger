@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Block Breaker 3D</title>
+<style>
+@font-face{font-family:Inter;font-weight:400;font-display:swap;src:url('../fonts/inter-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:Inter;font-weight:600;font-display:swap;src:url('../fonts/inter-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:Inter;font-weight:700;font-display:swap;src:url('../fonts/inter-latin-700-normal.woff2') format('woff2');}
+</style>
+<style>
+:root{--bg:#14161a;--ink:#f1efff;--muted:#a3a0d4;--cy:#3de0ff;--gold:#ffc83d;--pink:#ff4d8d;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:18px;right:18px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
+.hud div{font-size:13px;color:var(--muted)}
+.hud b{display:block;font-size:32px;font-weight:800;line-height:1.05;color:var(--ink)}
+#lives{color:var(--pink);letter-spacing:3px}#score{color:var(--gold)}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(14,16,34,.62)}
+#overlay.hide{display:none}
+.card{text-align:center;padding:0 28px;max-width:320px}
+.card h1{margin:0 0 10px;font-size:42px;font-weight:800;color:var(--cy);line-height:1.05}
+.card p{margin:0 0 22px;color:var(--muted);font-size:17px;line-height:1.45}
+#go{border:0;background:var(--cy);color:#04222a;border-radius:14px;padding:14px 34px;font:inherit;font-size:20px;font-weight:800;cursor:pointer}
+#go:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.tip{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);left:0;right:0;text-align:center;font-size:14px;color:var(--muted);pointer-events:none;transition:opacity .2s}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="3D block breaker game"></canvas>
+<div class="hud"><div>Score<b id="score">0</b></div><div style="text-align:center">Level<b id="lvl">1</b></div><div style="text-align:right">Lives<b id="lives">♥♥♥</b></div></div>
+<div class="tip" id="tip">Tap to launch</div>
+<div id="overlay"><div class="card"><h1 id="t">Block Breaker 3D</h1><p id="m">Drag to slide the paddle (or use ← →). Tap to launch the ball and smash every block.</p><button id="go">Start</button></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+function sfReport(game,data){try{data.sfGame=game;window.parent.postMessage(data,location.origin)}catch(e){}}
+if(typeof THREE==='undefined'){document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="color:#aeb3bd;font:16px Inter,sans-serif;text-align:center;margin-top:30vh;padding:0 24px">Couldn\u2019t load the 3D engine. Check your connection and try again.</p>'});}
+</script>
+<script>
+(function(){if(typeof THREE==='undefined')return;
+var W=8,TOP=-10,PZ=8.6,PH=0.9,R=0.38;
+var canvas=document.getElementById('c');
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.shadowMap.enabled=true;
+var scene=new THREE.Scene();scene.background=new THREE.Color(0x14161a);scene.fog=new THREE.Fog(0x14161a,35,80);
+var cam=new THREE.PerspectiveCamera(50,1,0.1,150);
+scene.add(new THREE.HemisphereLight(0xcfc8ff,0x1a1440,0.8));
+var sun=new THREE.DirectionalLight(0xffffff,0.7);sun.position.set(-5,16,8);sun.castShadow=true;
+sun.shadow.camera.left=-12;sun.shadow.camera.right=12;sun.shadow.camera.top=14;sun.shadow.camera.bottom=-14;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+var bl=new THREE.PointLight(0x3de0ff,1.4,14);scene.add(bl);
+
+// arena
+var cv=document.createElement('canvas');cv.width=cv.height=64;var g=cv.getContext('2d');
+g.fillStyle='#17193a';g.fillRect(0,0,64,64);g.strokeStyle='#262a5a';g.lineWidth=3;g.strokeRect(0,0,64,64);
+var ft=new THREE.CanvasTexture(cv);ft.wrapS=ft.wrapT=THREE.RepeatWrapping;ft.repeat.set(8,11);
+var floor=new THREE.Mesh(new THREE.PlaneGeometry(16,22),new THREE.MeshStandardMaterial({map:ft}));
+floor.rotation.x=-Math.PI/2;floor.position.z=0.5;floor.receiveShadow=true;scene.add(floor);
+var wallM=new THREE.MeshStandardMaterial({color:0x6a4dff,emissive:0x2a1a80});
+[[-W-0.25,0.5,0.5,22.5],[W+0.25,0.5,0.5,22.5]].forEach(function(w){var m=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.8,w[3]),wallM);m.position.set(w[0],0.4,w[1]);scene.add(m)});
+var tw=new THREE.Mesh(new THREE.BoxGeometry(17,0.8,0.5),wallM);tw.position.set(0,0.4,TOP-0.25);scene.add(tw);
+
+var paddle=new THREE.Mesh(new THREE.BoxGeometry(1,0.6,PH),new THREE.MeshStandardMaterial({color:0x3de0ff,emissive:0x0a5a6b}));
+paddle.position.set(0,0.3,PZ);paddle.castShadow=true;scene.add(paddle);
+var ballM=new THREE.Mesh(new THREE.SphereGeometry(R,20,20),new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xaee9ff,emissiveIntensity:0.8}));
+ballM.castShadow=true;scene.add(ballM);
+
+var bricks=[],bGeo=new THREE.BoxGeometry(1.8,0.8,0.85);
+function build(){
+  bricks.forEach(function(b){scene.remove(b.m)});bricks=[];
+  var rows=Math.min(4+level,7);
+  for(var r=0;r<rows;r++)for(var c=0;c<8;c++){
+    var col=new THREE.Color().setHSL((r*0.11+0.92)%1,0.8,0.58);
+    var m=new THREE.Mesh(bGeo,new THREE.MeshStandardMaterial({color:col,emissive:col.clone().multiplyScalar(0.25)}));
+    m.position.set((c-3.5)*2,0.4,TOP+1.2+r*1.1);m.castShadow=true;scene.add(m);
+    bricks.push({m:m,x:m.position.x,z:m.position.z,dead:false,t:0});
+  }
+}
+
+var state='ready',level=1,score=0,lives=3,pw=3.4,px=0,tx=0,ball={x:0,z:PZ-0.8,vx:0,vz:0},speed=11,left=0,right=0,hits=0;
+var $s=document.getElementById('score'),$l=document.getElementById('lvl'),$v=document.getElementById('lives'),$tip=document.getElementById('tip');
+function hud(){$s.textContent=score;$l.textContent=level;$v.textContent=lives>0?Array(lives+1).join('♥'):'–'}
+paddle.scale.x=pw;
+function newLevel(){state='ready';speed=11+(level-1)*1;hits=0;build();park();hud();$tip.style.opacity=1}
+function park(){px=0;tx=0;ball.x=0;ball.z=PZ-0.45-R;ball.vx=ball.vz=0}
+function launch(){
+  if(state!=='ready')return;state='play';$tip.style.opacity=0;
+  var a=(Math.random()-0.5)*0.7;ball.vx=speed*Math.sin(a);ball.vz=-speed*Math.cos(a);
+}
+function norm(){var s=Math.hypot(ball.vx,ball.vz)||1,k=speed/s;ball.vx*=k;ball.vz*=k}
+function overlay(t,m,b){document.getElementById('t').textContent=t;document.getElementById('m').textContent=m;document.getElementById('go').textContent=b;document.getElementById('overlay').classList.remove('hide')}
+function lose(){
+  lives--;hud();
+  if(lives<=0){sfReport('blocks',{type:'round',score:score,level:level});state='over';overlay('Game over','Final score '+score+' on level '+level+'. Want another go?','Play again')}
+  else{state='ready';park();$tip.style.opacity=1}
+}
+function step(dt){
+  ball.x+=ball.vx*dt;ball.z+=ball.vz*dt;
+  if(ball.x<-W+R){ball.x=-W+R;ball.vx=Math.abs(ball.vx)}
+  if(ball.x>W-R){ball.x=W-R;ball.vx=-Math.abs(ball.vx)}
+  if(ball.z<TOP+R){ball.z=TOP+R;ball.vz=Math.abs(ball.vz)}
+  if(ball.vz>0&&ball.z>PZ-PH/2-R&&ball.z<PZ+0.2&&Math.abs(ball.x-px)<pw/2+R){
+    ball.z=PZ-PH/2-R;var o=Math.max(-1,Math.min(1,(ball.x-px)/(pw/2))),a=o*1.05;
+    ball.vx=Math.sin(a)*speed;ball.vz=-Math.cos(a)*speed;
+  }
+  for(var i=0;i<bricks.length;i++){
+    var b=bricks[i];if(b.dead)continue;
+    var dx=ball.x-b.x,dz=ball.z-b.z,ox=0.9+R-Math.abs(dx),oz=0.425+R-Math.abs(dz);
+    if(ox>0&&oz>0){
+      if(ox<oz){ball.vx=Math.abs(ball.vx)*(dx>0?1:-1);ball.x+=dx>0?ox:-ox}
+      else{ball.vz=Math.abs(ball.vz)*(dz>0?1:-1);ball.z+=dz>0?oz:-oz}
+      b.dead=true;score+=10*level;hits++;speed=Math.min(22,11+(level-1)+hits*0.06);norm();hud();
+      if(bricks.every(function(k){return k.dead})){state='clear';overlay('Level '+level+' cleared!','Score '+score+'. The next wall is tougher and faster.','Next level');level++}
+      break;
+    }
+  }
+  if(ball.z>PZ+3)lose();
+}
+document.getElementById('go').addEventListener('click',function(){
+  document.getElementById('overlay').classList.add('hide');
+  if(state==='over'){level=1;score=0;lives=3;newLevel()}
+  else if(state==='clear'){newLevel()}
+  else if(state==='ready'&&!bricks.length){newLevel()}
+});
+
+// input
+var ray=new THREE.Raycaster(),pl=new THREE.Plane(new THREE.Vector3(0,1,0),0),pt=new THREE.Vector2(),hit=new THREE.Vector3(),drag=false,dmoved=0;
+function setX(e){pt.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(pt,cam);if(ray.ray.intersectPlane(pl,hit))tx=Math.max(-W+pw/2,Math.min(W-pw/2,hit.x))}
+canvas.addEventListener('pointerdown',function(e){drag=true;dmoved=0;setX(e)});
+addEventListener('pointermove',function(e){if(drag){dmoved++;setX(e)}});
+addEventListener('pointerup',function(){if(drag&&state==='ready'&&document.getElementById('overlay').classList.contains('hide'))launch();drag=false});
+addEventListener('keydown',function(e){
+  if(e.key==='ArrowLeft'||e.key==='a')left=1;if(e.key==='ArrowRight'||e.key==='d')right=1;
+  if(e.key===' '){e.preventDefault();if(state==='ready'&&document.getElementById('overlay').classList.contains('hide'))launch()}
+});
+addEventListener('keyup',function(e){if(e.key==='ArrowLeft'||e.key==='a')left=0;if(e.key==='ArrowRight'||e.key==='d')right=0});
+function resize(){
+  renderer.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();
+  var k=Math.max(1,0.9/cam.aspect);cam.position.set(0,17*k,19*k);cam.lookAt(0,0,0.5);
+}
+addEventListener('resize',resize);resize();hud();build();park();
+
+var last=performance.now();
+function frame(now){
+  var dt=Math.min((now-last)/1000,0.05);last=now;
+  if(left)tx=Math.max(-W+pw/2,tx-18*dt);if(right)tx=Math.min(W-pw/2,tx+18*dt);
+  px+=(tx-px)*Math.min(1,dt*20);paddle.position.x=px;
+  if(state==='ready'){ball.x=px;ball.z=PZ-PH/2-R}
+  if(state==='play'){var n=Math.ceil(dt*120);for(var i=0;i<n&&state==='play';i++)step(dt/n)}
+  ballM.position.set(ball.x,R,ball.z);bl.position.set(ball.x,2,ball.z);
+  bricks.forEach(function(b){
+    if(b.dead&&b.t<1){b.t=Math.min(1,b.t+dt*4);var s=1-b.t;b.m.scale.set(s,s,s);b.m.position.y=0.4-b.t*0.6;b.m.rotation.y=b.t*2;if(b.t>=1)b.m.visible=false}
+  });
+  ft.offset.y=0;
+  renderer.render(scene,cam);requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
