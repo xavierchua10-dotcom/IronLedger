@@ -1858,7 +1858,7 @@
   .rd-link:active{background:rgba(94,234,212,.12);}
   .pf-settings-card.pf-rest .pf-settings-ic{color:#5eead4;}
   .rd-title{margin:0;font:700 20px 'Oswald',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#5eead4;}
-  .rd-sub{font-size:13px;color:var(--text-dim);margin:2px 0 14px;line-height:1.45;}
+  .rd-sub{font-size:13px;color:var(--text-dim);margin:14px 0 14px;line-height:1.45;}
   .rd-game{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 12px;margin-bottom:10px;cursor:pointer;color:inherit;font:inherit;}
   .rd-game:active{transform:scale(.985);border-color:rgba(94,234,212,.5);}
   .rd-thumb{flex:none;width:54px;height:54px;border-radius:13px;display:grid;place-items:center;}
@@ -6879,8 +6879,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 <div class="confirm-overlay hidden" id="templatePickerOverlay">
   <div class="pro-panel" id="templatePickerPanel"></div>
 </div>
-<div class="confirm-overlay hidden" id="restDayOverlay">
-  <div class="pro-panel" id="restDayPanel"></div>
+<div class="confirm-overlay settings-page hidden" id="restDayOverlay">
+  <div class="sp-panel" id="restDayPanel"></div>
 </div>
 <div class="confirm-overlay game-overlay hidden" id="gameOverlay">
   <div class="game-bar">
@@ -13692,12 +13692,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         '<span><div class="rd-gn">'+esc(g.name)+'</div><div class="rd-gd">'+esc(g.desc)+'</div></span>' +
         '<span class="rd-best">'+v+'<small>'+g.label+'</small></span></button>';
     }).join('');
+    var svgX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
     panel.innerHTML =
-      '<div class="pro-panel-header">' +
-        '<div class="pro-panel-header-left"><h3 class="rd-title">Rest Day Mode</h3></div>' +
-        '<button class="pro-panel-close" data-action="close-rest-day" aria-label="Close">&#10005;</button>' +
-      '</div>' +
-      '<div class="pro-panel-body">' +
+      '<div class="sp-head"><button type="button" class="sp-btn" data-action="close-rest-day" aria-label="Close">' + svgX + '</button><h3>Rest Day Mode</h3></div>' +
+      '<div class="sp-body">' +
         '<div class="rd-sub">Rest is part of the plan. Take a break and play.</div>' + rows +
         '<div class="rd-note"><b>Rest day tip:</b> sleep 7 to 9 hours, eat enough protein and drink water. Muscles grow while you rest.</div>' +
       '</div>';
