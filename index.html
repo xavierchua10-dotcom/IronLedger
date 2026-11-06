@@ -155,6 +155,18 @@
     -webkit-tap-highlight-color: transparent;
   }
   html,body{margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none;}
+  /* App-like feel: no blue text-selection highlight or long-press callout on
+     labels/text anywhere. Fields you type in stay fully selectable. */
+  html,body,body *{
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+  }
+  input,textarea,select,[contenteditable="true"],[contenteditable="true"] *,.chat-link{
+    -webkit-user-select:text;
+    user-select:text;
+    -webkit-touch-callout:default;
+  }
   /* Solid dark canvas behind everything. When the on-screen keyboard
      opens/closes the visible area resizes for a few frames and the fixed
      body background image repaints; with no colour on <html> that showed
