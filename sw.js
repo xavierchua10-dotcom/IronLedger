@@ -40,7 +40,7 @@ messaging.onBackgroundMessage(function(payload){
   });
 });
 
-var CACHE_NAME = 'iron-ledger-v11';
+var CACHE_NAME = 'iron-ledger-v12';
 var CORE_ASSETS = [
   './',
   './index.html',

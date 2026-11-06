@@ -6332,6 +6332,23 @@
   }
   .confirm-media{position:relative;}
   .confirm-media .ex-view-pills{position:absolute;top:10px;right:10px;margin:0;z-index:4;background:rgba(20,22,26,0.78);}
+  .confirm-sub{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);margin:-4px 0 12px;}
+  .confirm-rows{text-align:left;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(0,0,0,.18);padding:2px 12px;margin:0 0 14px;max-height:38vh;overflow-y:auto;}
+  .confirm-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);}
+  .confirm-row:last-child{border-bottom:none;}
+  .confirm-row b{font-weight:600;font-size:14px;color:var(--text);}
+  .confirm-row span{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);white-space:nowrap;}
+  .rep-card{margin:2px 0 14px;border-radius:18px;border:1px solid rgba(var(--accent-rgb),.55);background:linear-gradient(110deg,#1b1d22 40%,rgba(var(--accent-rgb),.20) 100%);padding:14px 14px 12px;}
+  .rep-chips{display:flex;gap:6px;margin-bottom:12px;}
+  .rep-chip{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11px;letter-spacing:.06em;padding:6px 11px;border-radius:99px;border:1px solid rgba(255,255,255,.16);background:transparent;color:#9aa1ab;cursor:pointer;text-transform:uppercase;}
+  .rep-chip.on{background:rgba(var(--accent-rgb),.18);border-color:rgba(var(--accent-rgb),.7);color:var(--accent);}
+  .rep-main{display:flex;align-items:center;gap:10px;}
+  .rep-ico{width:40px;height:40px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(var(--accent-rgb),.12);border:1.5px solid rgba(var(--accent-rgb),.55);color:var(--accent);}
+  .rep-txt{flex:1;min-width:0;}
+  .rep-name{font-family:'Oswald',sans-serif;font-weight:700;font-size:20px;letter-spacing:.04em;color:var(--text);text-transform:uppercase;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rep-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rep-go{font-family:'Oswald',sans-serif;font-weight:700;font-size:14px;letter-spacing:.06em;color:#14161a;background:var(--accent);border:none;border-radius:12px;padding:12px 14px;text-transform:uppercase;box-shadow:0 6px 18px rgba(var(--accent-rgb),.25);cursor:pointer;flex-shrink:0;}
+  .rep-go:active{opacity:.85;}
   .confirm-how{
     font-size:12.5px;
     color:var(--text-faint);
@@ -15339,6 +15356,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               '<p>No finished sessions yet.<br>Sessions you finish in the Log tab will show up here.</p></div>';
     } else {
       var dateFilterActive = !!ui.historyDateFilter;
+      html += repeatCardHtml(done);
       html += '<div class="history-search-row">';
       html += '<input type="text" id="historySearchInput" class="history-search-input" autocomplete="off" placeholder="Search by exercise or session name" value="'+esc(ui.historySearch || '')+'">';
       html += '<button class="history-date-range-btn'+(dateFilterActive ? ' active' : '')+'" data-action="open-history-date-range" aria-label="'+(dateFilterActive ? 'Date range filter active, tap to change or clear' : 'Filter by date range')+'">' +
@@ -24921,7 +24939,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function openRepeatSessionConfirm(sessionId){
+  function openRepeatSessionConfirm(sessionId, withList){
     var session = state.sessions.find(function(s){ return s.id === sessionId; });
     var name = session && session.name ? session.name : 'this session';
     var message = 'A new session starts with the same exercises (no sets yet, fresh start). If you have another session in progress, it\u2019ll be saved to History first.';
@@ -24937,7 +24955,55 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       variant: 'primary',
       sessionId: sessionId
     };
+    if (withList && session){
+      // History card: show what's about to be repeated (the old "fresh start" line is replaced).
+      var rows = session.exercises.slice(0, 8).map(function(ex){
+        var n = ex.sets.length, top = 0;
+        ex.sets.forEach(function(st){ if ((st.weightKg || 0) > top) top = st.weightKg; });
+        return { name: ex.name, detail: n + (n === 1 ? ' set' : ' sets') + (top > 0 ? ' \u00b7 ' + fmtWeight(top) + ' ' + unitLabel() : '') };
+      });
+      if (session.exercises.length > 8) rows.push({ name: '+' + (session.exercises.length - 8) + ' more', detail: '' });
+      ui.confirmModal.rows = rows;
+      ui.confirmModal.sub = repeatCardDateLabel(session);
+      ui.confirmModal.message = 'Your session in progress will be saved to History first.' + (draftEx ? ' You also have an unsaved set for ' + (draftEx.name || 'an exercise') + ' that hasn\u2019t been logged yet \u2014 repeating will discard it.' : '');
+    }
     renderApp();
+  }
+
+  // ---- History "Repeat" card (top of History) ----
+  function repeatCardDateLabel(s){
+    var d = new Date(s.finishedAt || s.date);
+    if (isNaN(d.getTime())) return '';
+    return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] + ' ' + d.getDate() + ' ' + HISTORY_MONTHS[d.getMonth()].slice(0, 3);
+  }
+  function repeatCardHtml(done){
+    var withEx = done.filter(function(s){ return s.exercises && s.exercises.length > 0; });
+    if (!withEx.length) return '';
+    var target = new Date(); target.setHours(0, 0, 0, 0); target.setDate(target.getDate() - 7);
+    var tKey = target.getFullYear() + '-' + target.getMonth() + '-' + target.getDate();
+    var sameDay = null;
+    withEx.forEach(function(s){
+      var d = new Date(s.finishedAt || s.date);
+      if (!sameDay && !isNaN(d.getTime()) && d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate() === tKey) sameDay = s;
+    });
+    var last = withEx[0];
+    var both = !!sameDay && sameDay.id !== last.id;
+    var mode = (ui.repeatMode === 'last' && both) || !sameDay ? 'last' : 'sameday';
+    var s = mode === 'last' ? last : sameDay;
+    var sets = 0; s.exercises.forEach(function(ex){ sets += ex.sets.length; });
+    var chips = '';
+    if (both){
+      chips = '<div class="rep-chips">' +
+        '<button type="button" class="rep-chip'+(mode === 'sameday' ? ' on' : '')+'" data-action="repeat-card-mode" data-mode="sameday">Same day last week</button>' +
+        '<button type="button" class="rep-chip'+(mode === 'last' ? ' on' : '')+'" data-action="repeat-card-mode" data-mode="last">Last session</button></div>';
+    } else {
+      chips = '<div class="rep-chips"><span class="rep-chip on">' + (sameDay ? 'Same day last week' : 'Last session') + '</span></div>';
+    }
+    return '<div class="rep-card">' + chips +
+      '<div class="rep-main"><div class="rep-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 013-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 01-3 3H3"/></svg></div>' +
+      '<div class="rep-txt"><div class="rep-name">' + esc(s.name || 'Untitled session') + '</div>' +
+      '<div class="rep-meta">' + esc(repeatCardDateLabel(s).replace(/^\w+ /, '')) + ' \u00b7 ' + s.exercises.length + ' ex \u00b7 ' + sets + ' sets</div></div>' +
+      '<button type="button" class="rep-go" data-action="repeat-from-card" data-session="' + esc(s.id) + '">Repeat</button></div></div>';
   }
 
   // Powers the gold reference button on each exercise card — for any
@@ -25346,6 +25412,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               : '<img class="confirm-preview-img" src="'+esc(m.img)+'" alt="" loading="lazy">') + (howtoFor(m.name) ? '<button type="button" class="ht-btn ht-float" data-action="open-howto" data-ex-name="'+esc(m.name)+'" aria-label="How to do '+esc(m.name)+'"><b>?</b> How to</button>' : '') + '</div>'
           : '<img class="confirm-preview-img" src="'+esc(m.img)+'" alt="" loading="lazy">') : '') +
       '<div class="confirm-title">' + esc(m.title) + '</div>' +
+      (m.sub ? '<div class="confirm-sub">' + esc(m.sub) + '</div>' : '') +
+      (m.rows && m.rows.length ? '<div class="confirm-rows">' + m.rows.map(function(r){ return '<div class="confirm-row"><b>' + esc(r.name) + '</b><span>' + esc(r.detail || '') + '</span></div>'; }).join('') + '</div>' : '') +
       '<div class="confirm-message">' + esc(m.message) + '</div>' +
       (m.how ? '<div class="confirm-how">' + esc(m.how) + '</div>' : '') +
       '<div class="confirm-buttons">' +
@@ -26758,6 +26826,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       openHistoryEditOverlay(el.dataset.session, el.dataset.ex);
     } else if (action === 'repeat-session'){
       openRepeatSessionConfirm(el.dataset.session);
+    } else if (action === 'repeat-from-card'){
+      openRepeatSessionConfirm(el.dataset.session, true);
+    } else if (action === 'repeat-card-mode'){
+      ui.repeatMode = el.dataset.mode === 'last' ? 'last' : 'sameday';
+      renderHistory();
     } else if (action === 'open-print-menu'){
       openPrintMenu(el.dataset.session);
     } else if (action === 'open-ex-progress'){
