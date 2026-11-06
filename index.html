@@ -1971,6 +1971,16 @@
   .rd-gd{font-size:12px;color:var(--text-dim);margin-top:2px;}
   .rd-best{margin-left:auto;text-align:right;font:700 20px 'JetBrains Mono',monospace;color:#5eead4;line-height:1;}
   .rd-best small{display:block;font:600 9px 'Inter',sans-serif;letter-spacing:.12em;color:var(--text-dim);margin-top:4px;}
+  .rd-rec{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;margin:0 0 22px;}
+  .rd-rec-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font:700 10px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);}
+  .rd-rec-h i{font-style:normal;color:#5eead4;}
+  .rd-rec-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:13px;}
+  .rd-rec-row:last-child{margin-bottom:0;}
+  .rd-rec-n{width:78px;font-weight:600;color:var(--text);}
+  .rd-rec-bar{flex:1;height:7px;border-radius:4px;background:#2a2e36;overflow:hidden;}
+  .rd-rec-bar b{display:block;height:100%;border-radius:4px;}
+  .rd-rec-st{width:70px;text-align:right;font:700 11px 'JetBrains Mono',monospace;}
+  .rd-glabel{margin:0 0 14px;padding-left:8px;border-left:3px solid #5eead4;font:700 11px 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--text-dim);}
   .rd-note{background:#10302f;border:1px solid #1d5754;border-radius:10px;padding:11px 13px;font-size:12.5px;line-height:1.55;color:#a7e9df;margin:4px 0 6px;}
   .rd-note b{color:#5eead4;}
   .confirm-overlay.game-overlay{flex-direction:column;padding:0;align-items:stretch;justify-content:flex-start;background:#14161a;backdrop-filter:none;-webkit-backdrop-filter:none;z-index:110;}
@@ -14057,6 +14067,47 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>' +
       '<span>Rest day? <b>Play a round</b></span><span class="rd-link-chev" aria-hidden="true">&#8250;</span></button>';
   }
+  // Recovery card: for each muscle group you have trained, how long since its last session
+  // and how many days until it is ready again. 48h by default, 72h after a big session
+  // (8+ sets), 24h for Core. A simple guide, not medical advice.
+  function recoveryRows(){
+    var now = Date.now(), last = {};
+    (state.sessions || []).forEach(function(s){
+      if (s.status !== 'done' || !s.exercises) return;
+      var t = new Date(s.finishedAt || s.date).getTime();
+      if (isNaN(t) || t > now) return;
+      var perBucket = {};
+      s.exercises.forEach(function(ex){
+        var n = ex.sets ? ex.sets.length : 0;
+        if (!n) return;
+        bucketsForLoggedExercise(ex.name, ex.muscle).forEach(function(b){ perBucket[b] = (perBucket[b] || 0) + n; });
+      });
+      Object.keys(perBucket).forEach(function(b){
+        if (!last[b] || t > last[b].t) last[b] = { t: t, sets: perBucket[b] };
+      });
+    });
+    var out = [];
+    ['Chest','Shoulders','Arms','Back','Legs','Core'].forEach(function(b){
+      var l = last[b];
+      if (!l || now - l.t > 21 * 86400000) return;
+      var win = (b === 'Core' ? 24 : (l.sets >= 8 && b !== 'Arms' && b !== 'Shoulders' ? 72 : 48)) * 3600000;
+      var left = win - (now - l.t);
+      out.push({ name: b, pct: Math.max(0.08, Math.min(1, (now - l.t) / win)), days: left > 0 ? Math.ceil(left / 86400000) : 0, hrs: left > 0 ? Math.ceil(left / 3600000) : 0 });
+    });
+    return out;
+  }
+  function recoveryCardHtml(){
+    var rows = recoveryRows();
+    if (!rows.length) return '';
+    var ready = rows.filter(function(r){ return r.days === 0; }).length;
+    return '<div class="rd-rec"><div class="rd-rec-h"><span>Recovery</span><i>' + ready + ' of ' + rows.length + ' ready</i></div>' +
+      rows.map(function(r){
+        var ok = r.days === 0, col = ok ? '#4ade80' : '#f2b134';
+        return '<div class="rd-rec-row"><span class="rd-rec-n">' + esc(r.name) + '</span>' +
+          '<div class="rd-rec-bar"><b style="width:' + Math.round(r.pct * 100) + '%;background:' + col + '"></b></div>' +
+          '<span class="rd-rec-st" style="color:' + col + '">' + (ok ? 'READY' : (r.hrs < 24 ? r.hrs + (r.hrs === 1 ? ' HR' : ' HRS') : r.days + (r.days === 1 ? ' DAY' : ' DAYS'))) + '</span></div>';
+      }).join('') + '</div>';
+  }
   function renderRestDayPanel(){
     var panel = document.getElementById('restDayPanel');
     if (!panel) return;
@@ -14071,7 +14122,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     panel.innerHTML =
       '<div class="sp-head"><button type="button" class="sp-btn" data-action="close-rest-day" aria-label="Close">' + svgX + '</button><h3>Rest Day Mode</h3></div>' +
       '<div class="sp-body">' +
-        '<div class="rd-sub">Rest is part of the plan. Take a break and play.</div>' + rows +
+        '<div class="rd-sub">Rest is part of the plan. Take a break and play.</div>' + recoveryCardHtml() + '<div class="rd-glabel">GAMES</div>' + rows +
         '<div class="rd-note"><b>Rest day tip:</b> sleep 7 to 9 hours, eat enough protein and drink water. Muscles grow while you rest.</div>' +
       '</div>';
   }
