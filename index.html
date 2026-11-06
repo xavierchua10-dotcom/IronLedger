@@ -985,8 +985,20 @@
     color:var(--text);
   }
   .exercise-card.collapsed{padding:0;}
-  .exercise-card.just-added, .he-exercise-card.just-added{
-    animation:exerciseAddedGlow 900ms ease-out;
+  /* The glow is drawn on a pseudo-element and only its opacity animates, so
+     the card's photo background is not repainted every frame (animating the
+     card's own box-shadow did, which made adding a template stutter). */
+  .exercise-card.just-added, .he-exercise-card.just-added{position:relative;}
+  .exercise-card.just-added::after, .he-exercise-card.just-added::after{
+    content:"";position:absolute;left:-1px;top:-1px;right:-1px;bottom:-1px;
+    border:1px solid var(--accent);border-radius:inherit;pointer-events:none;
+    box-shadow:0 0 22px 3px rgba(var(--accent-rgb),0.6);
+    opacity:0;animation:exerciseAddedGlowFade 900ms ease-out;
+  }
+  @keyframes exerciseAddedGlowFade{
+    0%{opacity:0;}
+    12%{opacity:1;}
+    100%{opacity:0;}
   }
   /* Each box in the Add Set row glows individually (kg input, reps
      input, checkmark, X) rather than one glow around the whole row. */
