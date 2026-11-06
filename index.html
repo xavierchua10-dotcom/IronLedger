@@ -6945,7 +6945,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     <div class="game-title" id="gameTitle"></div>
     <div class="game-tag">REST DAY MODE</div>
   </div>
-  <iframe id="gameFrame" title="Mini game"></iframe>
 </div>
 <div class="confirm-overlay dev-overlay hidden" id="devOverlay">
   <div class="dev-sheet" id="devSheet"></div>
@@ -13778,16 +13777,36 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function closeRestDay(){
     document.getElementById('restDayOverlay').classList.add('hidden');
   }
+  // Every game gets a brand-new <iframe>, and closing removes it. Re-using one
+  // frame left each game in the browser's history, so the Android back handling
+  // that runs when an overlay closes (history.back) could walk the frame back to
+  // the game you played before: it flashed on screen for a moment and kept
+  // running hidden, using the phone's 3D power.
+  function removeGameFrame(){
+    var old = document.getElementById('gameFrame');
+    if (!old) return;
+    try { if (old.contentWindow && old.contentWindow.__sfDispose) old.contentWindow.__sfDispose(); } catch (_) {}
+    old.onload = null;
+    old.remove();
+  }
   function openGame(id){
     var g = REST_GAMES.filter(function(x){ return x.id === id; })[0];
     if (!g) return;
+    removeGameFrame();
     document.getElementById('gameTitle').textContent = g.name;
-    document.getElementById('gameFrame').src = g.src;
+    var gf = document.createElement('iframe');
+    gf.id = 'gameFrame'; gf.title = 'Mini game';
+    gf.style.visibility = 'hidden';   // shown once the game has loaded, so nothing else flashes first
+    var reveal = function(){ gf.style.visibility = ''; };
+    gf.onload = function(){ setTimeout(reveal, 60); };
+    setTimeout(reveal, 2500);
+    gf.src = g.src;
+    document.getElementById('gameOverlay').appendChild(gf);
     document.getElementById('gameOverlay').classList.remove('hidden');
   }
   function closeGame(){
     document.getElementById('gameOverlay').classList.add('hidden');
-    document.getElementById('gameFrame').src = 'about:blank';   // stops the game and frees its 3D context
+    removeGameFrame();   // stops the game and frees its 3D context right away
     if (!document.getElementById('restDayOverlay').classList.contains('hidden')) renderRestDayPanel();
   }
   // A finished round, reported by the game page.
@@ -14016,16 +14035,18 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   });
   // Errors inside a mini game's page (same origin) land in the same list.
   (function(){
-    var gf = document.getElementById('gameFrame');
-    if (!gf) return;
-    gf.addEventListener('load', function(){
+    var ov = document.getElementById('gameOverlay');
+    if (!ov) return;
+    ov.addEventListener('load', function(ev){   // load doesn't bubble, so catch it on the way down
+      var gf = ev.target;
+      if (!gf || gf.id !== 'gameFrame') return;
       try {
         var w = gf.contentWindow;
         if (!w || w.location.href === 'about:blank') return;
         w.addEventListener('error', function(e){ devNoteError((e.error && e.error.message) || e.message, 'game ' + String(w.location.pathname).split('/').pop() + ':' + e.lineno); });
         w.addEventListener('unhandledrejection', function(e){ devNoteError('Unhandled promise: ' + ((e.reason && e.reason.message) || e.reason), 'game ' + String(w.location.pathname).split('/').pop()); });
       } catch (_) {}
-    });
+    }, true);
   })();
   devBubble();
 

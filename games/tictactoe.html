@@ -48,6 +48,7 @@ var cBg=col('--bg'),cTile=col('--tile'),cSlab=col('--slab'),cX=col('--x'),cO=col
 var canvas=document.getElementById('c');
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.shadowMap.enabled=true;
+window.__sfDispose=function(){try{window.requestAnimationFrame=function(){return 0};renderer.dispose();renderer.forceContextLoss();}catch(_){}};addEventListener('pagehide',window.__sfDispose);
 var scene=new THREE.Scene();scene.background=cBg;
 scene.add(new THREE.HemisphereLight(0xffffff,0x20404a,0.85));
 var sun=new THREE.DirectionalLight(0xffffff,0.8);sun.position.set(5,10,6);sun.castShadow=true;

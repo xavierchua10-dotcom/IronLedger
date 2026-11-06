@@ -49,6 +49,7 @@ var N=15, H=(N-1)/2;
 var canvas=document.getElementById('c');
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+window.__sfDispose=function(){try{window.requestAnimationFrame=function(){return 0};renderer.dispose();renderer.forceContextLoss();}catch(_){}};addEventListener('pagehide',window.__sfDispose);
 renderer.shadowMap.enabled=true;
 var scene=new THREE.Scene();
 scene.background=new THREE.Color(0x14161a);
