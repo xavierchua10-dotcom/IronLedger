@@ -19304,13 +19304,13 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   });
   setTimeout(function waitForFirstView(n){
     var a = document.getElementById('app');
-    if (a && !a.classList.contains('hidden') && document.querySelector('#view .template-card, #view .pf-stat, #view .exercise-card, #view .history-item')){ setTimeout(playCardShine, 250); playLogEnter(); return; }
+    if (a && !a.classList.contains('hidden') && document.querySelector('#view .template-card, #view .pf-stat, #view .exercise-card, #view .history-item')){ setTimeout(playCardShine, 250); return; }
     if ((n || 0) < 40) setTimeout(function(){ waitForFirstView((n || 0) + 1); }, 400);
   }, 600);
 
   // Log's template cards (Build my plan / Beginner / Training splits ...) slide in from the left,
-  // one after another. Runs only when the Log tab is opened or returned to (called next to
-  // playCardShine), never on ordinary redraws, so adding a set doesn't replay it.
+  // one after another. Runs only when switching TO the Log tab, never on app open (the cards are
+  // already on screen by then, so it made them blink) and never on ordinary redraws, so adding a set doesn't replay it.
   function playLogEnter(){
     if (state.tab !== 'log') return;
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
