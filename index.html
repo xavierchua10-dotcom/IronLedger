@@ -8957,6 +8957,15 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       panel.innerHTML = '';
       return;
     }
+    // A re-render while the picker is already open (sync, timer, anything
+    // that calls renderApp) rebuilds this panel from scratch. Remember what
+    // was typed, the scroll spot and focus so we can put them back below —
+    // otherwise the list comes back empty and the search box loses focus.
+    var prevInput = document.getElementById('exNameInput');
+    var prevList = document.getElementById('exSuggestList');
+    var keepTyped = prevInput ? prevInput.value : null;
+    var keepScroll = prevList ? prevList.scrollTop : 0;
+    var keepFocus = !!prevInput && document.activeElement === prevInput;
     overlay.classList.remove('hidden');
     syncExSearchOverlayHeight();
     panel.innerHTML =
@@ -8972,6 +8981,16 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       '</div>' +
       '<div class="ex-filter-panel'+(ui.exFilterPanelOpen ? '' : ' hidden')+'" id="exFilterPanel">' + exFilterPanelHtml() + '</div>' +
       '<div class="ex-suggest-list hidden" id="exSuggestList"></div>';
+    if (keepTyped !== null){
+      var newInput = document.getElementById('exNameInput');
+      if (newInput){
+        newInput.value = keepTyped;
+        renderExerciseSuggestions(keepTyped);
+        var newList = document.getElementById('exSuggestList');
+        if (newList) newList.scrollTop = keepScroll;
+        if (keepFocus) newInput.focus();
+      }
+    }
   }
 
   // Bodyweight-aware effective load. Exercises tagged "Bodyweight"
