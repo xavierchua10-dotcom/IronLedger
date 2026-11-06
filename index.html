@@ -18077,6 +18077,17 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     return points.some(function(p){ return p.topKg > 0; });
   }
 
+  // Lighten (f>0) or darken (f<0) a #rrggbb colour. Used for the still-3D chart faces.
+  function shadeHex(hex, f){
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return hex;
+    var n = parseInt(m[1], 16), c = [n >> 16 & 255, n >> 8 & 255, n & 255].map(function(v){
+      var t = f < 0 ? 0 : 255, k = Math.abs(f);
+      return Math.round(v + (t - v) * k);
+    });
+    return '#' + c.map(function(v){ return ('0' + v.toString(16)).slice(-2); }).join('');
+  }
+
   function buildBarChartSVG(points, showWeight, opts){
     var w = 400, h = 140, pad = 16;
     var vals = points.map(function(p){ return p.e1rm; });
@@ -18107,26 +18118,35 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
     var trendHex = chartTrendHex(points);
 
+    // Still 3D look: every bar gets a lit top and a shaded right side (drawn once, nothing moves).
+    var occupy = showWeight ? pairW : barW;
+    var dx = Math.max(2, Math.min(6, (slot - occupy) * 0.6)), dy = -dx * 0.8;
+    function bar3d(x, top, bw, bh, hex, grad){
+      var r = x + bw, b = top + bh;
+      return '<polygon points="'+r.toFixed(1)+','+top.toFixed(1)+' '+(r+dx).toFixed(1)+','+(top+dy).toFixed(1)+' '+(r+dx).toFixed(1)+','+(b+dy).toFixed(1)+' '+r.toFixed(1)+','+b.toFixed(1)+'" fill="'+shadeHex(hex,-0.42)+'"/>' +
+             '<polygon points="'+x.toFixed(1)+','+top.toFixed(1)+' '+r.toFixed(1)+','+top.toFixed(1)+' '+(r+dx).toFixed(1)+','+(top+dy).toFixed(1)+' '+(x+dx).toFixed(1)+','+(top+dy).toFixed(1)+'" fill="'+shadeHex(hex,0.5)+'"/>' +
+             '<rect x="'+x.toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="url(#'+grad+')"/>';
+    }
     var bars = points.map(function(p, i){
       var barTop = yAt(p.e1rm);
-      var barH = (h - pad) - barTop;
+      var barH = Math.max(2, (h - pad) - barTop);
       var cx = xAt(i);
-      var opacity = (i === n-1 ? '1' : '0.55');
+      var opacity = (i === n-1 ? '1' : '0.72');
       if (!showWeight){
-        return '<rect x="'+(cx - barW/2).toFixed(1)+'" y="'+barTop.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(2, barH).toFixed(1)+'" rx="3" fill="'+trendHex+'" fill-opacity="'+opacity+'"/>';
+        return '<g opacity="'+opacity+'">' + bar3d(cx - barW/2, (h - pad) - barH, barW, barH, trendHex, 'bar3dT') + '</g>';
       }
-      // Minimum height is anchored to the baseline (grows upward) so a very
-      // light weight against a tall scale can't hang below the bottom edge.
       var wH = Math.max(2, (h - pad) - yAt(p.topKg));
       var wTop = (h - pad) - wH;
-      var rx = Math.min(3, halfW / 2);
       var leftX = cx - pairW/2;
       var rightX = leftX + halfW + pairGap;
-      return '<rect x="'+leftX.toFixed(1)+'" y="'+barTop.toFixed(1)+'" width="'+halfW.toFixed(1)+'" height="'+Math.max(2, barH).toFixed(1)+'" rx="'+rx.toFixed(1)+'" fill="'+trendHex+'" fill-opacity="'+opacity+'"/>' +
-             '<rect x="'+rightX.toFixed(1)+'" y="'+wTop.toFixed(1)+'" width="'+halfW.toFixed(1)+'" height="'+wH.toFixed(1)+'" rx="'+rx.toFixed(1)+'" fill="'+WEIGHT_LINE_HEX+'" fill-opacity="'+opacity+'"/>';
+      return '<g opacity="'+opacity+'">' + bar3d(leftX, (h - pad) - barH, halfW, barH, trendHex, 'bar3dT') +
+             bar3d(rightX, wTop, halfW, wH, WEIGHT_LINE_HEX, 'bar3dW') + '</g>';
     }).join('');
 
     var svg = '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="140" preserveAspectRatio="none">';
+    svg += '<defs><linearGradient id="bar3dT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+shadeHex(trendHex,0.18)+'"/><stop offset="1" stop-color="'+shadeHex(trendHex,-0.38)+'"/></linearGradient>' +
+           '<linearGradient id="bar3dW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#9a978f"/></linearGradient></defs>';
+    svg += '<line x1="'+pad+'" y1="'+(h-pad)+'" x2="'+(w-pad+dx)+'" y2="'+(h-pad)+'" stroke="rgba(255,255,255,0.12)"/>';
     svg += bars;
     svg += '</svg>';
     return svg;
@@ -18176,7 +18196,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
              '<stop offset="0%" stop-color="'+trendHex+'" stop-opacity="0.28"/>' +
              '<stop offset="100%" stop-color="'+trendHex+'" stop-opacity="0"/>' +
            '</linearGradient></defs>';
+    svg += '<defs><filter id="lineSoft" x="-5%" y="-30%" width="110%" height="180%"><feGaussianBlur stdDeviation="3"/></filter></defs>';
     svg += '<path d="'+areaPath+'" fill="url(#grad)" stroke="none"/>';
+    // soft shadow + a darker edge under the line so it reads as a raised ribbon (still, not animated)
+    svg += '<path d="'+path+'" transform="translate(0,7)" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" filter="url(#lineSoft)"/>';
+    svg += '<path d="'+path+'" transform="translate(0,2.6)" fill="none" stroke="'+shadeHex(trendHex,-0.5)+'" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
     svg += '<path d="'+path+'" fill="none" stroke="'+trendHex+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
     svg += dots;
     if (showWeight){
