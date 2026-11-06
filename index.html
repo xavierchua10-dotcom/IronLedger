@@ -13587,6 +13587,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var b = document.querySelector('.dc-bubble');
     if (b){ b.classList.add('out'); setTimeout(function(){ if (b.parentNode) b.parentNode.removeChild(b); }, 220); }
   }
+  // The "ready" bubble goes away as soon as you touch anything else or scroll.
+  ['pointerdown', 'touchmove', 'wheel'].forEach(function(evName){
+    document.addEventListener(evName, function(e){
+      if (!ui.challengeBubble) return;
+      if (e.target && e.target.closest && e.target.closest('.dc-bubble')) return;   // tapping the bubble itself opens the challenge
+      hideChallengeBubble();
+    }, { capture: true, passive: true });
+  });
   function openChallenge(){
     hideChallengeBubble();
     ui.challengeOpen = true;
