@@ -24538,6 +24538,30 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     ui.freshSetId = null;
     if (state.settings.hapticFeedback !== false && navigator.vibrate) navigator.vibrate(10);
   }
+  // Asks first: flipping a set to/from warm-up changes volume, PRs and charts.
+  function openWarmupConfirm(exId, setId){
+    var ex = findExercise(getActiveSession(), exId);
+    var f = ex ? findLogSet(ex, setId) : null;
+    if (!f || !f.st) return;
+    if (!f.warm && ex.hardcore){ showToast('Hardcore Mode has no warm-up sets'); return; }
+    var label = f.st.weightKg > 0 ? fmtWeight(f.st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + f.st.reps : f.st.reps + ' reps';
+    ui.confirmModal = f.warm ? {
+      kind: 'toggle-warmup',
+      title: 'Make this a working set?',
+      message: label + ' on ' + ex.name + ' will count toward your volume, PRs and charts.',
+      confirmLabel: 'Make working set',
+      variant: 'primary',
+      exId: exId, setId: setId
+    } : {
+      kind: 'toggle-warmup',
+      title: 'Mark as warm-up?',
+      message: label + ' on ' + ex.name + ' becomes a warm-up. It stays out of your volume, PRs and charts.',
+      confirmLabel: 'Mark as warm-up',
+      variant: 'primary',
+      exId: exId, setId: setId
+    };
+    renderApp();
+  }
   function toggleWarmup(exId, setId){
     var ex = findExercise(getActiveSession(), exId);
     var f = findLogSet(ex, setId);
@@ -27301,7 +27325,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else if (action === 'edit-set'){
       openEditSetConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'toggle-warmup'){
-      toggleWarmup(el.dataset.ex, el.dataset.set);
+      openWarmupConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'set-note'){
       openSetNoteModal(el.dataset.ex, el.dataset.set);
     } else if (action === 'open-add-warmup'){
@@ -27997,6 +28021,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       renderConfirmModal();
       if (m && m.kind === 'exercise') deleteExercise(m.exId);
       else if (m && m.kind === 'set') deleteSet(m.exId, m.setId);
+      else if (m && m.kind === 'toggle-warmup') toggleWarmup(m.exId, m.setId);
       else if (m && m.kind === 'set-note') saveSetNote(m.exId, m.setId, m.noteDraft != null ? m.noteDraft : m.note);
       else if (m && m.kind === 'session') deleteSession(m.sessionId);
       else if (m && m.kind === 'repeat-session') repeatSession(m.sessionId);
