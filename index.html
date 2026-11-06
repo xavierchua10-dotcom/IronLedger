@@ -2012,6 +2012,20 @@
   .st-stats div{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 8px;}
   .st-stats b{display:block;font:700 26px 'JetBrains Mono',monospace;color:var(--text);}
   .st-stats span{font-size:12px;color:var(--text-dim);}
+  .rd-tipcard{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:#10302f;border:1px solid #1d5754;border-radius:14px;padding:16px;margin:4px 0 6px;cursor:pointer;}
+  .rd-tipcard:active{background:#143a38;}
+  .rd-tip-l{display:flex;justify-content:space-between;font:700 10px 'JetBrains Mono',monospace;letter-spacing:.14em;color:#5eead4;margin-bottom:10px;}
+  .rd-tip-l span:last-child{color:#7fb9b2;}
+  .rd-tipcard h4{margin:0;font:700 20px 'Oswald',sans-serif;letter-spacing:.03em;text-transform:uppercase;color:var(--text);}
+  .rd-tipcard p{margin:6px 0 0;font-size:13px;line-height:1.5;color:#a7e9df;}
+  .rd-tip-r{margin-top:12px;display:flex;justify-content:space-between;align-items:center;font:700 12px 'JetBrains Mono',monospace;letter-spacing:.08em;color:#5eead4;}
+  .tp-art{padding:22px 20px;}
+  .tp-art h1{margin:16px 0 14px;font:700 30px/1.1 'Oswald',sans-serif;letter-spacing:.03em;text-transform:uppercase;color:var(--text);}
+  .tp-art p{margin:0 0 14px;font-size:14.5px;line-height:1.65;color:#c9ccd2;}
+  .tp-art p b{color:var(--text);}
+  .tp-art p.tp-note{font-size:12.5px;color:var(--text-dim);}
+  .tp-foot{margin-top:auto;display:flex;gap:10px;padding:12px 16px calc(20px + var(--safe-bottom, 0px));}
+  .tp-foot .st-go{flex:1;padding:13px;font-size:14px;}
   .rd-note{background:#10302f;border:1px solid #1d5754;border-radius:10px;padding:11px 13px;font-size:12.5px;line-height:1.55;color:#a7e9df;margin:4px 0 6px;}
   .rd-note b{color:#5eead4;}
   .confirm-overlay.game-overlay{flex-direction:column;padding:0;align-items:stretch;justify-content:flex-start;background:#14161a;backdrop-filter:none;-webkit-backdrop-filter:none;z-index:110;}
@@ -7166,6 +7180,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 </div>
 <div class="confirm-overlay settings-page hidden" id="stretchOverlay">
   <div class="sp-panel" id="stretchPanel"></div>
+</div>
+<div class="confirm-overlay settings-page hidden" id="tipOverlay">
+  <div class="sp-panel" id="tipPanel"></div>
 </div>
 <div class="confirm-overlay dev-overlay hidden" id="devOverlay">
   <div class="dev-sheet" id="devSheet"></div>
@@ -14157,7 +14174,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       '<div class="sp-head"><button type="button" class="sp-btn" data-action="close-rest-day" aria-label="Close">' + svgX + '</button><h3>Rest Day Mode</h3></div>' +
       '<div class="sp-body">' +
         '<div class="rd-sub">Rest is part of the plan. Take a break and play.</div>' + recoveryCardHtml() + stretchCardHtml() + '<div class="rd-glabel">GAMES</div>' + rows +
-        '<div class="rd-note"><b>Rest day tip:</b> sleep 7 to 9 hours, eat enough protein and drink water. Muscles grow while you rest.</div>' +
+        tipCardHtml() +
       '</div>';
   }
   function openRestDay(){
@@ -14384,6 +14401,72 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     else if (a === 'stretch-skip') stNext();
     else if (a === 'stretch-pause'){ stRun.paused = !stRun.paused; stRun.last = Date.now(); stRender(); }
   });
+
+  // ---------- Rest Day Mode: daily tip + short read ----------
+  // One tip per day (cycles through the list). Plain general guidance, nothing is saved.
+  var REST_TIPS = [
+    { tag:'SLEEP', title:'Sleep is when you grow', teaser:'Most muscle repair happens while you sleep. Aim for 7 to 9 hours tonight.', body:[
+      'Training breaks muscle down. **Sleep is when your body rebuilds it.** Much of the repair happens during deep sleep.',
+      'Most adults do best on **7 to 9 hours**. Cutting sleep short makes workouts feel harder, slows recovery and can cost you strength over time.',
+      '**Easy wins:** keep a regular bedtime, put the phone away 30 minutes before bed, and keep the room cool and dark.' ] },
+    { tag:'PROTEIN', title:'Feed the repair', teaser:'Muscle needs protein to rebuild. Spread it across your meals.', body:[
+      'Your muscles use protein to repair after training. A common target for lifters is about **1.6 to 2.2 grams per kilogram** of body weight per day.',
+      'Spreading it over **3 to 4 meals** works well. Good sources: eggs, chicken, fish, dairy, tofu, beans and lentils.',
+      'Do not stress about the exact number. **Being consistent matters more** than being perfect.' ] },
+    { tag:'WATER', title:'Drink up', teaser:'Even mild dehydration can make training feel harder.', body:[
+      'Even mild dehydration can make workouts feel harder and leave you more tired.',
+      'A simple guide: **drink steadily through the day** and check that your urine is pale yellow. Hot weather and heavy sweating mean you need more.',
+      'Water is fine for most workouts. For long sessions in the heat, adding some electrolytes can help.' ] },
+    { tag:'SORENESS', title:'Sore or hurt?', teaser:'Know the difference between normal soreness and pain.', body:[
+      '**Normal soreness** is a dull, achy tightness in the muscle. It usually peaks a day or two after training and fades within a few days. Light movement often helps it feel better.',
+      '**Pain is different.** Sharp pain, pain in a joint, swelling, or pain that gets worse should not be trained through. Rest it, and see a doctor or physio if it does not settle.',
+      'When in doubt, train around it and get it checked.' ] },
+    { tag:'ACTIVE REST', title:'Rest does not mean lying down', teaser:'An easy walk or light movement can help you recover.', body:[
+      'A rest day does not have to mean doing nothing. **20 to 30 minutes of easy movement** keeps blood flowing and joints loose.',
+      'Try a relaxed walk, easy cycling or gentle stretching. Keep it easy: you should be able to **talk comfortably** the whole time.',
+      'The goal is to feel better afterwards, not to get another workout in.' ] },
+    { tag:'DELOAD', title:'The deload week', teaser:'An easier week every now and then can help you come back stronger.', body:[
+      'Every **4 to 8 weeks**, many lifters take an easier week: the same exercises with about half the sets, or lighter weights.',
+      'Signs you may need one: weights stalling, constant tiredness, nagging aches and low motivation.',
+      'It is not lost progress. Most people **come back stronger** after one.' ] },
+    { tag:'RECOVERY', title:'Rest is where progress happens', teaser:'You get stronger from recovering, not from the workout itself.', body:[
+      'A workout is the signal. **Recovery is when your body adapts** and gets stronger.',
+      'Most people do well with **1 to 3 rest days a week**, depending on how hard they train and how well they sleep and eat.',
+      'Muscle groups recover at different speeds. The **Recovery card** shows which ones are ready.' ] },
+    { tag:'STRESS', title:'Stress counts too', teaser:'Your body does not tell gym stress from life stress.', body:[
+      'Your body adds up **all** stress: training, work, worry and poor sleep. A rough week outside the gym can slow recovery inside it.',
+      'On stressful weeks, keep sessions **shorter or lighter** rather than skipping everything.',
+      'Going easy for a few days is fine. A short, easy session still keeps the habit going.' ] }
+  ];
+  var tipRun = { i: 0 };
+  function dailyTipIndex(){ var d = new Date(); return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000) % REST_TIPS.length; }
+  function tipCardHtml(){
+    var i = dailyTipIndex(), t = REST_TIPS[i];
+    return '<button type="button" class="rd-tipcard" data-action="open-tip"><div class="rd-tip-l"><span>REST DAY TIP</span><span>' + (i + 1) + ' OF ' + REST_TIPS.length + '</span></div>' +
+      '<h4>' + esc(t.title) + '</h4><p>' + esc(t.teaser) + '</p><div class="rd-tip-r"><span>READ MORE · 1 MIN</span><span>&#8250;</span></div></button>';
+  }
+  function renderTip(){
+    var panel = document.getElementById('tipPanel'); if (!panel) return;
+    var t = REST_TIPS[tipRun.i];
+    var svgBack = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 5 8 12 15 19"/></svg>';
+    panel.innerHTML = '<div class="sp-head"><button type="button" class="sp-btn" data-action="close-tip" aria-label="Back">' + svgBack + '</button><h3>Rest Day Tip</h3></div>' +
+      '<div class="sp-body"><div class="tp-art"><span class="st-chip" style="margin:0">' + esc(t.tag) + ' · 1 MIN READ</span><h1>' + esc(t.title) + '</h1>' +
+      t.body.map(function(p){ return '<p>' + esc(p).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</p>'; }).join('') +
+      '<p class="tp-note">General guidance, not medical advice.</p></div></div>' +
+      '<div class="tp-foot"><button type="button" class="st-go o" data-action="close-tip">Close</button><button type="button" class="st-go" data-action="next-tip">Next tip</button></div>';
+    var b = panel.querySelector('.sp-body'); if (b) b.scrollTop = 0;
+  }
+  function openTip(){
+    tipRun.i = dailyTipIndex(); renderTip();
+    document.getElementById('tipOverlay').classList.remove('hidden');
+  }
+  function closeTip(){ document.getElementById('tipOverlay').classList.add('hidden'); }
+  document.getElementById('tipOverlay').addEventListener('click', function(e){
+    if (e.target.id === 'tipOverlay'){ closeTip(); return; }
+    var el = e.target.closest('[data-action]'); if (!el) return;
+    if (el.dataset.action === 'close-tip') closeTip();
+    else if (el.dataset.action === 'next-tip'){ tipRun.i = (tipRun.i + 1) % REST_TIPS.length; renderTip(); }
+  });
   var restDayOverlayEl = document.getElementById('restDayOverlay');
   restDayOverlayEl.addEventListener('click', function(e){
     if (e.target === restDayOverlayEl){ closeRestDay(); return; }
@@ -14392,6 +14475,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (el.dataset.action === 'close-rest-day') closeRestDay();
     else if (el.dataset.action === 'play-game') openGame(el.dataset.game);
     else if (el.dataset.action === 'start-stretch') openStretch();
+    else if (el.dataset.action === 'open-tip') openTip();
   });
   document.getElementById('gameOverlay').addEventListener('click', function(e){
     var el = e.target.closest('[data-action="close-game"]');
