@@ -12883,6 +12883,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       items = [
         { label: 'Edit', action: 'edit-session' },
         { label: 'Repeat', action: 'repeat-session' },
+        { label: 'Share', action: 'open-share' },
         { label: 'Delete session', action: 'delete-session', danger: true }
       ];
     } else {
@@ -15856,7 +15857,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                 '</div>';
       });
       html += '<div class="hi-actions">' +
-                '<button class="hi-print" data-action="open-share" data-session="'+s.id+'">Share</button>' +
                 '<button class="hi-print" data-action="open-print-menu" data-session="'+s.id+'">Print</button>' +
               '</div>';
       html += '</div>';
