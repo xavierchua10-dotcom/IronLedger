@@ -917,6 +917,29 @@
   .ss-next{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin:10px 0 0;padding:10px 12px;border-radius:12px;border:1px dashed rgba(var(--accent-rgb),.6);background:rgba(var(--accent-rgb),.08);font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11px;letter-spacing:.03em;color:var(--accent);text-align:left;cursor:pointer;}
   .ss-next-l{min-width:0;flex:1;white-space:normal;overflow-wrap:anywhere;line-height:1.35;}
   .ss-next-r{flex-shrink:0;white-space:nowrap;opacity:.9;}
+  #supersetPickerPanel .pro-panel-header{display:flex;align-items:center;gap:10px;padding-bottom:4px;}
+  .sp2-head{display:flex;align-items:center;gap:12px;flex:1;min-width:0;}
+  .sp2-ic{width:42px;height:42px;border-radius:13px;background:rgba(var(--accent-rgb),.14);border:1.5px solid rgba(var(--accent-rgb),.6);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .sp2-t{flex:1;min-width:0;}
+  .sp2-t b{display:block;font-family:'Oswald',sans-serif;font-weight:700;font-size:clamp(18px,5.6vw,22px);letter-spacing:.04em;text-transform:uppercase;line-height:1.1;color:var(--text);}
+  .sp2-t span{display:block;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:12px;color:var(--text-dim);margin-top:3px;}
+  .sp2-pair{margin:2px 0 14px;}
+  .sp2-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.18);font-weight:600;font-size:14px;min-width:0;}
+  .sp2-row .tag{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px;background:var(--accent);color:#14161a;border-radius:99px;padding:3px 9px;flex-shrink:0;}
+  .sp2-rn{min-width:0;overflow-wrap:anywhere;}
+  .sp2-row.ask{border:1.5px dashed rgba(var(--accent-rgb),.6);background:rgba(var(--accent-rgb),.07);color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.04em;}
+  .sp2-row.ask .tag{background:transparent;border:1.5px solid var(--accent);color:var(--accent);}
+  .sp2-join{height:16px;position:relative;}
+  .sp2-join:before{content:"";position:absolute;left:30px;top:0;bottom:0;border-left:2px dashed rgba(var(--accent-rgb),.7);}
+  .sp2-lab{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px;letter-spacing:.1em;color:var(--text-dim);text-transform:uppercase;margin:0 2px 8px;}
+  .superset-picker-item.sp2-item{display:flex;align-items:center;gap:12px;width:100%;padding:8px 12px 8px 8px;}
+  .sp2-img{width:48px;height:48px;border-radius:10px;background:#fff;object-fit:cover;flex-shrink:0;}
+  .sp2-noimg{background:rgba(255,255,255,.06);display:block;}
+  .sp2-txt{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:5px;}
+  .sp2-nm{font-weight:600;font-size:15px;overflow-wrap:break-word;text-align:left;}
+  .sp2-mu{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:10px;letter-spacing:.06em;color:var(--text-dim);background:rgba(255,255,255,.07);border-radius:99px;padding:3px 9px;text-transform:uppercase;}
+  .sp2-ch{color:var(--accent);font-size:20px;flex-shrink:0;}
+  .sp2-note{margin-top:6px;padding:10px 12px;border-radius:12px;background:rgba(var(--accent-rgb),.08);border:1px dashed rgba(var(--accent-rgb),.45);font-size:12px;line-height:1.4;color:var(--text-dim);}
   .superset-picker-list{display:flex;flex-direction:column;gap:8px;}
   .superset-picker-item{
     display:flex;
@@ -6169,24 +6192,33 @@
     padding:10px 18px;
     border-radius:var(--radius-xl);
     font-size:13px;
+    font-weight:600;
+    line-height:1.35;
+    text-align:center;
+    width:max-content;
+    max-width:calc(100% - 40px);
+    box-shadow:0 12px 30px rgba(0,0,0,0.45);
     z-index:50;
     opacity:0;
     pointer-events:none;
     transition:opacity 0.25s ease, transform 0.25s ease;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+  /* While the Finish Session bar is showing, toasts sit above it instead of covering it. */
+  .toast.above-finish, .undo-toast.above-finish{bottom:calc(138px + var(--safe-bottom));}
   .undo-toast{
     position:fixed; bottom:calc(90px + var(--safe-bottom)); left:50%;
     transform:translateX(-50%) translateY(8px);
     display:flex; align-items:center; gap:14px; max-width:calc(100% - 32px);
     background:var(--panel-3); border:1px solid var(--line); color:var(--text);
-    padding:10px 10px 10px 18px; border-radius:var(--radius-xl);
-    font-size:13px; z-index:60; opacity:0; white-space:nowrap; transition:opacity 0.25s ease, transform 0.25s ease;
+    padding:8px 8px 8px 18px; border-radius:999px; box-shadow:0 12px 30px rgba(0,0,0,0.45);
+    font-size:14px; font-weight:600; z-index:60; opacity:0; white-space:nowrap; transition:opacity 0.25s ease, transform 0.25s ease;
   }
+  .undo-toast > span{overflow:hidden;text-overflow:ellipsis;min-width:0;}
   .undo-toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
   .undo-toast button{
-    background:transparent; border:1px solid var(--accent, #f2b134); color:var(--accent, #f2b134);
-    font:inherit; font-weight:700; letter-spacing:0.04em; padding:6px 14px; border-radius:999px; cursor:pointer;
+    background:var(--accent, #f2b134); border:none; color:#14161a;
+    font-family:'Oswald',sans-serif; font-size:13px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:9px 16px; border-radius:999px; cursor:pointer; flex-shrink:0;
   }
 
   /* ---------- Delete confirmation overlay ---------- */
@@ -10647,9 +10679,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // they've started using the thing it explains is just clutter.
   var mmHelpTimer = null;
   var bwHelpTimer = null;
+  function finishBarShowing(){
+    var bar = document.getElementById('sessionFinishBar');
+    return !!bar && !bar.classList.contains('hidden') && !bar.classList.contains('kb-hide');
+  }
   function showToast(msg){
     var t = document.getElementById('toast');
     t.textContent = msg;
+    t.classList.toggle('above-finish', finishBarShowing());
     t.classList.add('show');
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1800);
@@ -19344,6 +19381,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       document.body.appendChild(el);
     }
     el.innerHTML = '<span></span><button type="button"></button>';
+    el.classList.toggle('above-finish', finishBarShowing());
     el.firstChild.textContent = msg;
     var b = el.querySelector('button');
     b.textContent = label;
@@ -22050,13 +22088,37 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     partner.supersetWith = ex.id;
     // Keep the pair side by side in the list: the partner moves to sit right after this exercise.
     var exList = session.exercises;
-    exList.splice(exList.indexOf(partner), 1);
+    var partnerOrigIdx = exList.indexOf(partner);
+    exList.splice(partnerOrigIdx, 1);
     exList.splice(exList.indexOf(ex) + 1, 0, partner);
     saveSessions();
     logActivity('Linked superset: ' + ex.name + ' + ' + partner.name, 'Log');
     closeSupersetPicker();
     renderApp();
-    showToast('Linked ' + ex.name + ' + ' + partner.name + ' as a superset');
+    var linkInfo = supersetInfoMap(session)[ex.id];
+    var tagLetter = linkInfo ? linkInfo.letter : 'A';
+    var exId = ex.id, partnerId = partner.id;
+    showUndoToast('Linked ' + tagLetter + '1 + ' + tagLetter + '2', 'Undo', function(){
+      var s2 = getActiveSession();
+      var e2 = s2 && findExercise(s2, exId), p2 = s2 && findExercise(s2, partnerId);
+      if (!e2 || !p2 || e2.supersetWith !== p2.id) return;
+      unlinkSuperset(exId);
+      var list2 = s2.exercises;
+      list2.splice(list2.indexOf(p2), 1);
+      list2.splice(Math.min(partnerOrigIdx, list2.length), 0, p2);   // back where it was
+      saveSessions();
+      renderApp();
+    });
+  }
+  // Letter the new pair will get (A, B, ...), judged by the pairs that come before this exercise.
+  function nextSupersetLetter(session, exId){
+    var map = supersetInfoMap(session), seen = {}, n = 0;
+    for (var i = 0; i < session.exercises.length; i++){
+      var e = session.exercises[i];
+      if (e.id === exId) break;
+      if (map[e.id] && !seen[map[e.id].letter]){ seen[map[e.id].letter] = 1; n++; }
+    }
+    return String.fromCharCode(65 + (n % 26));
   }
   function unlinkSuperset(exId){
     var session = getActiveSession();
@@ -22087,17 +22149,24 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!self || candidates.length === 0){
       body = '<div class="mg-scope-empty">No other unlinked exercises in this session yet \u2014 add one first, or unlink an existing pair.</div>';
     } else {
-      body = '<div class="superset-picker-list">';
+      var L = nextSupersetLetter(session, self.id);
+      body = '<div class="sp2-pair"><div class="sp2-row"><span class="tag">'+L+'1</span><span class="sp2-rn">'+esc(self.name)+'</span></div>' +
+             '<div class="sp2-join"></div><div class="sp2-row ask"><span class="tag">'+L+'2</span>PICK BELOW</div></div>' +
+             '<div class="sp2-lab">Choose '+L+'2</div><div class="superset-picker-list">';
       candidates.forEach(function(c){
-        body += '<button type="button" class="superset-picker-item" data-action="pick-superset-partner" data-ex="'+c.id+'">' +
-                  '<span>'+esc(c.name)+'</span>' +
-                  (c.muscle ? '<span class="muscle-badge">'+esc(c.muscle)+'</span>' : '') +
+        var pic = exPicImgHtml(c, '');
+        body += '<button type="button" class="superset-picker-item sp2-item" data-action="pick-superset-partner" data-ex="'+c.id+'">' +
+                  (pic ? '<img class="sp2-img" alt="" src="'+esc(pic.photo)+'">' : '<span class="sp2-img sp2-noimg"></span>') +
+                  '<span class="sp2-txt"><span class="sp2-nm">'+esc(c.name)+'</span>' +
+                  (c.muscle ? '<span class="sp2-mu">'+esc(c.muscle)+'</span>' : '') + '</span>' +
+                  '<span class="sp2-ch" aria-hidden="true">&#8250;</span>' +
                 '</button>';
       });
-      body += '</div>';
+      body += '</div><div class="sp2-note">No rest between the two. The rest timer starts after you finish both.</div>';
     }
     panel.innerHTML =
-      '<div class="pro-panel-header"><h3>Link as Superset'+(self ? ' \u2014 '+esc(self.name) : '')+'</h3>' +
+      '<div class="pro-panel-header"><div class="sp2-head"><div class="sp2-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></div>' +
+        '<div class="sp2-t"><b>Link as superset</b><span>Back to back</span></div></div>' +
         '<button class="pro-panel-close" data-action="close-superset-picker" aria-label="Close">&#10005;</button>' +
       '</div>' +
       '<div class="pro-panel-body">' + body + '</div>';
