@@ -3409,6 +3409,26 @@
   .cal-s-vol small{font:500 10.5px 'JetBrains Mono',monospace;color:var(--text-faint);}
   .cal-s-go{color:var(--accent);font-size:22px;line-height:1;}
   .cal-empty{margin:14px 2px 4px;font:500 13px 'Inter',sans-serif;color:var(--text-dim);text-align:center;}
+
+  /* Export sheet */
+  .exp-opt{display:flex;align-items:center;gap:12px;width:100%;padding:12px;margin-bottom:8px;border-radius:14px;border:1px solid var(--line);background:var(--panel-3);color:var(--text);text-align:left;cursor:pointer;}
+  .exp-opt.on{border:1.5px solid var(--accent);}
+  .exp-opt b{display:block;font:600 15px 'Inter',sans-serif;}
+  .exp-opt em{display:block;font:500 11.5px 'JetBrains Mono',monospace;font-style:normal;color:var(--text-dim);margin-top:2px;}
+  .exp-radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--text-faint);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .exp-opt.on .exp-radio{border-color:var(--accent);}
+  .exp-opt.on .exp-radio:after{content:"";width:10px;height:10px;border-radius:50%;background:var(--accent);}
+  .exp-lab{font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);margin:12px 2px 8px;}
+  .exp-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;}
+  .exp-chip{font:600 12.5px 'Inter',sans-serif;padding:8px 13px;border-radius:99px;border:1px solid var(--line);background:var(--panel-3);color:var(--text-dim);cursor:pointer;}
+  .exp-chip.on{background:rgba(var(--accent-rgb),.16);border-color:var(--accent);color:var(--accent);}
+  .exp-sws{border-top:1px solid var(--line);margin-top:8px;}
+  .exp-sw-row{display:flex;align-items:center;justify-content:space-between;width:100%;padding:11px 2px;background:none;border:none;color:var(--text);font:500 14px 'Inter',sans-serif;cursor:pointer;text-align:left;}
+  .exp-sw{width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;flex-shrink:0;transition:background .15s;}
+  .exp-sw i{position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:var(--bg);transition:left .15s;}
+  .exp-sw.on{background:var(--accent);}
+  .exp-sw.on i{left:21px;}
+  .exp-sum{font:500 12px 'JetBrains Mono',monospace;color:var(--text-dim);margin:8px 2px 4px;}
   .history-date-range-btn svg{width:19px;height:19px;}
   .history-date-range-btn:active{opacity:0.7;}
   .history-date-range-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
@@ -7124,6 +7144,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 <div class="confirm-overlay hidden" id="historyCalOverlay">
   <div class="pro-panel cal-panel" id="historyCalPanel"></div>
 </div>
+<div class="confirm-overlay hidden" id="exportOverlay">
+  <div class="pro-panel" id="exportPanel"></div>
+</div>
 <div class="confirm-overlay hidden" id="muscleInsightOverlay">
   <div class="pro-panel" id="muscleInsightPanel"></div>
 </div>
@@ -7834,6 +7857,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     expandedHistory: {},   // sessionId -> bool
     expandedHistoryWeeks: {}, // weekKey (Monday's yyyy-mm-dd) -> bool; explicit open/closed override for a History week panel. Absent = default (most recent week open, earlier weeks collapsed).
     historyDateFilter: null,      // {start:'yyyy-mm-dd', end:'yyyy-mm-dd'} — active custom History date-range filter, or null when unfiltered
+    showExport: false,            // Export sheet open state
+    exportFmt: 'csv',             // 'csv' | 'json'
+    exportRange: 'all',           // 'all' | '3m' | 'year' (CSV only)
+    exportWarm: true,
+    exportNotes: true,
     showHistoryCal: false,        // History calendar overlay open state
     calMonth: null,               // {y, m} month shown in the calendar
     calDay: null,                 // 'yyyy-mm-dd' selected day in the calendar
@@ -19122,8 +19150,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     html += '<div class="settings-group">';
     html += '<div class="settings-row"><div><div class="sr-label">'+totalSessions+' finished session'+(totalSessions===1?'':'s')+'</div>' +
               '<div class="sr-sub">Stored only on this device</div></div></div>';
-    html += '<div class="settings-row"><div><div class="sr-label">Export backup</div><div class="sr-sub">Download a JSON file of your log</div></div>' +
-              '<button class="sr-action" data-action="export-data">Export</button></div>';
+    html += '<div class="settings-row"><div><div class="sr-label">Export data</div><div class="sr-sub">Spreadsheet (CSV) or backup file</div></div>' +
+              '<button class="sr-action" data-action="open-export">Export</button></div>';
     html += '<div class="settings-row"><div><div class="sr-label">Import backup</div><div class="sr-sub">Restore from a JSON file</div></div>' +
               '<button class="sr-action" data-action="import-data">Import</button></div>';
     html += '</div>';
@@ -26648,6 +26676,126 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     showToast('Backup downloaded');
   }
 
+
+  /* =========================================================
+     EXPORT: spreadsheet (CSV) of finished workouts
+     ========================================================= */
+  function csvCell(v, isText){
+    if (v === null || v === undefined) return '';
+    var s = String(v);
+    // Text from the user (names, notes) that starts like a formula would be run by Excel/Sheets.
+    if (isText && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    if (/[",\r\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function exportRangeStart(){
+    var now = new Date();
+    if (ui.exportRange === '3m') return new Date(now.getTime() - 90 * 86400000);
+    if (ui.exportRange === 'year') return new Date(now.getFullYear(), 0, 1);
+    return null;
+  }
+  function exportBuildCsv(){
+    var from = exportRangeStart();
+    var unit = unitLabel();
+    var header = ['Date', 'Time', 'Workout', 'Exercise', 'Muscle', 'Set', 'Type', 'Weight (' + unit + ')', 'Reps', 'Seconds', 'Distance (km)', 'Incline (%)', 'PR', 'Note'];
+    var rows = [header.map(function(c){ return csvCell(c); }).join(',')];
+    var workouts = 0, sets = 0;
+    var list = state.sessions.filter(function(s){
+      if (s.status !== 'done') return false;
+      var t = new Date(s.finishedAt || s.date);
+      return !isNaN(t.getTime()) && (!from || t >= from);
+    }).sort(function(a, b){ return new Date(a.finishedAt || a.date) - new Date(b.finishedAt || b.date); });
+    var pad = function(n){ return String(n).padStart(2, '0'); };
+    list.forEach(function(s){
+      var sd = new Date(s.finishedAt || s.date);
+      var dateStr = calDayKey(sd), added = 0;
+      var timeOf = function(ts){ var d = new Date(ts || sd); if (isNaN(d.getTime())) d = sd; return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+      (s.exercises || []).forEach(function(ex){
+        var base = function(setNo, type, ts){ return [dateStr, timeOf(ts), s.name || 'Workout', ex.name || '', ex.muscle || '', setNo, type]; };
+        if (isCardioEx(ex)){
+          (ex.cardio || []).forEach(function(c, i){
+            var r = base(i + 1, 'Cardio', c.timestamp);
+            r.push('', '', c.durationSec != null ? Math.round(c.durationSec) : '', c.distanceKm != null ? Math.round(c.distanceKm * 1000) / 1000 : '', c.inclinePct != null ? c.inclinePct : '', '', '');
+            rows.push(r.map(function(v, k){ return csvCell(v, k === 2 || k === 3 || k === 4); }).join(','));
+            added++; sets++;
+          });
+          return;
+        }
+        var hold = isHoldExercise(ex.name);
+        var emit = function(st, setNo, type){
+          var r = base(setNo, type, st.timestamp);
+          r.push(Math.round(toDisplay(st.weightKg || 0) * 100) / 100, hold ? '' : st.reps, hold ? st.reps : '', '', '', st.isPR ? 'Yes' : '', ui.exportNotes && st.note ? st.note : '');
+          rows.push(r.map(function(v, k){ return csvCell(v, k === 2 || k === 3 || k === 4 || k === 13); }).join(','));
+          added++; sets++;
+        };
+        if (ui.exportWarm) (ex.warmups || []).forEach(function(st, i){ emit(st, 'W' + (i + 1), 'Warm-up'); });
+        (ex.sets || []).forEach(function(st, i){ emit(st, i + 1, 'Working'); });
+      });
+      if (added) workouts++;
+    });
+    return { csv: '﻿' + rows.join('\r\n') + '\r\n', workouts: workouts, sets: sets };
+  }
+  function exportCsv(){
+    var out = exportBuildCsv();
+    if (!out.sets){ showToast('Nothing to export for that range'); return; }
+    var blob = new Blob([out.csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'saviorfit-logger-workouts-' + calDayKey(new Date()) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    logActivity('Exported ' + out.sets + ' sets (' + out.workouts + ' workouts) as CSV', 'Settings');
+    showToast('Spreadsheet downloaded');
+  }
+  function openExport(){
+    ui.showExport = true;
+    renderExportOverlay();
+  }
+  function closeExport(){
+    ui.showExport = false;
+    renderExportOverlay();
+  }
+  function renderExportOverlay(){
+    var overlay = document.getElementById('exportOverlay');
+    var panel = document.getElementById('exportPanel');
+    if (!overlay || !panel) return;
+    if (!ui.showExport){
+      overlay.classList.add('hidden');
+      panel.innerHTML = '';
+      return;
+    }
+    overlay.classList.remove('hidden');
+    var csv = ui.exportFmt === 'csv';
+    var opt = function(fmt, title, sub){
+      var on = ui.exportFmt === fmt;
+      return '<button type="button" class="exp-opt' + (on ? ' on' : '') + '" data-action="exp-fmt" data-fmt="' + fmt + '"><span class="exp-radio"></span><span><b>' + title + '</b><em>' + sub + '</em></span></button>';
+    };
+    var chip = function(v, label){ return '<button type="button" class="exp-chip' + (ui.exportRange === v ? ' on' : '') + '" data-action="exp-range" data-range="' + v + '">' + label + '</button>'; };
+    var sw = function(key, label){ return '<button type="button" class="exp-sw-row" data-action="exp-toggle" data-key="' + key + '"><span>' + label + '</span><span class="exp-sw' + (ui[key] ? ' on' : '') + '"><i></i></span></button>'; };
+    var summary = '';
+    if (csv){
+      var pre = exportBuildCsv();
+      summary = '<div class="exp-sum">' + pre.workouts + ' workout' + (pre.workouts === 1 ? '' : 's') + ' &middot; ' + pre.sets + ' set' + (pre.sets === 1 ? '' : 's') + '</div>';
+    } else {
+      summary = '<div class="exp-sum">Everything: sessions, routines and settings</div>';
+    }
+    panel.innerHTML =
+      '<div class="pro-panel-header"><h3>Export your data</h3>' +
+        '<button class="pro-panel-close" data-action="close-export" aria-label="Close">&#10005;</button>' +
+      '</div>' +
+      '<div class="pro-panel-body">' +
+        opt('csv', 'Spreadsheet (CSV)', 'Opens in Excel or Google Sheets') +
+        opt('json', 'Backup file (JSON)', 'Restore into this app later') +
+        (csv ? '<div class="exp-lab">Range</div><div class="exp-chips">' + chip('all', 'All time') + chip('3m', 'Last 3 months') + chip('year', 'This year') + '</div>' +
+          '<div class="exp-sws">' + sw('exportWarm', 'Include warm-up sets') + sw('exportNotes', 'Include notes') + '</div>' : '') +
+        summary +
+      '</div>' +
+      '<div class="pro-panel-footer"><button class="rest-timer-start-btn" data-action="exp-go">' + (csv ? 'Export CSV' : 'Export backup') + '</button></div>';
+  }
+
   function handleImportFile(e){
     var file = e.target.files[0];
     if (!file) return;
@@ -27512,6 +27660,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       openDeleteRoutineConfirm(el.dataset.routine);
     } else if (action === 'export-data'){
       exportData();
+    } else if (action === 'open-export'){
+      openExport();
     } else if (action === 'import-data'){
       document.getElementById('importFile').click();
     } else if (action === 'clear-data'){
@@ -28177,6 +28327,25 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     }
   });
 
+  var exportOverlayEl = document.getElementById('exportOverlay');
+  exportOverlayEl.addEventListener('click', function(e){
+    if (e.target === exportOverlayEl){ closeExport(); return; }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var a = el.dataset.action;
+    if (a === 'close-export') closeExport();
+    else if (a === 'exp-fmt'){ ui.exportFmt = el.dataset.fmt === 'json' ? 'json' : 'csv'; renderExportOverlay(); }
+    else if (a === 'exp-range'){ ui.exportRange = el.dataset.range; renderExportOverlay(); }
+    else if (a === 'exp-toggle'){ var k = el.dataset.key; if (k === 'exportWarm' || k === 'exportNotes'){ ui[k] = !ui[k]; renderExportOverlay(); } }
+    else if (a === 'exp-go'){
+      if (ui.exportFmt === 'csv') exportCsv(); else exportData();
+      closeExport();
+    }
+  });
+  exportOverlayEl.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){ e.preventDefault(); closeExport(); }
+  });
+
   var historyCalOverlayEl = document.getElementById('historyCalOverlay');
   historyCalOverlayEl.addEventListener('click', function(e){
     if (e.target === historyCalOverlayEl){ closeHistoryCal(); return; }
@@ -28480,6 +28649,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       closeRestTimerPicker();
     } else if (ui.showBodyweightPicker){
       closeBodyweightPicker();
+    } else if (ui.showExport){
+      closeExport();
     } else if (ui.showHistoryCal){
       closeHistoryCal();
     } else if (ui.showHistoryDateRange){
