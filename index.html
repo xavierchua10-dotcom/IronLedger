@@ -3430,9 +3430,6 @@
   .exp-sw.on i{left:21px;}
   .exp-sum{font:500 12px 'JetBrains Mono',monospace;color:var(--text-dim);margin:8px 2px 4px;}
   /* ---------- Paste workout + Share workout ---------- */
-  .paste-open-btn{flex:0 0 auto;width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius);border:2px solid var(--accent-dim);background:var(--panel-2);color:var(--accent);padding:0;cursor:pointer;}
-  .paste-open-btn:active{opacity:.85;border-color:var(--accent);}
-  .paste-open-btn svg{width:24px;height:24px;display:block;}
   .pn-sub{font:500 12px 'JetBrains Mono',monospace;color:var(--text-dim);margin:0 2px 12px;}
   .pn-ta{width:100%;min-height:210px;resize:vertical;box-sizing:border-box;padding:13px 14px;border-radius:14px;background:var(--panel-3);border:1.5px solid var(--accent);color:var(--text);font:500 15px/1.6 'JetBrains Mono',monospace;outline:none;}
   .pn-row{display:flex;align-items:center;justify-content:space-between;margin:14px 2px 8px;}
@@ -14602,8 +14599,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
           '<button class="add-exercise-bottom-btn" data-action="add-blank-exercise">' +
             '<span class="plus-glyph">&#43;</span> Add Exercise' +
           '</button>' +
-          '<button class="paste-open-btn" data-action="open-paste" title="Paste a workout" aria-label="Paste a workout">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4.5h6v2.5a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1z" fill="currentColor"/><path d="M8.5 12.5h7M8.5 16h4.5"/></svg>' +
+          '<button class="mm-toggle-btn paste-open" data-action="open-paste" title="Paste a workout" aria-label="Paste a workout">' +
+            '<img class="mm-toggle-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZWViYjFjIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZGZhOTBmIi8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImJkIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMWIxYjFhIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDUwNTA1Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjEyOCIgaGVpZ2h0PSIxMjgiIGZpbGw9InVybCgjYmcpIi8+PCEtLSBib2FyZCB0aGlja25lc3MgKDNEIHNpZGUpIC0tPjxyZWN0IHg9IjM3IiB5PSIyOSIgd2lkdGg9IjYyIiBoZWlnaHQ9Ijg0IiByeD0iOSIgZmlsbD0iIzAwMCIvPjxyZWN0IHg9IjMzLjUiIHk9IjI1LjUiIHdpZHRoPSI2MiIgaGVpZ2h0PSI4NCIgcng9IjkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U3YjExMSIgc3Ryb2tlLXdpZHRoPSIzIi8+PCEtLSBmcm9udCBib2FyZCAtLT48cmVjdCB4PSIzMSIgeT0iMjIiIHdpZHRoPSI2MiIgaGVpZ2h0PSI4NCIgcng9IjkiIGZpbGw9InVybCgjYmQpIi8+PHBhdGggZD0iTTM4IDI0LjUgSDg2IiBzdHJva2U9IiMzYjNiMzkiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48IS0tIHBhcGVyIC0tPjxyZWN0IHg9IjM5IiB5PSIzNSIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjYzIiByeD0iNCIgZmlsbD0iIzI2MjYyNSIvPjxyZWN0IHg9IjM5IiB5PSIzNSIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjYzIiByeD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTdiMTExIiBzdHJva2Utd2lkdGg9IjEuNCIgb3BhY2l0eT0iLjkiLz48IS0tIGNoZWNrbGlzdCBsaW5lcyAtLT48ZyBmaWxsPSIjZTdiMTExIj48Y2lyY2xlIGN4PSI0NiIgY3k9IjQ5IiByPSIyLjYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjYxIiByPSIyLjYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjczIiByPSIyLjYiLz48Y2lyY2xlIGN4PSI0NiIgY3k9Ijg1IiByPSIyLjYiLz48L2c+PGcgc3Ryb2tlPSIjZTdiMTExIiBzdHJva2Utd2lkdGg9IjMuNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj48cGF0aCBkPSJNNTQgNDlINzYiLz48cGF0aCBkPSJNNTQgNjFINzIiLz48cGF0aCBkPSJNNTQgNzNINzciLz48cGF0aCBkPSJNNTQgODVINjgiLz48L2c+PCEtLSBjbGlwIC0tPjxyZWN0IHg9IjQyIiB5PSIxMiIgd2lkdGg9IjQwIiBoZWlnaHQ9IjIyIiByeD0iNyIgZmlsbD0iI2U3YjExMSIvPjxyZWN0IHg9IjQ0IiB5PSIxMy41IiB3aWR0aD0iMzYiIGhlaWdodD0iMTkiIHJ4PSI2IiBmaWxsPSIjMDAwIi8+PHJlY3QgeD0iNTQiIHk9IjE5IiB3aWR0aD0iMTYiIGhlaWdodD0iNi41IiByeD0iMy4yIiBmaWxsPSIjZTdiMTExIi8+PHBhdGggZD0iTTQ5IDE2LjUgSDc1IiBzdHJva2U9IiMzYjNiMzkiIHN0cm9rZS13aWR0aD0iMS40IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=" alt="">' +
           '</button>' +
         '</div>';
 
