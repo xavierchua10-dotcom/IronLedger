@@ -2174,6 +2174,11 @@
   #templatePickerPanel .pro-panel-back,#templatePickerPanel .pro-panel-close{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#c7ccd3;font-size:20px;display:flex;align-items:center;justify-content:center;padding:0;}
   #templatePickerPanel .pro-panel-close{font-size:15px;}
   #templatePickerPanel .pro-panel-header-left{gap:12px;}
+  /* Opens as a full page (like Settings), not a popup. */
+  #templatePickerOverlay{padding:0;background:var(--bg);align-items:stretch;justify-content:center;-webkit-backdrop-filter:none;backdrop-filter:none;}
+  html #templatePickerPanel{max-height:none;height:100%;width:100%;max-width:480px;border-radius:0;border:0;background:var(--bg);background-image:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;display:flex;flex-direction:column;}
+  #templatePickerPanel .pro-panel-header{padding:calc(12px + var(--safe-top, 0px)) 16px 12px;}
+  #templatePickerPanel .pro-panel-body{flex:1 1 auto;min-height:0;overflow-y:auto;}
   .tpl-pick-body{padding:14px 16px 18px;}
   .tpl-pick-sec{font:700 10px 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#8b9098;margin:4px 4px 9px;display:flex;align-items:center;gap:10px;}
   .tpl-pick-sec:after{content:"";flex:1;height:1px;background:rgba(255,255,255,0.10);}
