@@ -24986,19 +24986,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var d = new Date(s.finishedAt || s.date);
       if (!sameDay && !isNaN(d.getTime()) && d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate() === tKey) sameDay = s;
     });
-    var last = withEx[0];
-    var both = !!sameDay && sameDay.id !== last.id;
-    var mode = (ui.repeatMode === 'last' && both) || !sameDay ? 'last' : 'sameday';
-    var s = mode === 'last' ? last : sameDay;
+    // Only the same weekday last week -- no fallback to another day. No match, no card.
+    if (!sameDay) return '';
+    var s = sameDay;
     var sets = 0; s.exercises.forEach(function(ex){ sets += ex.sets.length; });
-    var chips = '';
-    if (both){
-      chips = '<div class="rep-chips">' +
-        '<button type="button" class="rep-chip'+(mode === 'sameday' ? ' on' : '')+'" data-action="repeat-card-mode" data-mode="sameday">Same day last week</button>' +
-        '<button type="button" class="rep-chip'+(mode === 'last' ? ' on' : '')+'" data-action="repeat-card-mode" data-mode="last">Last session</button></div>';
-    } else {
-      chips = '<div class="rep-chips"><span class="rep-chip on">' + (sameDay ? 'Same day last week' : 'Last session') + '</span></div>';
-    }
+    var dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][target.getDay()];
+    var chips = '<div class="rep-chips"><span class="rep-chip on">Last ' + dayName + '</span></div>';
     return '<div class="rep-card">' + chips +
       '<div class="rep-main"><div class="rep-ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 013-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 01-3 3H3"/></svg></div>' +
       '<div class="rep-txt"><div class="rep-name">' + esc(s.name || 'Untitled session') + '</div>' +
@@ -26828,9 +26821,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       openRepeatSessionConfirm(el.dataset.session);
     } else if (action === 'repeat-from-card'){
       openRepeatSessionConfirm(el.dataset.session, true);
-    } else if (action === 'repeat-card-mode'){
-      ui.repeatMode = el.dataset.mode === 'last' ? 'last' : 'sameday';
-      renderHistory();
+
     } else if (action === 'open-print-menu'){
       openPrintMenu(el.dataset.session);
     } else if (action === 'open-ex-progress'){
