@@ -19304,9 +19304,27 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   });
   setTimeout(function waitForFirstView(n){
     var a = document.getElementById('app');
-    if (a && !a.classList.contains('hidden') && document.querySelector('#view .template-card, #view .pf-stat, #view .exercise-card, #view .history-item')){ setTimeout(playCardShine, 250); return; }
+    if (a && !a.classList.contains('hidden') && document.querySelector('#view .template-card, #view .pf-stat, #view .exercise-card, #view .history-item')){ setTimeout(playCardShine, 250); playLogEnter(); return; }
     if ((n || 0) < 40) setTimeout(function(){ waitForFirstView((n || 0) + 1); }, 400);
   }, 600);
+
+  // Log's template cards (Build my plan / Beginner / Training splits ...) slide in from the left,
+  // one after another. Runs only when the Log tab is opened or returned to (called next to
+  // playCardShine), never on ordinary redraws, so adding a set doesn't replay it.
+  function playLogEnter(){
+    if (state.tab !== 'log') return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var els = document.querySelectorAll('#view .log-tpl-or, #view .log-tpl-card');
+    if (!els.length || !els[0].animate) return;
+    Array.prototype.slice.call(els, 0, 8).forEach(function(el, i){
+      try {
+        el.animate(
+          [{ opacity: 0, transform: 'translateX(-28px)' }, { opacity: 1, transform: 'translateX(0)' }],
+          { duration: 300, delay: i * 70, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' }
+        );
+      } catch (e) {}
+    });
+  }
 
   function switchTabWithFade(newTab){
     queueBackSync();
@@ -19345,6 +19363,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       renderApp();
       viewEl.scrollTop = tabScrollPositions[newTab] || 0;
       setTimeout(playCardShine, 120);
+      playLogEnter();
       return;
     }
 
@@ -19366,6 +19385,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         ui.tabAnimating = false;
       }, 120);
       setTimeout(playCardShine, 140);
+      playLogEnter();
     }, 70);
   }
 
