@@ -2252,6 +2252,15 @@
   .log-tpl-card .tpl-bg{display:none;}
   .template-card > img.lg3d-st,.template-card > canvas.lg3d{position:absolute;right:14px;top:4px;width:114px;height:94px;z-index:1;pointer-events:none;}
   .template-card.log-tpl-card{padding-right:118px;}
+  /* A colour per card on the Log tab (My Routines stays gold, Hardcore is red). */
+  .tpl-t-green{--tt:#4ade80;--ttr:74,222,128;}
+  .tpl-t-blue{--tt:#60a5fa;--ttr:96,165,250;}
+  .tpl-t-violet{--tt:#c4b5fd;--ttr:167,139,250;}
+  html .template-card.log-tpl-card[class*="tpl-t-"]{background-image:linear-gradient(110deg,#181a1f 45%,rgba(var(--ttr),.30) 100%);border-color:rgba(var(--ttr),.55);}
+  html .template-card[class*="tpl-t-"] .template-card-name,html .template-card[class*="tpl-t-"] .tpl-acc-name{color:var(--tt);}
+  html .template-card[class*="tpl-t-"] .tpl-chip{border-color:rgba(var(--ttr),.55);color:var(--tt);background:rgba(var(--ttr),.10);}
+  html .template-card[class*="tpl-t-"] > .template-card-chev,html .template-card[class*="tpl-t-"] .tpl-acc-chev,html .template-card[class*="tpl-t-"] .tpl-acc-go{color:var(--tt);border-color:rgba(var(--ttr),.7);background:rgba(var(--ttr),.12);}
+  html .template-card[class*="tpl-t-"] .template-card-badge{background:rgba(var(--ttr),.16);color:var(--tt);border-color:rgba(var(--ttr),.5);}
   .template-card.log-tpl-card.tpl-acc{padding-right:0;}
   .template-card.log-tpl-card.tpl-acc > .tpl-acc-head{padding-right:118px;}
   .template-card.log-tpl-card > .template-card-chev{top:auto;bottom:14px;transform:none;width:34px;height:34px;font-size:22px;}
@@ -11742,9 +11751,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   };
   function templateCategoryCardHtml(c, keys, action, extraClass){
     var featured = !!c.featured;
-    return '<button type="button" class="template-card template-cat-card'+(extraClass ? ' '+extraClass : '')+(featured ? ' tpl-featured' : (c.badge ? '' : ' tpl-compact'))+'" data-action="'+action+'" data-category="'+c.id+'">' +
+    return '<button type="button" class="template-card template-cat-card'+(extraClass ? ' '+extraClass : '')+((c.badge && extraClass && extraClass.indexOf('log-tpl-card') !== -1) ? ' tpl-t-green' : '')+(featured ? ' tpl-featured' : (c.badge ? '' : ' tpl-compact'))+'" data-action="'+action+'" data-category="'+c.id+'">' +
       templateBgHtml() +
-      ((c.badge && extraClass && extraClass.indexOf('log-tpl-card') !== -1) ? lg3Html('machine') : '') +
+      ((c.badge && extraClass && extraClass.indexOf('log-tpl-card') !== -1) ? lg3Html('machine-green') : '') +
       (c.badge ? '<span class="template-card-badge">'+esc(c.badge)+'</span>' : '') +
       '<div class="template-card-name">'+esc(c.label)+'</div>' +
       '<div class="template-card-sub">'+esc(c.description || '')+'</div>' +
@@ -14074,8 +14083,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var wizDone = !!(state.settings && state.settings.experienceLevel);
     // Setup not finished (questionnaire skipped / no bodyweight yet)? Put Build my plan on top, above Beginner.
     var setupPending = !(wizDone && state.settings.bodyweightKg);
-    var wizCard = '<button type="button" class="template-card template-cat-card log-tpl-card" data-action="open-onboarding-wizard">' +
-      templateBgHtml() + lg3Html('refresh') +
+    var wizCard = '<button type="button" class="template-card template-cat-card log-tpl-card tpl-t-violet" data-action="open-onboarding-wizard">' +
+      templateBgHtml() + lg3Html('refresh-violet') +
       '<span class="template-card-badge">Quick setup</span>' +
       '<div class="template-card-name">'+(wizDone ? 'Redo my plan' : 'Build my plan')+'</div>' +
       '<div class="template-card-sub">'+(wizDone ? 'Update your bodyweight, goal and schedule \u2014 we\u2019ll pick a fresh template.' : 'Answer 4 quick questions and we\u2019ll pick the right template for you.')+'</div>' +
@@ -14135,8 +14144,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
           '<span class="tpl-acc-go" aria-hidden="true">&#8250;</span></button>';
       }).join('');
       cards += '<div class="log-tpl-or"><span>or choose a regular split</span></div>' +
-        '<div class="template-card template-cat-card log-tpl-card tpl-acc'+(open ? ' open' : '')+'">' +
-        templateBgHtml() + lg3Html('week') +
+        '<div class="template-card template-cat-card log-tpl-card tpl-acc tpl-t-blue'+(open ? ' open' : '')+'">' +
+        templateBgHtml() + lg3Html('week-blue') +
         '<button type="button" class="tpl-acc-head" data-action="toggle-splits" aria-expanded="'+(open ? 'true' : 'false')+'">' +
           '<span class="template-card-badge">For regular lifters</span>' +
           '<div class="template-card-name">Training splits</div>' +
