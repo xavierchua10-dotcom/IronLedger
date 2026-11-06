@@ -14221,7 +14221,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
     if (session.exercises.length === 0){
       html += addExerciseRow;
-      html += trainMixHtml();
       html += restDayLinkHtml();
       html += renderLogTemplateChoices();
       html += '<div class="warmup-reminder">Take a few minutes to <b>warm up</b> before you go heavy \u2014 some light reps and a bit of mobility now saves you an injury later.</div>';
@@ -18595,7 +18594,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // The Profile tab itself is short: profile card + stats + a Settings card.
     // The settings list opens as a full-screen page (renderSettingsPage).
     var achS = achSummary();
+    var trainMix = trainMixHtml();
     document.getElementById('view').innerHTML = profileHeroHtml() +
+      (trainMix ? '<div style="margin-top:12px">' + trainMix + '</div>' : '') +
       '<button type="button" class="pf-settings-card" data-action="open-achievements">' +
         '<span class="pf-settings-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.500 14.200L7 22l5-3 5 3-1.500-7.800"/></svg></span>' +
         '<span class="pf-settings-tx"><div class="pf-settings-t">Achievements</div><div class="pf-settings-s">'+achS.earned+' / '+achS.total+' medals \u00b7 your trophy shelf</div></span>' +
@@ -20096,11 +20097,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
      Order matters: first match wins, so specific entries sit above general. */
   var LOG_CHAT_FEATURE_OVERVIEW =
     "Here’s what SaviorFit Logger does:\n\n" +
-    "LOG — add exercises (search, 3D muscle picker, cardio), log sets, rest timer, plate calculator, supersets, routines, templates and splits, Hardcore Mode, Build my plan, the Today sheet, and the “How you train” card.\n" +
+    "LOG — add exercises (search, 3D muscle picker, cardio), log sets, rest timer, plate calculator, supersets, routines, templates and splits, Hardcore Mode, Build my plan and the Today sheet.\n" +
     "HISTORY — every finished session; edit, repeat, delete, filter by date, print a PDF receipt.\n" +
     "INSIGHT — your weekly muscle volume on a 3D model, plus a Cardio view.\n" +
     "PROGRESS — charts and e1RM trends per lift (and cardio), PRs, share a progress picture.\n" +
-    "PROFILE — your stats, best lifts, Achievements medals and trophies, Share profile, Rest Day Mode (4 mini games) and Settings.\n" +
+    "PROFILE — your stats, best lifts, the “How you train” card, Achievements medals and trophies, Share profile, Rest Day Mode (4 mini games) and Settings.\n" +
     "PRO — Tips & Target, Last best prefill on set 1, full Progress, the AI Log Assistant, 7-day Brief and the Pro PDF.\n\n" +
     "Ask about any of them — like “how does the plate calculator work”, “what is a perfect day” or “what does Pro include”.";
   var LOG_CHAT_FEATURES = [
@@ -20112,7 +20113,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     { re: /\b(daily\s*challenge|challenge|streak)\b/, a: "The Daily Challenge is one bodyweight challenge per day (like 100 Push-ups or a 3 min Plank) on the Today sheet. Mark it done to build a daily streak. It never touches your workouts, volume or PRs. Don’t confuse it with your weekly workout streak on Profile." },
     { re: /\b(rest\s*day|games?|snake|tic\s*tac|neon\s*dash|block\s*breaker|arcade|gamer)\b/, a: "Rest Day Mode is on the Profile tab, between Achievements and Settings (the Log tab also has a small “Rest day? Play a round” link until you finish a workout). It has four mini games: Snake 3D, Neon Dash 30, Block Breaker 3D and Tic Tac Toe 3D, with your best scores. Finished rounds count toward the Gamer medal in Profile › Achievements." },
     { re: /\b(hard\s*core|2\s*sets?\s*(per|each|a)\s*exercise|to\s*failure|all[- ]?out)\b/, a: "Hardcore Mode is on an empty Log tab under “or go hardcore”. It has Push, Pull and Legs sessions with just 2 sets per exercise, both all-out to failure, and the cards turn red. It needs a free account: tap it as a guest and you’ll be asked to sign up first." },
-    { re: /\b(how\s*you\s*train|training\s*mix|rep\s*ranges?|strength\s*(vs|or|and)\s*(size|endurance))\b/, a: "“How you train” sits on the Log tab once you have at least 10 sets from the last 4 weeks. It splits them by rep range: 1–5 reps is strength, 6–12 is size, 13+ is endurance, so you can see what your training is really aimed at. Timed holds are skipped." },
+    { re: /\b(how\s*you\s*train|training\s*mix|rep\s*ranges?|strength\s*(vs|or|and)\s*(size|endurance))\b/, a: "“How you train” sits on the Profile tab, under your Best Lifts, once you have at least 10 sets from the last 4 weeks. It splits them by rep range: 1–5 reps is strength, 6–12 is size, 13+ is endurance, so you can see what your training is really aimed at. Timed holds are skipped." },
     { re: /\b(pre-?\s?fill\w*|last\s*best|auto-?\s?fill\w*|same\s*as\s*last\s*time)\b/, a: "After you log a set, the next set’s weight and reps start filled with the one you just did. Pro goes further: set 1 of an exercise starts at your Last best set from before. You can turn pre-filling off in Settings › Workout." },
     { re: /\b(open\s*(the\s*)?(assistant|chat)|chat\s*(button|icon)|assistant\s*(button|icon))\b/, a: "The Log Assistant is the chat button in the header at the top of the app. Tap it from any tab to ask me something." },
     { re: /\b(achievements?|medals?|trophy|trophies|badges?)\b/, a: "Profile › Achievements is your medal room: 13 medals (Workouts, Week streak, Record breaker, Total lifted, Heavy club, Daily challenge, Cardio distance, Bodyweight club, Explorer, Rep machine, Early bird, Gamer, Perfect days), each Bronze, Silver, then Gold, plus a trophy for each of your best lifts. A banner pops up when you unlock a new tier — tap it to view. The Next up card shows what’s closest." },
