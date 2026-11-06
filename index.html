@@ -902,6 +902,21 @@
     border-radius:var(--radius);
     white-space:nowrap;
   }
+  /* Linked pair: one box, A1 / A2 tags, a joiner between the cards and a "next" strip on each. */
+  .ss-group{--ss:var(--accent);--ss-rgb:var(--accent-rgb);position:relative;margin:0 0 var(--density-card-gap,14px);border-radius:20px;border:1.5px solid rgba(var(--ss-rgb),.6);background:rgba(var(--ss-rgb),.05);padding:0 8px 8px;}
+  .ss-group.hc{--ss:#e5383b;--ss-rgb:229,56,59;}
+  .ss-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 8px 10px;font-family:'JetBrains Mono',monospace;}
+  .ss-head b{font-size:12px;letter-spacing:.1em;color:var(--ss);text-transform:uppercase;white-space:nowrap;}
+  .ss-head span{font-size:11px;color:var(--text-dim);letter-spacing:.05em;text-transform:uppercase;text-align:right;}
+  .ss-group .exercise-card{margin-bottom:0;border-left-width:1px;border-color:rgba(255,255,255,.1);}
+  .ss-group .exercise-card.hardcore{border-color:rgba(229,56,59,.55);}
+  .ss-tag{display:inline-flex;align-items:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px;letter-spacing:.05em;padding:3px 9px;border-radius:99px;background:var(--accent);color:#14161a;}
+  .ss-join{display:flex;align-items:center;justify-content:center;position:relative;height:34px;margin:-2px 0;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11px;letter-spacing:.08em;color:var(--ss);text-transform:uppercase;}
+  .ss-join:before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:2px dashed rgba(var(--ss-rgb),.7);}
+  .ss-join i{position:relative;background:#1d1f24;border:1px solid rgba(var(--ss-rgb),.7);border-radius:99px;padding:5px 12px;font-style:normal;white-space:nowrap;}
+  .ss-next{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin:10px 0 0;padding:10px 12px;border-radius:12px;border:1px dashed rgba(var(--accent-rgb),.6);background:rgba(var(--accent-rgb),.08);font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11px;letter-spacing:.03em;color:var(--accent);text-align:left;cursor:pointer;}
+  .ss-next-l{min-width:0;flex:1;white-space:normal;overflow-wrap:anywhere;line-height:1.35;}
+  .ss-next-r{flex-shrink:0;white-space:nowrap;opacity:.9;}
   .superset-picker-list{display:flex;flex-direction:column;gap:8px;}
   .superset-picker-item{
     display:flex;
@@ -14313,8 +14328,20 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       html += renderLogTemplateChoices();
       html += '<div class="warmup-reminder">Take a few minutes to <b>warm up</b> before you go heavy \u2014 some light reps and a bit of mobility now saves you an injury later.</div>';
     } else {
+      var ssMap = supersetInfoMap(session), ssShown = {};
       session.exercises.forEach(function(ex){
-        html += renderExerciseCard(session, ex);
+        if (ssShown[ex.id]) return;
+        var inf = ssMap[ex.id];
+        if (!inf){ html += renderExerciseCard(session, ex, null); return; }
+        // A linked pair is drawn together (partner pulled up under the first one).
+        var second = inf.partner;
+        ssShown[ex.id] = ssShown[second.id] = true;
+        html += '<div class="ss-group' + (ex.hardcore && second.hardcore ? ' hc' : '') + '">' +
+          '<div class="ss-head"><b>Superset ' + inf.letter + '</b><span>No rest between</span></div>' +
+          renderExerciseCard(session, ex, inf) +
+          '<div class="ss-join"><i>\u21c5 then straight into</i></div>' +
+          renderExerciseCard(session, second, ssMap[second.id]) +
+          '</div>';
       });
       html += addExerciseRow;
     }
@@ -15007,7 +15034,32 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     return { photo: photo, img: tag + '>' };
   }
 
-  function renderExerciseCard(session, ex){
+  // Superset pairs for the Log list: letter (A, B, ...) per pair and A1/A2 role by on-screen order.
+  function supersetInfoMap(session){
+    var map = {}, letterIdx = 0;
+    session.exercises.forEach(function(ex){
+      if (!ex.supersetWith || map[ex.id]) return;
+      var partner = findExercise(session, ex.supersetWith);
+      if (!partner || partner.supersetWith !== ex.id) return;
+      var letter = String.fromCharCode(65 + (letterIdx++ % 26));
+      map[ex.id] = { letter: letter, role: 1, partner: partner };
+      map[partner.id] = { letter: letter, role: 2, partner: ex };
+    });
+    return map;
+  }
+  function supersetStripHtml(info, ex){
+    var p = info.partner;
+    var done = Math.min(ex.sets.length, p.sets.length);
+    var target = (ex.hardcore ? HC_MAX_SETS : ex.targetSets) || 0;
+    var tp = (p.hardcore ? HC_MAX_SETS : p.targetSets) || 0;
+    var rounds = 'ROUNDS ' + done + (target && target === tp ? '/' + target : '');
+    var left = info.role === 1
+      ? 'NEXT \u2193 ' + info.letter + '2 \u00b7 ' + esc(p.name)
+      : 'THEN REST \u2191 back to ' + info.letter + '1';
+    return '<button type="button" class="ss-next" data-action="jump-superset" data-ex="' + p.id + '" aria-label="Go to ' + esc(p.name) + '">' +
+      '<span class="ss-next-l">' + left + '</span><span class="ss-next-r">' + rounds + '</span></button>';
+  }
+  function renderExerciseCard(session, ex, ssInfo){
     if (isCardioEx(ex)) return renderCardioCard(session, ex);
     if (ex.done) return renderExerciseCardCollapsed(ex);
 
@@ -15021,7 +15073,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               '<span class="ex-pic-zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></span></button>' : '') +
             '<div class="eh-title"><h3>'+esc(ex.name || 'New Exercise')+'</h3>' +
             '<div class="eh-badges">' +
-            (supersetPartner ? '<span class="superset-badge">SUPERSET \u00b7 '+esc(supersetPartner.name)+'</span>' : '') +
+            (supersetPartner && ssInfo ? '<span class="ss-tag">'+ssInfo.letter+ssInfo.role+'</span>' : (supersetPartner ? '<span class="superset-badge">SUPERSET \u00b7 '+esc(supersetPartner.name)+'</span>' : '')) +
             (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
             howtoButtonHtml(ex.name) +
             (ex.sets.length > 0 ? '<span class="volume-badge">VOL '+Math.round(toDisplay(exerciseVolume(ex))).toLocaleString()+' '+unitLabel().toUpperCase()+'</span>' : '') +
@@ -15147,6 +15199,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                 '</button>';
       }
     }
+    if (supersetPartner && ssInfo) html += supersetStripHtml(ssInfo, ex);
     html += '</div>'; // close exercise-card-body
     html += '</div>';
     return html;
@@ -21995,6 +22048,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!ex || !partner) { closeSupersetPicker(); return; }
     ex.supersetWith = partner.id;
     partner.supersetWith = ex.id;
+    // Keep the pair side by side in the list: the partner moves to sit right after this exercise.
+    var exList = session.exercises;
+    exList.splice(exList.indexOf(partner), 1);
+    exList.splice(exList.indexOf(ex) + 1, 0, partner);
     saveSessions();
     logActivity('Linked superset: ' + ex.name + ' + ' + partner.name, 'Log');
     closeSupersetPicker();
@@ -26367,7 +26424,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // and picker choices). Uses the same "Haptic feedback" setting as logging a
   // set; set logging, PRs and finishing keep their own stronger patterns.
   var HAPTIC_TICK_ACTIONS = {
-    'set-tab': 1, 'toggle-splits': 1, 'toggle-routines': 1, 'toggle-routine-row': 1, 'log-template-category': 1, 'select-template': 1, 'hc-pick-day': 1, 'hc-start': 1, 'open-rest-day': 1, 'play-game': 1,
+    'set-tab': 1, 'toggle-splits': 1, 'toggle-routines': 1, 'toggle-routine-row': 1, 'log-template-category': 1, 'select-template': 1, 'hc-pick-day': 1, 'hc-start': 1, 'open-rest-day': 1, 'play-game': 1, 'jump-superset': 1,
     'open-settings-picker': 1, 'pick-settings-value': 1, 'open-template-picker': 1
   };
   function hapticTick(el){
@@ -26534,6 +26591,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else if (action === 'unlink-superset'){
       unlinkSuperset(el.dataset.ex);
       closeRowActionMenu();
+    } else if (action === 'jump-superset'){
+      var jc = document.querySelector('.exercise-card[data-ex="' + el.dataset.ex + '"]');
+      if (jc) jc.scrollIntoView({ block: 'center', behavior: 'smooth' });
     } else if (action === 'toggle-exercise-done'){
       toggleExerciseDone(el.dataset.ex);
     } else if (action === 'add-set'){
