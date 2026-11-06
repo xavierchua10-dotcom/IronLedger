@@ -19803,11 +19803,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
      Order matters: first match wins, so specific entries sit above general. */
   var LOG_CHAT_FEATURE_OVERVIEW =
     "Here’s what SaviorFit Logger does:\n\n" +
-    "LOG — add exercises (search, 3D muscle picker, cardio), log sets, rest timer, plate calculator, supersets, routines, templates and splits, Build my plan, and the Today sheet.\n" +
+    "LOG — add exercises (search, 3D muscle picker, cardio), log sets, rest timer, plate calculator, supersets, routines, templates and splits, Hardcore Mode, Build my plan, the Today sheet, and the “How you train” card.\n" +
     "HISTORY — every finished session; edit, repeat, delete, filter by date, print a PDF receipt.\n" +
     "INSIGHT — your weekly muscle volume on a 3D model, plus a Cardio view.\n" +
     "PROGRESS — charts and e1RM trends per lift (and cardio), PRs, share a progress picture.\n" +
-    "PROFILE — your stats, best lifts, Achievements medals and trophies, Share profile, and Settings.\n" +
+    "PROFILE — your stats, best lifts, Achievements medals and trophies, Share profile, Rest Day Mode (4 mini games) and Settings.\n" +
     "PRO — Tips & Target, Last best prefill on set 1, full Progress, the AI Log Assistant, 7-day Brief and the Pro PDF.\n\n" +
     "Ask about any of them — like “how does the plate calculator work”, “what is a perfect day” or “what does Pro include”.";
   var LOG_CHAT_FEATURES = [
@@ -19818,6 +19818,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     { re: /\b(perfect\s*days?|today\s*sheet|daily\s*tasks?|the\s*trophy\s*button)\b/, a: "The trophy button on the Log tab opens Today. It has 3 daily tasks — finish a workout, do 10 working sets, and drink 2 L of water — plus today’s planned routine. Ticking all 3 makes it a Perfect Day, and Perfect Days count toward a medal in Achievements." },
     { re: /\b(daily\s*challenge|challenge|streak)\b/, a: "The Daily Challenge is one bodyweight challenge per day (like 100 Push-ups or a 3 min Plank) on the Today sheet. Mark it done to build a daily streak. It never touches your workouts, volume or PRs. Don’t confuse it with your weekly workout streak on Profile." },
     { re: /\b(rest\s*day|games?|snake|tic\s*tac|neon\s*dash|block\s*breaker|arcade|gamer)\b/, a: "Rest Day Mode is on the Profile tab, between Achievements and Settings (the Log tab also has a small “Rest day? Play a round” link until you finish a workout). It has four mini games: Snake 3D, Neon Dash 30, Block Breaker 3D and Tic Tac Toe 3D, with your best scores. Finished rounds count toward the Gamer medal in Profile › Achievements." },
+    { re: /\b(hard\s*core|2\s*sets?\s*(per|each|a)\s*exercise|to\s*failure|all[- ]?out)\b/, a: "Hardcore Mode is on an empty Log tab under “or go hardcore”. It has Push, Pull and Legs sessions with just 2 sets per exercise, both all-out to failure, and the cards turn red. It needs a free account: tap it as a guest and you’ll be asked to sign up first." },
+    { re: /\b(how\s*you\s*train|training\s*mix|rep\s*ranges?|strength\s*(vs|or|and)\s*(size|endurance))\b/, a: "“How you train” sits on the Log tab once you have at least 10 sets from the last 4 weeks. It splits them by rep range: 1–5 reps is strength, 6–12 is size, 13+ is endurance, so you can see what your training is really aimed at. Timed holds are skipped." },
+    { re: /\b(pre-?\s?fill\w*|last\s*best|auto-?\s?fill\w*|same\s*as\s*last\s*time)\b/, a: "After you log a set, the next set’s weight and reps start filled with the one you just did. Pro goes further: set 1 of an exercise starts at your Last best set from before. You can turn pre-filling off in Settings › Workout." },
+    { re: /\b(open\s*(the\s*)?(assistant|chat)|chat\s*(button|icon)|assistant\s*(button|icon))\b/, a: "The Log Assistant is the chat button in the header at the top of the app. Tap it from any tab to ask me something." },
     { re: /\b(achievements?|medals?|trophy|trophies|badges?)\b/, a: "Profile › Achievements is your medal room: 13 medals (Workouts, Week streak, Record breaker, Total lifted, Heavy club, Daily challenge, Cardio distance, Bodyweight club, Explorer, Rep machine, Early bird, Gamer, Perfect days), each Bronze, Silver, then Gold, plus a trophy for each of your best lifts. A banner pops up when you unlock a new tier — tap it to view. The Next up card shows what’s closest." },
     { re: /\b(profile|share\s*profile|best\s*lifts?)\b/, a: "The Profile tab (far right) shows your avatar, total lifted, weekly streak, PR count, your best lifts, and a Share profile button that makes a picture to send. Achievements and Settings are inside it." },
     { re: /\b(insight(\s*(tab|page|screen))?|3d\s*(model|body|view)|muscle\s*(map|model)|heat\s*map)\b/, a: "Insight shows your week of training on a 3D body — tap a muscle to focus it and see its sets against target. The gear button switches the targets between Regular, Intensity (fewer, harder sets) and your own Custom numbers. A Muscle | Cardio switch at the bottom flips to your weekly cardio overview." },
@@ -19846,7 +19850,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     { re: /\b(guided\s*tour|tour|walkthrough|tutorial|onboarding)\b/, a: "Settings › Help & about › Guided tour replays the walkthrough of the app. “Build my plan” on the Log tab re-runs the setup questions." },
     { re: /\b(install|home\s*screen|play\s*store|android|app\s*store|offline)\b/, a: "SaviorFit Logger is on Google Play and can also be installed from the browser to your home screen (Settings › Help & about › Install App). Your data stays on the device and syncs to your account when you’re signed in." },
     { re: /\b(back\s*button|swipe\s*back)\b/, a: "On Android, Back steps you out of whatever’s open, then returns to the Log tab from any other tab, and pressing it again on Log exits the app." },
-    { re: /\b(ai|assistant|log\s*assistant|chat\s*bot|coach|what\s*can\s*you\s*do|remember)\b/, a: "I’m the Log Assistant. I answer questions about the app, exercises and split days, and I can read your data: PRs, stats, progress, muscle volume, cardio, what you did on a past day and your next targets. I can’t log or edit sets. Say “remember I have a bad shoulder” and I’ll keep that note (“what do you remember”, “forget that”). Pro adds AI answers for anything else, up to 60 a day." },
+    { re: /\b(ai|assistant|log\s*assistant|chat\s*bot|coach|what\s*can\s*you\s*do|remember)\b/, a: "I’m the Log Assistant. I answer questions about the app, exercises and split days, and I can read your data: PRs, stats, progress, muscle volume, cardio, what you did on a past day and your next targets. I can’t log or edit sets. Say “remember I have a bad shoulder” and I’ll keep that note (“what do you remember”, “forget that”). Pro adds AI answers for anything else, up to 60 a day. Open me any time with the chat button in the header." },
     { re: /\b(tips?\s*(&|and)\s*targets?|next\s*targets?|overload)\b/, a: "Tips & Target (Pro) gives you a clear weight or rep goal for your next session on each exercise, based on what you lifted before. Ask me “what’s next” to see them all." },
     { re: /\b(pro|premium|subscription|subscribe|upgrade|free\s*trial|trial|pricing|price|how\s*much|cost|basic\s*plan|free\s*vs|cancel\s*(my\s*)?(subscription|pro|plan))\b/, a: function(){
         return "Basic is free: unlimited logging, History, Insight, cardio, routines, templates and Achievements. Pro adds Tips & Target, Last best prefill on set 1, full Progress (all-time, weekly and monthly views, weight trend), the AI Log Assistant, a 7-day Brief and the Pro PDF. It’s $" + PRICE_MONTHLY.toFixed(2) + "/month or $" + PRICE_ANNUAL.toFixed(2) + "/year, with a 30-day free trial (no card, once per account). Cancel anytime from Settings › Plan › Manage Subscription.";
@@ -25187,13 +25191,20 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   var TOUR_STEPS = [
     { tab: 'log', selector: '.log-tpl-list:not(.log-tpl-wiz)', fallback: '#view', title: 'Pick a template', text: 'Know what you want? Beginner is a simple machine-based routine, and Training splits holds Push/Pull/Legs, Upper/Lower, Full Body and Bro Split. Each exercise comes with a suggested set count and rep range.' },
     { tab: 'log', selector: '.log-tpl-wiz', fallback: '#view', title: 'Build my plan', text: 'Not sure where to start? Tap Build my plan and answer 4 quick questions \u2014 bodyweight, goal, experience and training days \u2014 and we\u2019ll pick and load the right template for you.' },
+    { tab: 'log', selector: '.tpl-hc', fallback: '#view', title: 'Hardcore Mode', text: 'Short on time or feeling strong? Hardcore Mode is just 2 sets per exercise, both all-out to failure. It needs a free account to start.' },
     { tab: 'log', selector: '[data-action="add-blank-exercise"]', title: 'Add an exercise', text: 'Tap here to add an exercise \u2014 search by name, or browse the full library grouped by muscle.' },
     { tab: 'log', selector: '.add-set-btn', fallback: '#view', title: 'Log a set', text: 'Type your weight and reps, then tap the checkmark \u2014 it logs instantly and the row stays open, ready for your next set right away.' },
     { tab: 'log', selector: '.mm-toggle-btn', title: 'Browse by muscle', text: 'Prefer to browse? This opens a body diagram \u2014 tap a muscle group to see matching exercises.' },
+    { tab: 'log', selector: '[data-action="open-plates"]', title: 'Plate calculator', text: 'Not sure how to load the bar? Open the plate calculator to see the plates for each side, then tap Use to drop the total into your set.' },
     { tab: 'log', selector: '#restTimerHeaderBtn', title: 'Rest timer', text: 'Start a rest timer between sets. It keeps counting down even if you switch tabs.' },
+    { tab: 'log', selector: '[data-action="open-challenge"].dc-fab', title: 'Today', text: 'Your daily hub: finish a workout, do 10 working sets and drink 2 L of water for a Perfect Day, plus a Daily Challenge to keep a streak going.' },
+    { tab: 'log', selector: '#logChatHeaderBtn', title: 'Log Assistant', text: 'Ask anything about the app, or about your own data \u2014 PRs, stats, muscle volume, cardio, what\u2019s next. It can\u2019t log sets for you. Pro adds AI answers for everything else.' },
     { tab: 'log', selector: '#notifBellBtn', title: 'Notifications', text: 'Trial status, reminders, and other updates show up here.' },
     { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Tap the \u22ee on any session to edit, repeat, or delete it \u2014 or tap the pencil on any exercise to jump straight to editing just that one.' },
-    { tab: 'insight', selector: '.mg-panel', fallback: '#view', title: 'Insight', text: 'See your weekly set volume per muscle group on the 3D model \u2014 tap a muscle to focus the camera on it.' },
+    { tab: 'insight', selector: '.mg-panel', fallback: '#view', title: 'Insight', text: 'See your weekly set volume per muscle group on the 3D model \u2014 tap a muscle to focus the camera on it. The Muscle | Cardio switch at the bottom flips to your weekly cardio.' },
+    { tab: 'progress', selector: '.chart-wrap', fallback: '#view', title: 'Progress', text: 'A chart for each lift: your estimated one-rep max over time, with a lift picker and range buttons. Tap share to turn it into a picture. Pro unlocks the full history.' },
+    { tab: 'settings', noPage: true, selector: '[data-action="open-achievements"]', fallback: '#view', title: 'Achievements', text: 'Your medal room: 13 medals, each Bronze, Silver then Gold, plus a trophy for each of your best lifts. A banner pops up when you unlock a new tier.' },
+    { tab: 'settings', noPage: true, selector: '[data-action="open-rest-day"]', fallback: '#view', title: 'Rest Day Mode', text: 'Rest day? Play a round. Four mini games \u2014 Snake 3D, Neon Dash 30, Block Breaker 3D and Tic Tac Toe 3D \u2014 and your rounds count toward the Gamer medal.' },
     { tab: 'settings', sp: 'work', selector: '[data-action="open-bodyweight-picker"]', fallback: '#view', title: 'Bodyweight & goal', text: 'Set these once \u2014 they power real load tracking on bodyweight exercises and shape how Pro Tips suggests your next set.' },
     { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="accentColor"]', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
     { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="cardBg"]', fallback: '#view', title: 'Card background', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
@@ -25217,6 +25228,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   }
   function startTour(){
     orderTourSteps();
+    // The "Daily challenge is ready" pop-up would sit on top of the Log header
+    // buttons the tour points at, so retire it for this run.
+    ui.challengeBubbleDone = true;
+    hideChallengeBubble();
     ui.tourStep = 0;
     renderTourStep();
   }
@@ -25311,7 +25326,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       renderApp();
     }
     // The settings steps point at items inside the full-screen Settings page.
-    if (step.tab === 'settings' && (!ui.settingsOpen || ui.settingsPage !== (step.sp || null))){ ui.settingsOpen = true; ui.settingsPage = step.sp || null; renderApp(); }
+    if (step.tab === 'settings' && step.noPage){ if (ui.settingsOpen){ ui.settingsOpen = false; ui.settingsPage = null; renderApp(); } }
+    else if (step.tab === 'settings' && (!ui.settingsOpen || ui.settingsPage !== (step.sp || null))){ ui.settingsOpen = true; ui.settingsPage = step.sp || null; renderApp(); }
     else if (step.tab !== 'settings' && ui.settingsOpen){ ui.settingsOpen = false; ui.settingsPage = null; renderApp(); }
     backdrop.classList.remove('hidden');
     bubble.classList.remove('hidden');
