@@ -1920,7 +1920,7 @@
     margin-top:4px;
   }
   .btn-primary:active{opacity:0.9;}
-  .btn-primary:disabled{background:var(--panel-3);color:var(--text-faint);cursor:default;}
+  .btn-primary:disabled,#finishSessionBtn.blocked{background:var(--panel-3);color:var(--text-faint);cursor:default;}
   .btn-danger{
     width:100%;
     padding:13px;
@@ -6803,7 +6803,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   <main id="view"></main>
   <div class="stopwatch-bar hidden" id="stopwatchBar"></div>
   <div class="session-finish-bar hidden" id="sessionFinishBar">
-    <button class="btn-primary" id="finishSessionBtn" data-action="finish-session" disabled>Finish Session</button>
+    <button class="btn-primary blocked" id="finishSessionBtn" data-action="finish-session" aria-disabled="true">Finish Session</button>
     <button class="add-set-global-btn" data-action="add-set-global" disabled>&#10003; Add Set</button>
   </div>
   <nav class="tabbar" id="tabbar">
@@ -24138,13 +24138,26 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // bar already hides itself while the keyboard is up, so an empty open
   // panel can't cause an accidental tap. Called from renderApp and from the
   // add-set input handler so it tracks typing without a full re-render.
+  // Why Finish can't be used right now ('' when it can). Shown as a toast when
+  // the greyed-out button is tapped.
+  function finishBlockReason(){
+    var s = getActiveSession();
+    if (!s || sessionLogCount(s) === 0) return 'Log at least one set first';
+    if (ui.editingSet) return 'Save or cancel the set you\u2019re editing first';
+    if (ui.editingExerciseName) return 'Finish renaming the exercise first';
+    var d = activeSessionUnsavedDraftExercise();
+    if (d) return 'Tap \u2713 to log the numbers in ' + d.name + ', or clear them, first';
+    return '';
+  }
   function refreshFinishSessionBtn(){
     var el = document.getElementById('finishSessionBtn');
     if (!el) return;
     var activeSession = getActiveSession();
-    var isMidEdit = !!ui.editingSet || !!ui.editingExerciseName || !!activeSessionUnsavedDraftExercise();
-    var canFinish = !!activeSession && sessionLogCount(activeSession) > 0 && !isMidEdit;
-    el.disabled = !canFinish;
+    var canFinish = !finishBlockReason();
+    // Not the native `disabled` attribute: a disabled button swallows the tap,
+    // so Finish looked dead with no clue why. A tap now explains (see finishBlockReason).
+    el.classList.toggle('blocked', !canFinish);
+    el.setAttribute('aria-disabled', canFinish ? 'false' : 'true');
     el.classList.toggle('ready', canFinish);
     // Hardcore workout: the bottom bar (Finish Session / Add Set) turns red.
     var bar = document.getElementById('sessionFinishBar');
@@ -24162,6 +24175,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       }
       if (!ui.expandedAddSet[ex.id]) continue;
       var draft = ui.draftSets[ex.id];
+      if (draft && draft.seeded) continue;   // pre-filled from last time and untouched: nothing of yours to lose
       var hasWeight = draft && draft.weight != null && String(draft.weight).trim() !== '';
       var hasReps = draft && draft.reps != null && String(draft.reps).trim() !== '';
       if (hasWeight || hasReps) return ex;
@@ -26066,7 +26080,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else if (action === 'cancel-set-edit'){
       cancelEditSet();
     } else if (action === 'finish-session'){
-      openFinishSessionConfirm();
+      var finReason = finishBlockReason();
+      if (finReason) showToast(finReason);
+      else openFinishSessionConfirm();
     } else if (action === 'toggle-routines'){
       ui.routinesOpen = !ui.routinesOpen;
       if (!ui.routinesOpen) ui.routineOpenId = null;
