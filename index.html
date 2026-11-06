@@ -8047,6 +8047,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       if (now - cloudSyncWarnedAt > 60000){
         cloudSyncWarnedAt = now;
         showToast('Cloud backup didn\u2019t go through \u2014 your data is safe on this device');
+        logActivity('Cloud backup didn\u2019t go through \u2014 your data is safe on this phone', 'Sync');
       }
       // Stay marked dirty; try again a few times (e.g. a dropped connection),
       // and on the next change or app launch after that.
@@ -8409,8 +8410,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       if (isNaN(kg) || kg <= 0) kg = null;
       else kg = Math.max(20, Math.min(400, roundNice(kg))); // sane human range; guards against a fat-fingered value silently wrecking every calculation
     }
+    var prevBw = state.settings.bodyweightKg;
     state.settings.bodyweightKg = kg;
     saveSettings();
+    if (prevBw !== kg) logActivity(kg === null ? 'Bodyweight cleared' : 'Bodyweight set to ' + fmtWeight(kg) + ' ' + unitLabel(), 'Settings');
     allExerciseNames().forEach(function(name){
       if (isBodyweightExercise(name)) recomputeExercisePRs(name);
     });
@@ -11832,6 +11835,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!tpl) return;
     if (tpl.hardcore && state.currentAccount === 'guest'){ promptGuestSignUp(); return; }
     var session = getActiveSession();
+    var replacedEx = (session.exercises || []).length;
     session.name = tpl.label;
     session.exercises = tpl.exercises.map(function(ex){
       var o = { id: uid(), name: ex.name, muscle: ex.muscle, sets: [], done: false, targetSets: ex.sets || null };
@@ -11839,6 +11843,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       return o;
     });
     saveSessions();
+    logActivity('Started ' + tpl.label + (replacedEx ? ' (replaced ' + replacedEx + ' exercise' + (replacedEx === 1 ? '' : 's') + ' already on the Log)' : ''), 'Log');
     showToast('Started ' + tpl.label);
     flashExercisesAdded(session.exercises.map(function(ex){ return ex.id; }));
   }
@@ -18853,6 +18858,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       });
     }
     saveSessions(); saveRoutines(); saveChatMemory(); saveSettings();
+    logActivity('Added ' + added.length + ' guest workout' + (added.length === 1 ? '' : 's') + (addedR ? ' and ' + addedR + ' routine' + (addedR === 1 ? '' : 's') : '') + ' from this phone to your account', 'History');
     markGuestImportHandled(g);
     [STORAGE_SESSIONS, STORAGE_ROUTINES, STORAGE_CHAT_MEMORY].forEach(function(k){ safeRemoveItem(k); });
     guestImportUndo = snap;
@@ -18870,6 +18876,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       state.settings = JSON.parse(snap.settings);
     }catch(e){ return; }
     saveSessions(); saveRoutines(); saveChatMemory(); saveSettings();
+    logActivity('Undid the guest import', 'History');
     Object.keys(snap.guest).forEach(function(k){
       if (snap.guest[k] === null) safeRemoveItem(k); else safeSetItem(k, snap.guest[k]);
     });
@@ -18925,6 +18932,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   }
 
   var keptLocalChanges = false;
+  var pendingCloudNote = null;   // logged to the Brief once the account data has loaded
+  function doneSessionCount(list){
+    return Array.isArray(list) ? list.filter(function(x){ return x && x.status === 'done'; }).length : -1;
+  }
   function isCloudDirty(acct){
     try { return localStorage.getItem(STORAGE_CLOUD_DIRTY + '::' + acct) === '1'; }
     catch (e) { return false; }
@@ -18970,8 +18981,17 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         var haveLocal = localStorage.getItem(scopedKey(STORAGE_SESSIONS)) !== null;
         if (haveLocal && isCloudDirty(uidVal)){
           keptLocalChanges = true;
+          pendingCloudNote = 'Kept this phone\u2019s newer changes instead of the cloud copy (not backed up yet)';
           console.warn('Kept unsynced local data over the cloud copy for', uidVal);
         } else {
+          // Tell the Brief when loading the cloud copy changes what this phone had.
+          try {
+            var localDone = haveLocal ? doneSessionCount(JSON.parse(localStorage.getItem(scopedKey(STORAGE_SESSIONS)))) : -1;
+            var remoteDone = doneSessionCount(remote.sessions);
+            if (haveLocal && remoteDone >= 0 && localDone !== remoteDone){
+              pendingCloudNote = 'Loaded your history from the cloud: ' + remoteDone + ' finished session' + (remoteDone === 1 ? '' : 's') + ' (this phone had ' + localDone + ')';
+            }
+          } catch (_) {}
           if (Array.isArray(remote.sessions)) safeSetItem(scopedKey(STORAGE_SESSIONS), JSON.stringify(remote.sessions));
           if (Array.isArray(remote.routines)) safeSetItem(scopedKey(STORAGE_ROUTINES), JSON.stringify(remote.routines));
           if (Array.isArray(remote.chatMemory)) safeSetItem(scopedKey(STORAGE_CHAT_MEMORY), JSON.stringify(remote.chatMemory));
@@ -18987,6 +19007,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     }).then(function(isNewAccount){
       firestorePullSettled = true;
       bootAccountData();
+      if (pendingCloudNote){ logActivity(pendingCloudNote, 'Sync'); pendingCloudNote = null; }
       // Push the kept local changes up now that the pull has settled.
       if (keptLocalChanges){ keptLocalChanges = false; scheduleFirestoreSync(); }
       subscribeUserDoc(uidVal);
@@ -19832,7 +19853,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     { re: /\b(history\s*(tab|page|screen)|what(?:'s| is)\s+(?:the\s+)?history|date\s*range|filter\s*by\s*date)\b/, a: "History lists your finished sessions by week. Tap one to open it, use the pencil on an exercise to edit just that exercise, or the ⋮ menu on a session to edit it, repeat it, delete it or print it. The calendar icon filters by date range." },
     { re: /\b(reference\s*button|repeat\s*(a\s*)?(session|workout)|repeat\s*button)\b/, a: "“Repeat” (⋮ on a session in History) starts a new session with the same exercises. The Reference button on those exercises shows what you lifted last time so you can beat it." },
     { re: /\b(print|pdf|receipt)\b/, a: "A session’s ⋮ menu in History has Print, which makes a workout “receipt” PDF. Pro gets the upgraded layout with timestamps on every set and add-weight / add-reps guidance." },
-    { re: /\b(brief|activity\s*(feed|log)|change\s*log)\b/, a: "The Brief is a feed of the changes you make in Log and History (adds, edits, deletes). Find it in Settings › Routines & Brief. Basic keeps the last 24 hours; Pro keeps 7 days. You can delete single entries or clear it." },
+    { re: /\b(brief|activity\s*(feed|log)|change\s*log)\b/, a: "The Brief is a feed of what changed in your data: adds, edits and deletes, finished sessions (with counts), starting a template or routine, imports and restores, and when your history was loaded from or backed up to the cloud. Find it in Settings › Routines & Brief. Basic keeps the last 24 hours; Pro keeps 7 days. You can delete single entries or clear it." },
     { re: /\b(notifications?|bell|push\s*notifications?|reminders?)\b/, a: "The bell in the header holds in-app notices (like a nudge when you haven’t trained in a while, or plan updates) — tap Dismiss to clear one. Phone push notifications can be switched on in Settings › Feedback & alerts." },
     { re: /\b(how[- ]?to\s*(button|guide|section)|exercise\s*(photo|picture|guide|demo)|form\s*(tips?|guide)|equipment\s*guide)\b/, a: "Exercise cards have a “? How to” button with a short guide and a photo for the lift. In the exercise picker, the ? button next to the equipment filters opens the Equipment Guide, a picture of dumbbell, barbell, straight bar, EZ bar and cable attachments." },
     { re: /\b(add(ing)?\s*(an?\s*)?(exercise|custom)|custom\s*exercise|exercise\s*library|muscle\s*picker|search\s*(for\s*)?exercises?)\b/, a: "On the Log tab tap Add Exercise. Search by name (it knows aliases), filter by equipment, or open the 3D muscle picker and tap a body part. If it isn’t in the library, type the name and add it as a custom exercise." },
@@ -21575,6 +21596,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     ex.supersetWith = partner.id;
     partner.supersetWith = ex.id;
     saveSessions();
+    logActivity('Linked superset: ' + ex.name + ' + ' + partner.name, 'Log');
     closeSupersetPicker();
     renderApp();
     showToast('Linked ' + ex.name + ' + ' + partner.name + ' as a superset');
@@ -21587,6 +21609,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (partner) partner.supersetWith = null;
     ex.supersetWith = null;
     saveSessions();
+    logActivity('Unlinked superset: ' + ex.name + (partner ? ' + ' + partner.name : ''), 'Log');
     renderApp();
   }
   function renderSupersetPickerOverlay(){
@@ -24011,6 +24034,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var keptEx = (session.exercises || []).filter(function(ex){
       return isCardioEx(ex) ? !!(ex.cardio && ex.cardio.length) : !!(ex.sets && ex.sets.length);
     });
+    var droppedEx = (keptEx.length && keptEx.length !== session.exercises.length) ? session.exercises.length - keptEx.length : 0;
     if (keptEx.length && keptEx.length !== session.exercises.length){
       session.exercises = keptEx;
       var keptIds = {};
@@ -24023,7 +24047,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // genuinely new one now (Log never shows a reopened History edit).
     if (!session.finishedAt) session.finishedAt = new Date().toISOString();
     saveSessions();
-    logActivity('Finished session "' + (session.name || 'Untitled session') + '"', 'Log');
+    if (droppedEx) logActivity('Finish left out ' + droppedEx + ' exercise' + (droppedEx === 1 ? '' : 's') + ' with nothing logged', 'Log');
+    var finCardio = sessionCardioCount(session);
+    logActivity('Finished session "' + (session.name || 'Untitled session') + '" \u00b7 ' + session.exercises.length + ' exercise' + (session.exercises.length === 1 ? '' : 's') + ' \u00b7 ' + sessionSetCount(session) + ' sets' + (finCardio ? ' \u00b7 ' + finCardio + ' cardio' : ''), 'Log');
     ui.editingSet = null;
     ui.expandedHistory[session.id] = true;
     if (restTimerInterval){ clearInterval(restTimerInterval); restTimerInterval = null; }
@@ -24605,10 +24631,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!source) return;
 
     var currentActive = state.sessions.find(function(s){ return s.status === 'active'; });
+    var autoSavedRep = null;
     if (currentActive){
       if (currentActive.exercises.length > 0){
         currentActive.status = 'done';
         if (!currentActive.finishedAt) currentActive.finishedAt = new Date().toISOString();
+        autoSavedRep = currentActive.name || 'Untitled session';
       } else {
         state.sessions = state.sessions.filter(function(s){ return s.id !== currentActive.id; });
       }
@@ -24626,6 +24654,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     };
     state.sessions.unshift(newSession);
     saveSessions();
+    if (autoSavedRep) logActivity('Saved your unfinished session "' + autoSavedRep + '" to History when repeating another', 'History');
     logActivity('Started new session repeating "' + (source.name || 'Untitled session') + '"', 'History');
     state.tab = 'log';
     showToast('Repeating ' + (source.name || 'session'));
@@ -25488,6 +25517,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     };
     state.routines.unshift(routine);
     saveRoutines();
+    logActivity('Saved routine "' + name + '" \u00b7 ' + routine.exercises.length + ' exercise' + (routine.exercises.length === 1 ? '' : 's'), 'Log');
     ui.savingRoutine = false;
     renderApp();
     showToast('Routine saved');
@@ -25512,10 +25542,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!routine) return;
 
     var currentActive = state.sessions.find(function(s){ return s.status === 'active'; });
+    var autoSaved = null;
     if (currentActive){
       if (currentActive.exercises.length > 0){
         currentActive.status = 'done';
         if (!currentActive.finishedAt) currentActive.finishedAt = new Date().toISOString();
+        autoSaved = currentActive.name || 'Untitled session';
       } else {
         state.sessions = state.sessions.filter(function(s){ return s.id !== currentActive.id; });
       }
@@ -25534,6 +25566,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     };
     state.sessions.unshift(newSession);
     saveSessions();
+    if (autoSaved) logActivity('Saved your unfinished session "' + autoSaved + '" to History when starting a routine', 'Log');
+    logActivity('Started routine "' + routine.name + '"', 'Log');
     state.tab = 'log';
     showToast('Started ' + routine.name);
     flashExercisesAdded(newSession.exercises.map(function(ex){ return ex.id; }));
@@ -25554,8 +25588,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   }
 
   function deleteRoutine(routineId){
+    var gone = state.routines.find(function(r){ return r.id === routineId; });
     state.routines = state.routines.filter(function(r){ return r.id !== routineId; });
     saveRoutines();
+    if (gone) logActivity('Deleted routine "' + (gone.name || 'Routine') + '"', 'Log');
     renderApp();
     showToast('Routine deleted');
   }
@@ -25595,6 +25631,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         cleanSessions = sanitizeSessionList(cleanSessions);
         if (cleanSessions.length === 0 && data.sessions.length > 0) throw new Error('no valid sessions');
         var droppedSessions = data.sessions.length - cleanSessions.length;
+        var prevDoneCount = state.sessions.filter(function(x){ return x && x.status === 'done'; }).length;
         state.sessions = cleanSessions;
 
         var droppedRoutines = 0;
@@ -25611,6 +25648,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         saveRoutines();
         saveSettings();
         var skipped = droppedSessions + droppedRoutines;
+        logActivity('Restored a backup: ' + cleanSessions.filter(function(x){ return x && x.status === 'done'; }).length + ' finished sessions (replaced the ' + prevDoneCount + ' that were on this phone)' + (skipped ? ' \u00b7 ' + skipped + ' malformed skipped' : ''), 'Settings');
         showToast(skipped > 0 ? 'Backup restored (' + skipped + ' malformed entr' + (skipped === 1 ? 'y' : 'ies') + ' skipped)' : 'Backup restored');
         renderApp();
       }catch(err){
