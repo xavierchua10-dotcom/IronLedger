@@ -3437,6 +3437,9 @@
   .pn-ta{width:100%;min-height:210px;resize:vertical;box-sizing:border-box;padding:13px 14px;border-radius:14px;background:var(--panel-3);border:1.5px solid var(--accent);color:var(--text);font:500 15px/1.6 'JetBrains Mono',monospace;outline:none;}
   .pn-row{display:flex;align-items:center;justify-content:space-between;margin:14px 2px 8px;}
   .pn-link{background:none;border:none;color:var(--accent);font:700 12px 'Inter',sans-serif;cursor:pointer;padding:4px 2px;}
+  .pn-links{display:flex;align-items:center;gap:14px;}
+  .pn-link.danger{color:var(--accent-2);}
+  .pn-confirm-msg{margin:4px 2px 6px;color:var(--text);font:500 14px/1.55 'Inter',sans-serif;}
   .pn-link.dim{color:var(--text-dim);font-weight:600;}
   .pn-hints{display:flex;flex-wrap:wrap;gap:8px;}
   .pn-hint{font:600 11.5px 'JetBrains Mono',monospace;padding:6px 10px;border-radius:99px;background:var(--panel-3);border:1px solid var(--line);color:var(--text-dim);}
@@ -27123,7 +27126,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     renderPasteOverlay();
   }
   function pasteBack(){
-    if (ui.pasteView === 'pick'){ ui.pasteView = 'preview'; renderPasteOverlay(); }
+    if (ui.pasteView === 'clear'){ ui.pasteView = 'input'; renderPasteOverlay(); }
+    else if (ui.pasteView === 'pick'){ ui.pasteView = 'preview'; renderPasteOverlay(); }
     else if (ui.pasteView === 'preview'){ ui.pasteView = 'input'; renderPasteOverlay(); }
     else closePaste();
   }
@@ -27254,11 +27258,17 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         '<div class="pro-panel-body">' +
           '<div class="pn-sub">From Notes, WhatsApp, anywhere</div>' +
           '<textarea id="pasteInput" class="pn-ta" rows="8" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Bench press 60x10, 65x8&#10;Incline DB press 22x12 24x10&#10;Tricep pushdown 30kg 3x12">' + esc(ui.pasteText || '') + '</textarea>' +
-          '<div class="pn-row"><div class="exp-lab" style="margin:0">Understands</div><button type="button" class="pn-link" data-action="paste-clip">Paste from clipboard</button></div>' +
+          '<div class="pn-row"><div class="exp-lab" style="margin:0">Understands</div><div class="pn-links">' + ((ui.pasteText || '').trim() ? '<button type="button" class="pn-link danger" data-action="paste-clear">Clear all</button>' : '') + '<button type="button" class="pn-link" data-action="paste-clip">Paste from clipboard</button></div></div>' +
           '<div class="pn-hints">' + hint('60x10, 65x8') + hint('3x12 @ 30kg') + hint('60kg x 10') + hint('warm up 20x12') + '</div>' +
         '</div>' +
         '<div class="pro-panel-footer"><button class="rest-timer-start-btn" data-action="paste-preview">Preview</button>' +
           '<div class="pn-foot-note">Nothing is saved until you check it</div></div>';
+    } else if (view === 'clear'){
+      var nLines = (ui.pasteText || '').split('\n').filter(function(l){ return l.trim(); }).length;
+      html =
+        '<div class="pro-panel-header"><h3>Clear all text?</h3><button class="pro-panel-close" data-action="paste-clear-no" aria-label="Close">&#10005;</button></div>' +
+        '<div class="pro-panel-body"><p class="pn-confirm-msg">This deletes everything in the paste box (' + nLines + ' line' + (nLines === 1 ? '' : 's') + '). It can\u2019t be undone. Your logged workouts aren\u2019t touched.</p></div>' +
+        '<div class="pro-panel-footer"><div class="confirm-buttons"><button type="button" class="confirm-btn-cancel" data-action="paste-clear-no">Keep it</button><button type="button" class="confirm-btn-danger" data-action="paste-clear-yes">Delete all</button></div></div>';
     } else if (view === 'preview'){
       var st = pnStats(), items = ui.pasteItems || [], ign = (ui.pasteIgnored || []).length;
       var parts = [st.ex + ' exercise' + (st.ex === 1 ? '' : 's'), st.sets + ' set' + (st.sets === 1 ? '' : 's')];
@@ -28936,6 +28946,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (a === 'close-paste') closePaste();
     else if (a === 'paste-back') pasteBack();
     else if (a === 'paste-clip') pasteFromClipboard();
+    else if (a === 'paste-clear'){ if ((ui.pasteText || '').trim()){ ui.pasteView = 'clear'; renderPasteOverlay(); } }
+    else if (a === 'paste-clear-no'){ ui.pasteView = 'input'; renderPasteOverlay(); }
+    else if (a === 'paste-clear-yes'){
+      ui.pasteText = ''; ui.pasteItems = []; ui.pasteIgnored = []; ui.pasteView = 'input';
+      renderPasteOverlay();
+      var ta2 = document.getElementById('pasteInput'); if (ta2) ta2.focus();
+      showToast('Cleared');
+    }
     else if (a === 'paste-preview') pastePreview();
     else if (a === 'paste-go') pasteAddToSession();
     else if (a === 'paste-skip' && it){ it.skip = !it.skip; renderPasteOverlay(); }
