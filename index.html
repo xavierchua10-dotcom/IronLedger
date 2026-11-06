@@ -1937,6 +1937,23 @@
   /* Everything that is normally gold inside a Hardcore exercise card turns red. */
   .exercise-card.hardcore{--accent:#e5383b;--accent-rgb:229,56,59;--accent-dim:#6b1d20;border-color:rgba(229,56,59,0.55);box-shadow:inset 3px 0 0 #e5383b;}
   .ex-stat-hc small{color:#ff6b6d;}
+
+  /* Warm-up sets + set notes */
+  .exercise-card .set-row.warm{opacity:.72;}
+  .exercise-card .set-row .set-idx.warm{background:transparent;border:1.5px dashed var(--text-faint);color:var(--text-dim);}
+  .warm-tag{flex-shrink:0;margin-left:8px;font:700 9.5px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);border:1px solid var(--line);border-radius:99px;padding:2px 7px;}
+  .warm-hint{font-size:11.5px;font-weight:600;letter-spacing:.04em;color:var(--text-dim);margin:8px 0 6px;}
+  .addset-split{display:flex;gap:10px;}
+  .addset-split .add-set-toggle-btn{flex:1 1 0;min-width:0;}
+  .addset-split .add-warm-btn{flex:0 0 38%;border-color:var(--line);color:var(--text-dim);}
+  .addset-split .add-warm-btn:active{border-color:var(--text-dim);}
+  .set-note{display:flex;align-items:flex-start;gap:8px;width:100%;margin:2px 0 6px;padding:8px 10px;border-radius:10px;background:rgba(var(--accent-rgb),.07);border:1px solid rgba(var(--accent-rgb),.3);color:var(--text);font:500 12.5px/1.4 'Inter',sans-serif;text-align:left;cursor:pointer;}
+  .set-note svg{flex-shrink:0;margin-top:1px;color:var(--accent);}
+  .set-note span{min-width:0;overflow-wrap:anywhere;}
+  .set-note-input{width:100%;box-sizing:border-box;min-height:96px;resize:none;margin:0 0 18px;padding:12px 14px;border-radius:12px;background:var(--panel);border:1.5px solid var(--accent);color:var(--text);font:500 15px/1.45 'Inter',sans-serif;outline:none;}
+  .hx-row.warm{opacity:.7;}
+  .hx-row.warm .hx-n{color:var(--text-dim);}
+  .hx-note{margin:1px 0 6px 26px;padding-left:9px;border-left:2px solid rgba(var(--accent-rgb),.5);color:var(--text-dim);font-size:12px;line-height:1.4;overflow-wrap:anywhere;}
   .hc-hint{font-size:11.5px;font-weight:600;letter-spacing:.04em;color:#ff6b6d;margin:8px 0 6px;}
 
   /* Rest Day Mode: teal twin of the Hardcore card + mini-game picker */
@@ -7831,6 +7848,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     freshSetId: null,      // id of a just-logged set whose timestamp should flash once (see commitSet) — separate from freshPRSetId since this applies to every set, not just PRs
     flashSetsCounter: false, // true for exactly one render right after a set is added, pulses the session-meta "N sets" counter
     activeExId: null,      // exercise whose weight/reps inputs were last focused — used by the global Add Set button
+    warmDraft: {},          // exId -> true while the open add-set row is logging a warm-up
     draftSets: {},          // exId -> { weight, reps } — unsaved input, kept across collapse/expand or tab switches
     expandedAddSet: {},     // exId -> true when that exercise's add-set panel (kg/reps fields) is open
     tourStep: null,         // index into TOUR_STEPS while the guided tour is running, or null when closed
@@ -8008,6 +8026,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     return list.filter(isPlainObject).map(function(ex){
       if (typeof ex.name !== 'string') ex.name = '';
       ex.sets = Array.isArray(ex.sets) ? ex.sets.filter(isPlainObject) : [];
+      if (ex.warmups !== undefined) ex.warmups = Array.isArray(ex.warmups) ? ex.warmups.filter(isPlainObject) : [];
       if (ex.kind === 'cardio') ex.cardio = Array.isArray(ex.cardio) ? ex.cardio.filter(isPlainObject) : [];
       return ex;
     });
@@ -12741,10 +12760,15 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         { label: 'Delete session', action: 'delete-session', danger: true }
       ];
     } else {
-      items = [
-        { label: 'Edit set', action: 'edit-set' },
-        { label: 'Delete set', action: 'delete-set', danger: true }
-      ];
+      var menuSetEx = findExercise(getActiveSession(), m.exId);
+      var menuSet = findLogSet(menuSetEx, m.setId);
+      items = [];
+      if (!(menuSetEx && menuSetEx.hardcore) && !(menuSetEx && isCardioEx(menuSetEx))){
+        items.push({ label: menuSet.warm ? 'Make working set' : 'Mark as warm-up', action: 'toggle-warmup' });
+      }
+      items.push({ label: menuSet.st && menuSet.st.note ? 'Edit note' : 'Add note', action: 'set-note' });
+      items.push({ label: 'Edit set', action: 'edit-set' });
+      items.push({ label: 'Delete set', action: 'delete-set', danger: true });
     }
     // "session" menu items use data-session (what delete-session/edit-session/
     // repeat-session all read); exercise/set items use data-ex(+data-set) as
@@ -15291,6 +15315,29 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     }
     if (statTiles) html += '<div class="ex-stats">' + statTiles + '</div>';
 
+    var noteIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12l-5 5H4z"/><path d="M15 21v-5h5"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="12" y2="13"/></svg>';
+    var setNoteHtml = function(st){
+      return st.note ? '<button type="button" class="set-note" data-action="set-note" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Edit note">'+noteIcon+'<span>'+esc(st.note)+'</span></button>' : '';
+    };
+    (ex.warmups || []).forEach(function(st){
+      var isEditingRow = st.id === editingSetId;
+      if (isEditingRow) editingSetObj = st;
+      var isFreshSet = st.id === ui.freshSetId;
+      html += '<div class="set-row-swipe" data-ex="'+ex.id+'" data-set="'+st.id+'">' +
+              '<button class="set-row-delete-btn" data-action="delete-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Delete set">Delete</button>' +
+              '<div class="set-row warm'+(isEditingRow ? ' editing' : '')+'">' +
+                '<span class="set-idx warm'+(isFreshSet ? ' flash' : '')+'">W</span>' +
+                '<span class="set-detail">' +
+                  '<span class="set-wr'+(isFreshSet ? ' flash' : '')+'">'+fmtWeight(st.weightKg)+'<i>'+unitLabel()+'</i><span class="x">&times;</span>'+st.reps+'<i>'+(isHoldExercise(ex.name) ? 's' : 'reps')+'</i></span>' +
+                  '<span class="warm-tag">warm-up</span>' +
+                '</span>' +
+                '<span class="set-actions">' +
+                  '<button class="set-act-btn" data-action="open-set-menu" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Set options">&#8942;</button>' +
+                '</span>' +
+              '</div>' +
+            '</div>' + setNoteHtml(st);
+    });
+
     if (ex.sets.length === 0){
       // Intentionally empty otherwise: no "no sets" placeholder, keeps
       // the card compact until a set is logged.
@@ -15316,13 +15363,13 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                     '<button class="set-act-btn" data-action="open-set-menu" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Set options">&#8942;</button>' +
                   '</span>' +
                 '</div>' +
-              '</div>';
+              '</div>' + setNoteHtml(st);
       });
     }
 
     if (editingSetObj){
       var editIdx = ex.sets.indexOf(editingSetObj) + 1;
-      html += '<div class="editing-label">Editing set '+editIdx+'</div>';
+      html += '<div class="editing-label">'+(editIdx ? 'Editing set '+editIdx : 'Editing warm-up')+'</div>';
       html += '<div class="add-set-row editing-row">' +
                 '<input type="number" inputmode="decimal" step="0.5" class="set-weight-input" data-ex="'+ex.id+'" value="'+fmtWeight(editingSetObj.weightKg)+'">' +
                 '<input type="number" inputmode="numeric" step="1" class="set-reps-input" data-ex="'+ex.id+'" value="'+editingSetObj.reps+'">' +
@@ -15346,6 +15393,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         // without typing some arbitrary nonzero placeholder number.
         var isBW = isBodyweightExercise(ex.name);
         var rowReady = draftWeightKg !== null && (isBW ? draftWeightKg >= 0 : draftWeightKg > 0) && !isNaN(draftReps) && draftReps > 0;
+        if (ui.warmDraft[ex.id]) html += '<div class="warm-hint">Warm-up set &middot; not counted in volume or PRs</div>';
         if (ex.hardcore) html += '<div class="hc-hint">Set ' + (ex.sets.length + 1) + ' of ' + HC_MAX_SETS + (ex.sets.length + 1 >= HC_MAX_SETS ? ' \u00b7 go to failure' : ' \u00b7 heavy') + '</div>';
         html += '<div class="add-set-row'+(ui.freshAddSetRow === ex.id ? ' just-added' : '')+'"'+(isBW ? ' style="grid-template-columns:auto 1fr 1fr auto;position:relative;"' : '')+'>' +
                   (isBW ? '<button class="bw-help-icon" data-action="toggle-bw-help" aria-label="What is this?">' +
@@ -15360,9 +15408,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                   (isBW && ui.showBwHelp ? '<div class="bw-help-box"><b>Extra</b> weight on top of bodyweight \u2014 not your total. Type 0 if unweighted.</div>' : '') +
                 '</div>';
       } else {
-        html += '<button class="add-set-toggle-btn" data-action="open-add-set" data-ex="'+ex.id+'">' +
+        var addSetBtn = '<button class="add-set-toggle-btn" data-action="open-add-set" data-ex="'+ex.id+'">' +
                   '<span class="plus-glyph">&#43;</span> Add Set '+(ex.sets.length+1) + (ex.hardcore ? ' of ' + HC_MAX_SETS : '') +
                 '</button>';
+        html += ex.hardcore ? addSetBtn : '<div class="addset-split">' + addSetBtn +
+                  '<button class="add-set-toggle-btn add-warm-btn" data-action="open-add-warmup" data-ex="'+ex.id+'"><span class="plus-glyph">&#43;</span> Warm-up</button></div>';
       }
     }
     if (supersetPartner && ssInfo) html += supersetStripHtml(ssInfo, ex);
@@ -15528,13 +15578,19 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
                     '</div>' +
                     '<div class="hi-ex-sets">';
         var hxHold = isHoldExercise(ex.name);
-        html += '<div class="hx-rows">' + ex.sets.map(function(st, i){
+        var hxWarm = (ex.warmups || []).map(function(st){
+          return '<div class="hx-row warm">' +
+                   '<span class="hx-n">W</span>' +
+                   '<span class="hx-w">'+fmtWeight(st.weightKg)+'<i>'+unitLabel()+'</i><em>&times;</em>'+st.reps+'<i>'+(hxHold ? 's' : 'reps')+'</i></span>' +
+                 '</div>' + (st.note ? '<div class="hx-note">'+esc(st.note)+'</div>' : '');
+        }).join('');
+        html += '<div class="hx-rows">' + hxWarm + ex.sets.map(function(st, i){
           return '<div class="hx-row'+(st.isPR ? ' pr' : '')+'">' +
                    '<span class="hx-n">'+(i+1)+'</span>' +
                    '<span class="hx-w">'+fmtWeight(st.weightKg)+'<i>'+unitLabel()+'</i><em>&times;</em>'+st.reps+'<i>'+(hxHold ? 's' : 'reps')+'</i></span>' +
                    (st.isPR ? '<span class="pr-tag"'+prTagAttrs(st)+'>PR</span>' : '') +
                    (st.timestamp ? '<span class="hx-time">'+tsOrLock(st.timestamp)+'</span>' : '') +
-                 '</div>';
+                 '</div>' + (st.note ? '<div class="hx-note">'+esc(st.note)+'</div>' : '');
         }).join('') + '</div>';
         html += '</div></div>' +
                 '<div class="hi-ex-actions">' +
@@ -24257,6 +24313,88 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       chip: d > 0.05 ? '+' + fmtWeight(d) + ' ' + unitLabel() + ' EST. 1RM' : 'PERSONAL BEST', auto: 4500 });
   }
 
+  // Warm-up sets live in their own list (ex.warmups) so every volume / PR /
+  // chart / "last best" calculation, which only reads ex.sets, ignores them
+  // without needing a filter in each place. Notes are a plain `note` string
+  // on any set object (working or warm-up).
+  function findLogSet(ex, setId){
+    if (!ex) return { st: null, warm: false };
+    var st = ex.sets.find(function(s){ return s.id === setId; });
+    if (st) return { st: st, warm: false, list: ex.sets };
+    st = (ex.warmups || []).find(function(s){ return s.id === setId; });
+    return st ? { st: st, warm: true, list: ex.warmups } : { st: null, warm: false };
+  }
+  function removeLogSet(ex, setId){
+    ex.sets = ex.sets.filter(function(s){ return s.id !== setId; });
+    if (ex.warmups) ex.warmups = ex.warmups.filter(function(s){ return s.id !== setId; });
+  }
+  function commitWarmup(ex, weightKg, reps){
+    var setId = uid();
+    if (!Array.isArray(ex.warmups)) ex.warmups = [];
+    ex.warmups.push({ id: setId, weightKg: roundNice(weightKg), reps: reps, timestamp: new Date().toISOString() });
+    delete ui.draftSets[ex.id];
+    saveSessions();
+    logActivity('Added warm-up ' + fmtWeight(weightKg) + ' ' + unitLabel() + ' × ' + reps + ' to "' + ex.name + '"', 'Log');
+    if (state.settings.setFlashEffect !== false) ui.freshSetId = setId;
+    renderApp();
+    ui.freshSetId = null;
+    if (state.settings.hapticFeedback !== false && navigator.vibrate) navigator.vibrate(10);
+  }
+  function toggleWarmup(exId, setId){
+    var ex = findExercise(getActiveSession(), exId);
+    var f = findLogSet(ex, setId);
+    if (!f.st) return;
+    if (!f.warm && ex.hardcore){ showToast('Hardcore Mode has no warm-up sets'); return; }
+    f.list.splice(f.list.indexOf(f.st), 1);
+    var target;
+    if (f.warm){ target = ex.sets; }
+    else { if (!Array.isArray(ex.warmups)) ex.warmups = []; target = ex.warmups; }
+    var at = target.length;
+    if (f.st.timestamp){
+      for (var i = 0; i < target.length; i++){
+        if (target[i].timestamp && target[i].timestamp > f.st.timestamp){ at = i; break; }
+      }
+    }
+    target.splice(at, 0, f.st);
+    if (!f.warm){ f.st.isPR = false; delete f.st.prType; }   // a warm-up can't be a PR
+    if (ui.editingSet && ui.editingSet.setId === setId) ui.editingSet = null;
+    recomputeExercisePRs(ex.name);
+    saveSessions();
+    logActivity((f.warm ? 'Made warm-up a working set: ' : 'Marked as warm-up: ') + fmtWeight(f.st.weightKg) + ' ' + unitLabel() + ' × ' + f.st.reps + ' on "' + ex.name + '"', 'Log');
+    renderApp();
+    showToast(f.warm ? 'Now a working set' : 'Marked as warm-up');
+  }
+  function openSetNoteModal(exId, setId){
+    var ex = findExercise(getActiveSession(), exId);
+    var f = findLogSet(ex, setId);
+    if (!f.st) return;
+    var idx = f.list.indexOf(f.st) + 1;
+    ui.confirmModal = {
+      kind: 'set-note',
+      title: f.st.note ? 'Edit note' : 'Add note',
+      sub: (f.warm ? 'Warm-up ' : 'Set ') + idx + ' · ' + fmtWeight(f.st.weightKg) + ' ' + unitLabel() + ' × ' + f.st.reps + ' · ' + ex.name,
+      message: '',
+      noteInput: true,
+      note: f.st.note || '',
+      confirmLabel: 'Save note',
+      variant: 'primary',
+      exId: exId,
+      setId: setId
+    };
+    renderApp();
+  }
+  function saveSetNote(exId, setId, text){
+    var ex = findExercise(getActiveSession(), exId);
+    var f = findLogSet(ex, setId);
+    if (!f.st) return;
+    text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+    if (text) f.st.note = text; else delete f.st.note;
+    saveSessions();
+    logActivity((text ? 'Saved a note on' : 'Removed the note on') + ' a set of "' + ex.name + '"', 'Log');
+    renderApp();
+    showToast(text ? 'Note saved' : 'Note removed');
+  }
+
   function commitSet(ex, weightKg, reps){
     if (ex && ex.hardcore && ex.sets.length >= HC_MAX_SETS){
       showToast('Hardcore Mode: ' + HC_MAX_SETS + ' sets is the limit');
@@ -24466,7 +24604,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       if (d && (d.weight != null && d.weight !== '' || d.reps != null && d.reps !== '')) return;
       var refSets = getReferenceSets(getActiveSession(), ex.name);
       var seed = null;
-      if (ex.sets.length) seed = ex.sets[ex.sets.length - 1];
+      if (ui.warmDraft[exId]){
+        // Warm-up: only repeats the last warm-up of this exercise today; blank otherwise.
+        var ws = ex.warmups || [];
+        seed = ws.length ? ws[ws.length - 1] : null;
+      }
+      else if (ex.sets.length) seed = ex.sets[ex.sets.length - 1];
       else if (isProActive()) seed = lastBestSetOf(ex.name, refSets); // Pro: set 1 starts at Last best
       if (!seed || !(seed.reps > 0)) return;
       var bw = isBodyweightExercise(ex.name);
@@ -24475,7 +24618,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } catch (e) { /* convenience only: an empty box is always fine */ }
   }
 
-  function openAddSetPanel(exId){
+  function openAddSetPanel(exId, warm){
+    if (warm) ui.warmDraft[exId] = true; else delete ui.warmDraft[exId];
+    if (warm) delete ui.draftSets[exId];
     seedDraftFromLastTime(exId);
     ui.expandedAddSet[exId] = true;
     ui.showBwHelp = false;
@@ -24493,6 +24638,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
   function closeAddSetPanel(exId){
     ui.expandedAddSet[exId] = false;
+    delete ui.warmDraft[exId];
     ui.showBwHelp = false;
     if (bwHelpTimer){ clearTimeout(bwHelpTimer); bwHelpTimer = null; }
     delete ui.draftSets[exId];
@@ -24545,6 +24691,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       return;
     }
     ui.expandedAddSet[ex.id] = false;
+    if (ui.warmDraft[ex.id]){
+      delete ui.warmDraft[ex.id];
+      commitWarmup(ex, weightKg, reps);
+      return;
+    }
     commitSet(ex, weightKg, reps);
   }
 
@@ -24579,6 +24730,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // Row closes after logging; tapping "Add Set N" reopens it, pre-filled
     // (see seedDraftFromLastTime). Set before commitSet so its render shows the button.
     ui.expandedAddSet[ex.id] = false;
+    if (ui.warmDraft[ex.id]){
+      delete ui.warmDraft[ex.id];
+      commitWarmup(ex, weightKg, reps);
+      return;
+    }
     commitSet(ex, weightKg, reps);
   }
 
@@ -24586,9 +24742,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
-    var st = ex.sets.find(function(s){ return s.id === setId; });
+    var st = findLogSet(ex, setId).st;
     var label = st ? (fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps) : 'a set';
-    ex.sets = ex.sets.filter(function(s){ return s.id !== setId; });
+    removeLogSet(ex, setId);
     recomputeExercisePRs(ex.name);
     saveSessions();
     logActivity('Deleted set ' + label + ' from "' + ex.name + '"', 'Log');
@@ -24601,13 +24757,13 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
-    var st = ex.sets.find(function(s){ return s.id === setId; });
+    var st = findLogSet(ex, setId).st;
     if (!st) return;
     var idx = ex.sets.indexOf(st) + 1;
     ui.confirmModal = {
       kind: 'edit-set-open-confirm',
       title: 'Edit this set?',
-      message: 'Opens set ' + idx + ' (' + fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps + (isHoldExercise(ex.name) ? 's' : '') + ') of ' + ex.name + ' for editing.',
+      message: 'Opens ' + (idx ? 'set ' + idx : 'your warm-up') + ' (' + fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps + (isHoldExercise(ex.name) ? 's' : '') + ') of ' + ex.name + ' for editing.',
       confirmLabel: 'Edit',
       variant: 'primary',
       exId: exId,
@@ -24633,7 +24789,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
-    var st = ex.sets.find(function(s){ return s.id === setId; });
+    var st = findLogSet(ex, setId).st;
     if (!st) return;
     var card = document.querySelector('.exercise-card[data-ex="'+exId+'"]');
     var weightInput = card.querySelector('.set-weight-input');
@@ -24650,7 +24806,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     ui.confirmModal = {
       kind: 'edit-set-confirm',
       title: 'Save changes?',
-      message: fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + ' will replace the current values for set ' + (ex.sets.indexOf(st) + 1) + ' of ' + ex.name + '.',
+      message: fmtWeight(weightKg) + ' ' + unitLabel() + ' \u00d7 ' + reps + ' will replace the current values for ' + (ex.sets.indexOf(st) >= 0 ? 'set ' + (ex.sets.indexOf(st) + 1) : 'your warm-up') + ' of ' + ex.name + '.',
       confirmLabel: 'Save',
       variant: 'primary',
       exId: exId,
@@ -24665,7 +24821,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var session = getActiveSession();
     var ex = findExercise(session, exId);
     if (!ex) return;
-    var st = ex.sets.find(function(s){ return s.id === setId; });
+    var st = findLogSet(ex, setId).st;
     if (!st) return;
 
     var oldLabel = fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps;
@@ -24778,7 +24934,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function openDeleteSetConfirm(exId, setId){
     var session = getActiveSession();
     var ex = findExercise(session, exId);
-    var st = ex ? ex.sets.find(function(s){ return s.id === setId; }) : null;
+    var st = ex ? findLogSet(ex, setId).st : null;
     var label = st ? (fmtWeight(st.weightKg) + ' ' + unitLabel() + ' \u00d7 ' + st.reps) : 'This set';
     ui.confirmModal = {
       kind: 'set',
@@ -25617,6 +25773,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       }
     });
   }
+  document.addEventListener('input', function(e){
+    var t = e.target;
+    if (t && t.id === 'setNoteInput' && ui.confirmModal && ui.confirmModal.noteInput) ui.confirmModal.noteDraft = t.value;
+  });
   function renderConfirmModal(){
     var overlay = document.getElementById('confirmOverlay');
     var panel = document.getElementById('confirmPanel');
@@ -25662,7 +25822,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       '<div class="confirm-title">' + esc(m.title) + '</div>' +
       (m.sub ? '<div class="confirm-sub">' + esc(m.sub) + '</div>' : '') +
       (m.rows && m.rows.length ? '<div class="confirm-rows">' + m.rows.map(function(r){ return '<div class="confirm-row"><b>' + esc(r.name) + '</b><span>' + esc(r.detail || '') + '</span></div>'; }).join('') + '</div>' : '') +
-      '<div class="confirm-message">' + esc(m.message) + '</div>' +
+      (m.message ? '<div class="confirm-message">' + esc(m.message) + '</div>' : '') +
+      (m.noteInput ? '<textarea id="setNoteInput" class="set-note-input" maxlength="240" rows="4" placeholder="Pain, form cue, how it felt\u2026">' + esc(m.noteDraft != null ? m.noteDraft : (m.note || '')) + '</textarea>' : '') +
       (m.how ? '<div class="confirm-how">' + esc(m.how) + '</div>' : '') +
       '<div class="confirm-buttons">' +
         (m.infoOnly
@@ -25674,6 +25835,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       '</div>';
 
     if (rdEligible && m.view === '3d') mountExerciseFigure(m);
+    if (m.noteInput){ var noteTa0 = document.getElementById('setNoteInput'); if (noteTa0 && !m.noteFocused){ m.noteFocused = true; noteTa0.focus(); } }
 
     if (counting){
       confirmCountdownTimer = setInterval(function(){
@@ -26820,6 +26982,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       openDeleteSetConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'edit-set'){
       openEditSetConfirm(el.dataset.ex, el.dataset.set);
+    } else if (action === 'toggle-warmup'){
+      toggleWarmup(el.dataset.ex, el.dataset.set);
+    } else if (action === 'set-note'){
+      openSetNoteModal(el.dataset.ex, el.dataset.set);
+    } else if (action === 'open-add-warmup'){
+      openAddSetPanel(el.dataset.ex, true);
     } else if (action === 'save-set-edit'){
       saveSetEdit(el.dataset.ex, el.dataset.set);
     } else if (action === 'cancel-set-edit'){
@@ -27502,10 +27670,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       dismissConfirmModal();
     } else if (action === 'confirm-modal-action'){
       var m = ui.confirmModal;
+      if (m && m.kind === 'set-note'){ var noteTa = document.getElementById('setNoteInput'); if (noteTa) m.noteDraft = noteTa.value; }
       ui.confirmModal = null;
       renderConfirmModal();
       if (m && m.kind === 'exercise') deleteExercise(m.exId);
       else if (m && m.kind === 'set') deleteSet(m.exId, m.setId);
+      else if (m && m.kind === 'set-note') saveSetNote(m.exId, m.setId, m.noteDraft != null ? m.noteDraft : m.note);
       else if (m && m.kind === 'session') deleteSession(m.sessionId);
       else if (m && m.kind === 'repeat-session') repeatSession(m.sessionId);
       else if (m && m.kind === 'finish-session') finishSession();
