@@ -1873,6 +1873,32 @@
   .game-back{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:24px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0 0 3px;}
   .game-title{font:700 17px 'Oswald',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#5eead4;}
   .game-tag{margin-left:auto;font:600 10px 'Inter',sans-serif;letter-spacing:.14em;color:var(--text-dim);}
+  /* Dev tools: floating DEV bubble + bottom panel (hidden; 10 taps on the version line) */
+  .dev-bubble{position:fixed;z-index:9000;left:0;top:0;display:flex;align-items:center;gap:6px;padding:9px 13px;border-radius:99px;background:rgba(20,22,26,.94);border:1px solid #3a3f47;box-shadow:0 6px 18px rgba(0,0,0,.6);font:600 11px/1 'JetBrains Mono',monospace;letter-spacing:.08em;color:#cfd2d6;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;}
+  .dev-bubble i{width:8px;height:8px;border-radius:50%;background:#4ade80;display:block;}
+  .dev-bubble.err{border-color:#ef4444;color:#fff;}
+  .dev-bubble.err i{background:#ef4444;}
+  .dev-bubble b{background:#ef4444;color:#fff;border-radius:99px;padding:2px 6px;font:700 10px 'Inter',sans-serif;letter-spacing:0;}
+  .confirm-overlay.dev-overlay{z-index:9500;align-items:flex-end;justify-content:center;padding:0;background:rgba(0,0,0,.45);backdrop-filter:none;-webkit-backdrop-filter:none;}
+  .dev-sheet{width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;background:#14161a;border:1px solid #2f333a;border-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.6);padding:8px 14px calc(12px + var(--safe-bottom, 0px));}
+  .dev-grab{flex:none;width:40px;height:4px;border-radius:9px;background:#3a3f47;margin:0 auto 10px;}
+  .dev-head{flex:none;display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .dev-head h3{margin:0;flex:1;font:600 17px 'Oswald',sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--text);}
+  .dev-x{width:30px;height:30px;border-radius:9px;background:#1d2025;border:1px solid #2c3037;color:#cfd2d6;font-size:13px;cursor:pointer;display:grid;place-items:center;padding:0;}
+  .dev-body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;}
+  .dev-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .dev-chip{font:500 10.5px 'JetBrains Mono',monospace;padding:5px 8px;border-radius:8px;background:#1b1e23;border:1px solid #2a2d33;color:#cfd2d6;}
+  .dev-chip.g{color:#4ade80;}.dev-chip.y{color:#f2b134;}.dev-chip.r{color:#ff8a8a;border-color:#5a2020;background:#2a1010;}
+  .dev-lab{font:500 10px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#8b9098;margin:6px 0;}
+  .dev-err{border-left:3px solid #ef4444;background:#1b1e23;border-radius:10px;padding:8px 10px;margin-bottom:7px;}
+  .dev-err .t{font:500 9.5px 'JetBrains Mono',monospace;color:#8b9098;display:flex;justify-content:space-between;gap:8px;}
+  .dev-err .m{font:500 11.5px 'JetBrains Mono',monospace;color:#ffb4b4;margin:4px 0 2px;word-break:break-word;}
+  .dev-err .w{font-size:10.5px;color:#8b9098;}
+  .dev-none{font-size:12px;color:#8b9098;padding:8px 2px 12px;}
+  .dev-btns{flex:none;display:flex;gap:8px;margin-top:8px;}
+  .dev-b{flex:1;text-align:center;font:700 12px 'Inter',sans-serif;border-radius:11px;padding:11px 6px;background:#1d2025;border:1px solid #2c3037;color:#eceef1;cursor:pointer;}
+  .dev-b.on{background:#f2b134;color:#1c1500;border:0;}
+  .dev-foot{flex:none;font:500 10px 'JetBrains Mono',monospace;color:#8b9098;text-align:center;margin-top:9px;padding:7px;border:1px dashed #2f333a;border-radius:9px;word-break:break-word;}
   #gameFrame{flex:1;min-height:0;width:100%;border:0;background:#14161a;display:block;}
   .hc-done{margin-top:8px;text-align:center;padding:12px;border:1px dashed rgba(229,56,59,0.55);border-radius:var(--radius);color:#ff6b6d;font:700 12px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;}
   .warmup-reminder{
@@ -6890,6 +6916,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   </div>
   <iframe id="gameFrame" title="Mini game"></iframe>
 </div>
+<div class="confirm-overlay dev-overlay hidden" id="devOverlay">
+  <div class="dev-sheet" id="devSheet"></div>
+</div>
 <div class="confirm-overlay hidden" id="restTimerPickerOverlay">
   <div class="pro-panel" id="restTimerPickerPanel"></div>
 </div>
@@ -7512,10 +7541,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   var APP_VERSION = '1.0.0';
   window.addEventListener('error', function(e){
     console.error('Uncaught error:', e.error || e.message);
+    try { devNoteError((e.error && e.error.message) || e.message, (String(e.filename || '').split('/').pop() || 'app') + (e.lineno ? ':' + e.lineno : '')); } catch (_) {}
     showToast("Something went wrong — try refreshing.");
   });
   window.addEventListener('unhandledrejection', function(e){
     console.error('Unhandled promise rejection:', e.reason);
+    try { devNoteError('Unhandled promise: ' + ((e.reason && e.reason.message) || e.reason), ''); } catch (_) {}
     showToast("Something went wrong — try refreshing.");
   });
   // This classic script runs synchronously as the parser reaches it —
@@ -8039,10 +8070,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     }
     window.SaviorFirebase.saveUserData(acct, payload).then(function(){
       cloudSyncRetries = 0;
+      devLastSyncOkAt = Date.now();
       // Only clear the flag if nothing changed while this write was in flight.
       if (seq === cloudSyncSeq) safeRemoveItem(STORAGE_CLOUD_DIRTY + '::' + acct);
     }).catch(function(err){
       console.error('Firestore sync failed:', err);
+      try { devNoteError('Cloud backup failed: ' + ((err && (err.code || err.message)) || err), 'sync'); } catch (_) {}
       var now = Date.now();
       if (now - cloudSyncWarnedAt > 60000){
         cloudSyncWarnedAt = now;
@@ -12201,8 +12234,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     try { var el = document.getElementById('rpStatus'); if (el && fpsDebugOn) el.textContent = restPingStatusLine(); } catch(e){}
   }
   // Normal users only see a hint when something blocks the alert. The test
-  // button and last-try line are dev tools: 5 taps on the version line (same
-  // switch as the FPS readout) turns them on.
+  // button and last-try line are dev tools: 10 taps on the version line shows
+  // the DEV bubble, and its "FPS" switch turns these on.
   function restPingDebugHtml(){
     var b = restPingBlocker();
     var dev = !!fpsDebugOn;
@@ -13758,6 +13791,212 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var el = e.target.closest('[data-action="close-game"]');
     if (el) closeGame();
   });
+
+  /* ---------- Dev tools: floating DEV bubble + panel ----------
+     Hidden: 10 taps on the version line in Settings turns it on/off (this phone only).
+     Errors are always kept (last 30, on this phone only, nothing is sent anywhere);
+     the bubble just shows them. Read-only: it never changes plan, billing or data. */
+  var DEV_ERR_KEY = 'il_dev_errors_v1', DEV_ON_KEY = 'il_dev_tools', DEV_POS_KEY = 'il_dev_pos';
+  var devOn = false; try { devOn = localStorage.getItem(DEV_ON_KEY) === '1'; } catch (e) {}
+  var devErrs = null, devBubbleEl = null, devTimer = null, devLastSyncOkAt = 0, devGl = null;
+  function devLoadErrs(){
+    try { var a = JSON.parse(localStorage.getItem(DEV_ERR_KEY) || '[]'); return Array.isArray(a) ? a : []; }
+    catch (e) { return []; }
+  }
+  function devNoteError(msg, where){
+    try {
+      msg = String(msg == null ? '' : msg).replace(/\s+/g, ' ').slice(0, 220);
+      if (!msg || /ResizeObserver loop/.test(msg)) return;
+      if (!devErrs) devErrs = devLoadErrs();
+      var tab = '';
+      try {
+        tab = (typeof state !== 'undefined' && state && state.tab) ? state.tab : '';
+        var go = document.getElementById('gameOverlay');
+        if (go && !go.classList.contains('hidden')) tab = 'game';
+      } catch (e) {}
+      var last = devErrs[0];
+      if (last && last.m === msg && Date.now() - last.t < 5000){ last.n = (last.n || 1) + 1; last.t = Date.now(); }
+      else devErrs.unshift({ t: Date.now(), m: msg, w: String(where || '').slice(0, 80), tab: tab });
+      if (devErrs.length > 30) devErrs.length = 30;
+      localStorage.setItem(DEV_ERR_KEY, JSON.stringify(devErrs));
+      devRefresh();
+    } catch (e) {}
+  }
+  function devTabLabel(t){ return ({ log: 'Log', history: 'History', insight: 'Insight', progress: 'Progress', settings: 'Profile', game: 'Game' })[t] || t || '?'; }
+  function devP2(n){ return n < 10 ? '0' + n : '' + n; }
+  function devClock(ms){ var d = new Date(ms); return devP2(d.getHours()) + ':' + devP2(d.getMinutes()); }
+  function devWhen(ms){
+    var d = new Date(ms), now = new Date();
+    var yest = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    if (d.toDateString() === now.toDateString()) return 'Today ' + devClock(ms);
+    if (d.toDateString() === yest.toDateString()) return 'Yesterday ' + devClock(ms);
+    return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + devClock(ms);
+  }
+  function devAgo(ms){
+    var sec = Math.round((Date.now() - ms) / 1000);
+    if (sec < 60) return 'just now';
+    var m = Math.round(sec / 60); if (m < 60) return m + 'm ago';
+    var h = Math.round(m / 60); if (h < 24) return h + 'h ago';
+    return Math.round(h / 24) + 'd ago';
+  }
+  function devBubble(){
+    if (!devOn){ if (devBubbleEl){ devBubbleEl.remove(); devBubbleEl = null; } return; }
+    if (!devErrs) devErrs = devLoadErrs();
+    if (!devBubbleEl){
+      var el = document.createElement('button');
+      el.type = 'button'; el.id = 'devBubble'; el.setAttribute('aria-label', 'Dev tools');
+      document.body.appendChild(el);
+      devBubbleEl = el;
+      devWireDrag(el);
+    }
+    var n = devErrs.length;
+    devBubbleEl.className = 'dev-bubble' + (n ? ' err' : '');
+    devBubbleEl.innerHTML = '<i></i>DEV' + (n ? '<b>' + (n > 99 ? '99+' : n) + '</b>' : '');
+    devPlaceBubble();
+  }
+  function devSetPos(x, y){
+    var el = devBubbleEl; if (!el) return;
+    var w = el.offsetWidth || 70, h = el.offsetHeight || 30;
+    x = Math.max(4, Math.min(window.innerWidth - w - 4, x));
+    y = Math.max(56, Math.min(window.innerHeight - h - 70, y));
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+  }
+  function devPlaceBubble(){
+    var pos = null; try { pos = JSON.parse(localStorage.getItem(DEV_POS_KEY) || 'null'); } catch (e) {}
+    var w = (devBubbleEl && devBubbleEl.offsetWidth) || 70;
+    devSetPos(pos && isFinite(pos.x) ? pos.x : window.innerWidth - w - 12, pos && isFinite(pos.y) ? pos.y : Math.round(window.innerHeight * 0.55));
+  }
+  function devWireDrag(el){
+    var sx = 0, sy = 0, ox = 0, oy = 0, moved = false, id = null;
+    el.addEventListener('pointerdown', function(e){
+      id = e.pointerId; moved = false; sx = e.clientX; sy = e.clientY;
+      var r = el.getBoundingClientRect(); ox = r.left; oy = r.top;
+      try { el.setPointerCapture(id); } catch (_) {}
+    });
+    el.addEventListener('pointermove', function(e){
+      if (id === null) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!moved && Math.abs(dx) + Math.abs(dy) > 8) moved = true;
+      if (moved) devSetPos(ox + dx, oy + dy);
+    });
+    el.addEventListener('pointerup', function(){
+      if (id === null) return;
+      id = null;
+      if (moved){
+        try { var r = el.getBoundingClientRect(); localStorage.setItem(DEV_POS_KEY, JSON.stringify({ x: Math.round(r.left), y: Math.round(r.top) })); } catch (_) {}
+      } else devOpen();
+    });
+    el.addEventListener('pointercancel', function(){ id = null; });
+  }
+  window.addEventListener('resize', function(){ if (devBubbleEl) devPlaceBubble(); });
+  function devWebgl(){
+    if (devGl === null){
+      try { var c = document.createElement('canvas'); devGl = !!(c.getContext('webgl') || c.getContext('experimental-webgl')); }
+      catch (e) { devGl = false; }
+    }
+    return devGl;
+  }
+  function devSetOn(on){
+    devOn = !!on;
+    try { localStorage.setItem(DEV_ON_KEY, devOn ? '1' : '0'); } catch (e) {}
+    devBubble();
+    if (!devOn) devClose();
+  }
+  function devRender(){
+    var sheet = document.getElementById('devSheet'); if (!sheet) return;
+    if (!devErrs) devErrs = devLoadErrs();
+    var old = sheet.querySelector('.dev-body'), keep = old ? old.scrollTop : 0;
+    var guest = state.currentAccount === 'guest' || !state.currentAccount;
+    var pro = false, trial = '';
+    try { pro = isProActive(); if (pro && isTrialActive()) trial = trialDaysLeftLabel(); } catch (e) {}
+    var plan = guest ? 'Guest' : (pro ? 'Pro' + (trial ? ' · trial ' + trial : '') : 'Basic');
+    var online = navigator.onLine !== false;
+    var dirty = false; try { dirty = !guest && localStorage.getItem(STORAGE_CLOUD_DIRTY + '::' + state.currentAccount) === '1'; } catch (e) {}
+    var syncTxt, syncCls;
+    if (guest){ syncTxt = 'Local only'; syncCls = 'y'; }
+    else if (!firestorePullSettled){ syncTxt = 'Sync loading'; syncCls = 'y'; }
+    else if (dirty){ syncTxt = 'Sync pending'; syncCls = 'y'; }
+    else { syncTxt = 'Sync OK' + (devLastSyncOkAt ? ' ' + devAgo(devLastSyncOkAt) : ''); syncCls = 'g'; }
+    var done = 0, bytes = 0;
+    try { done = state.sessions.filter(function(x){ return x && x.status === 'done'; }).length; bytes = JSON.stringify(state.sessions).length; } catch (e) {}
+    var store = 0; try { Object.keys(localStorage).forEach(function(k){ store += k.length + (localStorage.getItem(k) || '').length; }); } catch (e) {}
+    var kb = function(b){ return Math.round(b / 1024) + ' KB'; };
+    var gl = devWebgl(), three = (typeof THREE !== 'undefined');
+    var chips =
+      '<span class="dev-chip ' + (guest ? 'y' : (pro ? 'y' : '')) + '">' + esc(plan) + '</span>' +
+      '<span class="dev-chip ' + (online ? 'g' : 'r') + '">' + (online ? 'Online' : 'Offline') + '</span>' +
+      '<span class="dev-chip ' + syncCls + '">' + esc(syncTxt) + '</span>' +
+      '<span class="dev-chip ' + (gl && three ? 'g' : 'r') + '">3D ' + (gl ? (three ? 'OK' : 'lib missing') : 'no WebGL') + '</span>' +
+      '<span class="dev-chip">' + done + ' sessions · ' + kb(bytes) + '</span>' +
+      '<span class="dev-chip">storage ' + kb(store) + '</span>';
+    var ua = navigator.userAgent || '', am = ua.match(/Android ([\d.]+)/), cm = ua.match(/Chrome\/(\d+)/);
+    var platform = am ? 'Android ' + am[1] : (/iPhone|iPad/.test(ua) ? 'iOS' : 'Desktop');
+    var standalone = false; try { standalone = window.matchMedia('(display-mode: standalone)').matches; } catch (e) {}
+    var foot = ['v' + APP_VERSION, platform, cm ? 'Chrome ' + cm[1] : '', window.innerWidth + '×' + window.innerHeight, standalone ? 'app' : 'browser', plan, online ? 'online' : 'offline', devClock(Date.now())].filter(Boolean).join(' · ');
+    var shown = devErrs.slice(0, 8), list = '';
+    shown.forEach(function(er){
+      list += '<div class="dev-err"><div class="t"><span>' + esc(devWhen(er.t)) + (er.n > 1 ? ' · ×' + er.n : '') + '</span><span>' + esc(devTabLabel(er.tab)) + '</span></div>' +
+              '<div class="m">' + esc(er.m) + '</div>' + (er.w ? '<div class="w">' + esc(er.w) + '</div>' : '') + '</div>';
+    });
+    if (devErrs.length > shown.length) list += '<div class="dev-none">+ ' + (devErrs.length - shown.length) + ' older</div>';
+    if (!devErrs.length) list = '<div class="dev-none">No errors saved — all quiet.</div>';
+    sheet.innerHTML =
+      '<div class="dev-grab"></div>' +
+      '<div class="dev-head"><h3>Dev tools · v' + esc(APP_VERSION) + '</h3><button type="button" class="dev-x" data-action="close-dev" aria-label="Close">&#10005;</button></div>' +
+      '<div class="dev-body"><div class="dev-chips">' + chips + '</div>' +
+      '<div class="dev-lab">Errors (' + devErrs.length + ')</div>' + list + '</div>' +
+      '<div class="dev-btns"><button type="button" class="dev-b" data-action="dev-clear">Clear errors</button>' +
+        '<button type="button" class="dev-b" data-action="dev-hide">Hide bubble</button>' +
+        '<button type="button" class="dev-b' + (fpsDebugOn ? ' on' : '') + '" data-action="dev-fps">FPS ' + (fpsDebugOn ? 'on' : 'off') + '</button></div>' +
+      '<div class="dev-foot">' + esc(foot) + '</div>';
+    var nb = sheet.querySelector('.dev-body'); if (nb) nb.scrollTop = keep;
+  }
+  function devOpen(){
+    var o = document.getElementById('devOverlay'); if (!o) return;
+    devRender();
+    o.classList.remove('hidden');
+    if (devTimer) clearInterval(devTimer);
+    devTimer = setInterval(devRender, 1500);
+  }
+  function devClose(){
+    var o = document.getElementById('devOverlay');
+    if (o) o.classList.add('hidden');
+    if (devTimer){ clearInterval(devTimer); devTimer = null; }
+  }
+  function devRefresh(){
+    devBubble();
+    var o = document.getElementById('devOverlay');
+    if (o && !o.classList.contains('hidden')) devRender();
+  }
+  document.getElementById('devOverlay').addEventListener('click', function(e){
+    if (e.target.id === 'devOverlay'){ devClose(); return; }
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var a = el.dataset.action;
+    if (a === 'close-dev') devClose();
+    else if (a === 'dev-clear'){ devErrs = []; try { localStorage.setItem(DEV_ERR_KEY, '[]'); } catch (_) {} devRefresh(); }
+    else if (a === 'dev-hide'){ devSetOn(false); showToast('Dev tools off — 10 taps on the version line to bring it back'); }
+    else if (a === 'dev-fps'){
+      fpsDebugOn = !fpsDebugOn;
+      try { localStorage.setItem('il_fps_debug', fpsDebugOn ? '1' : '0'); } catch (_) {}
+      if (fpsDebugOn) gfpsStart(); else gfpsStop();
+      devRender();
+    }
+  });
+  // Errors inside a mini game's page (same origin) land in the same list.
+  (function(){
+    var gf = document.getElementById('gameFrame');
+    if (!gf) return;
+    gf.addEventListener('load', function(){
+      try {
+        var w = gf.contentWindow;
+        if (!w || w.location.href === 'about:blank') return;
+        w.addEventListener('error', function(e){ devNoteError((e.error && e.error.message) || e.message, 'game ' + String(w.location.pathname).split('/').pop() + ':' + e.lineno); });
+        w.addEventListener('unhandledrejection', function(e){ devNoteError('Unhandled promise: ' + ((e.reason && e.reason.message) || e.reason), 'game ' + String(w.location.pathname).split('/').pop()); });
+      } catch (_) {}
+    });
+  })();
+  devBubble();
 
   function hardcoreCardHtml(){
     var flame = '<svg class="hc-flame" viewBox="0 0 24 30" aria-hidden="true"><defs><linearGradient id="hcfg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#c1121f"/><stop offset="1" stop-color="#ff7a45"/></linearGradient></defs>' +
@@ -18966,6 +19205,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     }
     Promise.all([pull, ensureDoc]).then(function(results){
       var remote = results[0];
+      devLastSyncOkAt = Date.now();
       state.userDoc = results[1];
       // See ensureUserDoc — this in-memory-only marker means the
       // /users/{uid} doc was just created for the first time (a real
@@ -19003,6 +19243,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       // Offline or first login with nothing synced yet — fall back to
       // whatever's cached locally on this device rather than blocking.
       console.error('Firestore pull failed:', err);
+      try { devNoteError('Cloud load failed: ' + ((err && (err.code || err.message)) || err), 'sync'); } catch (_) {}
       return false;
     }).then(function(isNewAccount){
       firestorePullSettled = true;
@@ -26391,17 +26632,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       applyCornerStyle(state.settings.cornerStyle);
       renderApp();
     } else if (action === 'version-tap'){
-      // Hidden: tap the version line 5 times to show/hide a live FPS readout on the Insight 3D view
+      // Hidden: tap the version line 10 times to show/hide the floating DEV bubble (dev tools)
       var nowT = Date.now();
       ui.verTaps = (ui.verTaps && nowT - ui.verTapAt < 1500) ? ui.verTaps + 1 : 1;
       ui.verTapAt = nowT;
-      if (ui.verTaps >= 5){
+      if (ui.verTaps >= 10){
         ui.verTaps = 0;
-        var fpsOn = false;
-        try { fpsOn = localStorage.getItem('il_fps_debug') !== '1'; localStorage.setItem('il_fps_debug', fpsOn ? '1' : '0'); } catch (e) {}
-        fpsDebugOn = fpsOn;
-        if (fpsOn) gfpsStart(); else gfpsStop();
-        showToast(fpsOn ? 'Dev tools on: FPS readout + rest-alert test' : 'Dev tools off');
+        devSetOn(!devOn);
+        showToast(devOn ? 'Dev tools on \u2014 tap the DEV bubble' : 'Dev tools off');
       }
     } else if (action === 'toggle-danger-zone'){
       ui.dangerZoneOpen = !ui.dangerZoneOpen;
