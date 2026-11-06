@@ -9164,7 +9164,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { name: 'Machine Chest Fly', equipment: 'Machine', how: 'Sit at the machine, bring the handles together in front of your chest in an arc.' },
       { name: 'Push-ups', equipment: 'Bodyweight', how: 'Hands under shoulders, lower your chest to the floor, press back up keeping your body straight.' },
       { name: 'Dips', equipment: 'Bodyweight', how: 'Support yourself on parallel bars, lower until your shoulders dip below your elbows, press back up.' },
-      { name: 'Cable Chest Press', equipment: 'Cable', how: 'Stand facing away from the cable tower, press the handles forward at chest height.' }
+      { name: 'Cable Chest Press', equipment: 'Cable', how: 'Stand facing away from the cable tower, press the handles forward at chest height.' },
+      { name: 'Smith Machine Bench Press', equipment: 'Smith Machine', how: 'Lie under the Smith bar, lower it to your chest, press it back up along the fixed track.' },
+      { name: 'Smith Machine Incline Bench Press', equipment: 'Smith Machine', how: 'Same as Smith bench press on an inclined bench, targeting the upper chest.' },
+      { name: 'Machine Incline Chest Press', equipment: 'Machine', how: 'Sit at the incline press machine, push the handles up and forward.' },
+      { name: 'Incline Push-ups', equipment: 'Bodyweight', how: 'Hands on a bench or box, body straight, lower your chest to it and press back up — easier than the floor version.' },
+      { name: 'Decline Push-ups', equipment: 'Bodyweight', how: 'Feet raised on a bench, lower your chest to the floor and press up — targets the upper chest and shoulders.' }
     ],
     Back: [
       { name: 'Pull-ups', equipment: 'Bodyweight', how: 'Hang from a bar, pull your chin above it, lower with control.' },
@@ -9183,7 +9188,17 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { name: 'Single-Arm Cable Row', equipment: 'Cable', how: 'Same as seated cable row, one arm at a time for a deeper stretch and rotation.' },
       { name: 'Cable Pullover', equipment: 'Cable', how: 'Facing the cable tower, pull the bar down and back in an arc to your thighs.' },
       { name: 'T-Bar Row', equipment: 'Barbell', how: 'Straddle the bar, hinge forward, pull the handle to your chest.' },
-      { name: 'Deadlift', equipment: 'Barbell', how: 'Grip the bar just outside your legs, drive through your heels and stand tall, bar close to your body.' }
+      { name: 'Deadlift', equipment: 'Barbell', how: 'Grip the bar just outside your legs, drive through your heels and stand tall, bar close to your body.' },
+      { name: 'Chin-ups', equipment: 'Bodyweight', how: 'Hang with palms facing you, pull your chin above the bar, lower with control.' },
+      { name: 'Pendlay Row', equipment: 'Barbell', how: 'Bar on the floor each rep, back flat and parallel to the ground, pull it explosively to your lower chest.' },
+      { name: 'Dumbbell Chest-Supported Row', equipment: 'Dumbbell', how: 'Lie chest-down on an incline bench, row the dumbbells up to your sides.' },
+      { name: 'Inverted Row', equipment: 'Bodyweight', how: 'Hang under a low bar with your body straight, pull your chest up to the bar.' },
+      { name: 'Straight-Arm Pulldown', equipment: 'Cable', how: 'Stand facing a high cable, arms nearly straight, sweep the bar down to your thighs.' },
+      { name: 'Dumbbell Pullover', equipment: 'Dumbbell', how: 'Lie across a bench, lower one dumbbell back over your head with arms slightly bent, pull it back over your chest.' },
+      { name: 'Rack Pull', equipment: 'Barbell', how: 'Deadlift from knee height on safety pins, drive your hips through and stand tall.' },
+      { name: 'Trap Bar Deadlift', equipment: 'Barbell', how: 'Stand inside the trap bar, grip the side handles, drive through your heels and stand tall.' },
+      { name: 'Back Extension', equipment: 'Bodyweight', how: 'On a back extension bench, lower your torso with a flat back, then raise it until your body is straight.' },
+      { name: 'Landmine Row', equipment: 'Barbell', how: 'Straddle a barbell anchored at one end, hinge over, and row the free end to your chest.' }
     ],
     Shoulders: [
       { name: 'Barbell Shoulder Press', equipment: 'Barbell', how: 'Press the bar overhead from shoulder height until your arms are straight.' },
@@ -9198,7 +9213,13 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { name: 'Dumbbell Rear Delt Fly', equipment: 'Dumbbell', how: 'Hinge forward, raise dumbbells out to the sides, squeezing your shoulder blades together.' },
       { name: 'Cable Rear Delt Fly', equipment: 'Cable', how: 'Cross cables in front of you, pull them out and back to target the rear delts.' },
       { name: 'Arnold Press', equipment: 'Dumbbell', how: 'Dumbbell press that rotates from palms-in at the bottom to palms-forward at the top.' },
-      { name: 'Face Pull', equipment: 'Cable', how: 'Pull a rope attachment toward your face, elbows high, squeezing your shoulder blades together.' }
+      { name: 'Face Pull', equipment: 'Cable', how: 'Pull a rope attachment toward your face, elbows high, squeezing your shoulder blades together.' },
+      { name: 'Push Press', equipment: 'Barbell', how: 'Dip slightly at the knees, then drive the bar overhead using your legs and arms together.' },
+      { name: 'Smith Machine Shoulder Press', equipment: 'Smith Machine', how: 'Sit under the Smith bar, press it overhead along the fixed track.' },
+      { name: 'Landmine Press', equipment: 'Barbell', how: 'Hold the end of an anchored barbell at your shoulder, press it up and forward.' },
+      { name: 'Reverse Pec Deck', equipment: 'Machine', how: 'Sit facing the pec deck pad, pull the handles out and back to hit the rear delts.' },
+      { name: 'Pike Push-ups', equipment: 'Bodyweight', how: 'Hips high in an upside-down V, lower your head toward the floor and press back up.' },
+      { name: 'Dumbbell Seated Lateral Raise', equipment: 'Dumbbell', how: 'Seated, raise dumbbells out to your sides to shoulder height — no body swing.' }
     ],
     Traps: [
       { name: 'Barbell Shrug', equipment: 'Barbell', how: 'Hold the bar at your hips, shrug your shoulders straight up toward your ears.' },
@@ -9206,7 +9227,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { name: 'Cable Shrug', equipment: 'Cable', how: 'Same shrugging motion using a low cable for constant tension.' },
       { name: 'Barbell Upright Row', equipment: 'Barbell', muscle: 'Shoulder/Trap', how: 'Pull the bar straight up along your body to chest height, elbows leading.' },
       { name: 'Dumbbell Upright Row', equipment: 'Dumbbell', muscle: 'Shoulder/Trap', how: 'Pull dumbbells straight up along your body to chest height, elbows leading.' },
-      { name: "Farmer's Carry", equipment: 'Dumbbell', how: 'Hold a heavy dumbbell in each hand, walk with your shoulders back and core braced.' }
+      { name: "Farmer's Carry", equipment: 'Dumbbell', how: 'Hold a heavy dumbbell in each hand, walk with your shoulders back and core braced.' },
+      { name: 'Smith Machine Shrug', equipment: 'Smith Machine', how: 'Hold the Smith bar at your hips, shrug your shoulders straight up.' },
+      { name: 'Dumbbell Rear Delt Row', equipment: 'Dumbbell', how: 'Hinge forward, row the dumbbells out wide toward your chest, hitting upper back and rear delts.' }
     ],
     Biceps: [
       { name: 'Barbell Bicep Curl', equipment: 'Barbell', how: 'Curl the bar up toward your shoulders, elbows pinned to your sides.' },
@@ -9219,7 +9242,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { name: 'Barbell Preacher Curl', equipment: 'Barbell', how: 'Curl the bar with your arms braced on a preacher bench, isolating the biceps.' },
       { name: 'Dumbbell Preacher Curl', equipment: 'Dumbbell', how: 'Same as the barbell version, one dumbbell at a time.' },
       { name: 'EZ-Bar Preacher Curl', equipment: 'EZ-Bar', how: 'Preacher curl using the angled EZ-bar grip.' },
-      { name: 'Concentration Curl', equipment: 'Dumbbell', how: 'Seated, elbow braced against your inner thigh, curl one dumbbell with full focus on the bicep.' }
+      { name: 'Concentration Curl', equipment: 'Dumbbell', how: 'Seated, elbow braced against your inner thigh, curl one dumbbell with full focus on the bicep.' },
+      { name: 'Dumbbell Incline Bicep Curl', equipment: 'Dumbbell', how: 'Sit back on an incline bench with arms hanging behind you, curl the dumbbells up for a deep stretch.' },
+      { name: 'Dumbbell Spider Curl', equipment: 'Dumbbell', how: 'Chest-down on an incline bench, arms hanging straight, curl the dumbbells up.' },
+      { name: 'Cable Bayesian Curl', equipment: 'Cable', how: 'Facing away from a low cable with your arm behind you, curl the handle up for a stretched biceps.' },
+      { name: 'Zottman Curl', equipment: 'Dumbbell', how: 'Curl up with palms facing up, rotate to palms down at the top, lower slowly.' },
+      { name: 'Drag Curl', equipment: 'Barbell', how: 'Curl the bar up while sliding it along your torso, elbows pulled back.' },
+      { name: 'Machine Bicep Curl', equipment: 'Machine', how: 'Sit at the curl machine, arms on the pad, curl the handles up.' },
+      { name: 'Dumbbell Cross-Body Hammer Curl', equipment: 'Dumbbell', how: 'Curl a dumbbell across your body toward the opposite shoulder, palm facing in.' }
     ],
     Triceps: [
       { name: 'Tricep Pushdown', equipment: 'Cable', how: 'Push a bar attachment down until your arms are straight, elbows pinned to your sides.' },
@@ -9232,7 +9262,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { name: 'Cable Overhead Extension', equipment: 'Cable', how: 'Same overhead extension motion using a cable behind your head.' },
       { name: 'Dumbbell Tricep Kickback', equipment: 'Dumbbell', how: 'Hinge forward, upper arm still, extend the dumbbell straight back until locked out.' },
       { name: 'Cable Tricep Kickback', equipment: 'Cable', how: 'Same kickback motion using a low cable for constant tension.' },
-      { name: 'Dips', equipment: 'Bodyweight', how: 'Support yourself on parallel bars, lower until your shoulders dip below your elbows, press back up.' }
+      { name: 'Dips', equipment: 'Bodyweight', how: 'Support yourself on parallel bars, lower until your shoulders dip below your elbows, press back up.' },
+      { name: 'Bench Dips', equipment: 'Bodyweight', how: 'Hands on a bench behind you, lower your hips by bending your elbows, press back up.' },
+      { name: 'Diamond Push-ups', equipment: 'Bodyweight', how: 'Push-up with hands close together under your chest, elbows tucked.' },
+      { name: 'Machine Tricep Extension', equipment: 'Machine', how: 'Sit at the machine, push the handles down until your arms are straight.' },
+      { name: 'Cable Reverse-Grip Pushdown', equipment: 'Cable', how: 'Palms facing up, push the bar down until your arms are straight, elbows pinned.' },
+      { name: 'Single-Arm Cable Pushdown', equipment: 'Cable', how: 'Push a single handle down with one arm, elbow pinned to your side.' }
     ],
     Forearms: [
       { name: 'Barbell Wrist Curl', equipment: 'Barbell', how: 'Forearms on your thighs or a bench, curl the bar up using only your wrists.' },
@@ -9240,7 +9275,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { name: 'Cable Wrist Curl', equipment: 'Cable', how: 'Same wrist curl motion using a low cable.' },
       { name: 'Reverse Wrist Curl', equipment: 'Barbell', how: 'Palms facing down, extend your wrists upward against the bar\'s weight.' },
       { name: "Farmer's Carry", equipment: 'Dumbbell', how: 'Hold a heavy dumbbell in each hand, walk with your shoulders back and core braced.' },
-      { name: 'Dead Hang', equipment: 'Bodyweight', isHold: true, how: 'Hang from a bar with straight arms, holding your bodyweight for time.' }
+      { name: 'Dead Hang', equipment: 'Bodyweight', isHold: true, how: 'Hang from a bar with straight arms, holding your bodyweight for time.' },
+      { name: 'Reverse Curl', equipment: 'EZ-Bar', how: 'Overhand grip, curl the bar up to your shoulders — hits forearms and the top of the arm.' },
+      { name: 'Dumbbell Reverse Wrist Curl', equipment: 'Dumbbell', how: 'Forearms on a bench palms down, lift the dumbbells up using only your wrists.' },
+      { name: 'Plate Pinch', equipment: 'Bodyweight', isHold: true, how: 'Pinch two weight plates together smooth-side out and hold them for time.' }
     ],
     Abs: [
       { name: 'Crunches', equipment: 'Bodyweight', how: 'Lie on your back, knees bent, curl your shoulders up off the floor toward your knees.' },
@@ -9249,7 +9287,18 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { name: 'Cable Crunch', equipment: 'Cable', how: 'Kneel facing a high cable, curl your torso down toward your knees.' },
       { name: 'Pallof Press', equipment: 'Cable', how: 'Stand sideways to a cable, press the handle out and resist it pulling you to rotate.' },
       { name: 'Russian Twist', equipment: 'Bodyweight', how: 'Sit back slightly, feet off the floor, rotate your torso side to side.' },
-      { name: 'Ab Wheel Rollout', equipment: 'Bodyweight', how: 'Kneeling, roll the wheel forward as far as you can control, then pull back in.' }
+      { name: 'Ab Wheel Rollout', equipment: 'Bodyweight', how: 'Kneeling, roll the wheel forward as far as you can control, then pull back in.' },
+      { name: 'Sit-ups', equipment: 'Bodyweight', how: 'Lie on your back, knees bent, sit all the way up, then lower with control.' },
+      { name: 'Side Plank', equipment: 'Bodyweight', isHold: true, how: 'Hold a straight line on one forearm and the side of your foot.' },
+      { name: 'Captain\'s Chair Leg Raise', equipment: 'Bodyweight', how: 'Forearms on the pads, back against the pad, raise your legs up toward your chest.' },
+      { name: 'Decline Crunch', equipment: 'Bodyweight', how: 'On a decline bench, curl your shoulders up toward your knees.' },
+      { name: 'Cable Woodchop', equipment: 'Cable', how: 'Pull the cable diagonally across your body from high to low, rotating through your torso.' },
+      { name: 'Reverse Crunch', equipment: 'Bodyweight', how: 'Lie on your back, curl your hips off the floor by pulling your knees toward your chest.' },
+      { name: 'Bicycle Crunch', equipment: 'Bodyweight', how: 'Lie on your back, bring opposite elbow to opposite knee in a pedaling motion.' },
+      { name: 'Lying Leg Raise', equipment: 'Bodyweight', how: 'Lie flat, raise straight legs up to vertical, lower slowly without touching the floor.' },
+      { name: 'Machine Crunch', equipment: 'Machine', how: 'Sit at the machine, curl your torso forward against the pad.' },
+      { name: 'Hollow Hold', equipment: 'Bodyweight', isHold: true, how: 'Lie on your back, lift your shoulders and legs off the floor, and hold a banana shape.' },
+      { name: 'Dragon Flag', equipment: 'Bodyweight', how: 'Lying on a bench, hold it behind your head and lower your straight body down slowly, then raise it back.' }
     ],
     Quads: [
       { name: 'Back Squat', equipment: 'Barbell', how: 'Bar on your upper back, squat down until your thighs are at least parallel, drive back up.' },
@@ -9261,7 +9310,17 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { name: 'Bodyweight Lunges', equipment: 'Bodyweight', how: 'Step forward into a lunge, lower your back knee toward the floor, drive back up.' },
       { name: 'Leg Extension', equipment: 'Machine', how: 'Sit at the machine, extend your legs straight out against the pad.' },
       { name: 'Dumbbell Bulgarian Split Squat', equipment: 'Dumbbell', how: 'Rear foot elevated on a bench, lower into a lunge holding dumbbells, drive back up.' },
-      { name: 'Bodyweight Bulgarian Split Squat', equipment: 'Bodyweight', how: 'Same split squat, rear foot elevated, using just bodyweight.' }
+      { name: 'Bodyweight Bulgarian Split Squat', equipment: 'Bodyweight', how: 'Same split squat, rear foot elevated, using just bodyweight.' },
+      { name: 'Hack Squat', equipment: 'Machine', how: 'Back against the pad, feet on the platform, squat down and press back up.' },
+      { name: 'Smith Machine Squat', equipment: 'Smith Machine', how: 'Bar on your upper back under the Smith bar, squat down and stand back up.' },
+      { name: 'Dumbbell Step-ups', equipment: 'Dumbbell', how: 'Holding dumbbells, step onto a bench and drive up through your front leg, then step down.' },
+      { name: 'Sissy Squat', equipment: 'Bodyweight', how: 'Rise onto your toes, lean back while bending your knees forward, then rise back up.' },
+      { name: 'Bodyweight Squat', equipment: 'Bodyweight', how: 'Feet shoulder-width, squat until your thighs are parallel, stand back up.' },
+      { name: 'Kettlebell Goblet Squat', equipment: 'Kettlebell', how: 'Hold a kettlebell at your chest, squat down keeping your torso upright.' },
+      { name: 'Dumbbell Reverse Lunges', equipment: 'Dumbbell', how: 'Holding dumbbells, step back into a lunge, then drive back up to standing.' },
+      { name: 'Dumbbell Walking Lunges', equipment: 'Dumbbell', how: 'Holding dumbbells, step forward into a lunge and keep walking, alternating legs.' },
+      { name: 'Wall Sit', equipment: 'Bodyweight', isHold: true, how: 'Back flat against a wall, thighs parallel to the floor, hold for time.' },
+      { name: 'Hip Adduction Machine', equipment: 'Machine', how: 'Sit at the machine with legs apart, squeeze your thighs together against the pads.' }
     ],
     Hamstrings: [
       { name: 'Barbell Romanian Deadlift', equipment: 'Barbell', how: 'Hinge at the hips with a slight knee bend, lower the bar along your legs, stand back up.' },
@@ -9270,7 +9329,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { name: 'Lying Leg Curl', equipment: 'Machine', how: 'Lie face down, curl your heels up toward your glutes against the pad.' },
       { name: 'Good Morning', equipment: 'Barbell', how: 'Bar on your back, hinge forward at the hips keeping your back flat, then stand back up.' },
       { name: 'Stiff-Leg Deadlift', equipment: 'Barbell', how: 'Similar to Romanian deadlift, with straighter legs for a deeper hamstring stretch.' },
-      { name: 'Nordic Curl', equipment: 'Bodyweight', how: 'Kneeling with ankles anchored, lower your torso forward as slowly as you can control, then pull back up.' }
+      { name: 'Nordic Curl', equipment: 'Bodyweight', how: 'Kneeling with ankles anchored, lower your torso forward as slowly as you can control, then pull back up.' },
+      { name: 'Standing Leg Curl', equipment: 'Machine', how: 'Stand at the machine, curl one heel up toward your glutes against the pad.' },
+      { name: 'Dumbbell Single-Leg Romanian Deadlift', equipment: 'Dumbbell', how: 'Balance on one leg, hinge forward with a flat back and lower the dumbbell, then stand back up.' },
+      { name: 'Glute-Ham Raise', equipment: 'Bodyweight', how: 'Ankles anchored on the GHR machine, lower your torso then curl back up using your hamstrings.' },
+      { name: 'Kettlebell Romanian Deadlift', equipment: 'Kettlebell', how: 'Hold a kettlebell with both hands, hinge at the hips along your legs, stand back up.' }
     ],
     Glutes: [
       { name: 'Barbell Hip Thrust', equipment: 'Barbell', how: 'Upper back on a bench, bar across your hips, drive your hips up until your body is straight.' },
@@ -9281,14 +9344,26 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       { name: 'Bodyweight Bulgarian Split Squat', equipment: 'Bodyweight', how: 'Same split squat, rear foot elevated, using just bodyweight.' },
       { name: 'Cable Glute Kickback', equipment: 'Cable', how: 'Cable cuff on your ankle, kick your leg straight back, squeezing your glute.' },
       { name: 'Cable Pull-Through', equipment: 'Cable', how: 'Facing away from a low cable, hinge forward then drive your hips through to standing.' },
-      { name: 'Sumo Deadlift', equipment: 'Barbell', how: 'Wide stance, hands inside your knees, drive through your heels to stand up.' }
+      { name: 'Sumo Deadlift', equipment: 'Barbell', how: 'Wide stance, hands inside your knees, drive through your heels to stand up.' },
+      { name: 'Hip Abduction Machine', equipment: 'Machine', how: 'Sit at the machine, push your knees out against the pads, control it back in.' },
+      { name: 'Reverse Hyperextension', equipment: 'Machine', how: 'Lie face-down over the pad, swing your legs back and up by squeezing your glutes.' },
+      { name: 'Kettlebell Swing', equipment: 'Kettlebell', how: 'Hinge and swing the kettlebell up to chest height by snapping your hips forward.' },
+      { name: 'Smith Machine Hip Thrust', equipment: 'Smith Machine', how: 'Upper back on a bench, Smith bar across your hips, drive up until your body is straight.' },
+      { name: 'Dumbbell Hip Thrust', equipment: 'Dumbbell', how: 'Upper back on a bench, dumbbell across your hips, drive up until your body is straight.' },
+      { name: 'Dumbbell Sumo Squat', equipment: 'Dumbbell', how: 'Wide stance, toes out, hold one dumbbell between your legs and squat down.' },
+      { name: 'Dumbbell Curtsy Lunge', equipment: 'Dumbbell', how: 'Step one leg behind and across the other into a curtsy, then drive back up.' },
+      { name: 'Frog Pumps', equipment: 'Bodyweight', how: 'Lie on your back with soles together and knees out, drive your hips up squeezing your glutes.' }
     ],
     Calves: [
       { name: 'Barbell Standing Calf Raise', equipment: 'Barbell', how: 'Bar on your back, rise up onto your toes, lower with control.' },
       { name: 'Machine Standing Calf Raise', equipment: 'Machine', how: 'Same calf raise motion on a standing machine.' },
       { name: 'Dumbbell Standing Calf Raise', equipment: 'Dumbbell', how: 'Hold dumbbells at your sides, rise up onto your toes.' },
       { name: 'Seated Calf Raise', equipment: 'Machine', how: 'Sit at the machine, push through your toes to raise the weight, lower with control.' },
-      { name: 'Calf Press', equipment: 'Machine', how: 'On the leg press machine, push through your toes only, knees mostly straight.' }
+      { name: 'Calf Press', equipment: 'Machine', how: 'On the leg press machine, push through your toes only, knees mostly straight.' },
+      { name: 'Donkey Calf Raise', equipment: 'Machine', how: 'Hinged forward with weight on your hips, rise onto your toes and lower slowly.' },
+      { name: 'Smith Machine Calf Raise', equipment: 'Smith Machine', how: 'Stand with toes on a block under the Smith bar, rise onto your toes, lower with control.' },
+      { name: 'Single-Leg Calf Raise', equipment: 'Bodyweight', how: 'Standing on one foot on a step, rise onto your toes and lower below the step.' },
+      { name: 'Tibialis Raise', equipment: 'Bodyweight', how: 'Back against a wall, feet forward, lift your toes up toward your shins.' }
     ]
   };
 
@@ -9569,7 +9644,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // order they're shown. Kept as an explicit list (rather than derived
   // from EXERCISE_LIBRARY_FLAT) so the chip order stays stable regardless
   // of which equipment happens to appear first in the library data.
-  var EQUIPMENT_FILTER_OPTIONS = ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'EZ-Bar', 'Bodyweight'];
+  var EQUIPMENT_FILTER_OPTIONS = ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'Smith Machine', 'Kettlebell', 'EZ-Bar', 'Bodyweight'];
 
   // Choices for Settings > Card Style. "id" matches both the data-bg swatch
   // attribute and the body[data-card-bg] CSS selector — keep them in sync
@@ -15061,8 +15136,43 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   }
 
   // The picture shown on a Log card: the 2D illustration, or (when 3D is chosen) a still of the 3D figure.
+
+  // Best-guess muscle group for an exercise with no stored muscle (typed
+  // in by hand, or a rename of a blank card). Order: library match, an
+  // earlier logged copy of the same name, then keyword rules. Display-only
+  // — it picks the fallback picture and never changes saved data.
+  var MUSCLE_NAME_RULES = [
+    ['Forearms', /wrist|forearm|farmer|pinch|dead hang|reverse curl/],
+    ['Traps', /shrug|upright row/],
+    ['Biceps', /^(?!.*(leg|hamstring|nordic|wrist)).*(curl|bicep)/],
+    ['Triceps', /tricep|skull|pushdown|kickback(?!.*glute)|close.?grip bench|dip|overhead extension|jm press/],
+    ['Hamstrings', /leg curl|hamstring|romanian|rdl|stiff|good morning|nordic|glute.?ham/],
+    ['Glutes', /glute|hip thrust|hip abduct|bridge|pull.?through|kickback|sumo|swing|frog/],
+    ['Calves', /calf|calves|tibialis/],
+    ['Quads', /squat|bulgarian|split squat|lunge|leg press|leg extension|hack|step.?up|quad|wall sit|adduct/],
+    ['Abs', /crunch|plank|sit.?up|leg raise|ab wheel|woodchop|russian|pallof|hollow|dragon|twist|core|v-up/],
+    ['Shoulders', /shoulder|lateral raise|front raise|rear delt|face pull|arnold|overhead press|military|push press|pike|reverse pec|delt/],
+    ['Chest', /bench|chest|pec|fly|flye|push.?up|crossover/],
+    ['Back', /row|pulldown|pull.?down|pull.?up|chin.?up|lat |deadlift|pullover|back ext|hyperext|rack pull|t-bar|\blat\b/]
+  ];
+  function guessMuscleFromName(name){
+    var key = String(name || '').trim().toLowerCase();
+    if (!key) return null;
+    var lib = EXERCISE_LIBRARY_BY_NAME[key];
+    if (lib && lib.muscle) return lib.muscle;
+    for (var i = 0; i < state.sessions.length; i++){
+      var exs = state.sessions[i].exercises || [];
+      for (var j = 0; j < exs.length; j++){
+        if (exs[j].muscle && String(exs[j].name || '').trim().toLowerCase() === key) return exs[j].muscle;
+      }
+    }
+    for (var r = 0; r < MUSCLE_NAME_RULES.length; r++){
+      if (MUSCLE_NAME_RULES[r][1].test(key)) return MUSCLE_NAME_RULES[r][0];
+    }
+    return null;
+  }
   function exPicImgHtml(ex, cls){
-    var photo = EXERCISE_IMG[ex.name] || (ex.muscle ? MUSCLE_IMG[ex.muscle] : null);
+    var photo = EXERCISE_IMG[ex.name] || MUSCLE_IMG[ex.muscle || guessMuscleFromName(ex.name)] || null;
     if (!photo) return null;
     var lib = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === ex.name; })[0] || null;
     var hit = (lib && exViewMode === '3d') ? rdStills[ex.name + '|' + (ex.muscle || '')] : null;
@@ -22252,7 +22362,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var cardioMatch = cardioLibItem(name);
     if (cardioMatch) return { img: CARDIO_IMG, how: cardioMatch.how };
     var libMatch = EXERCISE_LIBRARY_FLAT.filter(function(e){ return e.name === name; })[0];
-    var resolvedMuscle = muscle || (libMatch ? libMatch.muscle : null);
+    var resolvedMuscle = muscle || (libMatch ? libMatch.muscle : null) || guessMuscleFromName(name);
     var img = EXERCISE_IMG[name] || (resolvedMuscle ? MUSCLE_IMG[resolvedMuscle] : null);
     return { img: img, how: libMatch ? libMatch.how : null };
   }
