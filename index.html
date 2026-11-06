@@ -1149,6 +1149,25 @@
   .ref-set-wr{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--text);flex:1;}
   .ref-set-wr .x{color:var(--text-faint);margin:0 4px;}
   .ref-empty{color:var(--text-faint);font-size:13px;padding:14px 0;text-align:center;}
+  /* Last time panel: same look as the rest of the app (card title font, boxed close, gold PR, best set highlighted). */
+  #refOverlayPanel{box-shadow:inset 0 2px 0 var(--accent),0 16px 48px rgba(0,0,0,.55);}
+  #refOverlayPanel .pro-panel-header{padding:18px 16px 12px;border-bottom:1px solid var(--line);}
+  #refOverlayPanel .pro-panel-header h3{font-family:'Oswald',sans-serif;font-size:22px;text-transform:uppercase;letter-spacing:.04em;color:#f4f1ea;margin:0;}
+  #refOverlayPanel .pro-panel-close{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);font-size:15px;display:flex;align-items:center;justify-content:center;color:#d8dbe0;}
+  #refOverlayPanel .ref-subtitle{display:flex;align-items:center;gap:10px;position:relative;padding-left:10px;font:600 12.5px/1 'Oswald',sans-serif;letter-spacing:.16em;color:#aab0b8;margin:6px 0 8px;}
+  #refOverlayPanel .ref-subtitle::before{content:"";position:absolute;left:0;top:-1px;bottom:-1px;width:3px;border-radius:2px;background:var(--accent);}
+  #refOverlayPanel .ref-subtitle::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(var(--accent-rgb),.35),rgba(var(--accent-rgb),0));}
+  #refOverlayPanel .ref-set-row{padding:11px 12px;margin:6px 0;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(22,25,30,.94);gap:12px;}
+  #refOverlayPanel .ref-set-idx{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:12px;color:#aab0b8;}
+  #refOverlayPanel .ref-set-wr{display:flex;align-items:baseline;gap:6px;}
+  #refOverlayPanel .ref-set-wr b{font:700 20px/1 'Oswald',sans-serif;letter-spacing:.03em;color:#f4f1ea;}
+  #refOverlayPanel .ref-set-wr i{font:600 11px 'JetBrains Mono',monospace;font-style:normal;color:#aab0b8;}
+  #refOverlayPanel .ref-set-wr .x{margin:0 2px;}
+  #refOverlayPanel .pr-tag{background:var(--accent);color:#1c1500;font:700 10px/1 'Oswald',sans-serif;letter-spacing:.1em;padding:4px 7px;border-radius:5px;box-shadow:0 0 12px rgba(var(--accent-rgb),.45);}
+  #refOverlayPanel .ref-set-row.best{border-color:rgba(var(--accent-rgb),.6);background:linear-gradient(110deg,rgba(22,25,30,.94) 40%,rgba(var(--accent-rgb),.16));}
+  #refOverlayPanel .ref-set-row.best .ref-set-wr b{color:var(--accent);}
+  #refOverlayPanel .ref-note{margin-top:10px;font-size:12px;color:#8b9098;display:flex;align-items:center;gap:8px;}
+  #refOverlayPanel .ref-note::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--accent);}
   .reminder-banner{
     display:flex;
     align-items:center;
@@ -24923,10 +24942,15 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     overlay.classList.remove('hidden');
     var workingSessionForRef = getActiveSession();
     var sets = getReferenceSets(workingSessionForRef, ui.referenceExerciseName) || [];
+    var refName = ui.referenceExerciseName, refHold = isHoldExercise(refName);
+    var refBest = lastBestSetOf(refName, sets);
     var rowsHtml = sets.map(function(st, i){
-      return '<div class="ref-set-row">' +
+      var wr = refHold ? '<b>'+st.reps+'</b><i>s</i>'
+        : (st.weightKg > 0 ? '<b>'+fmtWeight(st.weightKg)+'</b><i>'+unitLabel()+'</i><i class="x">&times;</i><b>'+st.reps+'</b>'
+                           : '<b>'+st.reps+'</b><i>reps</i>');
+      return '<div class="ref-set-row'+(st === refBest ? ' best' : '')+'">' +
                '<span class="ref-set-idx">'+(i+1)+'</span>' +
-               '<span class="ref-set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+(isHoldExercise(ui.referenceExerciseName) ? 's' : '')+'</span>' +
+               '<span class="ref-set-wr">'+wr+'</span>' +
                (st.isPR ? '<span class="pr-tag"'+prTagAttrs(st)+'>PR</span>' : '') +
              '</div>';
     }).join('');
@@ -24937,6 +24961,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       '<div class="pro-panel-body">' +
         '<div class="ref-subtitle">Last time</div>' +
         (rowsHtml || '<div class="ref-empty">No sets logged for this exercise last time.</div>') +
+        (rowsHtml && refBest ? '<div class="ref-note">Gold = the set shown as your Last best</div>' : '') +
       '</div>';
   }
 
