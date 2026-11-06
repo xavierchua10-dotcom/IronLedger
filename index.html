@@ -4616,6 +4616,9 @@
     animation:crLineUp 0.6s cubic-bezier(0.2,0.8,0.2,1) both;
   }
   .chart-anim .cr-dot{animation:crDotIn 0.3s ease 0.45s both;}
+  /* Line charts draw in from the left edge to the right instead of rising. */
+  @keyframes crSweep{from{clip-path:inset(-24px 100% -24px 0);}to{clip-path:inset(-24px -24px -24px 0);}}
+  .chart-anim .cr-sweep{animation:crSweep 0.85s cubic-bezier(0.45,0,0.25,1) both;}
   .chart-empty-note{
     text-align:center;
     color:#c7ccd3;
@@ -17598,6 +17601,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     placeProgressSwitch();
     var best1RMEl = document.getElementById('csValBest1RM');
     var latestTopEl = document.getElementById('csValLatestTop');
+    if (ui.chartSweepOnTab){
+      ui.chartSweepOnTab = false;
+      var cTrack = document.getElementById('chartCarouselTrack');
+      if (cTrack && cTrack.children[0]) playChartAnim(cTrack.children[0]);
+    }
     if (best1RMEl) animateStatCounter(best1RMEl, parseFloat(best1RMEl.dataset.target), fmtWeight, ' ' + unitLabel());
     if (latestTopEl) animateStatCounter(latestTopEl, parseFloat(latestTopEl.dataset.target), fmtWeight, ' ' + unitLabel());
   }
@@ -17784,6 +17792,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (pageEl.querySelector('.chart-pro-teaser')) return;   // the padlock isn't a chart
     var svg = pageEl.querySelector('svg');
     if (!svg) return;
+    if (!svg.querySelector('rect')){
+      // line chart: reveal it left to right (dots and the weight line come with it)
+      svg.classList.add('cr-sweep');
+      pageEl.classList.remove('chart-anim');
+      void pageEl.offsetWidth;
+      pageEl.classList.add('chart-anim');
+      return;
+    }
     var i = 0;
     Array.prototype.forEach.call(svg.querySelectorAll('rect'), function(r){
       r.classList.add('cr-bar');
@@ -18809,6 +18825,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     }
     // Any real tab change ends the "back returns to History" step.
     if (ui.progressBackToHistory){ ui.progressBackToHistory = false; queueBackSync(); }
+    if (newTab === 'progress') ui.chartSweepOnTab = true;
     var oldIndex = TAB_ORDER.indexOf(state.tab);
     var newIndex = TAB_ORDER.indexOf(newTab);
     var viewEl = document.getElementById('view');
