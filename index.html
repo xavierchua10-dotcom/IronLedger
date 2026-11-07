@@ -2045,7 +2045,8 @@
   .rd-ck-row.on span{color:var(--text-dim);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.3);}
   .rd-glabel{margin:0 0 14px;padding-left:8px;border-left:3px solid #5eead4;font:700 11px 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--text-dim);}
   .rd-stretch{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid rgba(94,234,212,.4);border-radius:14px;padding:14px 16px;margin:0 0 22px;}
-  .rd-stretch .rd-st-ic{flex:none;width:48px;height:48px;border-radius:12px;background:#143a38;display:grid;place-items:center;}
+  .rd-stretch .rd-st-ic{flex:none;width:76px;height:56px;border-radius:10px;background:#fff;overflow:hidden;}
+  .rd-stretch .rd-st-ic img{display:block;width:100%;height:100%;object-fit:contain;}
   .rd-stretch .rd-st-t{flex:1;min-width:0;}
   .rd-stretch .rd-st-n{font:700 18px 'Oswald',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--text);}
   .rd-stretch .rd-st-d{font-size:12px;line-height:1.4;color:var(--text-dim);margin-top:3px;}
@@ -2060,8 +2061,8 @@
   .st-step h4{margin:0;font:700 24px 'Oswald',sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--text);}
   .st-chip{display:inline-block;margin:8px 6px 0 0;font:700 10px 'JetBrains Mono',monospace;letter-spacing:.06em;padding:6px 10px;border-radius:999px;border:1px solid rgba(94,234,212,.45);color:#5eead4;background:rgba(94,234,212,.08);}
   .st-chip.a{border-color:rgba(242,177,52,.45);color:#f2b134;background:rgba(242,177,52,.08);}
-  .st-fig{margin:14px 16px 0;background:#fff;border-radius:16px;height:220px;display:grid;place-items:center;}
-  .st-fig svg{width:100%;max-width:300px;height:auto;max-height:210px;stroke:#1a1d22;}
+  .st-fig{margin:14px 16px 0;background:#fff;border-radius:16px;height:220px;overflow:hidden;}
+  .st-fig img{display:block;width:100%;height:100%;object-fit:contain;}
   .st-cue{padding:14px 16px 0;font-size:13.5px;line-height:1.55;color:#c9ccd2;}
   .st-foot{margin-top:auto;padding:12px 16px calc(20px + var(--safe-bottom, 0px));}
   .st-ring{display:block;margin:0 auto 14px;}
@@ -14452,64 +14453,30 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // ---------- Rest Day Mode: guided stretching ----------
   // A short routine built from the Recovery card: stretches for the muscle groups that are
   // still recovering, 30 seconds each (one step per side where a stretch has two). Nothing
-  // is saved. The pictures are small line drawings built from joint points.
-  function stFig(o){
-    var INK = '#1a1d22', HOT = '#14b8a6', sh = o.sh, hip = o.hip, out = '';
-    if (!o.noGround) out += '<path d="M10 194H290" stroke="#c4c8ce" stroke-width="3"/>';
-    if (o.props) out += o.props;
-    if (o.hl) out += '<circle cx="' + o.hl[0] + '" cy="' + o.hl[1] + '" r="' + o.hl[2] + '" fill="rgba(20,184,166,.28)" stroke="none"/>';
-    function pl(pts, col){ return '<polyline points="' + pts.join(' ') + '" stroke="' + col + '"/>'; }
-    out += pl([sh[0] + ',' + sh[1], hip[0] + ',' + hip[1]], INK);
-    ['armL', 'armR', 'legL', 'legR'].forEach(function(k){
-      var l = o[k]; if (!l) return;
-      var st = k.indexOf('arm') === 0 ? sh : hip, col = (o.hot && o.hot.indexOf(k) >= 0) ? HOT : INK;
-      out += pl([st[0] + ',' + st[1], l[0] + ',' + l[1], l[2] + ',' + l[3]], col);
-    });
-    out += '<circle cx="' + o.head[0] + '" cy="' + o.head[1] + '" r="15" stroke="' + INK + '"/>';
-    return '<svg viewBox="0 0 300 210" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + out + '</svg>';
-  }
-  var ST_WALL = '<path d="M244 10V194" stroke="#9aa0a8" stroke-width="7"/>';
+  // is saved. Each stretch has a line drawing in images/stretch/.
   var STRETCHES = [
-    { id:'chest-door', name:'Doorway chest stretch', buckets:['Chest'], sides:true,
-      cue:'Forearm on the door frame, elbow at shoulder height. Step through until you feel a stretch across the chest. Breathe slowly.',
-      fig:{ props:'<path d="M76 10V194" stroke="#9aa0a8" stroke-width="7"/>', head:[124,40], sh:[124,62], hip:[124,122], armL:[112,62,80,62], armR:[134,92,132,118], legL:[104,154,92,194], legR:[140,156,162,194], hot:['armL'], hl:[124,72,22] } },
     { id:'chest-clasp', name:'Chest opener', buckets:['Chest','Shoulders'], sides:false,
-      cue:'Clasp your hands behind your back and straighten your arms. Lift them slightly and open your chest. Keep your neck relaxed.',
-      fig:{ head:[120,40], sh:[120,62], hip:[120,122], armL:[150,92,174,118], armR:[148,96,172,124], legL:[116,156,110,194], legR:[126,156,134,194], hot:['armL','armR'], hl:[120,76,22] } },
+      cue:'Clasp your hands behind your back and straighten your arms. Lift them slightly and open your chest. Keep your neck relaxed.' },
     { id:'shoulder-cross', name:'Cross-body shoulder', buckets:['Shoulders'], sides:true,
-      cue:'Bring one arm straight across your chest. Use the other arm to hold it close. Keep your shoulders down.',
-      fig:{ head:[120,40], sh:[120,62], hip:[120,122], armL:[146,64,176,66], armR:[142,90,154,68], legL:[116,156,110,194], legR:[126,156,134,194], hot:['armL'], hl:[134,66,20] } },
+      cue:'Bring one arm straight across your chest. Use the other arm to hold it close. Keep your shoulders down.' },
     { id:'triceps', name:'Triceps stretch', buckets:['Arms'], sides:true,
-      cue:'Lift one arm overhead and bend the elbow, hand down your back. Gently press the elbow with your other hand.',
-      fig:{ head:[120,40], sh:[120,62], hip:[120,122], armL:[126,20,110,52], armR:[144,42,128,22], legL:[116,156,110,194], legR:[126,156,134,194], hot:['armL'], hl:[124,36,16] } },
-    { id:'wrist', name:'Forearm stretch', buckets:['Arms'], sides:true,
-      cue:'Reach one arm forward with the palm facing out, fingers up. Use the other hand to ease the fingers back toward you.',
-      fig:{ head:[120,40], sh:[120,62], hip:[120,122], armL:[158,66,198,64], armR:[150,92,206,46], legL:[116,156,110,194], legR:[126,156,134,194], hot:['armL'], hl:[176,64,16], props:'<path d="M198 64L204 36" stroke="#14b8a6"/>' } },
-    { id:'child', name:'Child’s pose', buckets:['Back'], sides:false,
-      cue:'Kneel, sit back toward your heels and reach your arms forward along the floor. Let your back round and relax.',
-      fig:{ head:[96,176], sh:[122,166], hip:[196,152], armL:[84,184,50,188], armR:[86,182,52,186], legL:[152,186,216,188], hot:['armL','armR'], hl:[160,158,26] } },
-    { id:'side-bend', name:'Overhead side bend', buckets:['Back','Core'], sides:true,
-      cue:'Reach both arms overhead and lean to one side. Keep your hips still and breathe into the stretched side.',
-      fig:{ head:[140,44], sh:[126,66], hip:[110,126], armL:[142,38,154,12], armR:[148,44,158,16], legL:[108,160,104,194], legR:[118,160,126,194], hot:['armL','armR'], hl:[116,96,20] } },
-    { id:'cobra', name:'Cobra stretch', buckets:['Core'], sides:false,
-      cue:'Lie face down, hands under your shoulders. Press up gently and lift your chest. Keep your hips on the floor.',
-      fig:{ head:[126,112], sh:[148,138], hip:[214,184], armL:[156,172,152,192], legL:[250,184,286,190], hl:[180,160,22] } },
+      cue:'Lift one arm overhead and bend the elbow, hand down your back. Gently press the elbow with your other hand.' },
+    { id:'child', name:'Child\u2019s pose', buckets:['Back'], sides:false,
+      cue:'Kneel, sit back toward your heels and reach your arms forward along the floor. Let your back round and relax.' },
+    { id:'seated-twist', name:'Seated twist', buckets:['Back','Core'], sides:true,
+      cue:'Sit tall with one leg bent over the other. Twist toward the bent knee and keep a hand on the floor behind you.' },
+    { id:'downward-dog', name:'Downward dog', buckets:['Back','Shoulders','Legs'], sides:false,
+      cue:'Hands and feet on the floor, hips high. Press your chest toward your thighs and pedal your heels gently.' },
     { id:'quad', name:'Standing quad stretch', buckets:['Legs'], sides:true,
-      cue:'Stand tall, hold a wall for balance and pull one heel up behind you toward your glute. Keep your knees close together and your hips forward.',
-      fig:{ props:ST_WALL, head:[150,40], sh:[150,62], hip:[150,122], armL:[128,96,110,126], armR:[190,74,238,84], legL:[144,164,108,128], legR:[152,158,152,194], hot:['legL'], hl:[148,142,20] } },
+      cue:'Stand tall, hold a wall for balance and pull one heel up behind you toward your glute. Keep your knees close together and your hips forward.' },
     { id:'hamstring', name:'Hamstring stretch', buckets:['Legs'], sides:true,
-      cue:'Put one heel on a low step with the leg straight. Hinge forward from the hips with a flat back until you feel the back of the thigh.',
-      fig:{ props:'<path d="M196 162H262V194H196Z" stroke="#9aa0a8" stroke-width="4" fill="#e6e8eb"/>', head:[172,66], sh:[158,82], hip:[118,120], armL:[190,114,214,150], legL:[170,142,220,160], legR:[116,158,114,194], hot:['legL'], hl:[160,140,18] } },
+      cue:'Put one heel on a low step with the leg straight. Hinge forward from the hips with a flat back until you feel the back of the thigh.' },
     { id:'hipflex', name:'Hip flexor lunge', buckets:['Legs'], sides:true,
-      cue:'Kneel on one knee, the other foot forward. Tuck your hips under and shift forward until the front of the back hip stretches.',
-      fig:{ head:[150,58], sh:[150,80], hip:[150,142], armL:[180,112,204,148], legL:[206,148,216,194], legR:[112,184,62,188], hot:['legR'], hl:[140,152,20] } },
-    { id:'calf', name:'Calf stretch', buckets:['Legs'], sides:true,
-      cue:'Hands on a wall, one leg back with the heel pressed down and the leg straight. Lean in until you feel the calf stretch.',
-      fig:{ props:ST_WALL, head:[206,62], sh:[190,78], hip:[150,122], armL:[222,76,240,72], legL:[188,152,202,194], legR:[120,158,92,194], hot:['legR'], hl:[106,170,16] } },
-    { id:'knee-chest', name:'Knee to chest', buckets:['Legs','Back'], sides:true,
-      cue:'Lie on your back and hug one knee toward your chest while the other leg rests on the floor. Keep your lower back relaxed.',
-      fig:{ head:[66,172], sh:[96,178], hip:[160,180], armL:[142,152,190,132], legL:[190,132,214,152], legR:[220,186,262,190], hot:['legL'], hl:[176,150,20] } }
+      cue:'Kneel on one knee, the other foot forward. Tuck your hips under and shift forward until the front of the back hip stretches.' },
+    { id:'butterfly', name:'Butterfly stretch', buckets:['Legs'], sides:false,
+      cue:'Sit tall with the soles of your feet together and knees out. Hold your feet and lean forward from the hips.' }
   ];
+  function stPic(st){ return 'images/stretch/' + st.id + '.webp'; }
   var ST_GENERAL = [['chest-clasp'], ['child'], ['quad'], ['shoulder-cross']];
   var stRun = null;   // { steps, i, remain, total, paused, timer, last }
   function stretchById(id){ for (var i = 0; i < STRETCHES.length; i++) if (STRETCHES[i].id === id) return STRETCHES[i]; return null; }
@@ -14539,8 +14506,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function stretchCardHtml(){
     var r = stBuildRoutine(), n = r.steps.length, mins = Math.max(1, Math.round(n * ST_SECONDS / 60));
     var who = r.general ? 'Full body' : r.tight.slice(0, 3).join(', ');
-    var svg = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5eead4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.2"/><path d="M12 8v6M6 10l6 2 6-2M9 21l3-7 3 7"/></svg>';
-    return '<div class="rd-stretch"><div class="rd-st-ic">' + svg + '</div><div class="rd-st-t"><div class="rd-st-n">Stretch</div>' +
+    var pic = '<img src="' + stPic(r.steps[0].st) + '" alt="">';
+    return '<div class="rd-stretch"><div class="rd-st-ic">' + pic + '</div><div class="rd-st-t"><div class="rd-st-n">Stretch</div>' +
       '<div class="rd-st-d">' + n + ' stretches · ' + mins + ' min<br>' + esc(who) + '</div></div>' +
       '<button type="button" class="st-go" data-action="start-stretch">Start</button></div>';
   }
@@ -14571,11 +14538,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var step = r.steps[r.i], st = step.st;
     var seg = r.steps.map(function(_, k){ return '<b class="' + (k < r.i ? 'd' : k === r.i ? 'c' : '') + '"></b>'; }).join('');
     var chips = st.buckets.map(function(b){ return '<span class="st-chip">' + esc(b).toUpperCase() + '</span>'; }).join('') + (step.side ? '<span class="st-chip a">' + step.side + '</span>' : '');
+    var nx = r.steps[r.i + 1]; if (nx){ var pre = new Image(); pre.src = stPic(nx.st); }
     var C = 251.3, off = (C * (1 - r.remain / r.total)).toFixed(1);
     panel.innerHTML = head + '<span style="margin-left:auto;font:700 11px \'JetBrains Mono\',monospace;color:var(--text-dim);letter-spacing:.1em">' + (r.i + 1) + ' OF ' + r.steps.length + '</span></div>' +
       '<div class="st-seg">' + seg + '</div>' +
       '<div class="st-step"><h4>' + esc(st.name) + '</h4>' + chips + '</div>' +
-      '<div class="st-fig"' + (step.side === 'RIGHT SIDE' ? ' style="transform:scaleX(-1)"' : '') + '>' + stFig(st.fig) + '</div>' +
+      '<div class="st-fig"><img src="' + stPic(st) + '" alt="' + esc(st.name) + '"' + (step.side === 'RIGHT SIDE' ? ' style="transform:scaleX(-1)"' : '') + '></div>' +
       '<div class="st-cue">' + esc(st.cue) + ' Never push into pain.</div>' +
       '<div class="st-foot"><svg class="st-ring" width="92" height="92" viewBox="0 0 92 92"><circle cx="46" cy="46" r="40" fill="none" stroke="#2a2e36" stroke-width="8"/>' +
       '<circle id="stArc" cx="46" cy="46" r="40" fill="none" stroke="#5eead4" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="' + off + '" transform="rotate(-90 46 46)"/>' +

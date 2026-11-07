@@ -40,7 +40,7 @@ messaging.onBackgroundMessage(function(payload){
   });
 });
 
-var CACHE_NAME = 'iron-ledger-v49';
+var CACHE_NAME = 'iron-ledger-v50';
 var CORE_ASSETS = [
   './',
   './index.html',
@@ -53,7 +53,17 @@ var CORE_ASSETS = [
   './games/tictactoe.html',
   './games/stack.html',
   './games/flap.html',
-  './games/slice.html'
+  './games/slice.html',
+  './images/stretch/shoulder-cross.webp',
+  './images/stretch/quad.webp',
+  './images/stretch/hamstring.webp',
+  './images/stretch/seated-twist.webp',
+  './images/stretch/downward-dog.webp',
+  './images/stretch/chest-clasp.webp',
+  './images/stretch/triceps.webp',
+  './images/stretch/hipflex.webp',
+  './images/stretch/butterfly.webp',
+  './images/stretch/child.webp'
 ];
 
 self.addEventListener('install', function(event){
