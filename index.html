@@ -431,6 +431,23 @@
     cursor:pointer;
   }
   .tour-btn:active{background:var(--panel-3);}
+  .tour-pills{display:flex;gap:4px;margin-bottom:12px;}
+  .tour-pills button{flex:0 0 auto;font:600 9px 'JetBrains Mono',monospace;letter-spacing:.02em;padding:6px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:none;color:var(--text-faint);cursor:pointer;}
+  .tour-pills button.dn{color:var(--accent);border-color:rgba(var(--accent-rgb),.4);}
+  .tour-pills button.on{background:var(--accent);color:#1c1500;border-color:var(--accent);}
+  .tour-segs{display:flex;gap:2px;margin:0 -1px 10px;}
+  .tour-segs button{flex:1;height:16px;padding:0;border:none;background:none;cursor:pointer;position:relative;}
+  .tour-segs button::after{content:'';position:absolute;left:0;right:0;top:6px;height:4px;border-radius:2px;background:rgba(255,255,255,.12);}
+  .tour-segs button.dn::after{background:rgba(var(--accent-rgb),.55);}
+  .tour-segs button.on::after{background:var(--accent);box-shadow:0 0 8px rgba(var(--accent-rgb),.7);}
+  .tour-nav{display:flex;gap:8px;}
+  .tour-nav-back{flex:0 0 46px;height:46px;border-radius:12px;background:var(--panel-3);border:1px solid var(--line);color:var(--text);font-size:22px;line-height:1;cursor:pointer;}
+  .tour-nav-back:disabled{opacity:.35;}
+  .tour-nav-next{flex:1;height:46px;background:var(--accent);color:#1c1500;border:none;border-radius:12px;font:700 16px 'Oswald',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;}
+  .tour-nav-next:active{opacity:.9;}
+  .tour-hint{font:500 11px 'Inter',sans-serif;color:var(--text-faint);text-align:center;margin-top:10px;}
+  .tour-hint button{background:none;border:none;color:inherit;font:inherit;text-decoration:underline;padding:4px 2px;cursor:pointer;}
+  .tour-bubble-count{font:500 11px 'JetBrains Mono',monospace;color:var(--text-faint);flex-shrink:0;padding-top:3px;}
   .tour-btn.primary{background:var(--accent);color:#1c1500;border-color:var(--accent);}
   .tour-btn.primary:active{opacity:0.9;background:var(--accent);}
   .account-menu-avatar-label{
@@ -26744,6 +26761,47 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (ui.settingsOpen){ ui.settingsOpen = false; ui.settingsPage = null; renderApp(); }
     renderTourStep();
   }
+  var TOUR_SECTIONS = [['log', 'LOG'], ['history', 'HISTORY'], ['insight', 'INSIGHT'], ['progress', 'PROGRESS'], ['settings', 'PROFILE']];
+  function tourSecOf(step){ return step.tab; }
+  function tourSections(){
+    var out = [];
+    TOUR_SECTIONS.forEach(function(t){
+      for (var i = 0; i < tourList.length; i++){
+        if (tourList[i].tab === t[0]){ out.push({ key: t[0], label: t[1], first: i }); return; }
+      }
+    });
+    return out;
+  }
+  function tourGo(i){
+    if (ui.tourStep === null || isNaN(i) || i < 0 || i >= tourList.length) return;
+    ui.tourStep = i;
+    renderTourStep();
+  }
+  // Swipe left = next, swipe right = back, tap inside the glowing ring = next.
+  (function(){
+    var sx = 0, sy = 0, tracking = false;
+    function start(e){ if (ui.tourStep === null || !e.touches || e.touches.length !== 1) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true; }
+    function end(e){
+      if (!tracking) return; tracking = false;
+      var t = e.changedTouches && e.changedTouches[0]; if (!t || ui.tourStep === null) return;
+      var dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.abs(dx) > 50 && Math.abs(dy) < 45){ if (dx < 0) tourNext(); else tourBack(); tourSwiped = Date.now(); }
+    }
+    var tourSwiped = 0;
+    ['tourBackdrop', 'tourBubble'].forEach(function(id){
+      var el = document.getElementById(id); if (!el) return;
+      el.addEventListener('touchstart', start, { passive: true });
+      el.addEventListener('touchend', end, { passive: true });
+    });
+    var bd = document.getElementById('tourBackdrop');
+    if (bd) bd.addEventListener('click', function(e){
+      if (ui.tourStep === null || Date.now() - tourSwiped < 400) return;
+      var ring = document.getElementById('tourSpotlight');
+      if (!ring || ring.classList.contains('hidden')) return;
+      var r = ring.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) tourNext();
+    });
+  })();
   function tourNext(){
     if (ui.tourStep === null) return;
     if (ui.tourStep >= tourList.length - 1){ endTour(); return; }
@@ -26804,7 +26862,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var estBubbleHeight = Math.max(170, bubble.offsetHeight || 0);
     var spaceBelow = window.innerHeight - rect.bottom;
     var spaceAbove = rect.top;
-    var top = (spaceBelow >= 150 || spaceBelow >= spaceAbove)
+    var fitsBelow = spaceBelow >= estBubbleHeight + 20, fitsAbove = spaceAbove >= estBubbleHeight + 20;
+    var top = (fitsBelow || (!fitsAbove && spaceBelow >= spaceAbove))
       ? rect.bottom + 14
       : rect.top - estBubbleHeight - 14;
     top = Math.max(12, Math.min(top, window.innerHeight - estBubbleHeight - 12));
@@ -26836,19 +26895,28 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     tourWatch();
     backdrop.classList.remove('hidden');
     bubble.classList.remove('hidden');
+    var secs = tourSections(), curSec = tourSecOf(step), curSecIdx = -1;
+    secs.forEach(function(sc, k){ if (sc.key === curSec) curSecIdx = k; });
+    var pillsHtml = '<div class="tour-pills" role="group" aria-label="Jump to section">' + secs.map(function(sc, k){
+      return '<button type="button" data-action="tour-go" data-i="'+sc.first+'" class="'+(k === curSecIdx ? 'on' : (k < curSecIdx ? 'dn' : ''))+'">'+sc.label+'</button>';
+    }).join('') + '</div>';
+    var segsHtml = '<div class="tour-segs">' + tourList.map(function(st, k){
+      return '<button type="button" data-action="tour-go" data-i="'+k+'" aria-label="Step '+(k + 1)+'" class="'+(k === ui.tourStep ? 'on' : (k < ui.tourStep ? 'dn' : ''))+'"></button>';
+    }).join('') + '</div>';
+    var last = ui.tourStep === tourList.length - 1;
     bubble.innerHTML =
+      pillsHtml +
       '<div class="tour-bubble-head">' +
         '<div class="tour-bubble-title">'+esc(step.title)+'</div>' +
-        '<button type="button" class="tour-bubble-close" data-action="tour-skip" aria-label="End tour">&#10005;</button>' +
+        '<span class="tour-bubble-count">'+(ui.tourStep + 1)+' / '+tourList.length+'</span>' +
       '</div>' +
       '<div class="tour-bubble-text">'+esc(step.text)+'</div>' +
-      '<div class="tour-bubble-footer">' +
-        '<span class="tour-bubble-progress">'+(ui.tourStep + 1)+' / '+tourList.length+'</span>' +
-        '<div class="tour-bubble-actions">' +
-          (ui.tourStep > 0 ? '<button type="button" class="tour-btn" data-action="tour-back">Back</button>' : '') +
-          '<button type="button" class="tour-btn primary" data-action="tour-next">'+(ui.tourStep === tourList.length - 1 ? 'Done' : 'Next')+'</button>' +
-        '</div>' +
-      '</div>';
+      segsHtml +
+      '<div class="tour-nav">' +
+        '<button type="button" class="tour-nav-back" data-action="tour-back" aria-label="Back"'+(ui.tourStep === 0 ? ' disabled' : '')+'>&#8249;</button>' +
+        '<button type="button" class="tour-nav-next" data-action="tour-next">'+(last ? 'Done' : 'Next &#8250;')+'</button>' +
+      '</div>' +
+      '<div class="tour-hint">'+(ui.tourStep < 2 ? 'Tap the glow or swipe to continue &middot; ' : '')+'<button type="button" data-action="tour-skip">Skip tour</button></div>';
     // Deferred a frame so a just-triggered tab switch has finished
     // painting before we touch the target. If the target sits further
     // down a scrollable tab (Card Style, for instance, is well below the
@@ -28087,6 +28155,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       tourNext();
     } else if (action === 'tour-back'){
       tourBack();
+    } else if (action === 'tour-go'){
+      tourGo(parseInt(el.dataset.i, 10));
     } else if (action === 'tour-skip'){
       endTour();
     } else if (action === 'open-brief'){
