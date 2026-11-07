@@ -8057,6 +8057,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     exSearchFilters: { muscles: [], equipment: [], types: [] }, // active filter selections in the exercise-search overlay
     tabAnimating: false,    // true while a tab-slide transition is in progress
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
+    savingRoutineFrom: null, // History session id when the panel was opened from a past session, else null (= today's Log)
+    routineNameDraft: '',
     howtoEx: null,          // exercise name whose How-to sheet is open (Beginner exercises), or null
     challengeOpen: false,   // Daily Challenge sheet open state
     settingsPage: null,           // which Settings sub-page is showing (null = the menu of cards)
@@ -12918,6 +12920,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       items = [
         { label: 'Edit', action: 'edit-session' },
         { label: 'Repeat', action: 'repeat-session' },
+        { label: 'Save as routine', action: 'save-session-routine' },
         { label: 'Delete session', action: 'delete-session', danger: true }
       ];
     } else {
@@ -26463,13 +26466,14 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!ui.savingRoutine){
       overlay.classList.add('hidden');
       panel.innerHTML = '';
+      ui.savingRoutineFrom = null; ui.routineNameDraft = '';
       return;
     }
     overlay.classList.remove('hidden');
     panel.innerHTML =
       '<div class="confirm-title">Save as Routine</div>' +
-      '<div class="confirm-message">Saves the exercise list only \u2014 no weights or reps. Use it to quickly start this same workout again later.</div>' +
-      '<input type="text" id="routineNameInput" class="hi-name-input" maxlength="60" placeholder="e.g. Push Day A" style="width:100%;box-sizing:border-box;margin:4px 0 12px;">' +
+      '<div class="confirm-message">' + (ui.savingRoutineFrom ? 'Turns this session\u2019s exercise list into a routine \u2014 no weights or reps. Start it any time from My routines.' : 'Saves the exercise list only \u2014 no weights or reps. Use it to quickly start this same workout again later.') + '</div>' +
+      '<input type="text" id="routineNameInput" class="hi-name-input" maxlength="60" placeholder="e.g. Push Day A" value="'+esc(ui.routineNameDraft || '')+'" style="width:100%;box-sizing:border-box;margin:4px 0 12px;">' +
       '<div class="confirm-buttons">' +
         '<button class="confirm-btn-cancel" data-action="cancel-save-routine">Cancel</button>' +
         '<button class="confirm-btn-primary" data-action="confirm-save-routine">Save</button>' +
@@ -27097,6 +27101,20 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     renderApp();
   }
 
+  // From a finished session in History: same name panel, but the exercise list
+  // comes from that session instead of today's Log.
+  function openSaveRoutineFromSession(sessionId){
+    var sess = state.sessions.find(function(x){ return x.id === sessionId; });
+    if (!sess || !sess.exercises || !sess.exercises.length){
+      showToast('That session has no exercises');
+      return;
+    }
+    ui.savingRoutineFrom = sessionId;
+    ui.routineNameDraft = (sess.name || '').trim();
+    ui.savingRoutine = true;
+    renderApp();
+  }
+
   function cancelSaveRoutine(){
     ui.savingRoutine = false;
     renderApp();
@@ -27109,7 +27127,9 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       showToast('Give the routine a name');
       return;
     }
-    var session = getActiveSession();
+    var session = ui.savingRoutineFrom
+      ? (state.sessions.find(function(x){ return x.id === ui.savingRoutineFrom; }) || getActiveSession())
+      : getActiveSession();
     var routine = {
       id: uid(),
       name: name,
@@ -28099,6 +28119,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       openHistoryEditOverlay(el.dataset.session);
     } else if (action === 'edit-session-exercise'){
       openHistoryEditOverlay(el.dataset.session, el.dataset.ex);
+    } else if (action === 'save-session-routine'){
+      openSaveRoutineFromSession(el.dataset.session);
     } else if (action === 'repeat-session'){
       openRepeatSessionConfirm(el.dataset.session);
     } else if (action === 'repeat-from-card'){
