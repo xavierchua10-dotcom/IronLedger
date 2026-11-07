@@ -38,6 +38,24 @@ button:focus-visible{outline:3px solid var(--o);outline-offset:2px}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 function sfReport(game,data){try{data.sfGame=game;window.parent.postMessage(data,location.origin)}catch(e){}}
+var SFX=(function(){var AC=null,NB=null;
+function ac(){try{if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C()}if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}}
+function unlock(){var a=ac();if(!a)return;try{var b=a.createBuffer(1,1,22050),s=a.createBufferSource();s.buffer=b;s.connect(a.destination);s.start(0)}catch(e){}}
+['touchend','pointerup','click','keydown'].forEach(function(ev){addEventListener(ev,unlock,{passive:true,capture:true})});
+function tone(f,d,v,type,when,to){var a=ac();if(!a)return;try{var t=a.currentTime+(when||0),o=a.createOscillator(),g=a.createGain();o.type=type||'triangle';o.frequency.setValueAtTime(f,t);if(to)o.frequency.exponentialRampToValueAtTime(to,t+d);g.gain.setValueAtTime(v||.08,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+function noise(d,v,hp,when){var a=ac();if(!a)return;try{if(!NB){var n=Math.floor(a.sampleRate*.5),b=a.createBuffer(1,n,a.sampleRate),c=b.getChannelData(0);for(var i=0;i<n;i++)c[i]=Math.random()*2-1;NB=b}var t=a.currentTime+(when||0),s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();s.buffer=NB;f.type='highpass';f.frequency.value=hp||2000;g.gain.setValueAtTime(v||.1,t);g.gain.exponentialRampToValueAtTime(.001,t+d);s.connect(f);f.connect(g);g.connect(a.destination);s.start(t);s.stop(t+d+.02)}catch(e){}}
+return{
+ good:function(n){var k=Math.min(n||0,12);tone(520+k*30,.1,.09);tone(780+k*40,.14,.07,'sine',.07)},
+ bad:function(){tone(180,.22,.09,'sawtooth',0,90);noise(.12,.06,600)},
+ over:function(){[392,330,262,196].forEach(function(f,i){tone(f,.28,.09,'sawtooth',i*.15)})},
+ win:function(){[523,659,784,1047].forEach(function(f,i){tone(f,.2,.1,'triangle',i*.09)})},
+ pop:function(n){tone(300+Math.min(n||0,20)*18,.07,.08,'sine')},
+ thud:function(){tone(140,.12,.12,'sine',0,60)},
+ flap:function(){tone(300,.09,.06,'sine',0,520)},
+ whoosh:function(){noise(.15,.07,3000)},
+ slice:function(){noise(.12,.1,2500);tone(700,.08,.05,'triangle',.02,300)},
+ click:function(){tone(660,.05,.06,'square')}
+}})();
 if(typeof THREE==='undefined'){document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="color:#aeb3bd;font:16px Inter,sans-serif;text-align:center;margin-top:30vh;padding:0 24px">Couldn\u2019t load the 3D engine. Check your connection and try again.</p>'});}
 </script>
 <script>
@@ -96,13 +114,13 @@ function say(){if(!over)st.textContent=vsCPU?(turn==='X'?'Your turn':'Computer i
 function score(){document.getElementById('sx').textContent=sc.X;document.getElementById('so').textContent=sc.O;document.getElementById('sd').textContent=sc.D}
 function play(i,isCPU){
   if(over||b[i]||(vsCPU&&turn==='O'&&!isCPU))return;
-  b[i]=turn;
+  b[i]=turn;SFX.pop(turn==='X'?4:9);
   var g=turn==='X'?makeX():makeO();g.position.set(tiles[i].position.x,0.9,tiles[i].position.z);g.scale.setScalar(0.01);scene.add(g);
   pieces.push({g:g,i:i,t:0});
   var w=winner(b);
   if(w||b.every(Boolean))sfReport('ttt',{type:'round',result:w?w.p:'D',cpu:vsCPU});
-  if(w){over=true;sc[w.p]++;winLine=w.l;st.textContent=vsCPU?(w.p==='X'?'You win!':'Computer wins'):'Player '+w.p+' wins!'}
-  else if(b.every(Boolean)){over=true;sc.D++;st.textContent='It’s a draw'}
+  if(w){over=true;if(vsCPU&&w.p==='O')SFX.over();else SFX.win();sc[w.p]++;winLine=w.l;st.textContent=vsCPU?(w.p==='X'?'You win!':'Computer wins'):'Player '+w.p+' wins!'}
+  else if(b.every(Boolean)){over=true;SFX.click();sc.D++;st.textContent='It’s a draw'}
   else{turn=turn==='X'?'O':'X';say();if(vsCPU&&turn==='O')cpuTimer=setTimeout(cpuMove,550)}
   score();
 }

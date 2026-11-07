@@ -34,6 +34,24 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 function sfReport(game,data){try{data.sfGame=game;window.parent.postMessage(data,location.origin)}catch(e){}}
+var SFX=(function(){var AC=null,NB=null;
+function ac(){try{if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C()}if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}}
+function unlock(){var a=ac();if(!a)return;try{var b=a.createBuffer(1,1,22050),s=a.createBufferSource();s.buffer=b;s.connect(a.destination);s.start(0)}catch(e){}}
+['touchend','pointerup','click','keydown'].forEach(function(ev){addEventListener(ev,unlock,{passive:true,capture:true})});
+function tone(f,d,v,type,when,to){var a=ac();if(!a)return;try{var t=a.currentTime+(when||0),o=a.createOscillator(),g=a.createGain();o.type=type||'triangle';o.frequency.setValueAtTime(f,t);if(to)o.frequency.exponentialRampToValueAtTime(to,t+d);g.gain.setValueAtTime(v||.08,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+function noise(d,v,hp,when){var a=ac();if(!a)return;try{if(!NB){var n=Math.floor(a.sampleRate*.5),b=a.createBuffer(1,n,a.sampleRate),c=b.getChannelData(0);for(var i=0;i<n;i++)c[i]=Math.random()*2-1;NB=b}var t=a.currentTime+(when||0),s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();s.buffer=NB;f.type='highpass';f.frequency.value=hp||2000;g.gain.setValueAtTime(v||.1,t);g.gain.exponentialRampToValueAtTime(.001,t+d);s.connect(f);f.connect(g);g.connect(a.destination);s.start(t);s.stop(t+d+.02)}catch(e){}}
+return{
+ good:function(n){var k=Math.min(n||0,12);tone(520+k*30,.1,.09);tone(780+k*40,.14,.07,'sine',.07)},
+ bad:function(){tone(180,.22,.09,'sawtooth',0,90);noise(.12,.06,600)},
+ over:function(){[392,330,262,196].forEach(function(f,i){tone(f,.28,.09,'sawtooth',i*.15)})},
+ win:function(){[523,659,784,1047].forEach(function(f,i){tone(f,.2,.1,'triangle',i*.09)})},
+ pop:function(n){tone(300+Math.min(n||0,20)*18,.07,.08,'sine')},
+ thud:function(){tone(140,.12,.12,'sine',0,60)},
+ flap:function(){tone(300,.09,.06,'sine',0,520)},
+ whoosh:function(){noise(.15,.07,3000)},
+ slice:function(){noise(.12,.1,2500);tone(700,.08,.05,'triangle',.02,300)},
+ click:function(){tone(660,.05,.06,'square')}
+}})();
 if(typeof THREE==='undefined'){document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="color:#aeb3bd;font:16px Inter,sans-serif;text-align:center;margin-top:30vh;padding:0 24px">This game needs a connection to load. Check your internet and try again.</p>'})}
 </script>
 <script>
@@ -83,7 +101,7 @@ function start(){
   state='play';$ov.classList.add('hide');vy=7.8;
 }
 function end(){
-  if(state!=='play')return;state='over';
+  if(state!=='play')return;state='over';SFX.over();
   var nb=score>best;if(nb){best=score;try{localStorage.setItem('flap-best',best)}catch(e){}$best.textContent=best}
   sfReport('flap',{type:'round',score:score,best:best});
   document.getElementById('t').textContent=score+(score===1?' gate':' gates');
@@ -91,7 +109,7 @@ function end(){
   document.getElementById('go').textContent='Play again';
   vy=Math.max(vy,2);setTimeout(function(){$ov.classList.remove('hide')},650);
 }
-function flap(){if(state==='play')vy=7.8}
+function flap(){if(state==='play'){vy=7.8;SFX.flap()}}
 canvas.addEventListener('pointerdown',function(e){e.preventDefault();flap()});
 addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'||e.key==='ArrowUp'){if(state==='play')flap();else start()}});
 $ov.addEventListener('click',start);
@@ -106,7 +124,7 @@ function frame(now){
     since+=speed*dt;
     for(var i=gates.length-1;i>=0;i--){
       var g=gates[i];g.x-=speed*dt;g.top.position.x=g.x;g.bot.position.x=g.x;
-      if(!g.passed&&g.x<CX-0.8){g.passed=true;score++;$score.textContent=score}
+      if(!g.passed&&g.x<CX-0.8){g.passed=true;score++;$score.textContent=score;SFX.good(score)}
       // collision: hero circle vs two boxes (width 1.5)
       if(Math.abs(g.x-CX)<0.75+R*0.8){
         if(y+R*0.8>g.cy+gap/2||y-R*0.8<g.cy-gap/2){end()}

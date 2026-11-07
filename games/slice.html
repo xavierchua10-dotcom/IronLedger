@@ -37,6 +37,24 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
 <div id="overlay" tabindex="0"><div class="card"><div class="em">&#127828;&#127829;&#127849;&nbsp;&#129382;</div><h1 id="t">Slice the Junk</h1><p id="m">Swipe to slice the junk food. Leave the healthy stuff alone. Slice a healthy one, or let junk fall, and you lose a life.</p><span class="go" id="go">Play</span></div></div>
 <script>
 function sfReport(game,data){try{data.sfGame=game;window.parent.postMessage(data,location.origin)}catch(e){}}
+var SFX=(function(){var AC=null,NB=null;
+function ac(){try{if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C()}if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}}
+function unlock(){var a=ac();if(!a)return;try{var b=a.createBuffer(1,1,22050),s=a.createBufferSource();s.buffer=b;s.connect(a.destination);s.start(0)}catch(e){}}
+['touchend','pointerup','click','keydown'].forEach(function(ev){addEventListener(ev,unlock,{passive:true,capture:true})});
+function tone(f,d,v,type,when,to){var a=ac();if(!a)return;try{var t=a.currentTime+(when||0),o=a.createOscillator(),g=a.createGain();o.type=type||'triangle';o.frequency.setValueAtTime(f,t);if(to)o.frequency.exponentialRampToValueAtTime(to,t+d);g.gain.setValueAtTime(v||.08,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+function noise(d,v,hp,when){var a=ac();if(!a)return;try{if(!NB){var n=Math.floor(a.sampleRate*.5),b=a.createBuffer(1,n,a.sampleRate),c=b.getChannelData(0);for(var i=0;i<n;i++)c[i]=Math.random()*2-1;NB=b}var t=a.currentTime+(when||0),s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();s.buffer=NB;f.type='highpass';f.frequency.value=hp||2000;g.gain.setValueAtTime(v||.1,t);g.gain.exponentialRampToValueAtTime(.001,t+d);s.connect(f);f.connect(g);g.connect(a.destination);s.start(t);s.stop(t+d+.02)}catch(e){}}
+return{
+ good:function(n){var k=Math.min(n||0,12);tone(520+k*30,.1,.09);tone(780+k*40,.14,.07,'sine',.07)},
+ bad:function(){tone(180,.22,.09,'sawtooth',0,90);noise(.12,.06,600)},
+ over:function(){[392,330,262,196].forEach(function(f,i){tone(f,.28,.09,'sawtooth',i*.15)})},
+ win:function(){[523,659,784,1047].forEach(function(f,i){tone(f,.2,.1,'triangle',i*.09)})},
+ pop:function(n){tone(300+Math.min(n||0,20)*18,.07,.08,'sine')},
+ thud:function(){tone(140,.12,.12,'sine',0,60)},
+ flap:function(){tone(300,.09,.06,'sine',0,520)},
+ whoosh:function(){noise(.15,.07,3000)},
+ slice:function(){noise(.12,.1,2500);tone(700,.08,.05,'triangle',.02,300)},
+ click:function(){tone(660,.05,.06,'square')}
+}})();
 (function(){
 var canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 var $score=document.getElementById('score'),$best=document.getElementById('bestv'),$msg=document.getElementById('msg'),$ov=document.getElementById('overlay'),$lives=document.getElementById('lives');
@@ -73,7 +91,7 @@ function sliceItem(it,ang){
   it.dead=true;
   halves.push({e:it.e,x:it.x,y:it.y,vx:it.vx,vy:it.vy,rot:it.rot,spin:it.spin,ang:ang,side:1,t:0});
   halves.push({e:it.e,x:it.x,y:it.y,vx:it.vx,vy:it.vy,rot:it.rot,spin:it.spin,ang:ang,side:-1,t:0});
-  juice(it.x,it.y,it.c,it.good?10:14);
+  juice(it.x,it.y,it.c,it.good?10:14);if(it.good)SFX.bad();else SFX.slice();
   if(it.good){
     lives--;updLives();flash('That was healthy!',true);
     if(lives<=0)end();
@@ -96,10 +114,10 @@ function swipe(ax,ay,bx,by){
     if(!it.dead&&hits(ax,ay,bx,by,it)){var wasGood=it.good;sliceItem(it,ang);if(!wasGood)n++}
     if(state!=='play')return;
   }
-  if(n>=2){score+=n;$score.textContent=score;flash('Combo x'+n+'  +'+n)}
+  if(n>=2){score+=n;$score.textContent=score;SFX.good(n+2);flash('Combo x'+n+'  +'+n)}
 }
 function end(){
-  state='over';
+  state='over';SFX.over();
   var nb=score>best;if(nb){best=score;try{localStorage.setItem('slice-best',best)}catch(e){}$best.textContent=best}
   sfReport('slice',{type:'round',score:score,best:best});
   document.getElementById('t').textContent=score+' sliced';
@@ -147,7 +165,7 @@ function frame(now){
     it.vy+=g*dt;it.x+=it.vx*dt;it.y+=it.vy*dt;it.rot+=it.spin*dt;
     if(it.dead){items.splice(i,1);continue}
     if(it.y>H+R*1.5&&it.vy>0){
-      if(!it.good&&state==='play'){lives--;updLives();flash('Missed!',true);if(lives<=0)end()}
+      if(!it.good&&state==='play'){lives--;updLives();flash('Missed!',true);SFX.bad();if(lives<=0)end()}
       items.splice(i,1);continue;
     }
     ctx.save();ctx.translate(it.x,it.y);ctx.rotate(it.rot);

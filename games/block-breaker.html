@@ -35,6 +35,24 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 function sfReport(game,data){try{data.sfGame=game;window.parent.postMessage(data,location.origin)}catch(e){}}
+var SFX=(function(){var AC=null,NB=null;
+function ac(){try{if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C()}if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}}
+function unlock(){var a=ac();if(!a)return;try{var b=a.createBuffer(1,1,22050),s=a.createBufferSource();s.buffer=b;s.connect(a.destination);s.start(0)}catch(e){}}
+['touchend','pointerup','click','keydown'].forEach(function(ev){addEventListener(ev,unlock,{passive:true,capture:true})});
+function tone(f,d,v,type,when,to){var a=ac();if(!a)return;try{var t=a.currentTime+(when||0),o=a.createOscillator(),g=a.createGain();o.type=type||'triangle';o.frequency.setValueAtTime(f,t);if(to)o.frequency.exponentialRampToValueAtTime(to,t+d);g.gain.setValueAtTime(v||.08,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+function noise(d,v,hp,when){var a=ac();if(!a)return;try{if(!NB){var n=Math.floor(a.sampleRate*.5),b=a.createBuffer(1,n,a.sampleRate),c=b.getChannelData(0);for(var i=0;i<n;i++)c[i]=Math.random()*2-1;NB=b}var t=a.currentTime+(when||0),s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();s.buffer=NB;f.type='highpass';f.frequency.value=hp||2000;g.gain.setValueAtTime(v||.1,t);g.gain.exponentialRampToValueAtTime(.001,t+d);s.connect(f);f.connect(g);g.connect(a.destination);s.start(t);s.stop(t+d+.02)}catch(e){}}
+return{
+ good:function(n){var k=Math.min(n||0,12);tone(520+k*30,.1,.09);tone(780+k*40,.14,.07,'sine',.07)},
+ bad:function(){tone(180,.22,.09,'sawtooth',0,90);noise(.12,.06,600)},
+ over:function(){[392,330,262,196].forEach(function(f,i){tone(f,.28,.09,'sawtooth',i*.15)})},
+ win:function(){[523,659,784,1047].forEach(function(f,i){tone(f,.2,.1,'triangle',i*.09)})},
+ pop:function(n){tone(300+Math.min(n||0,20)*18,.07,.08,'sine')},
+ thud:function(){tone(140,.12,.12,'sine',0,60)},
+ flap:function(){tone(300,.09,.06,'sine',0,520)},
+ whoosh:function(){noise(.15,.07,3000)},
+ slice:function(){noise(.12,.1,2500);tone(700,.08,.05,'triangle',.02,300)},
+ click:function(){tone(660,.05,.06,'square')}
+}})();
 if(typeof THREE==='undefined'){document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="color:#aeb3bd;font:16px Inter,sans-serif;text-align:center;margin-top:30vh;padding:0 24px">Couldn\u2019t load the 3D engine. Check your connection and try again.</p>'});}
 </script>
 <script>
@@ -85,14 +103,14 @@ paddle.scale.x=pw;
 function newLevel(){state='ready';speed=11+(level-1)*1;hits=0;build();park();hud();$tip.style.opacity=1}
 function park(){px=0;tx=0;ball.x=0;ball.z=PZ-0.45-R;ball.vx=ball.vz=0}
 function launch(){
-  if(state!=='ready')return;state='play';$tip.style.opacity=0;
+  if(state!=='ready')return;state='play';$tip.style.opacity=0;SFX.whoosh();
   var a=(Math.random()-0.5)*0.7;ball.vx=speed*Math.sin(a);ball.vz=-speed*Math.cos(a);
 }
 function norm(){var s=Math.hypot(ball.vx,ball.vz)||1,k=speed/s;ball.vx*=k;ball.vz*=k}
 function overlay(t,m,b){document.getElementById('t').textContent=t;document.getElementById('m').textContent=m;document.getElementById('go').textContent=b;document.getElementById('overlay').classList.remove('hide')}
 function lose(){
-  lives--;hud();
-  if(lives<=0){sfReport('blocks',{type:'round',score:score,level:level});state='over';overlay('Game over','Final score '+score+' on level '+level+'. Want another go?','Play again')}
+  lives--;hud();SFX.bad();
+  if(lives<=0){sfReport('blocks',{type:'round',score:score,level:level});state='over';SFX.over();overlay('Game over','Final score '+score+' on level '+level+'. Want another go?','Play again')}
   else{state='ready';park();$tip.style.opacity=1}
 }
 function step(dt){
@@ -102,7 +120,7 @@ function step(dt){
   if(ball.z<TOP+R){ball.z=TOP+R;ball.vz=Math.abs(ball.vz)}
   if(ball.vz>0&&ball.z>PZ-PH/2-R&&ball.z<PZ+0.2&&Math.abs(ball.x-px)<pw/2+R){
     ball.z=PZ-PH/2-R;var o=Math.max(-1,Math.min(1,(ball.x-px)/(pw/2))),a=o*1.05;
-    ball.vx=Math.sin(a)*speed;ball.vz=-Math.cos(a)*speed;
+    ball.vx=Math.sin(a)*speed;ball.vz=-Math.cos(a)*speed;SFX.thud();
   }
   for(var i=0;i<bricks.length;i++){
     var b=bricks[i];if(b.dead)continue;
@@ -110,8 +128,8 @@ function step(dt){
     if(ox>0&&oz>0){
       if(ox<oz){ball.vx=Math.abs(ball.vx)*(dx>0?1:-1);ball.x+=dx>0?ox:-ox}
       else{ball.vz=Math.abs(ball.vz)*(dz>0?1:-1);ball.z+=dz>0?oz:-oz}
-      b.dead=true;score+=10*level;hits++;speed=Math.min(22,11+(level-1)+hits*0.06);norm();hud();
-      if(bricks.every(function(k){return k.dead})){state='clear';overlay('Level '+level+' cleared!','Score '+score+'. The next wall is tougher and faster.','Next level');level++}
+      b.dead=true;score+=10*level;hits++;SFX.pop(hits);speed=Math.min(22,11+(level-1)+hits*0.06);norm();hud();
+      if(bricks.every(function(k){return k.dead})){state='clear';SFX.win();overlay('Level '+level+' cleared!','Score '+score+'. The next wall is tougher and faster.','Next level');level++}
       break;
     }
   }
