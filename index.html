@@ -26667,26 +26667,27 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
      person who most needs it.
      ========================================================= */
   var TOUR_STEPS = [
-    { tab: 'log', selector: '.log-tpl-list:not(.log-tpl-wiz)', fallback: '#view', title: 'Pick a template', text: 'Know what you want? Beginner is a simple machine-based routine, and Training splits holds Push/Pull/Legs, Upper/Lower, Full Body and Bro Split. Each exercise comes with a suggested set count and rep range.' },
-    { tab: 'log', selector: '.log-tpl-wiz', fallback: '#view', title: 'Build my plan', text: 'Not sure where to start? Tap Build my plan and answer 4 quick questions \u2014 bodyweight, goal, experience and training days \u2014 and we\u2019ll pick and load the right template for you.' },
-    { tab: 'log', selector: '.tpl-hc', fallback: '#view', title: 'Hardcore Mode', text: 'Short on time or feeling strong? Hardcore Mode is just 2 sets per exercise, both all-out to failure. It needs a free account to start.' },
-    { tab: 'log', selector: '[data-action="add-blank-exercise"]', title: 'Add an exercise', text: 'Tap here to add an exercise \u2014 search by name, or browse the full library grouped by muscle.' },
-    { tab: 'log', selector: '.add-set-btn', fallback: '#view', title: 'Log a set', text: 'Type your weight and reps, then tap the checkmark \u2014 it logs instantly and the row stays open, ready for your next set right away.' },
+    { tab: 'log', selector: '.log-tpl-list:not(.log-tpl-wiz) > .log-tpl-card', skipIfMissing: true, title: 'Pick a template', text: 'Know what you want? Beginner is a simple machine-based routine, and Training splits holds Push/Pull/Legs, Upper/Lower, Full Body and Bro Split. Each exercise comes with a suggested set count and rep range.' },
+    { tab: 'log', selector: '.log-tpl-wiz', skipIfMissing: true, title: 'Build my plan', text: 'Not sure where to start? Tap Build my plan and answer 4 quick questions \u2014 bodyweight, goal, experience and training days \u2014 and we\u2019ll pick and load the right template for you.' },
+    { tab: 'log', selector: '.tpl-hc', skipIfMissing: true, title: 'Hardcore Mode', text: 'Short on time or feeling strong? Hardcore Mode is just 2 sets per exercise, both all-out to failure. It needs a free account to start.' },
+    { tab: 'log', selector: '[data-action="add-blank-exercise"]', title: 'Add an exercise', text: 'Tap here to add an exercise \u2014 search by name or browse the library by muscle. Then tap Add Set, type your weight and reps, and tap the checkmark.' },
+    { tab: 'log', selector: '[data-action="open-add-set"]', skipIfMissing: true, title: 'Log a set', text: 'Tap Add Set, type weight and reps, then the checkmark \u2014 the row stays open for your next set. Warm-up logs a lighter set that stays out of your volume and PRs, and the \u22ee on a set lets you add a note.' },
     { tab: 'log', selector: '.mm-toggle-btn', title: 'Browse by muscle', text: 'Prefer to browse? This opens a body diagram \u2014 tap a muscle group to see matching exercises.' },
     { tab: 'log', selector: '[data-action="open-plates"]', title: 'Plate calculator', text: 'Not sure how to load the bar? Open the plate calculator to see the plates for each side, then tap Use to drop the total into your set.' },
     { tab: 'log', selector: '#restTimerHeaderBtn', title: 'Rest timer', text: 'Start a rest timer between sets. It keeps counting down even if you switch tabs.' },
     { tab: 'log', selector: '[data-action="open-challenge"].dc-fab', title: 'Today', text: 'Your daily hub: finish a workout, do 10 working sets and drink 2 L of water for a Perfect Day, plus a Daily Challenge to keep a streak going.' },
     { tab: 'log', selector: '#logChatHeaderBtn', title: 'Log Assistant', text: 'Ask anything about the app, or about your own data \u2014 PRs, stats, muscle volume, cardio, what\u2019s next. It can\u2019t log sets for you. Pro adds AI answers for everything else.' },
     { tab: 'log', selector: '#notifBellBtn', title: 'Notifications', text: 'Trial status, reminders, and other updates show up here.' },
-    { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Tap the \u22ee on any session to edit, repeat, or delete it \u2014 or tap the pencil on any exercise to jump straight to editing just that one.' },
+    { tab: 'history', selector: '#historySearchInput', fallback: '#view', title: 'History', text: 'Every finished session lands here. Search by name, use the calendar to browse by date, tap the \u22ee on a session to edit, repeat or delete it, or the pencil on an exercise to edit just that one.' },
     { tab: 'insight', selector: '.mg-panel', fallback: '#view', title: 'Insight', text: 'See your weekly set volume per muscle group on the 3D model \u2014 tap a muscle to focus the camera on it. The Muscle | Cardio switch at the bottom flips to your weekly cardio.' },
     { tab: 'progress', selector: '.chart-wrap', fallback: '#view', title: 'Progress', text: 'A chart for each lift: your estimated one-rep max over time, with a lift picker and range buttons. Tap share to turn it into a picture. Pro unlocks the full history.' },
     { tab: 'settings', noPage: true, selector: '[data-action="open-achievements"]', fallback: '#view', title: 'Achievements', text: 'Your medal room: 13 medals, each Bronze, Silver then Gold, plus a trophy for each of your best lifts. A banner pops up when you unlock a new tier.' },
     { tab: 'settings', noPage: true, selector: '[data-action="open-rest-day"]', fallback: '#view', title: 'Rest Day Mode', text: 'Rest day? Recovery times, a guided stretch and daily tips, plus six mini games \u2014 Snake 3D, Neon Dash 30, Block Breaker 3D, Stack 3D, Flap Lift and Tic Tac Toe 3D. Your rounds count toward the Gamer medal.' },
     { tab: 'settings', sp: 'work', selector: '[data-action="open-bodyweight-picker"]', fallback: '#view', title: 'Bodyweight & goal', text: 'Set these once \u2014 they power real load tracking on bodyweight exercises and shape how Pro Tips suggests your next set.' },
+    { tab: 'settings', sp: 'work', selector: '.settings-row .seg', fallback: '#view', title: 'Units', text: 'Switch between kg and lb any time. Your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.' },
     { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="accentColor"]', fallback: '#view', title: 'Accent color', text: 'Not feeling gold? Pick a different accent color \u2014 it applies throughout the whole app.' },
-    { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="cardBg"]', fallback: '#view', title: 'Card background', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },
-    { tab: 'settings', sp: 'work', selector: '.settings-row .seg', fallback: '#view', title: 'Units', text: 'Switch between kg and lb any time. Your data\u2019s always stored in kg internally, so nothing\u2019s lost switching back and forth.' }
+    { tab: 'settings', sp: 'look', selector: '[data-action="open-settings-picker"][data-kind="cardBg"]', fallback: '#view', title: 'Card background', text: 'Pick a background photo for your exercise cards \u2014 or turn it off for a plain look.' },,
+    { tab: 'settings', sp: 'data', selector: '[data-action="open-export"]', fallback: '#view', title: 'Export your data', text: 'Download your workouts as a spreadsheet (CSV) for Excel or Google Sheets, or as a backup file you can restore later.' }
   ];
 
   // Keep the two Log template steps in the same order as the cards on screen:
@@ -26695,7 +26696,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var wizIdx = -1, tplIdx = -1;
     TOUR_STEPS.forEach(function(st, i){
       if (st.selector === '.log-tpl-wiz') wizIdx = i;
-      else if (st.selector === '.log-tpl-list:not(.log-tpl-wiz)') tplIdx = i;
+      else if (st.selector === '.log-tpl-list:not(.log-tpl-wiz) > .log-tpl-card') tplIdx = i;
     });
     if (wizIdx < 0 || tplIdx < 0) return;
     var setupPending = !(state.settings && state.settings.experienceLevel && state.settings.bodyweightKg);
@@ -26704,14 +26705,39 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var t = TOUR_STEPS[wizIdx]; TOUR_STEPS[wizIdx] = TOUR_STEPS[tplIdx]; TOUR_STEPS[tplIdx] = t;
     }
   }
+  var tourList = TOUR_STEPS;
   function startTour(){
     orderTourSteps();
+    // Start from a clean Log tab, then drop the steps whose target isn't on
+    // screen for this account (templates only show on an empty Log, the
+    // Add Set button only once an exercise exists) so nobody sees a floating
+    // bubble pointing at nothing, and the step counter stays honest.
+    ui.settingsOpen = false; ui.settingsPage = null; state.tab = 'log'; renderApp();
+    tourList = TOUR_STEPS.filter(function(st){ return !st.skipIfMissing || !!document.querySelector(st.selector); });
     // The "Daily challenge is ready" pop-up would sit on top of the Log header
     // buttons the tour points at, so retire it for this run.
     ui.challengeBubbleDone = true;
     hideChallengeBubble();
     ui.tourStep = 0;
     renderTourStep();
+  }
+  // If the page shifts under the tour (an image loads, a sync redraws the
+  // Log), the spotlight would be left where the target used to be. While the
+  // tour runs, check a few times a second and snap the spotlight back.
+  var tourWatchTimer = 0;
+  function tourWatch(){
+    if (tourWatchTimer) return;
+    tourWatchTimer = setInterval(function(){
+      if (ui.tourStep === null){ clearInterval(tourWatchTimer); tourWatchTimer = 0; return; }
+      var step = tourList[ui.tourStep], el = step && findTourTarget(step);
+      var ring = document.getElementById('tourSpotlight');
+      if (!el || el.id === 'view' || !ring || ring.classList.contains('hidden')) return;
+      var r = el.getBoundingClientRect(), g = ring.getBoundingClientRect();
+      if (Math.abs((r.top - 6) - g.top) > 3 || Math.abs((r.left - 6) - g.left) > 3 || Math.abs(r.height + 12 - g.height) > 3){
+        if (r.bottom > window.innerHeight - 70 || r.top < 50) el.scrollIntoView({ block: 'center', behavior: 'instant' });
+        positionTourBubble(el);
+      }
+    }, 300);
   }
   function endTour(){
     ui.tourStep = null;
@@ -26720,7 +26746,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   }
   function tourNext(){
     if (ui.tourStep === null) return;
-    if (ui.tourStep >= TOUR_STEPS.length - 1){ endTour(); return; }
+    if (ui.tourStep >= tourList.length - 1){ endTour(); return; }
     ui.tourStep++;
     renderTourStep();
   }
@@ -26797,7 +26823,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       bubble.innerHTML = '';
       return;
     }
-    var step = TOUR_STEPS[ui.tourStep];
+    var step = tourList[ui.tourStep];
     var needsTabSwitch = state.tab !== step.tab;
     if (needsTabSwitch){
       state.tab = step.tab;
@@ -26807,6 +26833,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (step.tab === 'settings' && step.noPage){ if (ui.settingsOpen){ ui.settingsOpen = false; ui.settingsPage = null; renderApp(); } }
     else if (step.tab === 'settings' && (!ui.settingsOpen || ui.settingsPage !== (step.sp || null))){ ui.settingsOpen = true; ui.settingsPage = step.sp || null; renderApp(); }
     else if (step.tab !== 'settings' && ui.settingsOpen){ ui.settingsOpen = false; ui.settingsPage = null; renderApp(); }
+    tourWatch();
     backdrop.classList.remove('hidden');
     bubble.classList.remove('hidden');
     bubble.innerHTML =
@@ -26816,10 +26843,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       '</div>' +
       '<div class="tour-bubble-text">'+esc(step.text)+'</div>' +
       '<div class="tour-bubble-footer">' +
-        '<span class="tour-bubble-progress">'+(ui.tourStep + 1)+' / '+TOUR_STEPS.length+'</span>' +
+        '<span class="tour-bubble-progress">'+(ui.tourStep + 1)+' / '+tourList.length+'</span>' +
         '<div class="tour-bubble-actions">' +
           (ui.tourStep > 0 ? '<button type="button" class="tour-btn" data-action="tour-back">Back</button>' : '') +
-          '<button type="button" class="tour-btn primary" data-action="tour-next">'+(ui.tourStep === TOUR_STEPS.length - 1 ? 'Done' : 'Next')+'</button>' +
+          '<button type="button" class="tour-btn primary" data-action="tour-next">'+(ui.tourStep === tourList.length - 1 ? 'Done' : 'Next')+'</button>' +
         '</div>' +
       '</div>';
     // Deferred a frame so a just-triggered tab switch has finished
@@ -26841,7 +26868,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   }
   window.addEventListener('resize', function(){
     if (ui.tourStep === null) return;
-    positionTourBubble(findTourTarget(TOUR_STEPS[ui.tourStep]));
+    positionTourBubble(findTourTarget(tourList[ui.tourStep]));
   });
 
   /* =========================================================
