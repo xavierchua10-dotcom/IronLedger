@@ -879,12 +879,6 @@
   }
   input[type=text].session-name-input::placeholder{color:#5d636e;text-transform:uppercase;font-weight:700;font-size:22px;letter-spacing:.03em;}
   input[type=text].session-name-input:focus{outline:none;border-image:none;border-bottom-color:var(--accent);}
-  /* Quick-name chips: only while the session is empty and unnamed. */
-  .name-chips{display:flex;gap:8px;margin:10px 0 4px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
-  .name-chips::-webkit-scrollbar{display:none;}
-  .name-chips.hidden{display:none;}
-  .name-chips button{flex-shrink:0;height:30px;padding:0 13px;border-radius:999px;border:1px solid rgba(var(--accent-rgb),.4);background:rgba(var(--accent-rgb),.08);color:var(--accent);font:600 11.5px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
-  .name-chips button:active{background:rgba(var(--accent-rgb),.22);}
 
   .session-name-row{display:flex;align-items:center;gap:10px;}
   .session-name-row .session-name-input{flex:1 1 auto;min-width:0;}
@@ -15081,12 +15075,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
             'value="'+esc(session.name)+'" data-role="session-name">' +
             dailyChallengeButtonHtml() +
             '</div>';
-    if (!session.exercises.length && !(session.name || '').trim()){
-      html += '<div class="name-chips" id="nameChips">' +
-        [['Push','Push Day'],['Pull','Pull Day'],['Legs','Leg Day'],['Upper','Upper Body'],['Full body','Full Body']].map(function(c){
-          return '<button type="button" data-action="quick-name" data-name="'+c[1]+'">'+c[0]+'</button>';
-        }).join('') + '</div>';
-    }
     html += '<div class="session-meta">' +
               '<span>'+fmtDate(session.date)+'</span>' +
               '<span><b>'+session.exercises.length+'</b><span class="sm-long"> exercises</span><span class="sm-short"> ex</span></span>' +
@@ -28188,9 +28176,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var finReason = finishBlockReason();
       if (finReason) showToast(finReason);
       else openFinishSessionConfirm();
-    } else if (action === 'quick-name'){
-      var qs = getActiveSession();
-      if (qs && !(qs.name || '').trim()){ qs.name = el.dataset.name || ''; saveSessions(); renderApp(); }
     } else if (action === 'toggle-routines'){
       ui.routinesOpen = !ui.routinesOpen;
       if (!ui.routinesOpen) ui.routineOpenId = null;
@@ -28614,8 +28599,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       var session = getActiveSession();
       session.name = t.value;
       saveSessions();
-      var nc = document.getElementById('nameChips');
-      if (nc) nc.classList.toggle('hidden', !!t.value.trim());
     }
     if (t.classList && (t.classList.contains('set-weight-input') || t.classList.contains('set-reps-input'))){
       refreshAddSetGlobalBtn();
