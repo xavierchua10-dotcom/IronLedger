@@ -40,7 +40,7 @@ messaging.onBackgroundMessage(function(payload){
   });
 });
 
-var CACHE_NAME = 'iron-ledger-v35';
+var CACHE_NAME = 'iron-ledger-v36';
 var CORE_ASSETS = [
   './',
   './index.html',
@@ -50,7 +50,9 @@ var CORE_ASSETS = [
   './games/snake.html',
   './games/neon-dash.html',
   './games/block-breaker.html',
-  './games/tictactoe.html'
+  './games/tictactoe.html',
+  './games/stack.html',
+  './games/flap.html'
 ];
 
 self.addEventListener('install', function(event){
