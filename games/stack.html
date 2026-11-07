@@ -61,6 +61,7 @@ function block(w,d,x,z,i){
 }
 function reset(){
   stack.concat(pieces).forEach(function(b){scene.remove(b.m||b)});stack=[];pieces=[];
+  if(cur){scene.remove(cur.m);cur=null}
   score=0;combo=0;speed=2.6;camY=0;$score.textContent=0;
   var base=block(S0,S0,0,0,0);stack.push({m:base,w:S0,d:S0,x:0,z:0});
   spawn();
