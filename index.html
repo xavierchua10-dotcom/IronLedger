@@ -431,22 +431,25 @@
     cursor:pointer;
   }
   .tour-btn:active{background:var(--panel-3);}
-  .tour-pills{display:flex;gap:4px;margin-bottom:12px;}
-  .tour-pills button{flex:0 0 auto;font:600 9px 'JetBrains Mono',monospace;letter-spacing:.02em;padding:6px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:none;color:var(--text-faint);cursor:pointer;}
+  .tour-pills{display:flex;gap:4px;margin-bottom:8px;}
+  .tour-pills button{flex:0 0 auto;font:600 9px 'JetBrains Mono',monospace;letter-spacing:.02em;padding:5px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:none;color:var(--text-faint);cursor:pointer;}
   .tour-pills button.dn{color:var(--accent);border-color:rgba(var(--accent-rgb),.4);}
   .tour-pills button.on{background:var(--accent);color:#1c1500;border-color:var(--accent);}
-  .tour-segs{display:flex;gap:2px;margin:0 -1px 10px;}
+  .tour-segs{display:flex;gap:2px;margin:-4px -1px 4px;}
   .tour-segs button{flex:1;height:16px;padding:0;border:none;background:none;cursor:pointer;position:relative;}
   .tour-segs button::after{content:'';position:absolute;left:0;right:0;top:6px;height:4px;border-radius:2px;background:rgba(255,255,255,.12);}
   .tour-segs button.dn::after{background:rgba(var(--accent-rgb),.55);}
   .tour-segs button.on::after{background:var(--accent);box-shadow:0 0 8px rgba(var(--accent-rgb),.7);}
   .tour-nav{display:flex;gap:8px;}
-  .tour-nav-back{flex:0 0 46px;height:46px;border-radius:12px;background:var(--panel-3);border:1px solid var(--line);color:var(--text);font-size:22px;line-height:1;cursor:pointer;}
+  .tour-nav-back{flex:0 0 42px;height:42px;border-radius:12px;background:var(--panel-3);border:1px solid var(--line);color:var(--text);font-size:22px;line-height:1;cursor:pointer;}
   .tour-nav-back:disabled{opacity:.35;}
-  .tour-nav-next{flex:1;height:46px;background:var(--accent);color:#1c1500;border:none;border-radius:12px;font:700 16px 'Oswald',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;}
+  .tour-nav-next{flex:1;height:42px;background:var(--accent);color:#1c1500;border:none;border-radius:12px;font:700 16px 'Oswald',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;}
   .tour-nav-next:active{opacity:.9;}
-  .tour-hint{font:500 11px 'Inter',sans-serif;color:var(--text-faint);text-align:center;margin-top:10px;}
+  .tour-hint{font:500 11px 'Inter',sans-serif;color:var(--text-faint);text-align:center;margin-top:4px;}
   .tour-hint button{background:none;border:none;color:inherit;font:inherit;text-decoration:underline;padding:4px 2px;cursor:pointer;}
+  .tour-bubble.tour-bubble-centered .tour-hint-tip{display:inline;}
+  @media (max-height:700px){ .tour-hint-tip{display:none;} .tour-bubble{padding:12px 14px;} .tour-bubble-text{font-size:12.5px;line-height:1.45;margin-bottom:10px;} .tour-pills{margin-bottom:6px;} }
+  .tour-bubble.tour-compact .tour-pills{display:none;}
   .tour-bubble-count{font:500 11px 'JetBrains Mono',monospace;color:var(--text-faint);flex-shrink:0;padding-top:3px;}
   .tour-btn.primary{background:var(--accent);color:#1c1500;border-color:var(--accent);}
   .tour-btn.primary:active{opacity:0.9;background:var(--accent);}
@@ -26741,6 +26744,24 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   // If the page shifts under the tour (an image loads, a sync redraws the
   // Log), the spotlight would be left where the target used to be. While the
   // tour runs, check a few times a second and snap the spotlight back.
+  // Bring a target into view with room under it for the bubble: when the target
+  // is small, park it near the top of the page instead of dead centre, so the
+  // bubble (about 300px tall) fits below without covering it.
+  function tourScrollTo(el){
+    var sc = el.parentElement;
+    while (sc && sc !== document.body){
+      var oy = getComputedStyle(sc).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && sc.scrollHeight > sc.clientHeight + 2) break;
+      sc = sc.parentElement;
+    }
+    var r = el.getBoundingClientRect();
+    if (sc && sc !== document.body && r.height < window.innerHeight - 420){
+      var scTop = sc.getBoundingClientRect().top;
+      sc.scrollTop += r.top - Math.max(scTop + 16, 90);
+    } else {
+      el.scrollIntoView({ block: 'center', behavior: 'instant' });
+    }
+  }
   var tourWatchTimer = 0;
   function tourWatch(){
     if (tourWatchTimer) return;
@@ -26751,7 +26772,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       if (!el || el.id === 'view' || !ring || ring.classList.contains('hidden')) return;
       var r = el.getBoundingClientRect(), g = ring.getBoundingClientRect();
       if (Math.abs((r.top - 6) - g.top) > 3 || Math.abs((r.left - 6) - g.left) > 3 || Math.abs(r.height + 12 - g.height) > 3){
-        if (r.bottom > window.innerHeight - 70 || r.top < 50) el.scrollIntoView({ block: 'center', behavior: 'instant' });
+        if (r.bottom > window.innerHeight - 70 || r.top < 50) tourScrollTo(el);
         positionTourBubble(el);
       }
     }, 300);
@@ -26863,12 +26884,24 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var spaceBelow = window.innerHeight - rect.bottom;
     var spaceAbove = rect.top;
     var fitsBelow = spaceBelow >= estBubbleHeight + 20, fitsAbove = spaceAbove >= estBubbleHeight + 20;
+    // Cramped (short phone, big target): drop the section tabs so the bubble
+    // fits beside the target instead of covering it. The progress bar and
+    // Next/Back stay.
+    bubble.classList.remove('tour-compact');
+    if (!fitsBelow && !fitsAbove){
+      bubble.classList.add('tour-compact');
+      estBubbleHeight = Math.max(150, bubble.offsetHeight || 0);
+      fitsBelow = spaceBelow >= estBubbleHeight + 20; fitsAbove = spaceAbove >= estBubbleHeight + 20;
+    }
     var top = (fitsBelow || (!fitsAbove && spaceBelow >= spaceAbove))
       ? rect.bottom + 14
       : rect.top - estBubbleHeight - 14;
     top = Math.max(12, Math.min(top, window.innerHeight - estBubbleHeight - 12));
     bubble.style.top = top + 'px';
     bubble.style.bottom = 'auto';
+    // Final safety clamp on the real, laid-out height.
+    var realH = bubble.offsetHeight;
+    if (top + realH > window.innerHeight - 8) bubble.style.top = Math.max(8, window.innerHeight - realH - 8) + 'px';
   }
   function renderTourStep(){
     var backdrop = document.getElementById('tourBackdrop');
@@ -26916,7 +26949,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         '<button type="button" class="tour-nav-back" data-action="tour-back" aria-label="Back"'+(ui.tourStep === 0 ? ' disabled' : '')+'>&#8249;</button>' +
         '<button type="button" class="tour-nav-next" data-action="tour-next">'+(last ? 'Done' : 'Next &#8250;')+'</button>' +
       '</div>' +
-      '<div class="tour-hint">'+(ui.tourStep < 2 ? 'Tap the glow or swipe to continue &middot; ' : '')+'<button type="button" data-action="tour-skip">Skip tour</button></div>';
+      '<div class="tour-hint">'+(ui.tourStep < 2 ? '<span class="tour-hint-tip">Tap the glow or swipe to continue &middot; </span>' : '')+'<button type="button" data-action="tour-skip">Skip tour</button></div>';
     // Deferred a frame so a just-triggered tab switch has finished
     // painting before we touch the target. If the target sits further
     // down a scrollable tab (Card Style, for instance, is well below the
@@ -26927,7 +26960,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     requestAnimationFrame(function(){
       var targetEl = findTourTarget(step);
       if (targetEl && targetEl.id !== 'view'){
-        targetEl.scrollIntoView({ block: 'center', behavior: 'instant' });
+        tourScrollTo(targetEl);
       }
       requestAnimationFrame(function(){
         positionTourBubble(findTourTarget(step));
