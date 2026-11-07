@@ -40,7 +40,7 @@ messaging.onBackgroundMessage(function(payload){
   });
 });
 
-var CACHE_NAME = 'iron-ledger-v50';
+var CACHE_NAME = 'iron-ledger-v51';
 var CORE_ASSETS = [
   './',
   './index.html',
@@ -54,6 +54,9 @@ var CORE_ASSETS = [
   './games/stack.html',
   './games/flap.html',
   './games/slice.html',
+  './games/beat-tap.html',
+  './games/plate-2048.html',
+  './games/memory-match.html',
   './images/stretch/shoulder-cross.webp',
   './images/stretch/quad.webp',
   './images/stretch/hamstring.webp',

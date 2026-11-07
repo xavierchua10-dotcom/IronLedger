@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Beat Tap</title>
+<style>
+@font-face{font-family:Inter;font-weight:400;font-display:swap;src:url('../fonts/inter-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:Inter;font-weight:600;font-display:swap;src:url('../fonts/inter-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:Inter;font-weight:700;font-display:swap;src:url('../fonts/inter-latin-700-normal.woff2') format('woff2');}
+@font-face{font-family:'JetBrains Mono';font-weight:700;font-display:swap;src:url('../fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2');}
+</style>
+<style>
+:root{--bg:#101318;--ink:#f4f1ff;--mut:#a3abb8;--gold:#f2b134;color-scheme:dark}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:16px;right:16px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
+.hud div{font-size:12px;letter-spacing:.12em;color:var(--mut);text-transform:uppercase}
+.hud b{display:block;font-size:34px;line-height:1.05;color:var(--ink);letter-spacing:0}
+#score{color:var(--gold)}
+#lives{font-size:22px;letter-spacing:4px;text-align:center;color:#ef6a5a}
+#msg{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 92px);text-align:center;font-size:24px;font-weight:800;letter-spacing:.06em;opacity:0;transition:opacity .12s;pointer-events:none}
+#combo{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 136px);text-align:center;font-size:15px;color:var(--mut);pointer-events:none}
+#ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,12,16,.72)}
+#ov.hide{display:none}
+.card{text-align:center;padding:0 28px;max-width:330px}
+.card h1{margin:0 0 10px;font-size:46px;color:var(--gold);line-height:1;text-transform:uppercase;letter-spacing:.04em}
+.card p{margin:0 0 22px;color:var(--mut);font-size:16px;line-height:1.5}
+.go{display:inline-block;background:var(--gold);color:#1a1300;border-radius:14px;padding:14px 34px;font-size:19px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+</style></head><body>
+<canvas id="c"></canvas>
+<div class="hud"><div>Score<b id="score">0</b></div><div id="lives">♥♥♥</div><div style="text-align:right">Best<b id="best">0</b></div></div>
+<div id="msg"></div><div id="combo"></div>
+<div id="ov"><div class="card"><h1 id="t">Beat Tap</h1><p id="m">Three pads: KICK, SNARE, HAT. Tap the pad when the beat hits the line. Your taps make the sound. The tempo keeps rising. Three misses and you are out.<br><br>Turn the sound on.</p><span class="go" id="go">Tap to start</span></div></div>
+<script>
+function sfReport(g,d){try{d.sfGame=g;window.parent.postMessage(d,location.origin)}catch(e){}}
+(function(){
+var cv=document.getElementById('c'),cx=cv.getContext('2d'),W=0,H=0,DPR=Math.min(devicePixelRatio||1,2);
+function size(){W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;cx.setTransform(DPR,0,0,DPR,0,0)}size();addEventListener('resize',size);
+var $s=document.getElementById('score'),$b=document.getElementById('best'),$l=document.getElementById('lives'),$m=document.getElementById('msg'),$c=document.getElementById('combo'),$ov=document.getElementById('ov');
+var LANES=[{n:'KICK',c:'#f2b134'},{n:'SNARE',c:'#5eead4'},{n:'HAT',c:'#ef6a5a'}];
+var best=0;try{best=+localStorage.getItem('beat-best')||0}catch(e){}$b.textContent=best;
+var AC=null,master=null,running=false,t0=0,bpm=92,nextStep=0,stepN=0,notes=[],score=0,combo=0,lives=3,hits=0,flashes=[],pads=[0,0,0],APPROACH=1.25,WIN=0.2,PERF=0.075,lastLevel=0;
+function now(){return AC.currentTime}
+function noiseBuf(){var n=AC.sampleRate*0.4,b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);for(var i=0;i<n;i++)d[i]=Math.random()*2-1;return b}
+var NB=null;
+function snd(l,when,vol){if(!AC)return;when=when||AC.currentTime;vol=vol==null?1:vol;var g=AC.createGain();g.connect(master);
+  if(l===0){var o=AC.createOscillator();o.type='sine';o.frequency.setValueAtTime(150,when);o.frequency.exponentialRampToValueAtTime(42,when+.14);g.gain.setValueAtTime(1.0*vol,when);g.gain.exponentialRampToValueAtTime(.001,when+.28);o.connect(g);o.start(when);o.stop(when+.3)}
+  else{var s=AC.createBufferSource();s.buffer=NB;var f=AC.createBiquadFilter();
+    if(l===1){f.type='bandpass';f.frequency.value=1800;f.Q.value=.7;g.gain.setValueAtTime(.9*vol,when);g.gain.exponentialRampToValueAtTime(.001,when+.18);var o2=AC.createOscillator();o2.type='triangle';o2.frequency.setValueAtTime(220,when);o2.frequency.exponentialRampToValueAtTime(120,when+.08);var og=AC.createGain();og.gain.setValueAtTime(.5*vol,when);og.gain.exponentialRampToValueAtTime(.001,when+.1);o2.connect(og);og.connect(master);o2.start(when);o2.stop(when+.12)}
+    else{f.type='highpass';f.frequency.value=7000;g.gain.setValueAtTime(.45*vol,when);g.gain.exponentialRampToValueAtTime(.001,when+.06)}
+    s.connect(f);f.connect(g);s.start(when);s.stop(when+.3)}}
+function tick(when,strong){if(!AC)return;var o=AC.createOscillator(),g=AC.createGain();o.frequency.value=strong?1200:800;g.gain.setValueAtTime(strong?.07:.035,when);g.gain.exponentialRampToValueAtTime(.001,when+.04);o.connect(g);g.connect(master);o.start(when);o.stop(when+.05)}
+function genUntil(t){while(nextStep<t){var stepDur=60/bpm/2,pos=stepN%16,lvl=Math.floor(stepN/32),p=Math.min(.45+lvl*.06,.85),lane=-1;
+    if(pos===0||pos===8)lane=0;else if(pos===4||pos===12)lane=1;else if(pos%2===0&&Math.random()<p*.6)lane=Math.random()<.4?0:1;else if(pos%2===1&&Math.random()<p*.55)lane=2;else if(pos%2===0&&Math.random()<p*.5)lane=2;
+    if(lane>=0)notes.push({t:nextStep,l:lane,hit:false,miss:false});
+    if(pos%4===0)tick(nextStep,pos===0);
+    nextStep+=stepDur;stepN++;
+    if(stepN%32===0){bpm=Math.min(bpm+6,168)}}}
+function start(){
+  if(!AC){var C=window.AudioContext||window.webkitAudioContext;AC=new C();master=AC.createGain();master.gain.value=.9;master.connect(AC.destination);NB=noiseBuf()}
+  if(AC.state==='suspended')AC.resume();
+  score=0;combo=0;lives=3;hits=0;notes=[];flashes=[];bpm=92;stepN=0;nextStep=now()+1.6;running=true;$s.textContent=0;lives3();$ov.classList.add('hide');$c.textContent='';
+}
+function lives3(){$l.textContent=new Array(lives+1).join('♥')+new Array(3-lives+1).join('♡')}
+function say(t,c){$m.textContent=t;$m.style.color=c;$m.style.opacity=1;clearTimeout(say.t);say.t=setTimeout(function(){$m.style.opacity=0},380)}
+function over(){running=false;var nb=score>best;if(nb){best=score;try{localStorage.setItem('beat-best',best)}catch(e){}$b.textContent=best}
+  sfReport('beat',{type:'round',score:score,best:best});
+  document.getElementById('t').textContent='Round over';document.getElementById('m').innerHTML='Score <b style="color:#f2b134">'+score+'</b> · '+hits+' hits · '+Math.round(bpm)+' BPM<br>'+(nb?'New best!':'Best '+best);document.getElementById('go').textContent='Go again';$ov.classList.remove('hide')}
+function press(l){if(!running)return;pads[l]=1;var t=now(),pick=null,bd=9;
+  notes.forEach(function(n){if(n.l===l&&!n.hit&&!n.miss){var d=Math.abs(n.t-t);if(d<WIN&&d<bd){bd=d;pick=n}}});
+  if(pick){pick.hit=true;hits++;var perfect=bd<PERF;combo++;var pts=(perfect?100:50)+Math.min(combo,30)*5;score+=pts;$s.textContent=score;say(perfect?'PERFECT':'GOOD',perfect?'#f2b134':'#5eead4');
+    flashes.push({l:l,t:t,c:perfect?'#fff':LANES[l].c});snd(l,t,1);$c.textContent=combo>2?combo+' combo':''}
+  else{snd(l,t,.35);combo=0;$c.textContent=''}}
+function loop(){requestAnimationFrame(loop);cx.clearRect(0,0,W,H);
+  var laneW=W/3,hitY=H*.78,top=H*.16;
+  for(var l=0;l<3;l++){var x=l*laneW;cx.fillStyle=l%2?'rgba(255,255,255,.025)':'rgba(255,255,255,.045)';cx.fillRect(x,top,laneW,H-top);
+    var pa=pads[l];pads[l]=Math.max(0,pa-.08);
+    cx.fillStyle='rgba(255,255,255,'+(.04+pa*.12)+')';cx.fillRect(x,hitY,laneW,H-hitY);
+    cx.fillStyle=LANES[l].c;cx.globalAlpha=.9;cx.font='800 15px Inter,system-ui,sans-serif';cx.textAlign='center';cx.fillText(LANES[l].n,x+laneW/2,H-calcPad()-8);cx.globalAlpha=1}
+  function calcPad(){return 26}
+  cx.strokeStyle='rgba(255,255,255,.55)';cx.lineWidth=3;cx.beginPath();cx.moveTo(0,hitY);cx.lineTo(W,hitY);cx.stroke();
+  for(var i=1;i<3;i++){cx.strokeStyle='rgba(255,255,255,.08)';cx.lineWidth=1;cx.beginPath();cx.moveTo(i*laneW,top);cx.lineTo(i*laneW,H);cx.stroke()}
+  if(!running&&!AC)return;
+  var t=AC?now():0;
+  if(running){genUntil(t+APPROACH+.3);
+    notes.forEach(function(n){if(!n.hit&&!n.miss&&t-n.t>WIN){n.miss=true;combo=0;$c.textContent='';lives--;lives3();say('MISS','#ef6a5a');if(lives<=0)over()}})}
+  notes=notes.filter(function(n){return t-n.t<1.5||false});
+  notes.forEach(function(n){if(n.hit)return;var y=hitY-(n.t-t)/APPROACH*(hitY-top);if(y<top-20||y>H+20)return;var x=n.l*laneW+laneW/2,r=Math.min(laneW*.36,34);
+    cx.globalAlpha=n.miss?.25:Math.min(1,(y-top)/60+.3);cx.fillStyle=LANES[n.l].c;cx.beginPath();cx.arc(x,y,r,0,7);cx.fill();cx.fillStyle='rgba(0,0,0,.22)';cx.beginPath();cx.arc(x,y,r*.62,0,7);cx.fill();cx.globalAlpha=1});
+  flashes=flashes.filter(function(f){return t-f.t<.3});
+  flashes.forEach(function(f){var a=1-(t-f.t)/.3,x=f.l*laneW+laneW/2;cx.globalAlpha=a;cx.strokeStyle=f.c;cx.lineWidth=4;cx.beginPath();cx.arc(x,hitY,20+(1-a)*50,0,7);cx.stroke();cx.globalAlpha=1})}
+requestAnimationFrame(loop);
+function lane(e){return Math.max(0,Math.min(2,Math.floor(e.clientX/(innerWidth/3))))}
+addEventListener('pointerdown',function(e){if(!$ov.classList.contains('hide'))return;e.preventDefault();press(lane(e))});
+addEventListener('keydown',function(e){var k={a:0,s:1,d:2,j:0,k:1,l:2}[e.key.toLowerCase()];if(k!==undefined)press(k)});
+document.getElementById('go').onclick=start;$ov.addEventListener('pointerup',function(e){if(e.target.id!=='go'&&$ov.contains(e.target)){}});
+window.__sfDispose=function(){running=false;try{AC&&AC.close()}catch(e){}};addEventListener('pagehide',window.__sfDispose);
+window.__beat={notes:function(){return notes},now:function(){return AC?now():0},press:press,start:start,state:function(){return{score:score,lives:lives,combo:combo,bpm:bpm,running:running}}};
+})();
+</script></body></html>
