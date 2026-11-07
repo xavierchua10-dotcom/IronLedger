@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stack 3D</title>
+<style>
+@font-face{font-family:Inter;font-weight:400;font-display:swap;src:url('../fonts/inter-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:Inter;font-weight:600;font-display:swap;src:url('../fonts/inter-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:Inter;font-weight:700;font-display:swap;src:url('../fonts/inter-latin-700-normal.woff2') format('woff2');}
+</style>
+<style>
+:root{--bg:#0e1217;--ink:#f4f1ff;--muted:#a9b3c4;--acc:#5eead4;--gold:#f2b134;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);left:18px;right:18px;display:flex;justify-content:space-between;pointer-events:none}
+.hud div{font-size:14px;color:var(--muted)}
+.hud b{display:block;font-size:40px;font-weight:700;line-height:1;color:var(--ink)}
+#score{color:var(--gold)}
+#msg{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 96px);text-align:center;font-size:20px;font-weight:700;color:var(--acc);opacity:0;transition:opacity .15s;pointer-events:none}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,12,16,.6);cursor:pointer}
+#overlay.hide{display:none}
+.card{text-align:center;padding:0 28px;max-width:320px}
+.card h1{margin:0 0 10px;font-size:44px;font-weight:700;color:var(--acc);line-height:1}
+.card p{margin:0 0 22px;color:var(--muted);font-size:17px;line-height:1.45}
+.go{display:inline-block;background:var(--acc);color:#0b1a1f;border-radius:14px;padding:14px 34px;font-size:20px;font-weight:700}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud"><div>Height<b id="score">0</b></div><div style="text-align:right">Best<b id="bestv">0</b></div></div>
+<div id="msg"></div>
+<div id="overlay" tabindex="0"><div class="card"><h1 id="t">Stack 3D</h1><p id="m">Tap to drop each block. Line it up with the one below. Miss and the tower gets thinner.</p><span class="go" id="go">Play</span></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+function sfReport(game,data){try{data.sfGame=game;window.parent.postMessage(data,location.origin)}catch(e){}}
+if(typeof THREE==='undefined'){document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="color:#aeb3bd;font:16px Inter,sans-serif;text-align:center;margin-top:30vh;padding:0 24px">This game needs a connection to load. Check your internet and try again.</p>'})}
+</script>
+<script>
+(function(){if(typeof THREE==='undefined')return;
+var canvas=document.getElementById('c');
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+window.__sfDispose=function(){try{window.requestAnimationFrame=function(){return 0};renderer.dispose();renderer.forceContextLoss();}catch(_){}};addEventListener('pagehide',window.__sfDispose);
+var $score=document.getElementById('score'),$best=document.getElementById('bestv'),$msg=document.getElementById('msg'),$ov=document.getElementById('overlay');
+function flash(t){$msg.textContent=t;$msg.style.opacity=1;clearTimeout(flash.t);flash.t=setTimeout(function(){$msg.style.opacity=0},500)}
+
+var scene=new THREE.Scene();scene.background=new THREE.Color(0x0e1217);
+var D=11,cam=new THREE.OrthographicCamera(-1,1,1,-1,-50,100);
+cam.position.set(D,D+2,D);
+scene.add(new THREE.HemisphereLight(0xcfeeff,0x1a2230,0.95));
+var sun=new THREE.DirectionalLight(0xffffff,0.8);sun.position.set(6,12,4);scene.add(sun);
+var H=0.55,S0=3.2;
+var best=0;try{best=+localStorage.getItem('stack-best')||0}catch(e){}$best.textContent=best;
+var state='ready',stack=[],pieces=[],cur=null,score=0,axis='x',dir=1,speed=2.6,camY=0,combo=0;
+var geo=new THREE.BoxGeometry(1,1,1);
+function color(i){var c=new THREE.Color();c.setHSL(((i*0.025)+0.42)%1,0.62,0.55);return c}
+function block(w,d,x,z,i){
+  var m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:color(i),flatShading:true,roughness:0.6}));
+  m.scale.set(w,H,d);m.position.set(x,i*H,z);scene.add(m);return m;
+}
+function reset(){
+  stack.concat(pieces).forEach(function(b){scene.remove(b.m||b)});stack=[];pieces=[];
+  score=0;combo=0;speed=2.6;camY=0;$score.textContent=0;
+  var base=block(S0,S0,0,0,0);stack.push({m:base,w:S0,d:S0,x:0,z:0});
+  spawn();
+}
+function spawn(){
+  var top=stack[stack.length-1],i=stack.length;
+  axis=(i%2)?'x':'z';dir=1;
+  var m=block(top.w,top.d,axis==='x'?-5:top.x,axis==='z'?-5:top.z,i);
+  cur={m:m,w:top.w,d:top.d,i:i};
+  cur.pos=-5;
+}
+function start(){reset();state='play';$ov.classList.add('hide')}
+function drop(){
+  if(state!=='play'||!cur)return;
+  var top=stack[stack.length-1],m=cur.m,w=cur.w,d=cur.d;
+  var delta=axis==='x'?(m.position.x-top.x):(m.position.z-top.z);
+  var size=axis==='x'?w:d,over=Math.abs(delta);
+  if(over>=size){end();return}
+  var perfect=over<0.12;
+  var nx=m.position.x,nz=m.position.z,nw=w,nd=d;
+  if(perfect){
+    if(axis==='x')nx=top.x;else nz=top.z;combo++;flash(combo>2?'Perfect x'+combo:'Perfect');
+    if(combo>=5){if(axis==='x')nw=Math.min(S0,nw+0.25);else nd=Math.min(S0,nd+0.25)}
+  }else{
+    combo=0;
+    var keep=size-over,cutSize=over,sgn=delta>0?1:-1;
+    if(axis==='x'){
+      nw=keep;nx=top.x+delta/2;
+      var cx=nx+sgn*(keep/2+cutSize/2);piece(cutSize,d,cx,m.position.z,cur.i);
+    }else{
+      nd=keep;nz=top.z+delta/2;
+      var cz=nz+sgn*(keep/2+cutSize/2);piece(w,cutSize,m.position.x,cz,cur.i);
+    }
+  }
+  m.scale.set(nw,H,nd);m.position.x=nx;m.position.z=nz;
+  stack.push({m:m,w:nw,d:nd,x:nx,z:nz});
+  score++;$score.textContent=score;speed=Math.min(6.8,2.6+score*0.09);
+  spawn();
+}
+function piece(w,d,x,z,i){
+  var m=block(w,d,x,z,i);pieces.push({m:m,vy:0,vx:0,t:0});
+}
+function end(){
+  state='over';
+  var nb=score>best;if(nb){best=score;try{localStorage.setItem('stack-best',best)}catch(e){}$best.textContent=best}
+  sfReport('stack',{type:'round',score:score,best:best});
+  document.getElementById('t').textContent=score+(score===1?' block':' blocks');
+  document.getElementById('m').textContent=nb?'New best! Stack it higher.':'Best: '+best+'. Go again.';
+  document.getElementById('go').textContent='Play again';
+  if(cur){pieces.push({m:cur.m,vy:0,vx:0,t:0});cur=null}
+  setTimeout(function(){$ov.classList.remove('hide')},650);
+}
+canvas.addEventListener('pointerdown',function(e){e.preventDefault();drop()});
+addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){if(state==='play')drop();else start()}});
+$ov.addEventListener('click',start);
+function resize(){
+  renderer.setSize(innerWidth,innerHeight,false);
+  var a=innerWidth/innerHeight,v=a<1?12:8;
+  cam.left=-v*a;cam.right=v*a;cam.top=v;cam.bottom=-v;
+  cam.updateProjectionMatrix();
+}
+addEventListener('resize',resize);resize();
+reset();
+var last=performance.now(),spin=0;
+function frame(now){
+  var dt=Math.min((now-last)/1000,0.05);last=now;
+  if(state==='play'&&cur){
+    cur.pos+=dir*speed*dt;
+    if(cur.pos>5){cur.pos=5;dir=-1}if(cur.pos<-5){cur.pos=-5;dir=1}
+    if(axis==='x')cur.m.position.x=cur.pos;else cur.m.position.z=cur.pos;
+  }
+  for(var i=pieces.length-1;i>=0;i--){
+    var p=pieces[i];p.vy-=18*dt;p.t+=dt;p.m.position.y+=p.vy*dt;p.m.rotation.z+=dt*0.8;
+    if(p.m.position.y<-12||p.t>3){scene.remove(p.m);pieces.splice(i,1)}
+  }
+  var ty=Math.max(0,(stack.length-1)*H-1.0);
+  camY+=(ty-camY)*Math.min(1,dt*4);
+  cam.position.set(D,D+2+camY,D);cam.lookAt(0,camY+1.5,0);
+  if(state==='ready'||state==='over'){spin+=dt*0.25;}
+  renderer.render(scene,cam);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>

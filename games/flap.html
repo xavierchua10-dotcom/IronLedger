@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Flap Lift</title>
+<style>
+@font-face{font-family:Inter;font-weight:400;font-display:swap;src:url('../fonts/inter-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:Inter;font-weight:600;font-display:swap;src:url('../fonts/inter-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:Inter;font-weight:700;font-display:swap;src:url('../fonts/inter-latin-700-normal.woff2') format('woff2');}
+</style>
+<style>
+:root{--bg:#101820;--ink:#f4f1ff;--muted:#a9b3c4;--acc:#f2b134;--gold:#f2b134;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);left:18px;right:18px;display:flex;justify-content:space-between;pointer-events:none}
+.hud div{font-size:14px;color:var(--muted)}
+.hud b{display:block;font-size:40px;font-weight:700;line-height:1;color:var(--ink)}
+#score{color:var(--gold)}
+#msg{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 96px);text-align:center;font-size:20px;font-weight:700;color:var(--acc);opacity:0;transition:opacity .15s;pointer-events:none}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,12,16,.6);cursor:pointer}
+#overlay.hide{display:none}
+.card{text-align:center;padding:0 28px;max-width:320px}
+.card h1{margin:0 0 10px;font-size:44px;font-weight:700;color:var(--acc);line-height:1}
+.card p{margin:0 0 22px;color:var(--muted);font-size:17px;line-height:1.45}
+.go{display:inline-block;background:var(--acc);color:#0b1a1f;border-radius:14px;padding:14px 34px;font-size:20px;font-weight:700}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud"><div>Gates<b id="score">0</b></div><div style="text-align:right">Best<b id="bestv">0</b></div></div>
+<div id="msg"></div>
+<div id="overlay" tabindex="0"><div class="card"><h1 id="t">Flap Lift</h1><p id="m">Tap to flap. Fly the dumbbell through the gaps. Do not touch the bars, the floor or the ceiling.</p><span class="go" id="go">Play</span></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+function sfReport(game,data){try{data.sfGame=game;window.parent.postMessage(data,location.origin)}catch(e){}}
+if(typeof THREE==='undefined'){document.addEventListener('DOMContentLoaded',function(){document.body.innerHTML='<p style="color:#aeb3bd;font:16px Inter,sans-serif;text-align:center;margin-top:30vh;padding:0 24px">This game needs a connection to load. Check your internet and try again.</p>'})}
+</script>
+<script>
+(function(){if(typeof THREE==='undefined')return;
+var canvas=document.getElementById('c');
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+window.__sfDispose=function(){try{window.requestAnimationFrame=function(){return 0};renderer.dispose();renderer.forceContextLoss();}catch(_){}};addEventListener('pagehide',window.__sfDispose);
+var $score=document.getElementById('score'),$best=document.getElementById('bestv'),$msg=document.getElementById('msg'),$ov=document.getElementById('overlay');
+function flash(t){$msg.textContent=t;$msg.style.opacity=1;clearTimeout(flash.t);flash.t=setTimeout(function(){$msg.style.opacity=0},500)}
+
+var scene=new THREE.Scene();scene.background=new THREE.Color(0x101820);scene.fog=new THREE.Fog(0x101820,14,34);
+var cam=new THREE.PerspectiveCamera(50,1,0.1,80);
+scene.add(new THREE.HemisphereLight(0xcfe8ff,0x1a2230,0.9));
+var key=new THREE.DirectionalLight(0xffffff,0.8);key.position.set(3,6,8);scene.add(key);
+var best=0;try{best=+localStorage.getItem('flap-best')||0}catch(e){}$best.textContent=best;
+var TOP=6,BOT=-6,CX=-1.1,R=0.8,SC=1.45;
+// floor and ceiling strips
+var edgeMat=new THREE.MeshStandardMaterial({color:0x1d2b38,flatShading:true});
+var fl=new THREE.Mesh(new THREE.BoxGeometry(60,3,6),edgeMat);fl.position.set(0,BOT-1.5,0);scene.add(fl);
+var ce=new THREE.Mesh(new THREE.BoxGeometry(60,3,6),edgeMat);ce.position.set(0,TOP+1.5,0);scene.add(ce);
+// moving ground stripes
+var stripes=[];for(var s=0;s<9;s++){var st=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.06,0.5),new THREE.MeshBasicMaterial({color:0x2b4256}));st.position.set(-9+s*2.2,BOT+0.02,3.05);scene.add(st);stripes.push(st)}
+// dumbbell
+var hero=new THREE.Group();
+var goldM=new THREE.MeshStandardMaterial({color:0xf2b134,flatShading:true,roughness:0.5,metalness:0.2});
+var darkM=new THREE.MeshStandardMaterial({color:0x3a414c,flatShading:true});
+var bar=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,1.5,10),darkM);bar.rotation.z=Math.PI/2;hero.add(bar);
+[-0.62,0.62].forEach(function(x){var p=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,0.28,10),goldM);p.rotation.z=Math.PI/2;p.position.x=x;hero.add(p)});
+hero.scale.set(SC,SC,SC);hero.position.set(CX,0,0);scene.add(hero);
+// gates
+var barGeo=new THREE.BoxGeometry(1.5,1,1.5),barMat=new THREE.MeshStandardMaterial({color:0x5eead4,flatShading:true,roughness:0.55});
+var capMat=new THREE.MeshStandardMaterial({color:0x2dd4bf,flatShading:true});
+var gates=[],state='ready',score=0,y=0,vy=0,spawnX=9,gap=4.3,speed=4.2,t=0,since=0,SP=5.2;
+function addGate(x){
+  var cy=(Math.random()*2-1)*2.4;
+  var gt={x:x,cy:cy,passed:false,top:new THREE.Mesh(barGeo,barMat),bot:new THREE.Mesh(barGeo,barMat)};
+  var th=TOP-(cy+gap/2),bh=(cy-gap/2)-BOT;
+  gt.top.scale.set(1,th,1);gt.top.position.set(x,TOP-th/2,0);
+  gt.bot.scale.set(1,bh,1);gt.bot.position.set(x,BOT+bh/2,0);
+  gt.th=th;gt.bh=bh;scene.add(gt.top);scene.add(gt.bot);gates.push(gt);
+}
+function clearGates(){gates.forEach(function(g){scene.remove(g.top);scene.remove(g.bot)});gates=[]}
+function start(){
+  clearGates();score=0;y=0;vy=0;t=0;speed=4.2;since=0;$score.textContent=0;
+  addGate(5.5);addGate(5.5+SP);addGate(5.5+2*SP);
+  state='play';$ov.classList.add('hide');vy=7.8;
+}
+function end(){
+  if(state!=='play')return;state='over';
+  var nb=score>best;if(nb){best=score;try{localStorage.setItem('flap-best',best)}catch(e){}$best.textContent=best}
+  sfReport('flap',{type:'round',score:score,best:best});
+  document.getElementById('t').textContent=score+(score===1?' gate':' gates');
+  document.getElementById('m').textContent=nb?'New best! Fly it farther.':'Best: '+best+'. Go again.';
+  document.getElementById('go').textContent='Play again';
+  vy=Math.max(vy,2);setTimeout(function(){$ov.classList.remove('hide')},650);
+}
+function flap(){if(state==='play')vy=7.8}
+canvas.addEventListener('pointerdown',function(e){e.preventDefault();flap()});
+addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'||e.key==='ArrowUp'){if(state==='play')flap();else start()}});
+$ov.addEventListener('click',start);
+function resize(){renderer.setSize(innerWidth,innerHeight,false);var a=innerWidth/innerHeight;cam.aspect=a;cam.fov=a<1?78:50;cam.updateProjectionMatrix();cam.position.set(0,0,a<1?9.4:19);cam.lookAt(0,0,0)}
+addEventListener('resize',resize);resize();
+var last=performance.now();
+function frame(now){
+  var dt=Math.min((now-last)/1000,0.05);last=now;t+=dt;
+  if(state==='play'){
+    vy-=24*dt;y+=vy*dt;
+    speed=Math.min(7,4.2+score*0.1);
+    since+=speed*dt;
+    for(var i=gates.length-1;i>=0;i--){
+      var g=gates[i];g.x-=speed*dt;g.top.position.x=g.x;g.bot.position.x=g.x;
+      if(!g.passed&&g.x<CX-0.8){g.passed=true;score++;$score.textContent=score}
+      // collision: hero circle vs two boxes (width 1.5)
+      if(Math.abs(g.x-CX)<0.75+R*0.8){
+        if(y+R*0.8>g.cy+gap/2||y-R*0.8<g.cy-gap/2){end()}
+      }
+      if(g.x<-8){scene.remove(g.top);scene.remove(g.bot);gates.splice(i,1)}
+    }
+    var far=gates.length?gates[gates.length-1].x:0;
+    if(far<spawnX+4)addGate(far+SP);
+    if(y+R>TOP||y-R<BOT){y=Math.max(BOT+R,Math.min(TOP-R,y));end()}
+    stripes.forEach(function(s){s.position.x-=speed*dt;if(s.position.x<-9)s.position.x+=19.8});
+  }else if(state==='over'){
+    vy-=24*dt;y=Math.max(BOT+R,y+vy*dt);
+  }else{
+    y=Math.sin(t*2.2)*0.6;
+  }
+  hero.position.y=y;hero.rotation.z=Math.max(-0.7,Math.min(0.7,vy*0.06));hero.rotation.y=Math.sin(t*3)*0.25;
+  renderer.render(scene,cam);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
