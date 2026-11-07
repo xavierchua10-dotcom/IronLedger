@@ -26732,7 +26732,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // screen for this account (templates only show on an empty Log, the
     // Add Set button only once an exercise exists) so nobody sees a floating
     // bubble pointing at nothing, and the step counter stays honest.
+    // The tour can be started from Settings > Help & about, so close that
+    // page by hand: renderApp only hides it when it still thinks it is open.
     ui.settingsOpen = false; ui.settingsPage = null; state.tab = 'log'; renderApp();
+    ['settingsPage', 'achPage'].forEach(function(id){ var el = document.getElementById(id); if (el) el.classList.add('hidden'); });
     tourList = TOUR_STEPS.filter(function(st){ return !st.skipIfMissing || !!document.querySelector(st.selector); });
     // The "Daily challenge is ready" pop-up would sit on top of the Log header
     // buttons the tour points at, so retire it for this run.
