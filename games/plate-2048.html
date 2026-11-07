@@ -48,6 +48,15 @@ button.p{background:var(--gold);color:#1a1300;border-color:var(--gold)}
 <script>
 function sfReport(g,d){try{d.sfGame=g;window.parent.postMessage(d,location.origin)}catch(e){}}
 (function(){
+var AC=null;
+function ac(){try{if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C()}if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}}
+function unlock(){var a=ac();if(!a)return;try{var b=a.createBuffer(1,1,22050),s=a.createBufferSource();s.buffer=b;s.connect(a.destination);s.start(0)}catch(e){}}
+['touchend','pointerup','click','keydown'].forEach(function(ev){addEventListener(ev,unlock,{passive:true,capture:true})});
+function tone(f,d,v,type,when){try{var a=ac();if(!a)return;var t=a.currentTime+(when||0),o=a.createOscillator(),g=a.createGain();o.type=type||'triangle';o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v||.09,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+function sSlide(){tone(220,.07,.05,'sine');}
+function sMerge(v){var f=300+Math.log(v/2.5)/Math.LN2*70;tone(f,.14,.11,'triangle');tone(f*1.5,.16,.07,'sine',.05)}
+function sWin(){[523,659,784,1047].forEach(function(f,i){tone(f,.2,.1,'triangle',i*.1)})}
+function sOver(){[392,330,262].forEach(function(f,i){tone(f,.25,.09,'sawtooth',i*.16)})}
 var N=4,GAP=8,grid=[],score=0,best=0,won=false,over=false,hist=[],idc=0;
 try{best=+localStorage.getItem('p2048-best')||0}catch(e){}
 document.getElementById('best').textContent=best;
@@ -89,16 +98,18 @@ function move(dir){ // 0 left 1 up 2 right 3 down
       ng[r2][c2]=t2}
   }
   if(!moved)return;
+  sSlide();
   hist.push(before);if(hist.length>1)hist.shift();
   // animate: move old tiles first (those merged slide into place then vanish)
   var old=[];for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(grid[r][c])old.push(grid[r][c]);
   grid=ng;score+=gain;
   old.forEach(function(t){if(t.dead){var el=els[t.id];if(el){var bw=document.getElementById('board').clientWidth-20,cell=(bw-GAP*3)/4;el.style.left=(t.c*(cell+GAP))+'px';el.style.top=(t.r*(cell+GAP))+'px';delete els[t.id];setTimeout(function(){el.remove()},120)}}});
-  spawn();render();
+  var bigM=0;for(var r0=0;r0<N;r0++)for(var c0=0;c0<N;c0++){var tt=grid[r0][c0];if(tt&&tt.merged&&tt.v>bigM)bigM=tt.v}
+  spawn();render();if(bigM)sMerge(bigM);
   if(score>best){best=score;$b.textContent=fmt(best);try{localStorage.setItem('p2048-best',best)}catch(e){}}
   var hit=false;for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(grid[r][c]&&grid[r][c].v>=320)hit=true;
-  if(hit&&!won){won=true;show('Bar loaded!','320 kg on the bar. Keep stacking?','Keep going')}
-  else if(!canMove()){over=true;sfReport('plate',{type:'round',score:score,best:best});show('Rack is full','Total '+fmt(score)+' kg. Best '+fmt(best)+' kg.','Play again')}
+  if(hit&&!won){won=true;sWin();show('Bar loaded!','320 kg on the bar. Keep stacking?','Keep going')}
+  else if(!canMove()){over=true;sOver();sfReport('plate',{type:'round',score:score,best:best});show('Rack is full','Total '+fmt(score)+' kg. Best '+fmt(best)+' kg.','Play again')}
 }
 function canMove(){if(empty().length)return true;for(var r=0;r<N;r++)for(var c=0;c<N;c++){var t=grid[r][c];if(c+1<N&&grid[r][c+1].v===t.v)return true;if(r+1<N&&grid[r+1][c].v===t.v)return true}return false}
 function show(t,m,b){document.getElementById('ovt').textContent=t;document.getElementById('ovm').textContent=m;document.getElementById('ovb').textContent=b;document.getElementById('ov').classList.add('show')}
