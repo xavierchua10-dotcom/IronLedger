@@ -2022,6 +2022,24 @@
   .rd-rec-bar{flex:1;height:7px;border-radius:4px;background:#2a2e36;overflow:hidden;}
   .rd-rec-bar b{display:block;height:100%;border-radius:4px;}
   .rd-rec-st{width:70px;text-align:right;font:700 11px 'JetBrains Mono',monospace;}
+
+  .rd-wk,.rd-ck{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:0 0 18px;}
+  .rd-wk-days{display:flex;justify-content:space-between;}
+  .rd-wd{display:flex;flex-direction:column;align-items:center;gap:7px;font:600 10px 'JetBrains Mono',monospace;color:var(--text-dim);letter-spacing:.08em;}
+  .rd-wd i{width:34px;height:34px;border-radius:50%;border:1.5px dashed rgba(255,255,255,.16);display:block;box-sizing:border-box;}
+  .rd-wd i.g{background:var(--accent);border:none;box-shadow:0 0 12px rgba(var(--accent-rgb),.35);}
+  .rd-wd i.t{background:rgba(94,234,212,.22);border:1.5px solid #5eead4;}
+  .rd-wd i.now{outline:2px solid #fff;outline-offset:2px;}
+  .rd-wk-n{margin-top:12px;font-size:13px;color:var(--text-dim);text-align:center;}
+  .rd-rec.ghost .rd-rec-row{opacity:.45;}
+  .rd-rec-note{margin-top:4px;padding:12px 14px;border-radius:12px;background:rgba(94,234,212,.08);border:1px dashed rgba(94,234,212,.4);font-size:14px;line-height:1.45;color:var(--text);}
+  .rd-ck-bar{height:6px;border-radius:3px;background:#2a2e36;margin:0 0 6px;overflow:hidden;}
+  .rd-ck-bar i{display:block;height:100%;background:#5eead4;border-radius:3px;transition:width .25s;}
+  .rd-ck-row{display:flex;align-items:center;gap:14px;width:100%;padding:11px 0;background:none;border:none;border-top:1px solid rgba(255,255,255,.07);color:var(--text);font:600 15.5px 'Inter',sans-serif;text-align:left;cursor:pointer;}
+  .rd-ck-row:first-of-type{border-top:none;}
+  .rd-ck-row u{width:26px;height:26px;border-radius:8px;border:2px solid rgba(255,255,255,.25);flex-shrink:0;display:flex;align-items:center;justify-content:center;text-decoration:none;color:#0b1f1c;font-weight:900;font-size:15px;}
+  .rd-ck-row.on u{background:#5eead4;border-color:#5eead4;}
+  .rd-ck-row.on span{color:var(--text-dim);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.3);}
   .rd-glabel{margin:0 0 14px;padding-left:8px;border-left:3px solid #5eead4;font:700 11px 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--text-dim);}
   .rd-stretch{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid rgba(94,234,212,.4);border-radius:14px;padding:14px 16px;margin:0 0 22px;}
   .rd-stretch .rd-st-ic{flex:none;width:48px;height:48px;border-radius:12px;background:#143a38;display:grid;place-items:center;}
@@ -14283,6 +14301,69 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
           '<span class="rd-rec-st" style="color:' + col + '">' + (ok ? 'READY' : (r.hrs < 24 ? r.hrs + (r.hrs === 1 ? ' HR' : ' HRS') : r.days + (r.days === 1 ? ' DAY' : ' DAYS'))) + '</span></div>';
       }).join('') + '</div>';
   }
+
+  // "This week": Mon-Sun dots. Gold = trained, teal = rest day, ring = today, dashed = still to come
+  // (or before the first workout was ever logged).
+  function restWeekHtml(){
+    var done = (state.sessions || []).filter(function(x){ return x.status === 'done'; });
+    var now = new Date(), dow = (now.getDay() + 6) % 7;
+    var mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow);
+    var first = null;
+    done.forEach(function(x){ var t = new Date(x.date).getTime(); if (!isNaN(t) && (first === null || t < first)) first = t; });
+    var firstDay = first === null ? null : new Date(new Date(first).getFullYear(), new Date(first).getMonth(), new Date(first).getDate()).getTime();
+    var trainedDays = {};
+    done.forEach(function(x){ trainedDays[new Date(x.date).toDateString()] = true; });
+    var labels = ['M','T','W','T','F','S','S'], dots = '', workouts = 0, rests = 0;
+    for (var i = 0; i < 7; i++){
+      var d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
+      var cls = '', isToday = i === dow;
+      if (trainedDays[d.toDateString()]){ cls = 'g'; workouts++; }
+      else if (i <= dow && firstDay !== null && d.getTime() >= firstDay){ cls = 't'; if (!isToday) rests++; }
+      dots += '<div class="rd-wd"><i class="' + cls + (isToday ? ' now' : '') + '"></i>' + labels[i] + '</div>';
+    }
+    var trainedToday = !!trainedDays[now.toDateString()];
+    var note = first === null ? 'Log a workout and your week fills in.' :
+      workouts + ' workout' + (workouts === 1 ? '' : 's') + ' · ' + rests + ' rest day' + (rests === 1 ? '' : 's') + ' so far';
+    return '<div class="rd-rec rd-wk"><div class="rd-rec-h"><span>This week</span><i>' + (trainedToday ? 'Trained today' : 'Rest day today') + '</i></div>' +
+      '<div class="rd-wk-days">' + dots + '</div><div class="rd-wk-n">' + note + '</div></div>';
+  }
+  // Placeholder so the Recover tab is never half empty (new accounts, or nothing trained in 3 weeks).
+  function recoveryEmptyHtml(){
+    var any = (state.sessions || []).some(function(x){ return x.status === 'done'; });
+    var ghost = ['Chest','Back','Legs'].map(function(n){
+      return '<div class="rd-rec-row"><span class="rd-rec-n" style="color:var(--text-dim)">' + n + '</span><div class="rd-rec-bar"></div></div>';
+    }).join('');
+    return '<div class="rd-rec ghost"><div class="rd-rec-h"><span>Recovery</span><i>' + (any ? 'All rested' : 'No data yet') + '</i></div>' + ghost +
+      '<div class="rd-rec-note">' + (any ? 'Nothing trained in the last 3 weeks, so every muscle is fully recovered.' : 'Log your first workout and your muscle recovery shows up here.') + '</div></div>';
+  }
+  // Today's rest list: four ticks, saved on this phone for today only.
+  var REST_LIST = ['Drink 2 L of water', 'Walk for 10 minutes', 'Do the stretch routine', 'Wind down before 11 pm'];
+  function restListKey(){ var d = new Date(); return 'il_restlist_' + d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+  function restListGet(){
+    try { var a = JSON.parse(localStorage.getItem(restListKey()) || '[]'); if (Array.isArray(a)) return a; } catch (e) {}
+    return [];
+  }
+  function restListToggle(i){
+    var a = restListGet(), k = a.indexOf(i);
+    if (k === -1) a.push(i); else a.splice(k, 1);
+    try {
+      localStorage.setItem(restListKey(), JSON.stringify(a));
+      // keep only today's entry
+      for (var j = localStorage.length - 1; j >= 0; j--){
+        var key = localStorage.key(j);
+        if (key && key.indexOf('il_restlist_') === 0 && key !== restListKey()) localStorage.removeItem(key);
+      }
+    } catch (e) {}
+  }
+  function restListHtml(){
+    var on = restListGet().filter(function(i){ return i >= 0 && i < REST_LIST.length; });
+    return '<div class="rd-ck"><div class="rd-rec-h"><span>Today’s rest list</span><i>' + on.length + ' / ' + REST_LIST.length + '</i></div>' +
+      '<div class="rd-ck-bar"><i style="width:' + (on.length / REST_LIST.length * 100) + '%"></i></div>' +
+      REST_LIST.map(function(t, i){
+        var o = on.indexOf(i) !== -1;
+        return '<button type="button" class="rd-ck-row' + (o ? ' on' : '') + '" data-action="rd-check" data-i="' + i + '"><u>' + (o ? '✓' : '') + '</u><span>' + esc(t) + '</span></button>';
+      }).join('') + '</div>';
+  }
   var rdTab = 'recover';
   function renderRestDayPanel(){
     var panel = document.getElementById('restDayPanel');
@@ -14301,7 +14382,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         '<div class="rd-tabs" role="tablist">' +
           '<button type="button" role="tab" class="' + (rdTab === 'recover' ? 'on' : '') + '" data-action="rd-tab" data-tab="recover">Recover</button>' +
           '<button type="button" role="tab" class="' + (rdTab === 'games' ? 'on' : '') + '" data-action="rd-tab" data-tab="games">Games</button></div>' +
-        (rdTab === 'games' ? rows : (recoveryCardHtml() + stretchCardHtml() + tipCardHtml())) +
+        (rdTab === 'games' ? rows : (restWeekHtml() + (recoveryCardHtml() || recoveryEmptyHtml()) + stretchCardHtml() + restListHtml() + tipCardHtml())) +
       '</div>';
   }
   function openRestDay(){
@@ -14603,6 +14684,12 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (el.dataset.action === 'close-rest-day') closeRestDay();
     else if (el.dataset.action === 'play-game') openGame(el.dataset.game);
     else if (el.dataset.action === 'start-stretch') openStretch();
+    else if (el.dataset.action === 'rd-check'){
+      var rsb = document.querySelector('#restDayPanel .sp-body'), rst = rsb ? rsb.scrollTop : 0;
+      restListToggle(parseInt(el.dataset.i, 10));
+      renderRestDayPanel();
+      rsb = document.querySelector('#restDayPanel .sp-body'); if (rsb) rsb.scrollTop = rst;
+    }
     else if (el.dataset.action === 'open-tip') openTip();
     else if (el.dataset.action === 'rd-tab'){ rdTab = el.dataset.tab === 'games' ? 'games' : 'recover'; renderRestDayPanel(); var rb = document.querySelector('#restDayPanel .sp-body'); if (rb) rb.scrollTop = 0; }
   });
