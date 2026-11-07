@@ -365,6 +365,19 @@
   .row-action-item.selected{color:var(--accent);}
   .row-action-item.selected::after{content:'\2713';float:right;margin-left:16px;}
 
+  /* Session \u22ee menu: icon chips, a divider above Delete, and a pointer toward the button. */
+  html .row-action-menu.ra-rich.ra-rich{width:236px;padding:6px;background-color:#1c1f25;background-image:none;border:1px solid rgba(255,255,255,.12);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.75);-webkit-backdrop-filter:none;backdrop-filter:none;overflow:visible;}
+  .row-action-menu.ra-rich::before{content:'';position:absolute;top:-6px;right:14px;width:12px;height:12px;background:#1c1f25;border-left:1px solid rgba(255,255,255,.12);border-top:1px solid rgba(255,255,255,.12);transform:rotate(45deg);}
+  .row-action-menu.ra-rich .ra-i{position:relative;display:flex;align-items:center;gap:12px;height:48px;padding:0 10px;border-radius:12px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;letter-spacing:0;color:#eceef1;}
+  .row-action-menu.ra-rich .ra-i:active{background:rgba(255,255,255,.06);}
+  .ra-ic{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;color:#b9bec7;flex-shrink:0;}
+  .row-action-menu.ra-rich .ra-i.gold{background:rgba(var(--accent-rgb),.1);}
+  .row-action-menu.ra-rich .ra-i.gold .ra-ic{background:rgba(var(--accent-rgb),.2);color:var(--accent);}
+  .row-action-menu.ra-rich .ra-i small{margin-left:auto;font:700 9px 'JetBrains Mono',monospace;letter-spacing:.08em;background:var(--accent);color:#1c1500;border-radius:999px;padding:3px 7px;}
+  .row-action-menu.ra-rich .ra-i.danger{color:#ef6a5a;}
+  .row-action-menu.ra-rich .ra-i.danger .ra-ic{background:rgba(239,106,90,.14);color:#ef6a5a;}
+  .ra-div{height:1px;background:rgba(255,255,255,.08);margin:5px 8px;}
+
   /* ---------- Guided tour ---------- */
   /* #tourBackdrop: full-screen, catches every tap while the tour is open
      so a stray touch can't hit real controls underneath — it does not
@@ -3920,6 +3933,67 @@
   }
   .log-chat-ai-usage.log-chat-ai-usage-low{color:var(--accent-2);}
   .he-body{padding:14px 16px 20px;overflow-y:auto;}
+
+  /* ===== Edit Session — full screen, built like Log ===== */
+  #historyEditOverlay{padding:0;background:#121418;backdrop-filter:none;-webkit-backdrop-filter:none;align-items:stretch;justify-content:stretch;}
+  #historyEditPanel.he-panel{position:relative;width:100%;max-width:none;height:100%;max-height:none;border:none;border-radius:0;box-shadow:none;background:#121418;background-image:radial-gradient(120% 40% at 50% 0,rgba(var(--accent-rgb),.07),transparent 60%);backdrop-filter:none;-webkit-backdrop-filter:none;}
+  #historyEditPanel .he-header{padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;min-height:46px;background:rgba(18,20,24,.96);}
+  #historyEditPanel .he-cancel-btn{width:74px;text-align:left;font-size:15px;padding:8px 0;}
+  #historyEditPanel .he-title{font-size:17px;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+  #historyEditPanel .he-title:before{content:'';width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);}
+  #historyEditPanel .he-save-btn{min-width:74px;height:34px;padding:0 16px;border-radius:11px;background:var(--accent);color:#1c1500;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+  #historyEditPanel .he-body{flex:1;min-height:0;padding:0 14px 120px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  #historyEditPanel .he-name-input.he-title-in{background:none;border:none;border-bottom:1px solid rgba(var(--accent-rgb),.45);border-radius:0;margin:18px 0 0;padding:0 0 8px;font-family:'Oswald',sans-serif;font-size:34px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;line-height:1.1;}
+  .he-meta{margin:10px 0 0;font:500 13px 'JetBrains Mono',monospace;color:var(--text-dim);}
+  .he-meta b{color:var(--accent);font-weight:600;margin-left:10px;}
+  .he-sec{display:flex;align-items:center;gap:10px;margin:22px 0 12px;font:600 13px 'JetBrains Mono',monospace;letter-spacing:.2em;color:var(--text-dim);}
+  .he-sec:before{content:'';width:3px;height:18px;background:var(--accent);border-radius:2px;}
+  .he-sec:after{content:'';flex:1;height:1px;background:rgba(var(--accent-rgb),.3);}
+  #historyEditPanel .he-exercise-card{background-color:rgba(27,29,34,.94);background-image:none;border-radius:18px;padding:12px;margin-bottom:12px;}
+  #historyEditPanel .he-exercise-head{align-items:center;gap:12px;margin-bottom:0;cursor:pointer;}
+  .he-pic{width:60px;height:60px;border-radius:13px;background:#fff;border:2px solid #f2d79a;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .he-pic img{width:100%;height:100%;object-fit:contain;}
+  #historyEditPanel .he-exercise-head .eh-title{flex:1;min-width:0;}
+  #historyEditPanel .he-exercise-head h3{font-family:'Oswald',sans-serif;font-size:19px;line-height:1.1;letter-spacing:.02em;text-transform:uppercase;margin:0 0 6px;color:#fff;}
+  .he-bd{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .he-bd .he-vol{font:600 10.5px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:3px 9px;background:rgba(var(--accent-rgb),.18);color:var(--accent);}
+  .he-ib{width:38px;height:38px;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:#171a1f;display:flex;align-items:center;justify-content:center;color:#b9bec7;flex-shrink:0;cursor:pointer;padding:0;}
+  .he-ib.r{color:#ef6a5a;border-color:rgba(239,106,90,.3);}
+  .he-ib svg{pointer-events:none;}
+  .he-chev{transition:transform .2s;}.he-chev.open{transform:rotate(180deg);}
+  .he-sets{margin-top:10px;}
+  .he-sr{display:flex;align-items:center;gap:10px;padding:8px 2px;border-top:1px solid rgba(255,255,255,.08);flex-wrap:wrap;}
+  .he-ix{width:28px;height:28px;border-radius:50%;background:#2a2d34;color:var(--accent);font:700 13px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .he-dt{flex:1;min-width:0;font:700 25px 'Oswald',sans-serif;color:#fff;cursor:pointer;display:flex;align-items:baseline;gap:3px;white-space:nowrap;overflow:hidden;}
+  .he-dt i{font:500 12px 'JetBrains Mono',monospace;color:var(--text-dim);font-style:normal;}
+  .he-dt .x{color:#6c727d;font:700 16px 'JetBrains Mono',monospace;margin:0 5px;}
+  .he-dt .pr-tag{margin-left:8px;align-self:center;}
+  .he-sr .he-ib{width:34px;height:34px;}
+  .he-sr.ed{background:linear-gradient(90deg,rgba(var(--accent-rgb),.14),rgba(var(--accent-rgb),.04));border:1px solid rgba(var(--accent-rgb),.55);border-radius:14px;margin:4px 0;padding:10px;}
+  .he-stp{display:flex;gap:10px;width:100%;}
+  .he-sg{flex:1;min-width:0;background:#14161a;border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:6px 8px 8px;}
+  .he-sg label{display:block;font:600 9px 'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--text-faint);margin:0 0 4px 2px;text-transform:uppercase;}
+  .he-sg div{display:flex;align-items:center;justify-content:space-between;gap:2px;}
+  .he-sg input{flex:1;min-width:0;width:100%;box-sizing:border-box;background:none;border:none;color:#fff;text-align:center;font:700 22px 'Oswald',sans-serif;padding:0;-moz-appearance:textfield;}
+  .he-sg input::-webkit-outer-spin-button,.he-sg input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .he-sg input:focus{outline:none;}
+  .he-u{width:34px;height:38px;flex-shrink:0;border-radius:10px;border:none;background:#262a31;color:var(--accent);font:600 22px 'Inter',sans-serif;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+  .he-u:active{background:rgba(var(--accent-rgb),.25);}
+  .he-rowbtns{display:flex;gap:8px;width:100%;}
+  .he-done{flex:1;height:42px;border-radius:12px;border:none;background:var(--accent);color:#1c1500;font:700 15px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
+  .he-done:disabled{opacity:.4;}
+  .he-xbtn{width:46px;height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:none;color:var(--text-dim);font-size:16px;cursor:pointer;}
+  .he-addrow{display:flex;gap:8px;margin-top:10px;}
+  .he-addrow .add-set-toggle-btn{flex:1;margin:0;height:46px;}
+  .he-sum{font:500 12px 'JetBrains Mono',monospace;color:var(--accent);white-space:nowrap;}
+  .he-bar{position:absolute;left:0;right:0;bottom:0;padding:26px 16px calc(env(safe-area-inset-bottom,0px) + 16px);background:linear-gradient(180deg,rgba(18,20,24,0),#121418 38%);display:flex;align-items:center;gap:10px;pointer-events:none;}
+  .he-bar>*{pointer-events:auto;}
+  .he-chg{font:600 11px 'JetBrains Mono',monospace;color:var(--text-dim);background:#23262d;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:0 12px;height:54px;display:flex;align-items:center;white-space:nowrap;}
+  .he-chg b{color:var(--accent);margin-right:5px;}
+  .he-go{flex:1;height:54px;border-radius:15px;border:none;background:var(--accent);color:#1c1500;font:700 17px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 24px rgba(var(--accent-rgb),.25);}
+  .he-go.idle{background:#2a2d34;color:var(--text-dim);box-shadow:none;}
+  .he-toast{position:absolute;left:14px;right:14px;bottom:96px;z-index:3;background:#23262d;border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;font:600 14px 'Inter',sans-serif;color:#eceef1;box-shadow:0 12px 30px rgba(0,0,0,.6);}
+  .he-toast button{background:none;border:none;color:var(--accent);font:700 14px 'Oswald',sans-serif;letter-spacing:.1em;cursor:pointer;padding:6px 4px;}
 
   /* ---------- Log Assistant chat ---------- */
   // Full-screen + glass, unlike every other .confirm-overlay/.pro-panel
@@ -8057,6 +8131,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     exSearchFilters: { muscles: [], equipment: [], types: [] }, // active filter selections in the exercise-search overlay
     tabAnimating: false,    // true while a tab-slide transition is in progress
     savingRoutine: false,   // true while the "Save as Routine" name panel is open
+    heOpenEx: {},            // Edit Session: exercise id -> true/false (expanded) overrides
+    heUndo: null,            // Edit Session: last deleted set, for the UNDO toast
     savingRoutineFrom: null, // History session id when the panel was opened from a past session, else null (= today's Log)
     routineNameDraft: '',
     howtoEx: null,          // exercise name whose How-to sheet is open (Beginner exercises), or null
@@ -12918,10 +12994,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       });
     } else if (m.type === 'session'){
       items = [
-        { label: 'Edit', action: 'edit-session' },
-        { label: 'Repeat', action: 'repeat-session' },
-        { label: 'Save as routine', action: 'save-session-routine' },
-        { label: 'Delete session', action: 'delete-session', danger: true }
+        { label: 'Edit session', action: 'edit-session', icon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>' },
+        { label: 'Repeat', action: 'repeat-session', icon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>' },
+        { label: 'Save as routine', action: 'save-session-routine', icon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>', gold: true, tag: 'NEW' },
+        { label: 'Delete session', action: 'delete-session', danger: true, icon: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>', divider: true }
       ];
     } else {
       var menuSetEx = findExercise(getActiveSession(), m.exId);
@@ -12944,8 +13020,13 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       if (it.view){
         return '<button type="button" class="row-action-item'+(it.selected ? ' selected' : '')+'" role="menuitemradio" aria-checked="'+(it.selected ? 'true' : 'false')+'" data-action="'+it.action+'" data-view="'+it.view+'">'+esc(it.label)+'</button>';
       }
+      if (it.icon){
+        return (it.divider ? '<div class="ra-div"></div>' : '') +
+          '<button type="button" class="row-action-item ra-i'+(it.danger ? ' danger' : '')+(it.gold ? ' gold' : '')+'" data-action="'+it.action+'" '+idAttrs+'><span class="ra-ic">'+it.icon+'</span>'+esc(it.label)+(it.tag ? '<small>'+it.tag+'</small>' : '')+'</button>';
+      }
       return '<button type="button" class="row-action-item'+(it.danger ? ' danger' : '')+'" data-action="'+it.action+'" '+idAttrs+'>'+esc(it.label)+'</button>';
     }).join('');
+    menu.classList.toggle('ra-rich', m.type === 'session');
     menu.classList.remove('hidden');
     if (anchorEl){
       var rect = anchorEl.getBoundingClientRect();
@@ -25098,9 +25179,11 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
   function refreshHistoryEditRowBtn(){
     var panel = document.getElementById('historyEditPanel');
     if (!panel || !ui.historyEditOpenRow) return;
+    var ex = ui.editDraft && ui.editDraft.exercises.find(function(e){ return e.id === ui.historyEditOpenRow.exId; });
+    draftApplyLiveEdit();
+    refreshHistoryEditBar();
     var btn = panel.querySelector('.add-set-btn');
     if (!btn) return;
-    var ex = ui.editDraft && ui.editDraft.exercises.find(function(e){ return e.id === ui.historyEditOpenRow.exId; });
     btn.disabled = !(ex && draftRowReady(ex.name));
   }
 
@@ -25640,6 +25723,8 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // (see renderHistoryEditOverlay's filtering), so Save still writes
     // the full session back correctly either way.
     ui.historyEditFocusExId = focusExId || null;
+    ui.heOpenEx = {};
+    ui.heUndo = null;
     ui.heCardio = null;
     ui.historyEditOpenRow = null;
     ui.historyEditRowDraft = { weight: null, reps: null };
@@ -25718,6 +25803,104 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     flashSessionFinished(real.id);
   }
 
+
+  // ---- Edit Session helpers (all of these only touch the draft) ----
+  function historyEditChangeCount(){
+    var d = ui.editDraft; if (!d) return 0;
+    var real = state.sessions.find(function(s){ return s.id === d.sessionId; });
+    if (!real) return 0;
+    var n = 0;
+    if ((real.name || '') !== (d.name || '')) n++;
+    var rm = {}; real.exercises.forEach(function(e){ rm[e.id] = e; });
+    d.exercises.forEach(function(ex){
+      var o = rm[ex.id];
+      if (!o){ n++; return; }
+      delete rm[ex.id];
+      var os = {}; (o.sets || []).forEach(function(x){ os[x.id] = x; });
+      (ex.sets || []).forEach(function(x){
+        var q = os[x.id];
+        if (!q){ n++; return; }
+        delete os[x.id];
+        if (q.weightKg !== x.weightKg || q.reps !== x.reps) n++;
+      });
+      n += Object.keys(os).length;
+      if (JSON.stringify(o.cardio || []) !== JSON.stringify(ex.cardio || [])) n++;
+    });
+    return n + Object.keys(rm).length;
+  }
+  function refreshHistoryEditBar(){
+    var panel = document.getElementById('historyEditPanel'); if (!panel) return;
+    var chg = panel.querySelector('.he-chg'), go = panel.querySelector('.he-go');
+    if (!chg || !go) return;
+    var n = historyEditChangeCount();
+    chg.innerHTML = n ? '<b>' + n + '</b>' + (n === 1 ? 'CHANGE' : 'CHANGES') : 'NO CHANGES';
+    go.classList.toggle('idle', !n);
+  }
+  function draftFindEx(exId){
+    return ui.editDraft ? ui.editDraft.exercises.find(function(e){ return e.id === exId; }) : null;
+  }
+  // Edit mode applies straight to the set (it's only the draft; Cancel still discards everything).
+  function draftApplyLiveEdit(){
+    var o = ui.historyEditOpenRow;
+    if (!o || o.type !== 'edit') return;
+    var ex = draftFindEx(o.exId);
+    var st = ex && ex.sets.find(function(x){ return x.id === o.setId; });
+    if (!st || !draftRowReady(ex.name)) return;
+    st.weightKg = roundNice(toStoredKg(ui.historyEditRowDraft.weight));
+    st.reps = parseInt(ui.historyEditRowDraft.reps, 10);
+  }
+  function draftStepRow(field, dir){
+    var o = ui.historyEditOpenRow; if (!o) return;
+    var ex = draftFindEx(o.exId); if (!ex) return;
+    var d = ui.historyEditRowDraft;
+    if (field === 'weight'){
+      var step = unitLabel() === 'lb' ? 5 : 2.5;
+      var v = parseFloat(d.weight); if (isNaN(v)) v = 0;
+      d.weight = String(Math.max(0, Math.round((v + dir * step) * 100) / 100));
+    } else {
+      var rs = isHoldExercise(ex.name) ? 5 : 1;
+      var r = parseInt(d.reps, 10); if (isNaN(r)) r = 0;
+      d.reps = String(Math.max(0, r + dir * rs));
+    }
+    draftApplyLiveEdit();
+    renderHistoryEditOverlay();
+  }
+  function draftToggleCard(exId){
+    var i = ui.editDraft ? ui.editDraft.exercises.findIndex(function(e){ return e.id === exId; }) : -1;
+    if (i < 0) return;
+    var cur = heCardOpen(exId, i);
+    ui.heOpenEx[exId] = !cur;
+    if (cur && ui.historyEditOpenRow && ui.historyEditOpenRow.exId === exId) ui.historyEditOpenRow = null;
+    renderHistoryEditOverlay();
+  }
+  // Single-exercise mode and the first exercise start open; the rest start folded.
+  function heCardOpen(exId, idx){
+    if (ui.historyEditFocusExId) return true;
+    if (ui.heOpenEx[exId] !== undefined) return !!ui.heOpenEx[exId];
+    return idx === 0;
+  }
+  function draftDeleteSetUndoable(exId, setId){
+    var ex = draftFindEx(exId); if (!ex) return;
+    var idx = ex.sets.findIndex(function(x){ return x.id === setId; });
+    if (idx < 0) return;
+    var tok = Date.now();
+    ui.heUndo = { exId: exId, set: ex.sets[idx], index: idx, name: ex.name, token: tok };
+    draftDeleteSet(exId, setId);
+    setTimeout(function(){
+      if (ui.heUndo && ui.heUndo.token === tok){
+        ui.heUndo = null;
+        var t = document.getElementById('heToast'); if (t) t.remove();
+      }
+    }, 5000);
+  }
+  function draftUndoDelete(){
+    var u = ui.heUndo; ui.heUndo = null;
+    if (!u) return;
+    var ex = draftFindEx(u.exId);
+    if (ex) ex.sets.splice(Math.min(u.index, ex.sets.length), 0, u.set);
+    renderHistoryEditOverlay();
+  }
+
   function draftOpenDeleteExerciseConfirm(exId){
     if (!ui.editDraft) return;
     var ex = ui.editDraft.exercises.find(function(e){ return e.id === exId; });
@@ -25770,12 +25953,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
 
   function draftOpenAddSet(exId){
     ui.historyEditOpenRow = { type: 'add', exId: exId };
-    ui.historyEditRowDraft = { weight: null, reps: null };
+    var ex = draftFindEx(exId), last = ex && ex.sets.length ? ex.sets[ex.sets.length - 1] : null;
+    ui.historyEditRowDraft = last ? { weight: fmtWeight(last.weightKg), reps: String(last.reps) } : { weight: null, reps: null };
+    ui.heOpenEx[exId] = true;
     renderHistoryEditOverlay();
-    setTimeout(function(){
-      var inp = document.querySelector('#historyEditPanel .he-set-weight-input');
-      if (inp) inp.focus();
-    }, 30);
   }
 
   function draftOpenEditSet(exId, setId){
@@ -25786,10 +25967,6 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     ui.historyEditOpenRow = { type: 'edit', exId: exId, setId: setId };
     ui.historyEditRowDraft = { weight: fmtWeight(st.weightKg), reps: String(st.reps) };
     renderHistoryEditOverlay();
-    setTimeout(function(){
-      var inp = document.querySelector('#historyEditPanel .he-set-weight-input');
-      if (inp) inp.focus();
-    }, 30);
   }
 
   function draftCloseRow(){
@@ -25947,6 +26124,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     // class into this one render, then clear immediately so it never
     // replays on a later unrelated re-render of the overlay.
     ui.justAddedExIds = [newEx.id];
+    ui.heOpenEx[newEx.id] = true;
     renderHistoryEditOverlay();
     ui.justAddedExIds = [];
     var card = document.querySelector('#historyEditPanel .he-exercise-card.just-added');
@@ -26585,6 +26763,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     if (!ui.editDraft){
       overlay.classList.add('hidden');
       panel.innerHTML = '';
+      ui.heUndo = null;
       return;
     }
     overlay.classList.remove('hidden');
@@ -26611,6 +26790,17 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var openRow = ui.historyEditOpenRow;
     var focusExId = ui.historyEditFocusExId;
     var exercisesToRender = focusExId ? draft.exercises.filter(function(ex){ return ex.id === focusExId; }) : draft.exercises;
+    var TRASH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
+    var CHEV = '<svg class="he-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+    var prevBody = panel.querySelector('.he-body');
+    var prevScroll = prevBody ? prevBody.scrollTop : 0;
+    var realSess = state.sessions.find(function(x){ return x.id === draft.sessionId; });
+    var exCount = draft.exercises.length;
+    var setCount = draft.exercises.reduce(function(n, e){ return n + (isCardioEx(e) ? 0 : (e.sets || []).length); }, 0);
+    var dateTxt = '';
+    if (realSess && realSess.date){
+      try { dateTxt = new Date(realSess.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); } catch (e1) {}
+    }
 
     var html = '<div class="he-header">' +
         '<button class="he-cancel-btn" data-action="request-close-history-edit">Cancel</button>' +
@@ -26619,8 +26809,10 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
       '</div>';
     html += '<div class="he-body">';
     if (!focusExId){
-      html += '<input type="text" id="heNameInput" class="he-name-input" maxlength="60" placeholder="Untitled session" value="'+esc(draft.name)+'">';
+      html += '<input type="text" id="heNameInput" class="he-name-input he-title-in" maxlength="60" placeholder="Untitled session" value="'+esc(draft.name)+'">';
     }
+    html += '<div class="he-meta">' + (dateTxt ? esc(dateTxt) : '') + '<b>' + exCount + ' ex</b><b>' + setCount + ' sets</b></div>';
+    html += '<div class="he-sec">EXERCISES</div>';
 
     if (exercisesToRender.length === 0){
       html += focusExId ?
@@ -26628,56 +26820,70 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
         '<div class="empty" style="padding:24px 0;"><p>No exercises left in this session.<br>Save to keep it empty, or Cancel to keep the original.</p></div>';
     } else {
       exercisesToRender.forEach(function(ex){
+        var idx = draft.exercises.indexOf(ex);
         if (isCardioEx(ex)){ html += heCardioCardHtml(ex); return; }
+        var isOpen = heCardOpen(ex.id, idx);
+        var pic = exPicImgHtml(ex, 'he-pic-img');
+        var vol = (ex.sets || []).length ? Math.round(toDisplay(exerciseVolume(ex))).toLocaleString() : '';
         html += '<div class="he-exercise-card'+(ui.justAddedExIds.indexOf(ex.id) !== -1?' just-added':'')+'" id="heEx_'+ex.id+'">' +
-            '<div class="he-exercise-head">' +
+            '<div class="he-exercise-head" data-action="he-toggle-card" data-ex="'+ex.id+'">' +
+              (pic ? '<div class="he-pic">'+pic.img+'</div>' : '') +
               '<div class="eh-title"><h3>'+esc(ex.name)+'</h3>' +
-                (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
+                '<div class="he-bd">' + (ex.muscle ? '<span class="muscle-badge">'+esc(ex.muscle)+'</span>' : '') +
+                (isOpen && vol ? '<span class="he-vol">VOL '+vol+' '+unitLabel().toUpperCase()+'</span>' : '') + '</div>' +
               '</div>' +
-              '<button class="set-act-btn" data-action="draft-delete-exercise" data-ex="'+ex.id+'" aria-label="Delete '+esc(ex.name)+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg></button>' +
+              (isOpen ? '' : '<span class="he-sum">'+(ex.sets || []).length+' sets'+(vol ? ' · '+vol+' '+unitLabel().toUpperCase() : '')+'</span>') +
+              (isOpen ? '<button type="button" class="he-ib r" data-action="draft-delete-exercise" data-ex="'+ex.id+'" aria-label="Delete '+esc(ex.name)+'">'+TRASH+'</button>' : '') +
+              '<span class="he-ib" style="border:none;background:none;width:26px;">'+CHEV.replace('he-chev','he-chev'+(isOpen?' open':''))+'</span>' +
             '</div>';
+        if (!isOpen){ html += '</div>'; return; }
 
+        html += '<div class="he-sets">';
+        var hold = isHoldExercise(ex.name);
+        var repsLbl = hold ? 'sec' : 'reps';
+        function stepHtml(){
+          return '<div class="he-stp">' +
+            '<div class="he-sg"><label>Weight · '+unitLabel()+'</label><div><button type="button" class="he-u" data-action="he-step" data-f="weight" data-d="-1" aria-label="Less weight">−</button>' +
+              '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="he-set-weight-input" value="'+(ui.historyEditRowDraft.weight != null ? esc(ui.historyEditRowDraft.weight) : '')+'">' +
+              '<button type="button" class="he-u" data-action="he-step" data-f="weight" data-d="1" aria-label="More weight">+</button></div></div>' +
+            '<div class="he-sg"><label>'+repsLbl+'</label><div><button type="button" class="he-u" data-action="he-step" data-f="reps" data-d="-1" aria-label="Fewer">−</button>' +
+              '<input type="number" inputmode="numeric" step="1" placeholder="'+repsLbl+'" class="he-set-reps-input" value="'+(ui.historyEditRowDraft.reps != null ? esc(ui.historyEditRowDraft.reps) : '')+'">' +
+              '<button type="button" class="he-u" data-action="he-step" data-f="reps" data-d="1" aria-label="More">+</button></div></div>' +
+          '</div>';
+        }
+        (ex.warmups || []).forEach(function(st){
+          html += '<div class="he-sr"><span class="he-ix" style="background:none;border:1px dashed #6c727d;color:#9aa0aa;">W</span>' +
+            '<span class="he-dt" style="cursor:default;">'+fmtWeight(st.weightKg)+'<i>'+unitLabel()+'</i><span class="x">&times;</span>'+st.reps+'<i>'+repsLbl+'</i></span></div>';
+        });
         ex.sets.forEach(function(st, i){
           var isEditingRow = openRow && openRow.type === 'edit' && openRow.exId === ex.id && openRow.setId === st.id;
+          var line = '<span class="he-ix">'+(i+1)+'</span>' +
+            '<span class="he-dt" data-action="'+(isEditingRow ? 'draft-cancel-row' : 'draft-open-edit-set')+'" data-ex="'+ex.id+'" data-set="'+st.id+'">' +
+              (isEditingRow && ui.historyEditRowDraft.weight != null && ui.historyEditRowDraft.weight !== '' ? esc(ui.historyEditRowDraft.weight) : fmtWeight(st.weightKg)) +
+              '<i>'+unitLabel()+'</i><span class="x">&times;</span>' +
+              (isEditingRow && ui.historyEditRowDraft.reps != null && ui.historyEditRowDraft.reps !== '' ? esc(ui.historyEditRowDraft.reps) : st.reps) +
+              '<i>'+repsLbl+'</i>' + (st.isPR ? '<span class="pr-tag"'+prTagAttrs(st)+'>PR</span>' : '') +
+            '</span>' +
+            '<button type="button" class="he-ib r" data-action="draft-delete-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Delete set">'+TRASH+'</button>';
           if (isEditingRow){
-            var rReady = draftRowReady(ex.name);
-            html += '<div class="add-set-row">' +
-                '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="he-set-weight-input" value="'+(ui.historyEditRowDraft.weight != null ? esc(ui.historyEditRowDraft.weight) : '')+'">' +
-                '<input type="number" inputmode="numeric" step="1" placeholder="'+(isHoldExercise(ex.name) ? 'sec' : 'reps')+'" class="he-set-reps-input" value="'+(ui.historyEditRowDraft.reps != null ? esc(ui.historyEditRowDraft.reps) : '')+'">' +
-                '<div class="add-set-btn-group">' +
-                  '<button class="add-set-btn" data-action="draft-confirm-edit-set" data-ex="'+ex.id+'" data-set="'+st.id+'"'+(rReady?'':' disabled')+'>&#10003;</button>' +
-                  '<button class="cancel-edit-btn" data-action="draft-cancel-row" aria-label="Cancel">&#10005;</button>' +
-                '</div>' +
-              '</div>';
+            html += '<div class="he-sr ed">' + line + stepHtml() +
+              '<div class="he-rowbtns"><button type="button" class="he-done" data-action="draft-cancel-row">Done</button></div></div>';
           } else {
-            html += '<div class="set-row">' +
-                '<span class="set-idx">'+(i+1)+'</span>' +
-                '<span class="set-detail" data-action="draft-open-edit-set" data-ex="'+ex.id+'" data-set="'+st.id+'">' +
-                  '<span class="set-wr">'+fmtWeight(st.weightKg)+' '+unitLabel()+'<span class="x">&times;</span>'+st.reps+(isHoldExercise(ex.name) ? 's' : '')+'</span>' +
-                  (st.isPR ? '<span class="pr-tag"'+prTagAttrs(st)+'>PR</span>' : '') +
-                '</span>' +
-                '<span class="set-actions">' +
-                  '<button class="set-act-btn" data-action="draft-delete-set" data-ex="'+ex.id+'" data-set="'+st.id+'" aria-label="Delete set"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg></button>' +
-                '</span>' +
-              '</div>';
+            html += '<div class="he-sr">' + line + '</div>';
           }
         });
+        html += '</div>'; // close he-sets
 
         var isAddingRow = openRow && openRow.type === 'add' && openRow.exId === ex.id;
         if (isAddingRow){
           var addReady = draftRowReady(ex.name);
-          html += '<div class="add-set-row">' +
-              '<input type="number" inputmode="decimal" step="0.5" placeholder="'+unitLabel()+'" class="he-set-weight-input" value="'+(ui.historyEditRowDraft.weight != null ? esc(ui.historyEditRowDraft.weight) : '')+'">' +
-              '<input type="number" inputmode="numeric" step="1" placeholder="'+(isHoldExercise(ex.name) ? 'sec' : 'reps')+'" class="he-set-reps-input" value="'+(ui.historyEditRowDraft.reps != null ? esc(ui.historyEditRowDraft.reps) : '')+'">' +
-              '<div class="add-set-btn-group">' +
-                '<button class="add-set-btn" data-action="draft-confirm-add-set" data-ex="'+ex.id+'"'+(addReady?'':' disabled')+'>&#10003;</button>' +
-                '<button class="cancel-edit-btn" data-action="draft-cancel-row" aria-label="Cancel">&#10005;</button>' +
-              '</div>' +
-            '</div>';
+          html += '<div class="he-sr ed"><span class="he-ix">'+(ex.sets.length+1)+'</span><span class="he-dt" style="color:#9aa0aa;font-size:16px;">New set</span>' + stepHtml() +
+            '<div class="he-rowbtns"><button type="button" class="he-done add-set-btn" data-action="draft-confirm-add-set" data-ex="'+ex.id+'"'+(addReady?'':' disabled')+'>Add set '+(ex.sets.length+1)+'</button>' +
+            '<button type="button" class="he-xbtn" data-action="draft-cancel-row" aria-label="Cancel">&#10005;</button></div></div>';
         } else {
-          html += '<button class="add-set-toggle-btn" data-action="draft-open-add-set" data-ex="'+ex.id+'">' +
+          html += '<div class="he-addrow"><button class="add-set-toggle-btn" data-action="draft-open-add-set" data-ex="'+ex.id+'">' +
               '<span class="plus-glyph">&#43;</span> Add Set '+(ex.sets.length+1) +
-            '</button>';
+            '</button></div>';
         }
         html += '</div>'; // close he-exercise-card
       });
@@ -26688,7 +26894,15 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
               '</button>';
     }
     html += '</div>'; // close he-body
+    var nChg = historyEditChangeCount();
+    if (ui.heUndo){
+      html += '<div class="he-toast" id="heToast"><span>Set removed from ' + esc(ui.heUndo.name) + '</span><button type="button" data-action="he-undo">UNDO</button></div>';
+    }
+    html += '<div class="he-bar"><div class="he-chg">' + (nChg ? '<b>' + nChg + '</b>' + (nChg === 1 ? 'CHANGE' : 'CHANGES') : 'NO CHANGES') + '</div>' +
+            '<button type="button" class="he-go' + (nChg ? '' : ' idle') + '" data-action="save-history-edit">' + (focusExId ? 'SAVE EXERCISE' : 'SAVE CHANGES') + '</button></div>';
     panel.innerHTML = html;
+    var newBody = panel.querySelector('.he-body');
+    if (newBody && prevBody) newBody.scrollTop = prevScroll;
   }
 
   /* =========================================================
@@ -29091,11 +29305,17 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     } else if (action === 'draft-cancel-row'){
       draftCloseRow();
     } else if (action === 'draft-confirm-add-set'){
-      draftOpenAddSetConfirm(el.dataset.ex);
+      draftConfirmAddSet(el.dataset.ex);
     } else if (action === 'draft-confirm-edit-set'){
       draftOpenEditSetConfirm(el.dataset.ex, el.dataset.set);
     } else if (action === 'draft-delete-set'){
-      draftOpenDeleteSetConfirm(el.dataset.ex, el.dataset.set);
+      draftDeleteSetUndoable(el.dataset.ex, el.dataset.set);
+    } else if (action === 'he-step'){
+      draftStepRow(el.dataset.f, parseInt(el.dataset.d, 10) || 0);
+    } else if (action === 'he-toggle-card'){
+      draftToggleCard(el.dataset.ex);
+    } else if (action === 'he-undo'){
+      draftUndoDelete();
     } else if (action === 'draft-open-add-exercise'){
       draftOpenAddExercise();
     } else if (action === 'draft-close-add-exercise'){
@@ -29119,6 +29339,7 @@ window.__sfGoogleReturning = (location.hash || '').indexOf('id_token=') > -1;</s
     var t = e.target;
     if (t.id === 'heNameInput'){
       if (ui.editDraft) ui.editDraft.name = t.value;
+      refreshHistoryEditBar();
     } else if (t.classList.contains('he-cd-in')){
       if (ui.heCardio) ui.heCardio[t.dataset.f] = t.value;
     } else if (t.classList.contains('he-set-weight-input')){
